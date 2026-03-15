@@ -19,7 +19,7 @@ const translations = {
         screen_off: "EKRAN WYGASZONY",
         mob_lib: "Biblioteka",
         mob_set: "Setlista",
-        speaker_panel: "Panel Mówcy",
+        speaker_panel: "Panel Mówcy / Konferencja",
         time_label: "Czas (min):",
         set_btn: "USTAW",
         msg_ph: "Wiadomość do mówcy...",
@@ -64,7 +64,24 @@ const translations = {
         open_win: "OTWÓRZ OKNO ↗",
         ios_install: "Zainstaluj jako aplikację",
         ios_desc: "Aby uruchomić na pełnym ekranie, kliknij przycisk <span class=\"icon-share\"></span> i wybierz <strong>\"Do ekranu początkowego\"</strong>.",
-        add_btn_small: "DODAJ"
+        add_btn_small: "DODAJ",
+        
+        // --- NOWE: TRYB KONFERENCJI ---
+        clock_msg_title: "ZEGAR & WIADOMOŚĆ",
+        multimedia_pres_title: "MULTIMEDIA (EKRAN & PREZENTER)",
+        canva_title: "1. CANVA (Zapisane prezentacje)",
+        canva_link_ph: "Wklej link Canva...",
+        add_link_btn: "+ DODAJ",
+        no_canva_msg: "Brak dodanych prezentacji.",
+        presentation_label: "Prezentacja",
+        show_btn: "🖥️ POKAŻ",
+        pdf_title: "2. PLIK PREZENTACJI (PDF / PPTX)",
+        pdf_ph: "Wybierz plik PDF lub PPTX...",
+        slides_control_title: "Sterowanie Slajdami",
+        show_pres_btn: "🖥️ POKAŻ PREZENTACJĘ NA EKRANACH",
+        blackout_on_btn: "WYGAŚ EKRAN RZUTNIKA",
+        blackout_off_btn: "ZDEJMIJ BLACKOUT (POKAŻ EKRAN)",
+        open_presenter_btn: "📱 OTWÓRZ WIDOK PREZENTERA (W NOWEJ KARCIE) ↗"
     },
     en: {
         worship_mode: "🎸 WORSHIP",
@@ -83,7 +100,7 @@ const translations = {
         screen_off: "SCREEN BLACKED OUT",
         mob_lib: "Library",
         mob_set: "Setlist",
-        speaker_panel: "Speaker Panel",
+        speaker_panel: "Speaker Panel / Conference",
         time_label: "Time (min):",
         set_btn: "SET",
         msg_ph: "Message to speaker...",
@@ -128,12 +145,28 @@ const translations = {
         open_win: "OPEN WINDOW ↗",
         ios_install: "Install as App",
         ios_desc: "To launch in full screen, tap the <span class=\"icon-share\"></span> button and select <strong>\"Add to Home Screen\"</strong>.",
-        add_btn_small: "ADD"
+        add_btn_small: "ADD",
+        
+        // --- NEW: CONFERENCE MODE ---
+        clock_msg_title: "CLOCK & MESSAGE",
+        multimedia_pres_title: "MULTIMEDIA (SCREEN & PRESENTER)",
+        canva_title: "1. CANVA (Saved presentations)",
+        canva_link_ph: "Paste Canva link...",
+        add_link_btn: "+ ADD",
+        no_canva_msg: "No presentations added.",
+        presentation_label: "Presentation",
+        show_btn: "🖥️ SHOW",
+        pdf_title: "2. PRESENTATION FILE (PDF / PPTX)",
+        pdf_ph: "Choose PDF or PPTX file...",
+        slides_control_title: "Slide Controls",
+        show_pres_btn: "🖥️ SHOW PRESENTATION ON SCREENS",
+        blackout_on_btn: "BLACKOUT PROJECTOR SCREEN",
+        blackout_off_btn: "REMOVE BLACKOUT (SHOW SCREEN)",
+        open_presenter_btn: "📱 OPEN PRESENTER VIEW (NEW TAB) ↗"
     }
 };
 
 let currentLang = 'pl';
-
 function setLanguage(lang) {
     currentLang = lang;
     localStorage.setItem('appLang', lang);
@@ -538,7 +571,9 @@ function renderCanvaLinks() {
     list.innerHTML = '';
     
     if(canvaLinks.length === 0) {
-        list.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding: 10px; border: 1px dashed var(--border-color); border-radius: 6px;">Brak dodanych prezentacji.</div>';
+        // Tłumaczenie błędu
+        const emptyMsg = translations[currentLang].no_canva_msg || "Brak dodanych prezentacji.";
+        list.innerHTML = `<div style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding: 10px; border: 1px dashed var(--border-color); border-radius: 6px;">${emptyMsg}</div>`;
         return;
     }
 
@@ -552,14 +587,17 @@ function renderCanvaLinks() {
         item.style.borderRadius = '6px';
         item.style.border = '1px solid var(--border-color)';
         
-        // Wyświetlamy skrócony link dla estetyki
         const shortLink = link.length > 35 ? link.substring(0, 35) + '...' : link;
+        
+        // Tłumaczenia przycisków wewnątrz listy
+        const label = translations[currentLang].presentation_label || "Prezentacja";
+        const btnShow = translations[currentLang].show_btn || "🖥️ POKAŻ";
 
         item.innerHTML = `
             <div style="flex-grow: 1; font-size: 0.75rem; color: var(--text-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: monospace;" title="${link}">
-                Prezentacja ${index + 1}: ${shortLink}
+                ${label} ${index + 1}: ${shortLink}
             </div>
-            <button class="action-btn" style="background:var(--accent-success); padding: 6px 12px; font-size: 0.75rem;" onclick="sendSpecificCanvaLink(${index})">🖥️ POKAŻ</button>
+            <button class="action-btn" style="background:var(--accent-success); padding: 6px 12px; font-size: 0.75rem;" onclick="sendSpecificCanvaLink(${index})">${btnShow}</button>
             <button class="btn-sm" style="background:var(--accent-danger); color:white; border:none; padding: 6px 10px; font-weight: bold;" onclick="removeCanvaLink(${index})">✕</button>
         `;
         list.appendChild(item);
@@ -696,9 +734,29 @@ function updateFileName(input) {
 }
 
 document.addEventListener('keydown', (e) => {
+    // Ignoruj strzałki, jeśli akurat wpisujesz coś w polu tekstowym (np. wiadomość dla mówcy)
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); navigateSlides(1); }
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); navigateSlides(-1); }
+    
+    // Sprawdzamy, który tryb jest obecnie włączony na ekranie
+    const isConferenceActive = document.getElementById('conference-mode').classList.contains('active');
+
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { 
+        e.preventDefault(); 
+        if (isConferenceActive) {
+            changeSlide(1); // Zmienia slajd PDF w trybie Konferencji
+        } else {
+            navigateSlides(1); // Zmienia kafelek piosenki w trybie Uwielbienia
+        }
+    }
+    
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { 
+        e.preventDefault(); 
+        if (isConferenceActive) {
+            changeSlide(-1);
+        } else {
+            navigateSlides(-1); 
+        }
+    }
 });
 
 function navigateSlides(direction) {
@@ -769,13 +827,26 @@ function switchMobTab(tabName) {
     document.getElementById('col-setlist').style.display = 'none';
     document.getElementById('col-live').style.display = 'none';
     
-    document.getElementById('col-' + tabName).style.display = 'block';
-    if(tabName === 'live') document.getElementById('col-live').style.display = 'flex';
+    // KLUCZOWA ZMIANA: Zmieniamy z 'block' na 'flex', aby listy znów dało się przewijać
+    document.getElementById('col-' + tabName).style.display = 'flex';
 
     document.querySelectorAll('.mob-tab').forEach(b => b.classList.remove('active'));
     event.currentTarget.classList.add('active');
 }
-
+function showToast(message) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerText = message;
+    container.appendChild(toast);
+    
+    // Usuwamy powiadomienie po 2.5 sekundach
+    setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 2500);
+}
 // UŻYWAMY DANYCH PRZEKAZANYCH Z HTML
 const library = (window.SERVER_DATA && window.SERVER_DATA.songs) ? window.SERVER_DATA.songs : [];
 let setlist = []; let currentSetIndex = -1;
@@ -826,7 +897,7 @@ function renderLibrary(f="") {
                     <div><b>${s.title}</b></div>
                     <div style="display:flex;gap:5px;">
                         <button class="btn-icon" onclick="event.preventDefault(); openEditModal(${s.id})" style="background:none; border:none; cursor:pointer;">✏️</button> 
-                        <button class="btn-sm" onclick="event.preventDefault(); addToSetlist(${s.id})" style="background:var(--accent-success);color:white; border:none;">${btnText}</button>
+                        <button class="btn-sm" onclick="event.preventDefault(); addToSetlist(${s.id}, this)" style="background:var(--accent-success);color:white; border:none; transition: transform 0.2s;">${btnText}</button>
                     </div>
                 </summary>
                 <div class="lib-content-preview">${preview}</div>`;
@@ -836,12 +907,27 @@ function renderLibrary(f="") {
 }
 function filterLibrary(){renderLibrary(document.getElementById('searchBox').value);}
 
-function addToSetlist(id){
+function addToSetlist(id, btnElement) {
     const item = library.find(s=>s.id===id);
     setlist.push({...item, transpose:0}); 
     renderSetlist();
     if(setlist.length===1) selectForLive(0);
     updateServerState(); 
+
+    // Animacja przycisku
+    if (btnElement) {
+        const originalText = btnElement.innerText;
+        btnElement.innerText = "✔"; // Krótka zmiana na ptaszka
+        btnElement.style.transform = "scale(1.15)";
+        
+        setTimeout(() => {
+            btnElement.innerText = originalText;
+            btnElement.style.transform = "scale(1)";
+        }, 800);
+    }
+
+    // Wyświetlenie dymka powiadomienia
+    showToast(`Dodano: ${item.title}`);
 }
 function removeFromSetlist(i){
     setlist.splice(i,1);
@@ -856,22 +942,30 @@ function removeFromSetlist(i){
 }
 
 function renderSetlist() {
-    const c = document.getElementById('setlist-container'); 
-    if(!c) return;
-    c.innerHTML = "";
-    setlist.forEach((item, i) => {
-        const d = document.createElement('div'); d.className = `setlist-item ${i === currentSetIndex ? 'active' : ''}`; d.onclick = () => selectForLive(i);
-        let displayKey = item.key || "?";
-        let transInfo = item.transpose !== 0 ? ` (${item.transpose > 0 ? '+' : ''}${item.transpose})` : '';
-        d.innerHTML = `
+    const container = document.getElementById('setlist-container');
+    if (!container) return;
+    
+    if (setlist.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); margin-top: 40px; font-size: 0.9rem;">Brak piosenek w setliście.</div>';
+        return;
+    }
+
+    let html = '';
+    setlist.forEach((s, index) => {
+        const isActive = (index === currentSetIndex) ? 'active' : '';
+        html += `
+        <div class="setlist-item ${isActive}" onclick="selectForLive(${index})">
+            <div class="drag-handle" onclick="event.stopPropagation()">☰</div>
+            
             <div class="setlist-content">
-                <div style="font-weight:bold;">${i + 1}. ${item.title}</div>
-                <small style="color:var(--text-muted);">Key: ${displayKey}${transInfo} ${item.bpm ? `| ${item.bpm} BPM` : ''}</small>
+                <span>${index + 1}.</span> ${s.title}
+                <span style="color:var(--text-muted); font-size:0.8rem; margin-left:6px;">(${s.key})</span>
             </div>
-            <div class="setlist-controls"><button class="move-btn" onclick="event.stopPropagation(); moveSetlistItem(${i}, -1)">▲</button><button class="move-btn" onclick="event.stopPropagation(); moveSetlistItem(${i}, 1)">▼</button></div>
-            <span style="color:var(--accent-danger);cursor:pointer;margin-left:10px;font-weight:bold;" onclick="event.stopPropagation();removeFromSetlist(${i})">✕</span>`;
-        c.appendChild(d);
+            
+            <button class="btn-sm" onclick="event.stopPropagation(); removeFromSetlist(${index})" style="background:transparent; border:1px solid var(--accent-danger); color:var(--accent-danger); padding: 8px;">✕</button>
+        </div>`;
     });
+    container.innerHTML = html;
 }
 function moveSetlistItem(index, direction) {
     const newIndex = index + direction; if (newIndex < 0 || newIndex >= setlist.length) return;
@@ -1076,29 +1170,34 @@ function goLiveSection(c, n, forceTrans = null, nextTrans = null) {
 }
 let isBlackoutActive = false;
 let currentLiveState = { c: '', n: '', forceTrans: null, nextTrans: null };
+
 function blackout() {
     isBlackoutActive = !isBlackoutActive;
     
-    // Przełączanie wizualne na panelu sterowania
-    const btn = document.querySelector('button[onclick="blackout()"]');
-    if (btn) {
-        if (isBlackoutActive) btn.classList.add('active');
-        else btn.classList.remove('active');
-    }
-
+    const btns = document.querySelectorAll('button[onclick="blackout()"]');
     if (isBlackoutActive) {
-        const txt = (currentLang === 'en') ? "SCREEN BLACKED OUT" : "EKRAN WYGASZONY";
-        document.getElementById('live-preview-box').innerText = txt;
+        btns.forEach(btn => {
+            btn.style.background = "var(--accent-danger)";
+            btn.style.color = "white";
+            btn.style.boxShadow = "0 0 20px rgba(233, 20, 41, 0.7)";
+            // Czerpiemy tekst ze słownika (EN lub PL)
+            btn.innerText = translations[currentLang].blackout_off_btn || "ZDEJMIJ BLACKOUT (POKAŻ EKRAN)";
+        });
     } else {
-        document.getElementById('live-preview-box').innerText = currentLiveState.c.replace(/\[.*?\]/g, "");
+        btns.forEach(btn => {
+            btn.style.background = ""; 
+            btn.style.color = "";
+            btn.style.boxShadow = "";
+            // Czerpiemy domyślny tekst (EN lub PL)
+            btn.innerText = translations[currentLang].blackout_on_btn || "WYGAŚ EKRAN RZUTNIKA";
+        });
     }
 
     let t = (currentLiveState.forceTrans !== null) ? currentLiveState.forceTrans : (setlist[currentSetIndex] ? setlist[currentSetIndex].transpose : 0);
     let nt = (currentLiveState.nextTrans !== null) ? currentLiveState.nextTrans : t;
-    let currentKey = document.getElementById('live-key') ? document.getElementById('live-key').innerText : 'N/A';
-    let currentBpm = setlist[currentSetIndex] ? setlist[currentSetIndex].bpm : 0;
+    let currentKey = document.getElementById('live-key') ? document.getElementById('live-key').innerText : '';
+    let currentBpm = setlist[currentSetIndex] ? setlist[currentSetIndex].bpm : '';
 
-    // Ponowne wysłanie tego samego tekstu, by wymusić zaktualizowanie rzutnika i zespołu
     fetch('/send_text', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -1113,6 +1212,37 @@ function blackout() {
             blackout: isBlackoutActive
         })
     });
+}
+
+function goLiveSection(c, n, forceTrans = null, nextTrans = null) {
+    // Zapisujemy aktualny stan slajdu (by blackout mógł go użyć przy włączeniu/wyłączeniu)
+    currentLiveState = { c: c, n: n, forceTrans: forceTrans, nextTrans: nextTrans };
+
+    let t = (forceTrans !== null) ? forceTrans : setlist[currentSetIndex].transpose;
+    let nt = (nextTrans !== null) ? nextTrans : t; 
+    
+    let currentKey = document.getElementById('live-key') ? document.getElementById('live-key').innerText : '';
+    let currentBpm = setlist[currentSetIndex] ? setlist[currentSetIndex].bpm : '';
+    
+    // Wysyłamy nowy slajd, PODTRZYMUJĄC obecny stan blackoutu!
+    // Jeśli blackout jest włączony, rzutnik to zignoruje, ale widok zespołu (stage) się zaktualizuje.
+    fetch('/send_text', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            text: c, 
+            next_text: n, 
+            transpose: t, 
+            next_transpose: nt,
+            key: currentKey, 
+            bpm: currentBpm,
+            current_index: currentSetIndex,
+            setlist: setlist,
+            blackout: isBlackoutActive 
+        })
+    });
+    
+    // Operator zawsze widzi u siebie na podglądzie tekst, żeby wiedzieć co wysłał zespołowi
+    document.getElementById('live-preview-box').innerText = c.replace(/\[.*?\]/g, "");
 }
 function showLogo(){fetch('/send_text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({logo:true})});document.getElementById('live-preview-box').innerText="LOGO";}
 
@@ -1192,5 +1322,41 @@ socket.on('refresh_logo', function() {
     var logo = document.getElementById('control-logo'); 
     if(window.SERVER_DATA && window.SERVER_DATA.logoUrl) {
         logo.src = window.SERVER_DATA.logoUrl + "?v=" + new Date().getTime(); 
+    }
+});
+// --- INICJALIZACJA DRAG & DROP W SETLIŚCIE ---
+document.addEventListener('DOMContentLoaded', () => {
+    const setlistContainer = document.getElementById('setlist-container');
+    
+    if (setlistContainer) {
+        new Sortable(setlistContainer, {
+            animation: 150, // Płynna animacja przesuwania pozostałych kafelków
+            handle: '.drag-handle', // Przeciągamy tylko łapiąc za ikonę ☰
+            ghostClass: 'sortable-ghost',
+            onEnd: function (evt) {
+                if (evt.oldIndex === evt.newIndex) return;
+                
+                const movedItem = setlist.splice(evt.oldIndex, 1)[0];
+                setlist.splice(evt.newIndex, 0, movedItem);
+                
+                if (currentSetIndex === evt.oldIndex) {
+                    currentSetIndex = evt.newIndex;
+                } else if (currentSetIndex > evt.oldIndex && currentSetIndex <= evt.newIndex) {
+                    currentSetIndex--;
+                } else if (currentSetIndex < evt.oldIndex && currentSetIndex >= evt.newIndex) {
+                    currentSetIndex++;
+                }
+
+                updateServerState();
+                renderSetlist();
+
+                // --- DODAJ TEN FRAGMENT ---
+                // Odświeża panel Live (i przelicza przejścia), jeśli jakakolwiek piosenka jest włączona
+                if (currentSetIndex !== -1) {
+                    selectForLive(currentSetIndex);
+                }
+                // --------------------------
+            }
+        });
     }
 });
