@@ -529,17 +529,70 @@ function sendPresentationState() {
     });
 }
 
-// Funkcja wysyłająca link do Canvy
-function sendCanvaLink() {
-    let link = document.getElementById('canva-link').value;
+// --- ZARZĄDZANIE KILKOMA LINKAMI CANVA ---
+let canvaLinks = JSON.parse(localStorage.getItem('canvaLinks')) || [];
+
+function renderCanvaLinks() {
+    const list = document.getElementById('canva-links-list');
+    if (!list) return;
+    list.innerHTML = '';
     
-    // Zabezpieczenie: Jeśli to link z Canvy, ale nie ma parametru embed, naprawiamy go
+    if(canvaLinks.length === 0) {
+        list.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding: 10px; border: 1px dashed var(--border-color); border-radius: 6px;">Brak dodanych prezentacji.</div>';
+        return;
+    }
+
+    canvaLinks.forEach((link, index) => {
+        const item = document.createElement('div');
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.style.gap = '10px';
+        item.style.background = 'var(--bg-element)';
+        item.style.padding = '8px 12px';
+        item.style.borderRadius = '6px';
+        item.style.border = '1px solid var(--border-color)';
+        
+        // Wyświetlamy skrócony link dla estetyki
+        const shortLink = link.length > 35 ? link.substring(0, 35) + '...' : link;
+
+        item.innerHTML = `
+            <div style="flex-grow: 1; font-size: 0.75rem; color: var(--text-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: monospace;" title="${link}">
+                Prezentacja ${index + 1}: ${shortLink}
+            </div>
+            <button class="action-btn" style="background:var(--accent-success); padding: 6px 12px; font-size: 0.75rem;" onclick="sendSpecificCanvaLink(${index})">🖥️ POKAŻ</button>
+            <button class="btn-sm" style="background:var(--accent-danger); color:white; border:none; padding: 6px 10px; font-weight: bold;" onclick="removeCanvaLink(${index})">✕</button>
+        `;
+        list.appendChild(item);
+    });
+}
+
+function addCanvaLink() {
+    let input = document.getElementById('new-canva-link');
+    let link = input.value.trim();
+    if (!link) return;
+
+    // Auto-naprawa linku do wersji embed (zabezpieczenie)
     if (link.includes('canva.com') && !link.includes('?embed')) {
-        // Usuwamy wszystko po słowie /edit lub /view i doklejamy /view?embed
         link = link.replace(/\/edit.*$/, '/view?embed').replace(/\/view.*$/, '/view?embed');
     }
 
-    let d = updTimer(); // Twoja funkcja aktualizująca zegar
+    canvaLinks.push(link);
+    localStorage.setItem('canvaLinks', JSON.stringify(canvaLinks)); // Zapisujemy w pamięci
+    input.value = '';
+    renderCanvaLinks();
+}
+
+function removeCanvaLink(index) {
+    canvaLinks.splice(index, 1);
+    localStorage.setItem('canvaLinks', JSON.stringify(canvaLinks));
+    renderCanvaLinks();
+}
+
+function sendSpecificCanvaLink(index) {
+    const link = canvaLinks[index];
+    if (!link) return;
+
+    let d = typeof updTimer === 'function' ? updTimer() : {text: '00:00', color: 'white'};
     fetch('/send_text', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -547,11 +600,18 @@ function sendCanvaLink() {
             url: link,
             timer: d.text, 
             timer_color: d.color, 
-            message: actMsg,
-            blackout: isBlackoutActive
+            message: typeof actMsg !== 'undefined' ? actMsg : '',
+            blackout: typeof isBlackoutActive !== 'undefined' ? isBlackoutActive : false
         })
     });
 }
+
+// Inicjalizacja listy po załadowaniu skryptu
+document.addEventListener('DOMContentLoaded', () => {
+    renderCanvaLinks();
+});
+// Asekuracyjne wywołanie (gdyby skrypt załadował się po DOMContentLoaded)
+setTimeout(renderCanvaLinks, 500);
 
 function updateServerState() {
     socket.emit('client_update_state', {

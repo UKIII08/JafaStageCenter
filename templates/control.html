@@ -841,9 +841,15 @@
                     <h3 style="margin-top:0; color:var(--text-muted); font-size:0.85rem; letter-spacing: 1px;">MULTIMEDIA (EKRAN & PREZENTER)</h3>
                     
                     <div style="margin-bottom: 20px; background: var(--bg-app); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
-                        <label style="font-weight:bold; font-size:0.8rem; color:var(--accent-primary);">1. CANVA (Link Embed)</label>
-                        <input type="text" id="canva-link" placeholder="Wklej publiczny link osadzenia Canva..." style="margin-top:8px; font-size:0.85rem;">
-                        <button class="action-btn" style="width:100%; justify-content:center; padding:10px;" onclick="sendCanvaLink()">POKAŻ CANVĘ NA EKRANACH</button>
+                        <label style="font-weight:bold; font-size:0.8rem; color:var(--accent-primary);">1. CANVA (Zapisane prezentacje)</label>
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 8px; margin-bottom: 12px;">
+                            <input type="text" id="new-canva-link" placeholder="Wklej link Canva..." style="margin-bottom: 0; font-size:0.85rem; flex-grow: 1; padding: 10px;">
+                            <button class="action-btn" style="background:var(--accent-primary); border:none; padding: 0 15px; font-size:0.8rem;" onclick="addCanvaLink()">+ DODAJ</button>
+                        </div>
+                        
+                        <div id="canva-links-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 5px;">
+                            </div>
                     </div>
 
                     <div style="background: var(--bg-app); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); flex-grow: 1; display:flex; flex-direction:column;">
