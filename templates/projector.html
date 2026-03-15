@@ -41,9 +41,18 @@
 
         socket.on('update_slide', function(data) {
             slide.style.display = 'none'; logo.style.display = 'none';
-            if (data.mode === 'logo') logo.style.display = 'block';
+            if (data.mode === 'logo') {
+                logo.style.display = 'block';
+            }
             else if (data.mode === 'blackout') {}
-            else if (data.mode === 'worship') { slide.style.display = 'block'; slide.innerHTML = data.people; }
+            else if (data.mode === 'worship') { 
+                if (data.is_blackout) {
+                    // Ekran zostaje czarny, nic nie pokazujemy
+                } else {
+                    slide.style.display = 'block'; 
+                    slide.innerHTML = data.people; 
+                }
+            }
         });
 
         socket.on('apply_settings', function(data) {

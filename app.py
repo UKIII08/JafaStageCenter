@@ -21,6 +21,7 @@ import random
 import logging
 import tempfile
 from pathlib import Path
+import webbrowser
 
 # --- ENGINE IMPORTS ---
 from Mingus_silnik import WorshipHybridEngineV1
@@ -700,9 +701,7 @@ def send_text():
         socketio.emit('update_slide', data) 
         return {'status': 'ok'}
     raw_text = data.get('text', '')
-    if not raw_text:
-        socketio.emit('update_slide', {'mode': 'blackout'})
-        return {'status': 'ok'}
+    is_blackout = data.get('blackout', False)
     
     shift = int(data.get('transpose', 0))
     next_shift = int(data.get('next_transpose', shift)) # Łapiemy nową transpozycję z JS
@@ -718,7 +717,8 @@ def send_text():
         'band': band_html, 
         'band_next': band_next_html,
         'current_key': passed_key,
-        'current_bpm': passed_bpm
+        'current_bpm': passed_bpm,
+        'is_blackout': is_blackout
     })
     return {'status': 'ok'}
 
@@ -736,6 +736,16 @@ def export_songs():
     if export_lines and export_lines[-1] == "---": export_lines.pop()
     final_text = "\n".join(export_lines)
     return Response(final_text, mimetype="text/plain", headers={"Content-disposition": "attachment; filename=baza_piosenek.txt"})
+@app.route('/open_canva', methods=['POST'])
+def route_open_canva():
+    data = request.json
+    url = data.get('url', '')
+    if url:
+        # Jeśli wkleisz link edycji, program zamieni go na link 'view', żeby od razu zrzucić interfejs edytora
+        if '/edit' in url:
+            url = url.replace('/edit', '/view')
+        webbrowser.open(url)
+    return {'status': 'ok'}
 
 # --- SERVER START THREAD ---
 def start_server():

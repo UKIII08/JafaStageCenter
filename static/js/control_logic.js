@@ -427,7 +427,24 @@ socket.on('update_slide', function(data) {
     
     if (data.mode === 'worship') {
         let textContent = data.people.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, ""); 
-        previewBox.innerText = textContent;
+        
+        // Synchronizacja przycisku z innymi urządzeniami (opcjonalnie)
+        if (data.is_blackout !== undefined) {
+            isBlackoutActive = data.is_blackout;
+            const btn = document.querySelector('button[onclick="blackout()"]');
+            if (btn) {
+                if (isBlackoutActive) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }
+        }
+
+        // Podgląd live na panelu głównym
+        if (data.is_blackout) {
+            const txt = (currentLang === 'en') ? "SCREEN BLACKED OUT" : "EKRAN WYGASZONY";
+            previewBox.innerText = txt;
+        } else {
+            previewBox.innerText = textContent;
+        }
 
         const slides = document.querySelectorAll('.slide-btn');
         slides.forEach(btn => {
@@ -442,10 +459,10 @@ socket.on('update_slide', function(data) {
             }
         });
     } else if (data.mode === 'blackout') {
-         const txt = (currentLang === 'en') ? "SCREEN BLACKED OUT" : "EKRAN WYGASZONY";
-         previewBox.innerText = txt;
+        const txt = (currentLang === 'en') ? "SCREEN BLACKED OUT" : "EKRAN WYGASZONY";
+        previewBox.innerText = txt;
     } else if (data.mode === 'logo') {
-         previewBox.innerText = "LOGO";
+        previewBox.innerText = "LOGO";
     }
 });
 
@@ -881,11 +898,12 @@ function adjustLiveTrans(a){
 }
 
 function goLiveSection(c, n, forceTrans = null, nextTrans = null) {
+    currentLiveState = { c: c, n: n, forceTrans: forceTrans, nextTrans: nextTrans };
     let t = (forceTrans !== null) ? forceTrans : setlist[currentSetIndex].transpose;
-    let nt = (nextTrans !== null) ? nextTrans : t; // Wyłapuje transpozycję dla następnej piosenki
+    let nt = (nextTrans !== null) ? nextTrans : t; 
     
-    let currentKey = document.getElementById('live-key').innerText;
-    let currentBpm = setlist[currentSetIndex].bpm;
+    let currentKey = document.getElementById('live-key') ? document.getElementById('live-key').innerText : 'N/A';
+    let currentBpm = setlist[currentSetIndex] ? setlist[currentSetIndex].bpm : 0;
     
     fetch('/send_text', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -893,19 +911,61 @@ function goLiveSection(c, n, forceTrans = null, nextTrans = null) {
             text: c, 
             next_text: n, 
             transpose: t, 
-            next_transpose: nt, // WYSYŁAMY NOWĄ ZMIENNĄ
+            next_transpose: nt, 
             key: currentKey, 
             bpm: currentBpm,
             current_index: currentSetIndex,
-            setlist: setlist
+            setlist: setlist,
+            blackout: isBlackoutActive // Dodajemy stan blackoutu
         })
     });
-    document.getElementById('live-preview-box').innerText = c.replace(/\[.*?\]/g, "");
+    
+    if (isBlackoutActive) {
+        const txt = (currentLang === 'en') ? "SCREEN BLACKED OUT" : "EKRAN WYGASZONY";
+        document.getElementById('live-preview-box').innerText = txt;
+    } else {
+        document.getElementById('live-preview-box').innerText = c.replace(/\[.*?\]/g, "");
+    }
 }
-function blackout(){
-    const txt = (currentLang === 'en') ? "SCREEN BLACKED OUT" : "EKRAN WYGASZONY";
-    fetch('/send_text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:''})});
-    document.getElementById('live-preview-box').innerText=txt;
+let isBlackoutActive = false;
+let currentLiveState = { c: '', n: '', forceTrans: null, nextTrans: null };
+function blackout() {
+    isBlackoutActive = !isBlackoutActive;
+    
+    // Przełączanie wizualne na panelu sterowania
+    const btn = document.querySelector('button[onclick="blackout()"]');
+    if (btn) {
+        if (isBlackoutActive) btn.classList.add('active');
+        else btn.classList.remove('active');
+    }
+
+    if (isBlackoutActive) {
+        const txt = (currentLang === 'en') ? "SCREEN BLACKED OUT" : "EKRAN WYGASZONY";
+        document.getElementById('live-preview-box').innerText = txt;
+    } else {
+        document.getElementById('live-preview-box').innerText = currentLiveState.c.replace(/\[.*?\]/g, "");
+    }
+
+    let t = (currentLiveState.forceTrans !== null) ? currentLiveState.forceTrans : (setlist[currentSetIndex] ? setlist[currentSetIndex].transpose : 0);
+    let nt = (currentLiveState.nextTrans !== null) ? currentLiveState.nextTrans : t;
+    let currentKey = document.getElementById('live-key') ? document.getElementById('live-key').innerText : 'N/A';
+    let currentBpm = setlist[currentSetIndex] ? setlist[currentSetIndex].bpm : 0;
+
+    // Ponowne wysłanie tego samego tekstu, by wymusić zaktualizowanie rzutnika i zespołu
+    fetch('/send_text', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            text: currentLiveState.c, 
+            next_text: currentLiveState.n, 
+            transpose: t, 
+            next_transpose: nt,
+            key: currentKey, 
+            bpm: currentBpm,
+            current_index: currentSetIndex,
+            setlist: setlist,
+            blackout: isBlackoutActive
+        })
+    });
 }
 function showLogo(){fetch('/send_text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({logo:true})});document.getElementById('live-preview-box').innerText="LOGO";}
 
