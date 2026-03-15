@@ -22,7 +22,9 @@ import logging
 import tempfile
 from pathlib import Path
 import webbrowser
-
+import fitz  # PyMuPDF do cięcia prezentacji
+import pythoncom
+import win32com.client
 # --- ENGINE IMPORTS ---
 from Mingus_silnik import WorshipHybridEngineV1
 try:
@@ -697,7 +699,7 @@ def send_text():
     if data.get('logo') is True:
         socketio.emit('update_slide', {'mode': 'logo'})
         return {'status': 'ok'}
-    if data.get('mode') == 'conference':
+    if data.get('mode') in ['conference', 'canva', 'presentation']:
         socketio.emit('update_slide', data) 
         return {'status': 'ok'}
     raw_text = data.get('text', '')
@@ -747,6 +749,85 @@ def route_open_canva():
         webbrowser.open(url)
     return {'status': 'ok'}
 
+@app.route('/presenter')
+def presenter():
+    """Nowy, dedykowany widok dla mówcy (Presenter View)"""
+    return render_template('presenter.html')
+
+@app.route('/upload_presentation', methods=['POST'])
+def upload_presentation():
+    """Odbiera plik PDF lub PPTX, konwertuje do PDF (jeśli trzeba), tnie na slajdy (PNG) i zapisuje w folderze static"""
+    file = request.files.get('pres_file')
+    if not file:
+        return {'status': 'error', 'message': 'Brak pliku.'}
+        
+    filename = file.filename.lower()
+    if not (filename.endswith('.pdf') or filename.endswith('.pptx') or filename.endswith('.ppt')):
+        return {'status': 'error', 'message': 'Proszę wgrać plik PDF lub PowerPoint (.pptx).'}
+
+    save_dir = os.path.join(app.static_folder, 'presentation')
+    os.makedirs(save_dir, exist_ok=True)
+    
+    # Czyszczenie starych slajdów
+    for f in os.listdir(save_dir):
+        try:
+            os.remove(os.path.join(save_dir, f))
+        except Exception:
+            pass
+
+    # Zapisujemy wgrany plik tymczasowo z jego oryginalnym rozszerzeniem
+    ext = os.path.splitext(filename)[1]
+    temp_input_path = os.path.join(save_dir, 'uploaded_file' + ext)
+    file.save(temp_input_path)
+    
+    pdf_path = os.path.join(save_dir, 'temp.pdf')
+
+    try:
+        # 1. KONWERSJA Z POWERPOINTA DO PDF (JEŚLI POTRZEBA)
+        if ext in ['.pptx', '.ppt']:
+            # Poniższa linijka pozwala Pythonowi komunikować się z Windowsem wewnątrz środowiska webowego
+            pythoncom.CoInitialize() 
+            
+            # PowerPoint wymaga bezwzględnych (pełnych) ścieżek na dysku do zadziałania
+            abs_input = os.path.abspath(temp_input_path)
+            abs_pdf = os.path.abspath(pdf_path)
+            
+            # Uruchamiamy PowerPointa w tle
+            powerpoint = win32com.client.Dispatch("PowerPoint.Application")
+            presentation = powerpoint.Presentations.Open(abs_input, WithWindow=False)
+            
+            # 32 to magiczny numer formatu PDF w systemie MS Office
+            presentation.SaveAs(abs_pdf, 32) 
+            presentation.Close()
+            
+            pythoncom.CoUninitialize()
+        else:
+            # Jeśli to był od razu PDF, po prostu zmieniamy mu nazwę
+            os.rename(temp_input_path, pdf_path)
+
+        # 2. CIĘCIE PDF-A NA OBRAZKI (SLAJDY)
+        doc = fitz.open(pdf_path)
+        slide_urls = []
+        
+        for i in range(len(doc)):
+            page = doc.load_page(i)
+            pix = page.get_pixmap(dpi=150) # Rozdzielczość 150 dpi jest idealna i szybka
+            img_name = f"slide_{i}.png"
+            pix.save(os.path.join(save_dir, img_name))
+            
+            slide_urls.append(f"/static/presentation/{img_name}?v={random.randint(1,10000)}")
+
+        doc.close()
+        
+        # Opcjonalnie usuwamy tymczasowy plik PDF/PPTX żeby nie zaśmiecać dysku
+        try: os.remove(pdf_path) 
+        except: pass
+        
+        socketio.emit('presentation_ready', {'slides': slide_urls})
+        return {'status': 'ok', 'slides': slide_urls}
+        
+    except Exception as e:
+        return {'status': 'error', 'message': f'Błąd przetwarzania: {str(e)}'}
 # --- SERVER START THREAD ---
 def start_server():
     socketio.run(app, host='0.0.0.0', port=5000, use_reloader=False, allow_unsafe_werkzeug=True)

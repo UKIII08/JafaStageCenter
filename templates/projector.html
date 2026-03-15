@@ -27,20 +27,29 @@
             z-index: 10;
         }
         #logo-image { display: none; max-width: 80vw; max-height: 80vh; object-fit: contain; z-index: 20; }
+        #canva-frame { display: none; width: 100vw; height: 100vh; border: none; z-index: 15; position: absolute; }
+        #pres-image { display: none; width: 100vw; height: 100vh; object-fit: contain; z-index: 15; position: absolute; background: black; }
     </style>
 </head>
 <body>
     <div id="slide-content"></div>
     <img id="logo-image" src="{{ url_for('static', filename='logo.png') }}?v={{ range(1,1000)|random }}" alt="Logo">
+    <iframe id="canva-frame" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>
+    <img id="pres-image" src="">
 
     <script>
         var socket = io();
         const slide = document.getElementById('slide-content');
         const logo = document.getElementById('logo-image');
         const root = document.documentElement;
+        const canvaFrame = document.getElementById('canva-frame');
+        const presImage = document.getElementById('pres-image');
 
         socket.on('update_slide', function(data) {
-            slide.style.display = 'none'; logo.style.display = 'none';
+            slide.style.display = 'none'; 
+            logo.style.display = 'none';
+            canvaFrame.style.display = 'none';
+            presImage.style.display = 'none';
             if (data.mode === 'logo') {
                 logo.style.display = 'block';
             }
@@ -52,6 +61,14 @@
                     slide.style.display = 'block'; 
                     slide.innerHTML = data.people; 
                 }
+            }
+            else if (data.mode === 'canva') {
+                if(canvaFrame.src !== data.url) canvaFrame.src = data.url;
+                if(!data.is_blackout) canvaFrame.style.display = 'block';
+            }
+            else if (data.mode === 'presentation') {
+                presImage.src = data.slide_url;
+                if(!data.is_blackout) presImage.style.display = 'block';
             }
         });
 

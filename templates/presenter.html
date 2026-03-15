@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Presenter View</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Główny slajd - lewa strona */
+        .main-view { width: 70%; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        .current-slide-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; background: #111; border: 2px solid #333; border-radius: 10px; overflow: hidden; }
+        #current-slide-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        
+        /* Prawy pasek - zegar, następny slajd, wiadomości */
+        .sidebar { width: 30%; background: #111; border-left: 2px solid #333; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        
+        .timer-box { text-align: center; margin-bottom: 20px; }
+        #clock { font-size: 3vh; color: #aaa; margin-bottom: 10px; }
+        #conf-timer { font-size: 8vh; font-weight: bold; font-family: monospace; }
+        
+        .next-slide-container { flex-grow: 1; display: flex; flex-direction: column; }
+        .next-label { color: #f5365c; font-weight: bold; font-size: 2vh; margin-bottom: 10px; }
+        .next-preview { flex-grow: 1; background: #000; border: 2px solid #222; border-radius: 5px; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        #next-slide-img { max-width: 100%; max-height: 100%; object-fit: contain; opacity: 0.7; }
+        
+        #conf-message { background: #ffd600; color: #000; padding: 15px; border-radius: 5px; font-weight: bold; font-size: 3vh; text-align: center; margin-top: 20px; display: none; }
+    </style>
+</head>
+<body>
+    <div class="main-view">
+        <h2 style="margin:0 0 10px 0; color:#aaa; font-size:2vh;">AKTUALNY SLAJD</h2>
+        <div class="current-slide-container">
+            <img id="current-slide-img" src="" style="display:none;">
+            <h1 id="placeholder-text" style="color:#555;">Oczekiwanie na prezentację...</h1>
+        </div>
+    </div>
+    
+    <div class="sidebar">
+        <div class="timer-box">
+            <div id="clock">00:00</div>
+            <div id="conf-timer" style="color: white;">00:00</div>
+        </div>
+        
+        <div class="next-slide-container">
+            <div class="next-label">NASTĘPNY SLAJD ➔</div>
+            <div class="next-preview">
+                <img id="next-slide-img" src="" style="display:none;">
+            </div>
+        </div>
+        
+        <div id="conf-message"></div>
+    </div>
+
+    <script>
+        var socket = io();
+        
+        // Zegar czasu rzeczywistego
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }, 1000);
+
+        socket.on('update_slide', function(data) {
+            const currentImg = document.getElementById('current-slide-img');
+            const nextImg = document.getElementById('next-slide-img');
+            const placeholder = document.getElementById('placeholder-text');
+
+            // Aktualizacja timera i wiadomości (przychodzą w każdym pakiecie konferencyjnym)
+            if (data.timer) {
+                document.getElementById('conf-timer').innerText = data.timer;
+                document.getElementById('conf-timer').style.color = data.timer_color;
+            }
+            if (data.message) {
+                document.getElementById('conf-message').innerText = data.message;
+                document.getElementById('conf-message').style.display = 'block';
+            } else {
+                document.getElementById('conf-message').style.display = 'none';
+            }
+
+            if (data.mode === 'presentation') {
+                placeholder.style.display = 'none';
+                currentImg.style.display = 'block';
+                currentImg.src = data.slide_url;
+                
+                if (data.next_slide_url) {
+                    nextImg.style.display = 'block';
+                    nextImg.src = data.next_slide_url;
+                } else {
+                    nextImg.style.display = 'none';
+                }
+            } 
+            else if (data.mode === 'canva') {
+                currentImg.style.display = 'none';
+                nextImg.style.display = 'none';
+                placeholder.style.display = 'block';
+                placeholder.innerText = "Trwa prezentacja Canva (Brak podglądu)";
+            }
+            else {
+                currentImg.style.display = 'none';
+                nextImg.style.display = 'none';
+                placeholder.style.display = 'block';
+                placeholder.innerText = "Tryb: " + data.mode.toUpperCase();
+            }
+        });
+    </script>
+</body>
+</html>

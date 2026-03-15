@@ -465,6 +465,93 @@ socket.on('update_slide', function(data) {
         previewBox.innerText = "LOGO";
     }
 });
+let currentPresentationSlides = [];
+let currentSlideIndex = 0;
+
+// Funkcja wgrywająca PDF
+function uploadPdfPresentation() {
+    const fileInput = document.getElementById('pdf-upload');
+    if (!fileInput.files[0]) return alert("Wybierz plik PDF!");
+
+    const formData = new FormData();
+    formData.append("pres_file", fileInput.files[0]);
+
+    fetch('/upload_presentation', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.status === 'ok') {
+            alert("Slajdy gotowe!");
+            // Slajdy zostaną odebrane przez socket event 'presentation_ready'
+        } else {
+            alert(data.message);
+        }
+    });
+}
+
+// Odbieranie slajdów od serwera
+socket.on('presentation_ready', function(data) {
+    currentPresentationSlides = data.slides;
+    currentSlideIndex = 0;
+    document.getElementById('slide-counter').innerText = `1 / ${currentPresentationSlides.length}`;
+});
+
+// Sterowanie lokalną prezentacją
+function changeSlide(direction) {
+    if (currentPresentationSlides.length === 0) return;
+    
+    currentSlideIndex += direction;
+    if (currentSlideIndex < 0) currentSlideIndex = 0;
+    if (currentSlideIndex >= currentPresentationSlides.length) currentSlideIndex = currentPresentationSlides.length - 1;
+    
+    document.getElementById('slide-counter').innerText = `${currentSlideIndex + 1} / ${currentPresentationSlides.length}`;
+    sendPresentationState();
+}
+
+function sendPresentationState() {
+    let currentUrl = currentPresentationSlides[currentSlideIndex];
+    let nextUrl = (currentSlideIndex + 1 < currentPresentationSlides.length) ? currentPresentationSlides[currentSlideIndex + 1] : null;
+    
+    let d = updTimer(); // Twoja funkcja aktualizująca zegar
+    fetch('/send_text', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            mode: 'presentation', 
+            slide_url: currentUrl, 
+            next_slide_url: nextUrl,
+            timer: d.text, 
+            timer_color: d.color, 
+            message: actMsg,
+            blackout: isBlackoutActive
+        })
+    });
+}
+
+// Funkcja wysyłająca link do Canvy
+function sendCanvaLink() {
+    let link = document.getElementById('canva-link').value;
+    
+    // Zabezpieczenie: Jeśli to link z Canvy, ale nie ma parametru embed, naprawiamy go
+    if (link.includes('canva.com') && !link.includes('?embed')) {
+        // Usuwamy wszystko po słowie /edit lub /view i doklejamy /view?embed
+        link = link.replace(/\/edit.*$/, '/view?embed').replace(/\/view.*$/, '/view?embed');
+    }
+
+    let d = updTimer(); // Twoja funkcja aktualizująca zegar
+    fetch('/send_text', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            mode: 'canva', 
+            url: link,
+            timer: d.text, 
+            timer_color: d.color, 
+            message: actMsg,
+            blackout: isBlackoutActive
+        })
+    });
+}
 
 function updateServerState() {
     socket.emit('client_update_state', {
