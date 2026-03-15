@@ -784,8 +784,22 @@ function selectForLive(i, broadcast = true){
         b.innerHTML=`<span class="slide-label">${sec.label}</span><span>${sec.content.replace(/\[.*?\]/g,"").substring(0,40)}...</span>`;
         b.onclick=()=>{
             document.querySelectorAll('.slide-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active');
-            let nextContent = (idx+1<secs.length)?secs[idx+1].content:"";
-            goLiveSection(sec.content, nextContent); 
+            
+            let nextContent = "";
+            let nextTrans = item.transpose; 
+
+            if (idx + 1 < secs.length) {
+                nextContent = secs[idx + 1].content;
+            } else if (i + 1 < setlist.length) {
+                // To ostatni slajd w piosence, pobieramy pierwszy z następnej:
+                const nextSongSecs = parseSongSections(setlist[i + 1].content);
+                if (nextSongSecs.length > 0) {
+                    nextContent = nextSongSecs[0].content;
+                    nextTrans = setlist[i + 1].transpose; // Bierzemy nową transpozycję!
+                }
+            }
+
+            goLiveSection(sec.content, nextContent, null, nextTrans); 
         };
         sc.appendChild(b);
     });
@@ -835,7 +849,16 @@ function selectForLive(i, broadcast = true){
                     }, 8000);
                 }
 
-                if (btn.dataset.transitionHtml) { goLiveSection(btn.dataset.transitionHtml, '', 0); }
+                let nextContent = "";
+            let nextTrans = nextItem.transpose;
+            const nextSongSecs = parseSongSections(nextItem.content);
+            if (nextSongSecs.length > 0) {
+                nextContent = nextSongSecs[0].content;
+            }
+
+            if (btn.dataset.transitionHtml) { 
+                goLiveSection(btn.dataset.transitionHtml, nextContent, 0, nextTrans); 
+            }
             };
             sc.appendChild(btn);
         }
@@ -857,8 +880,10 @@ function adjustLiveTrans(a){
     }
 }
 
-function goLiveSection(c, n, forceTrans = null) {
+function goLiveSection(c, n, forceTrans = null, nextTrans = null) {
     let t = (forceTrans !== null) ? forceTrans : setlist[currentSetIndex].transpose;
+    let nt = (nextTrans !== null) ? nextTrans : t; // Wyłapuje transpozycję dla następnej piosenki
+    
     let currentKey = document.getElementById('live-key').innerText;
     let currentBpm = setlist[currentSetIndex].bpm;
     
@@ -868,6 +893,7 @@ function goLiveSection(c, n, forceTrans = null) {
             text: c, 
             next_text: n, 
             transpose: t, 
+            next_transpose: nt, // WYSYŁAMY NOWĄ ZMIENNĄ
             key: currentKey, 
             bpm: currentBpm,
             current_index: currentSetIndex,
@@ -876,7 +902,6 @@ function goLiveSection(c, n, forceTrans = null) {
     });
     document.getElementById('live-preview-box').innerText = c.replace(/\[.*?\]/g, "");
 }
-
 function blackout(){
     const txt = (currentLang === 'en') ? "SCREEN BLACKED OUT" : "EKRAN WYGASZONY";
     fetch('/send_text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:''})});

@@ -408,7 +408,9 @@ def process_song(text, transpose_amount=0):
                     # WRACAMY DO TWOJEGO ORYGINAŁU - zero ingerencji w style dla akordów wewnątrz słów!
                     text_smart += f'<span class="chord-wrapper"><span class="chord">{chord_content}</span></span>'
         else:
-            text_smart += token
+            # Zamienia taby i wielokrotne spacje na twarde spacje, żeby HTML ich nie zjadał
+            safe_token = token.replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;').replace('  ', '&nbsp;&nbsp;')
+            text_smart += safe_token
             
     text_band = text_smart.replace('\n', '<br>')
     blocks = re.split(r'\n\s*\n', text_smart)
@@ -552,6 +554,7 @@ def import_songs():
             raw_data = file.read()
             try: content = raw_data.decode('utf-8')
             except: content = raw_data.decode('cp1250', errors='ignore')
+            content=content.replace('\r','')
             if '---' in content:
                 chunks = content.split('---')
                 for chunk in chunks:
@@ -702,11 +705,12 @@ def send_text():
         return {'status': 'ok'}
     
     shift = int(data.get('transpose', 0))
+    next_shift = int(data.get('next_transpose', shift)) # Łapiemy nową transpozycję z JS
     passed_key = data.get('key', 'N/A')
     passed_bpm = data.get('bpm', 0)
     
     people_html, band_html, _ = process_song(raw_text, shift)
-    _, band_next_html, _ = process_song(data.get('next_text', ''), shift)
+    _, band_next_html, _ = process_song(data.get('next_text', ''), next_shift) # Zmieniamy używany shift
     
     socketio.emit('update_slide', {
         'mode': 'worship', 
