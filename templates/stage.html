@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Zespół</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <style>
+        /* DEFINICJA CZCIONKI LOKALNEJ */
+        @font-face {
+            font-family: 'Sen';
+            src: url("{{ url_for('static', filename='fonts/Sen-Regular.ttf') }}") format('truetype');
+            font-weight: 400;
+        }
+        @font-face {
+            font-family: 'Sen';
+            src: url("{{ url_for('static', filename='fonts/Sen-Bold.ttf') }}") format('truetype');
+            font-weight: 700;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { 
+            background-color: #000; 
+            color: #fff;
+            font-family: 'Sen', sans-serif;
+            margin: 0; padding: 0;
+            height: 100vh; width: 100vw;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* PRZYCISK FULLSCREEN (DYSKRETNY) */
+        #fs-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            font-size: 2vh;
+            padding: 8px 12px;
+            cursor: pointer;
+            z-index: 9999;
+            border-radius: 5px;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+            user-select: none; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        #fs-btn:hover, #fs-btn:active { opacity: 1; background: rgba(255,255,255,0.3); }
+
+        /* --- WIDOK UWIELBIENIA --- */
+        #worship-view { 
+            display: flex; /* ZMIANA: Widoczne od razu */
+            flex-direction: column; 
+            height: 100%; width: 100%; 
+        }
+        
+        /* GÓRA (70%) */
+        #current-slide { 
+            height: 70vh; 
+            width: 100%;
+            padding: 0 20px; box-sizing: border-box;
+            border-bottom: 2px solid #333; 
+            
+            display: flex; 
+            align-items: center;     
+            justify-content: center; 
+            text-align: center; 
+            
+            font-size: 8vh; 
+            line-height: 2.2; 
+            overflow: hidden; 
+            position: relative;
+        }
+
+        /* Logo wewnątrz górnej sekcji */
+        #stage-logo {
+            max-width: 60%;
+            max-height: 80%;
+            object-fit: contain;
+            display: block; /* Domyślnie widoczne na start */
+        }
+
+        /* Tekst wewnątrz górnej sekcji */
+        #current-content {
+            display: none; /* Domyślnie ukryty, dopóki nie przyjdzie tekst */
+            width: 100%;
+        }
+
+        /* DÓŁ (30%) - Kontener "Następnie" */
+        #next-slide-container { 
+            height: 30vh; 
+            width: 100%;
+            background-color: #111; 
+            padding: 10px 40px; box-sizing: border-box;
+            border-top: 1px solid #444;
+            
+            display: flex; 
+            flex-direction: column; 
+            position: relative; 
+        }
+
+        /* KONTENER NA INFORMACJE (Zegar, Key, BPM) */
+        .meta-info-container {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            text-align: right;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px; 
+        }
+
+        #realtime-clock {
+            font-size: 3.5vh; 
+            color: #888;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        #key-display {
+            font-size: 3.5vh; 
+            color: #00e5ff;
+            font-weight: bold;
+            display: none; 
+        }
+
+        #bpm-display {
+            font-size: 2.5vh; 
+            color: #fb6340; 
+            font-weight: bold;
+            font-family: monospace;
+            letter-spacing: 1px;
+            display: none; 
+        }
+
+        #next-label { 
+            font-size: 2vh; 
+            color: #f5365c; 
+            font-weight: bold; 
+            margin-bottom: 5px; 
+            flex-shrink: 0; 
+        }
+
+        #next-content { 
+            flex-grow: 1; 
+            color: #999; 
+            font-size: 4vh; 
+            line-height: 2.0; 
+            text-align: left;
+            overflow: hidden; 
+            display: flex;    
+            align-items: flex-start; 
+            padding-top: 15px; 
+            padding-right: 180px; 
+        }
+
+        .text-wrapper { width: 100%; }
+
+        /* AKORDY */
+        .chord-wrapper { display: inline-block; position: relative; width: 0; overflow: visible; }
+        /* Dodatek dla basistów */
+        .bass-slash {
+            color: #ff6b6b; /* Lekki czerwony dla ukośnika */
+            opacity: 0.8;
+        }
+
+        .bass-note {
+            color: #ff4d4d; /* Wyraźny lekki czerwony dla nuty basowej */
+            font-weight: 800; /* Troszkę grubsze, żeby się wyróżniało */
+            font-size: 0.95em; /* Opcjonalnie: minimalnie mniejsze, żeby pasowało optycznie */
+        }
+        #current-slide .chord { 
+            position: absolute; bottom: 0.7em; left: 0; transform: none; 
+            color: #00e5ff; font-weight: 700; font-size: 0.65em; 
+            background: transparent; padding: 0; text-shadow: 1px 1px 2px #000; 
+        }
+        
+        #next-slide-container .chord { 
+            position: absolute; bottom: 0.8em; left: 0; 
+            color: #4db6ac; font-size: 0.7em; font-weight: bold; 
+        }
+
+        /* --- WIDOK KONFERENCJI --- */
+        #conference-view { 
+            display: none; height: 100%; width: 100%; 
+            background: black;
+            flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
+        #conf-timer { font-size: 25vh; font-weight: bold; font-family: monospace; color: white; margin-bottom: 5vh; }
+        #conf-message { font-size: 8vh; color: yellow; padding: 20px; max-width: 90%; }
+        
+    </style>
+</head>
+<body>
+
+    <button id="fs-btn" onclick="toggleFullscreen()">⛶</button>
+
+    <div id="worship-view">
+        <div id="current-slide">
+            <img id="stage-logo" src="{{ url_for('static', filename='logo.png') }}">
+            <div id="current-content" class="text-wrapper"></div>
+        </div>
+        
+        <div id="next-slide-container">
+            <div class="meta-info-container">
+                <div id="realtime-clock">00:00</div>
+                <div id="key-display"></div>
+                <div id="bpm-display"></div>
+            </div>
+
+            <div id="next-label">NASTĘPNIE:</div>
+            <div id="next-content">
+                <div id="next-text-inner" class="text-wrapper"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="conference-view">
+        <div id="conf-timer">00:00</div>
+        <div id="conf-message"></div>
+    </div>
+
+    <script>
+        var socket = io();
+        const worshipView = document.getElementById('worship-view');
+        const confView = document.getElementById('conference-view');
+        
+        const currentContent = document.getElementById('current-content');
+        const stageLogo = document.getElementById('stage-logo');
+        
+        // ZAAWANSOWANA OBSŁUGA FULLSCREEN
+        function toggleFullscreen() {
+            var doc = window.document;
+            var docEl = doc.documentElement;
+            var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                if (requestFullScreen) {
+                    requestFullScreen.call(docEl).catch(err => {
+                        alert("Na iPhone/iPad: Aby uzyskać pełny ekran, kliknij 'Udostępnij' i wybierz 'Do ekranu początkowego'.");
+                    });
+                } else {
+                    alert("Na iPhone/iPad: Aby uzyskać pełny ekran, kliknij 'Udostępnij' i wybierz 'Do ekranu początkowego'.");
+                }
+            } else {
+                if (cancelFullScreen) {
+                    cancelFullScreen.call(doc);
+                }
+            }
+        }
+
+        // Zegar
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('realtime-clock').innerText = 
+                now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Auto-Scale
+        function fitText(containerId, contentId, maxVh, minVh) {
+            const container = document.getElementById(containerId);
+            const content = document.getElementById(contentId);
+            // Jeśli kontener lub treść jest ukryta, nie skaluj
+            if (container.style.display === 'none' || content.style.display === 'none') return;
+            
+            let size = maxVh;
+            content.style.fontSize = size + 'vh';
+            while (content.scrollHeight > container.clientHeight && size > minVh) {
+                size -= 0.2; 
+                content.style.fontSize = size + 'vh';
+            }
+        }
+
+        socket.on('update_slide', function(data) {
+            if (data.mode === 'logo') {
+                // Pokaż widok uwielbienia, ale w górnej sekcji wyświetl logo zamiast tekstu
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+                
+                currentContent.style.display = 'none';
+                stageLogo.style.display = 'block';
+                
+                // Wyczyść dolną sekcję
+                document.getElementById('next-text-inner').innerHTML = "";
+                document.getElementById('next-label').style.display = 'none';
+            }
+            else if (data.mode === 'blackout') {
+                // BLACKOUT DLA ZESPOŁU: Zostawiamy tekst na górze (jeśli był), czyścimy dół
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+                
+                // Jeśli wcześniej było logo, zostawiamy logo. Jeśli tekst, zostawiamy tekst.
+                // Nie zmieniamy display dla stageLogo/currentContent w tym bloku, 
+                // dzięki czemu stan "zamraża się".
+                
+                // Czyścimy tylko "Następnie"
+                document.getElementById('next-text-inner').innerHTML = "";
+                document.getElementById('next-label').style.display = 'none';
+            }
+            else if (data.mode === 'conference') {
+                worshipView.style.display = 'none';
+                confView.style.display = 'flex';
+                
+                document.getElementById('conf-timer').innerText = data.timer;
+                document.getElementById('conf-timer').style.color = data.timer_color;
+                document.getElementById('conf-message').innerText = data.message;
+            } 
+            else {
+                // WORSHIP MODE (Tekst piosenki)
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+                
+                // Ukryj logo, pokaż tekst
+                stageLogo.style.display = 'none';
+                currentContent.style.display = 'block';
+                
+                // 1. Wyświetlanie TONACJI
+                const keyBox = document.getElementById('key-display');
+                if (data.current_key && data.current_key !== 'N/A' && data.current_key.trim() !== '-') {
+                    keyBox.innerText = "Key: " + data.current_key;
+                    keyBox.style.display = 'block';
+                } else {
+                    keyBox.style.display = 'none';
+                }
+
+                // 2. Wyświetlanie BPM
+                const bpmBox = document.getElementById('bpm-display');
+                if (data.current_bpm && data.current_bpm > 0) {
+                    bpmBox.innerText = data.current_bpm + " BPM";
+                    bpmBox.style.display = 'block';
+                } else {
+                    bpmBox.style.display = 'none';
+                }
+                
+                // 3. Wyświetlanie treści
+                if(data.band !== undefined) {
+                    currentContent.innerHTML = data.band;
+                    setTimeout(() => fitText('current-slide', 'current-content', 12, 4), 0);
+
+                    if (data.band_next && data.band_next.trim() !== "") {
+                        let rawLines = data.band_next.split('<br>');
+                        let finalText = "";
+                        if (rawLines.length > 4) {
+                            finalText = rawLines.slice(0, 4).join('<br>') + '<br><span style="opacity:0.6; font-size:0.8em;">(...)</span>';
+                        } else {
+                            finalText = data.band_next;
+                        }
+
+                        document.getElementById('next-text-inner').innerHTML = finalText;
+                        document.getElementById('next-label').style.display = 'block';
+                        setTimeout(() => fitText('next-content', 'next-text-inner', 4.5, 2.5), 0);
+                        
+                    } else {
+                        document.getElementById('next-text-inner').innerHTML = "";
+                        document.getElementById('next-label').style.display = 'none';
+                    }
+                }
+            }
+        });
+        
+        socket.on('refresh_logo', function() {
+            location.reload();
+        });
+    </script>
+</body>
+</html>

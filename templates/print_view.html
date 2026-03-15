@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>&nbsp;</title>
+    <style>
+        /* 1. CZCIONKI (Poprawione na static_root) */
+        @font-face {
+            font-family: 'Sen';
+            /* ZMIANA: static_root zamiast url_for */
+            src: url("{{ static_root }}/fonts/Sen-Regular.ttf") format('truetype');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Sen';
+            /* ZMIANA: static_root zamiast url_for */
+            src: url("{{ static_root }}/fonts/Sen-Bold.ttf") format('truetype');
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        /* 2. USTAWIENIA STRONY */
+        @page { 
+            margin: 1.5cm; 
+            size: A4; 
+        }
+        body { font-family: 'Sen', sans-serif; color: #000; margin: 0; padding: 0; }
+
+        /* 3. NAGŁÓWEK */
+        #print-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+        #print-title { font-size: 1.5rem; font-weight: bold; text-transform: uppercase; }
+        #print-date { font-size: 1rem; color: #555; }
+
+        /* 4. KONTENER PIOSENKI */
+        .song-container { 
+            margin-bottom: 30px; 
+            padding-bottom: 10px; 
+            border-bottom: 1px dashed #ccc; 
+            display: block;
+            page-break-inside: auto;
+            break-inside: auto;
+        }
+        
+        h2 { 
+            font-weight: 700; 
+            border-left: 6px solid #333; 
+            padding-left: 10px; 
+            margin-bottom: 15px; 
+            text-transform: uppercase; 
+            font-size: 1.4rem;
+            column-span: all; 
+            break-after: avoid;
+            page-break-after: avoid;
+        }
+        
+        .song-content { 
+            font-size: 11pt; 
+            line-height: 3.2; 
+            position: relative; 
+            font-weight: 400;
+            column-count: 2; 
+            column-gap: 30px; 
+            column-rule: 1px solid #eee;
+        }
+
+        .print-block {
+            break-inside: avoid-column; 
+            page-break-inside: avoid;
+            display: inline-block; 
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .chord-wrapper { display: inline-block; position: relative; width: 0; overflow: visible; vertical-align: baseline; }
+        .chord { 
+            position: absolute; bottom: 0.7em; left: 0; 
+            font-family: 'Sen', sans-serif; font-weight: 700; font-size: 0.85em; 
+            color: #d63384; background: transparent; white-space: nowrap; 
+        }
+
+        /* 5. LOGO I PRZYCISK */
+        #print-footer-logo { 
+            position: fixed; /* Pozycjonowanie względem okna/strony druku */
+            bottom: 0; 
+            right: 0; 
+            width: 100px; /* Zwiększyłem lekko rozmiar */
+            opacity: 0.6; 
+            z-index: 999;
+        }
+
+        .no-print-btn { position: fixed; top: 20px; right: 20px; font-family:'Sen'; font-size: 16px; padding: 15px 30px; cursor: pointer; background: #2dce89; color: white; border: none; border-radius: 30px; font-weight: bold; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+
+        @media print {
+            .no-print-btn { display: none; }
+            /* Upewniamy się, że marginesy nie ucinają loga */
+            @page { margin-bottom: 2cm; } 
+        }
+    </style>
+</head>
+<body>
+    <button onclick="window.print()" class="no-print-btn">🖨️ DRUKUJ</button>
+
+    <div id="print-header">
+        <div id="print-title">SETLISTA</div>
+        <div id="print-date"></div>
+    </div>
+    
+    <img id="print-footer-logo" src="{{ static_root }}/logo.png" alt="Logo">
+
+    {% for song in songs %}
+        <div class="song-container">
+            <h2>{{ song.title }}</h2>
+            <div class="song-content">{{ song.html | safe }}</div>
+        </div>
+    {% endfor %}
+
+    <script>
+        const d = new Date();
+        document.getElementById('print-date').innerText = d.toLocaleDateString('pl-PL', { year: 'numeric', month: 'long', day: 'numeric' });
+    </script>
+</body>
+</html>

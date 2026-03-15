@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Ładowanie Aplikacji</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle at center, #111a22 0%, #000000 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Segoe UI', sans-serif;
+            user-select: none;
+        }
+
+        /* --- TŁO CZĄSTECZKOWE --- */
+        #particles-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        /* --- LOGO (NOWE) --- */
+        /* --- LOGO (Z Maskowaniem) --- */
+        .logo-container {
+            /* Ustawienia wielkości i pozycji */
+            width: 120px;  /* Dostosuj szerokość logo */
+            height: auto;
+            margin-bottom: 50px; /* Odstęp od paska ładowania */
+            position: relative;
+            z-index: 10;
+            
+            /* Styl "Ducha" */
+            opacity: 0.4; 
+            /* overflow: hidden; <--- TO USUWAJMY, bo maska załatwi sprawę */
+
+            /* --- KLUCZOWA ZMIANA: MASKOWANIE --- */
+            /* Używamy tego samego obrazka logo jako maski dla kontenera. */
+            /* Dzięki temu wszystko wewnątrz (w tym efekt połysku) będzie widoczne tylko tam, gdzie logo jest nieprzezroczyste. */
+            
+            /* WAŻNE: Podmień ścieżkę na swoje logo, np.: url('../static/logo.png'); */
+            mask-image: url('../static/logo.png');
+            -webkit-mask-image: url('../static/logo.png');
+            
+            mask-size: contain;
+            -webkit-mask-size: contain;
+            mask-repeat: no-repeat;
+            -webkit-mask-repeat: no-repeat;
+            mask-position: center;
+            -webkit-mask-position: center;
+        }
+
+        /* Sam obrazek logo w środku staje się "tłem" dla maski.
+        Możemy go ukryć lub zostawić, ale maska i tak przytnie wszystko do jego kształtu.
+        Dla pewności, że mamy jednolity kolor (np. biały duch), możemy go wypełnić. */
+        .logo-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            /* Opcjonalnie: wypełnienie kolorem, jeśli logo jest np. czarne */
+            background-color: white; 
+            /* Alternatywnie, jeśli to PNG z przezroczystością, po prostu zostaw jak jest */
+        }
+
+        /* Efekt połysku (pseudoelement) pozostaje bez zmian, ale teraz jest przycinany przez maskę */
+        .logo-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -150%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                120deg,
+                transparent 20%,
+                rgba(255, 255, 255, 0.8) 50%, /* Zwiększyłem jasność dla lepszego efektu */
+                transparent 80%
+            );
+            transform: skewX(-25deg);
+            animation: logoShimmer 3.5s infinite ease-in-out;
+        }
+
+        @keyframes logoShimmer {
+            0% { left: -150%; }
+            100% { left: 150%; }
+        }
+
+        /* --- PASEK ŁADOWANIA --- */
+        .loader-container {
+            width: 300px;
+            margin-bottom: 60px; 
+            position: relative;
+            z-index: 10;
+        }
+
+        .loader-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+        }
+
+        .loader-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #005f73 0%, #00d2ff 50%, #005f73 100%);
+            background-size: 200% 100%;
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
+            border-radius: 2px;
+            transition: width 0.4s ease-out;
+            animation: shimmer 2s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* --- KONTENER PIANINA (GHOST MODE) --- */
+        .piano-wrapper {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 250px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            opacity: 0.15;
+            transition: opacity 1s ease;
+            mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .keyboard-layout { display: flex; position: relative; padding: 0 20px 20px 20px; }
+        .octave { position: relative; display: flex; margin: 0 1px; }
+
+        .key-white {
+            width: 50px; height: 200px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); border-top: none; border-radius: 0 0 6px 6px; margin: 0 2px; position: relative; z-index: 1; backdrop-filter: blur(2px); transition: all 0.15s ease;
+        }
+        .key-black {
+            width: 30px; height: 120px; background: rgba(5, 10, 15, 0.8); border: 1px solid rgba(255, 255, 255, 0.05); border-top: none; border-radius: 0 0 4px 4px; position: absolute; top: 0; z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: all 0.15s ease;
+        }
+        .key-white.active { background: rgba(0, 210, 255, 0.3); border-color: rgba(0, 210, 255, 0.6); box-shadow: 0 0 60px rgba(0, 210, 255, 0.6), inset 0 0 30px rgba(0, 210, 255, 0.3); transform: translateY(4px) scale(0.98); }
+        .key-black.active { background: #005f73; border-color: #00d2ff; box-shadow: 0 0 40px rgba(0, 210, 255, 0.5); transform: translateY(4px); }
+        .kb-1 { left: 40px; } .kb-2 { left: 96px; } .kb-3 { left: 206px; } .kb-4 { left: 260px; } .kb-5 { left: 316px; }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- --- LOGO --- -->
+    <div class="logo-container">
+        <!-- WAŻNE: Podmień 'src' na swoją ścieżkę: src="static/logo.png" -->
+        <!-- Dajemy id="app-logo" żeby łatwiej złapać w JS -->
+        <img id="app-logo" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="logo-img" alt="">
+    </div>
+
+    <div class="loader-container">
+        <div class="loader-track">
+            <div class="loader-bar" id="progress"></div>
+        </div>
+    </div>
+
+    <div class="piano-wrapper">
+        <!-- (Zawartość pianina bez zmian) -->
+        <div class="keyboard-layout"><div class="octave"><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-black kb-1"></div><div class="key-black kb-2"></div><div class="key-black kb-3"></div><div class="key-black kb-4"></div><div class="key-black kb-5"></div></div><div class="octave"><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-black kb-1"></div><div class="key-black kb-2"></div><div class="key-black kb-3"></div><div class="key-black kb-4"></div><div class="key-black kb-5"></div></div><div class="octave"><div class="key-white" id="C4"></div><div class="key-white" id="D4"></div><div class="key-white" id="E4"></div><div class="key-white" id="F4"></div><div class="key-white" id="G4"></div><div class="key-white" id="A4"></div><div class="key-white" id="B4"></div><div class="key-black kb-1" id="Cs4"></div><div class="key-black kb-2" id="Ds4"></div><div class="key-black kb-3" id="Fs4"></div><div class="key-black kb-4" id="Gs4"></div><div class="key-black kb-5" id="As4"></div></div><div class="octave"><div class="key-white" id="C5"></div><div class="key-white" id="D5"></div><div class="key-white" id="E5"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-black kb-1" id="Cs5"></div><div class="key-black kb-2" id="Ds5"></div><div class="key-black kb-3"></div><div class="key-black kb-4"></div><div class="key-black kb-5"></div></div><div class="octave"><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-black kb-1"></div><div class="key-black kb-2"></div><div class="key-black kb-3"></div><div class="key-black kb-4"></div><div class="key-black kb-5"></div></div></div>
+    </div>
+
+    <script>
+        // --- KONFIGURACJA ---
+        const SERVER_URL = 'http://127.0.0.1:5000';
+        
+        // --- USTAWIENIA CZASU (W MILISEKUNDACH) ---
+        // Tutaj ustawiasz, ile MINIMUM ma trwać ekran ładowania
+        // 3500 = 3.5 sekundy (idealnie, żeby zobaczyć pianino i cząsteczki)
+        const MIN_LOADING_TIME = 3500; 
+
+        // Zapisujemy moment startu skryptu
+        const startTime = Date.now();
+        let serverReady = false;
+
+        // --- CZĄSTECZKI (PARTICLES) ---
+        // (Kod cząsteczek pozostaw bez zmian, tu go skracam dla czytelności...)
+        const canvas = document.getElementById('particles-canvas');
+        const ctx = canvas.getContext('2d');
+        let particlesArray = [];
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.1; 
+                this.speedX = (Math.random() * 0.6) - 0.3;
+                this.speedY = (Math.random() * 0.6) - 0.3;
+                this.opacity = Math.random() * 0.5 + 0.1;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x > canvas.width) this.x = 0;
+                else if (this.x < 0) this.x = canvas.width;
+                if (this.y > canvas.height) this.y = 0;
+                else if (this.y < 0) this.y = canvas.height;
+            }
+            draw() {
+                ctx.fillStyle = `rgba(150, 200, 255, ${this.opacity})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        function initParticles() {
+            particlesArray = [];
+            for (let i = 0; i < 100; i++) particlesArray.push(new Particle());
+        }
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+                particlesArray[i].draw();
+            }
+            requestAnimationFrame(animateParticles);
+        }
+        initParticles();
+        animateParticles();
+
+
+        // --- PIANINO (Również bez zmian w logice) ---
+        const melody = [
+            ['C4', 400, 400], ['E4', 400, 400], ['G4', 800, 800],
+            ['A4', 600, 600], ['G4', 1000, 1000],
+            ['F4', 400, 400], ['E4', 400, 400], ['D4', 800, 800],
+            [null, 0, 400], 
+            ['E4', 500, 500], ['C4', 900, 900],
+            ['D4', 500, 500], ['E4', 1000, 1200]
+        ];
+
+        function playKey(keyId, duration) {
+            if (!keyId) return;
+            const key = document.getElementById(keyId);
+            if (key) {
+                key.classList.add('active');
+                setTimeout(() => key.classList.remove('active'), duration * 0.9);
+            }
+        }
+
+        function startPianoLoop() {
+            let timeOffset = 0;
+            melody.forEach(([keyId, duration, delay]) => {
+                setTimeout(() => playKey(keyId, duration), timeOffset);
+                timeOffset += delay;
+            });
+            setTimeout(startPianoLoop, timeOffset + 2000);
+        }
+
+        // --- LOGIKA PROGRESS BAR I TIMERA (TO JEST NOWE) ---
+        let currentProgress = 0;
+        const progressBar = document.getElementById('progress');
+
+        function updateFakeProgress() {
+            // Jeśli serwer już odpowiedział, nie aktualizujemy "fake" progressu, 
+            // bo funkcja finishSequence zajmie się resztą.
+            if (serverReady) return; 
+
+            // Obliczamy ile czasu minęło
+            const elapsed = Date.now() - startTime;
+            
+            // Postęp bazuje na czasie. 
+            // Jeśli minęło 50% wymaganego czasu, pasek ma 50%.
+            // Blokujemy na 90%, żeby czekał na faktyczne połączenie.
+            let percent = (elapsed / MIN_LOADING_TIME) * 95; 
+            
+            if (percent > 90) percent = 90; // Zatrzymaj na 90%
+            
+            currentProgress = percent;
+            progressBar.style.width = currentProgress + '%';
+
+            requestAnimationFrame(updateFakeProgress);
+        }
+
+        // --- SPRAWDZANIE SERWERA ---
+        async function checkServer() {
+            try {
+                // Pukamy do serwera
+                await fetch(SERVER_URL, { method: 'HEAD', mode: 'no-cors' });
+                
+                // SERWER ODPOWIEDZIAŁ!
+                serverReady = true;
+                
+                // Ale czy minął już minimalny czas?
+                const elapsed = Date.now() - startTime;
+                const remainingTime = MIN_LOADING_TIME - elapsed;
+
+                if (remainingTime > 0) {
+                    // Serwer jest za szybki! Czekamy resztę czasu.
+                    // Pasek jest np. na 30%, niech sobie spokojnie dojedzie
+                    setTimeout(finishSequence, remainingTime);
+                } else {
+                    // Minęło już wystarczająco dużo czasu, kończymy od razu.
+                    finishSequence();
+                }
+
+            } catch (e) {
+                // Serwer jeszcze nie wstał, sprawdzamy znowu za 500ms
+                setTimeout(checkServer, 500);
+            }
+        }
+
+        // --- SEKWENCJA KOŃCOWA (FADE OUT) ---
+        function finishSequence() {
+            // 1. Dobijamy pasek do 100%
+            progressBar.style.width = '100%';
+
+            // 2. Wygaszamy
+            document.body.style.transition = "opacity 0.8s ease-in-out"; // Trochę wolniejszy fade (0.8s) jest ładniejszy
+            document.body.style.opacity = "0";
+
+            // 3. Przekierowanie po zakończeniu animacji wygaszania
+            setTimeout(() => {
+                window.location.replace(SERVER_URL);
+            }, 800);
+        }
+
+        // --- START ---
+        window.onload = () => {
+            // Obsługa loga (z poprzedniego kroku)
+            const logoImg = document.getElementById('app-logo');
+            // logoImg.src = "../static/logo.png"; // Odkomentuj jeśli masz poprawne ścieżki
+            logoImg.onerror = function() {
+                 this.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+            };
+
+            startPianoLoop();
+            updateFakeProgress(); // Startuje pętlę paska
+            checkServer();        // Startuje pętlę sprawdzania serwera
+        };
+    </script>
+</body>
+</html>

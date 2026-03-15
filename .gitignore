@@ -1,0 +1,28 @@
+# --- Wirtualne srodowisko ---
+.venv/
+venv/
+env/
+
+# --- Smieci Pythonowe ---
+__pycache__/
+*.pyc
+
+# --- Bazy danych i instancje ---
+instance/
+*.db
+*.sqlite3
+
+# --- Pliki budowania (TE WIELKIE PLIKI) ---
+dist/
+build/
+*.spec
+
+# --- Logi i pliki systemowe ---
+*.log
+.DS_Store
+venv/
+.mp3
+.exe
+.mp4
+venv/
+__pycache__/
