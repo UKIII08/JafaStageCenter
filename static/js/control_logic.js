@@ -1138,36 +1138,6 @@ function adjustLiveTrans(a){
     }
 }
 
-function goLiveSection(c, n, forceTrans = null, nextTrans = null) {
-    currentLiveState = { c: c, n: n, forceTrans: forceTrans, nextTrans: nextTrans };
-    let t = (forceTrans !== null) ? forceTrans : setlist[currentSetIndex].transpose;
-    let nt = (nextTrans !== null) ? nextTrans : t; 
-    
-    let currentKey = document.getElementById('live-key') ? document.getElementById('live-key').innerText : 'N/A';
-    let currentBpm = setlist[currentSetIndex] ? setlist[currentSetIndex].bpm : 0;
-    
-    fetch('/send_text', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            text: c, 
-            next_text: n, 
-            transpose: t, 
-            next_transpose: nt, 
-            key: currentKey, 
-            bpm: currentBpm,
-            current_index: currentSetIndex,
-            setlist: setlist,
-            blackout: isBlackoutActive // Dodajemy stan blackoutu
-        })
-    });
-    
-    if (isBlackoutActive) {
-        const txt = (currentLang === 'en') ? "SCREEN BLACKED OUT" : "EKRAN WYGASZONY";
-        document.getElementById('live-preview-box').innerText = txt;
-    } else {
-        document.getElementById('live-preview-box').innerText = c.replace(/\[.*?\]/g, "");
-    }
-}
 let isBlackoutActive = false;
 let currentLiveState = { c: '', n: '', forceTrans: null, nextTrans: null };
 
@@ -1359,4 +1329,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+});
+
+// Auto-bracket helper: typing '[' in song textareas auto-inserts ']' and places cursor between
+document.addEventListener('keydown', function(e) {
+    if (e.key !== '[') return;
+    const ta = e.target;
+    if (ta.tagName !== 'TEXTAREA') return;
+    if (ta.id !== 'add-content' && ta.id !== 'edit-content') return;
+
+    e.preventDefault();
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const val = ta.value;
+    ta.value = val.substring(0, start) + '[]' + val.substring(end);
+    ta.selectionStart = ta.selectionEnd = start + 1;
+    ta.dispatchEvent(new Event('input'));
 });
