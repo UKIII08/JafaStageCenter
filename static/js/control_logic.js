@@ -49,6 +49,9 @@ const translations = {
         chord_notation_label: "Notacja akordów:",
         notation_international: "Międzynarodowa (Bb, B)",
         notation_polish: "Polska (B, H, Cis, Fis)",
+        minor_display_label: "Akordy molowe:",
+        minor_uppercase: "Wielkie litery (Am, Em)",
+        minor_lowercase: "Małe litery (am, em)",
         projector_screen: "Rzutnik (Ekran Zewnętrzny)",
         font_label: "Czcionka:",
         bg_color: "Tło",
@@ -133,6 +136,9 @@ const translations = {
         chord_notation_label: "Chord Notation:",
         notation_international: "International (Bb, B)",
         notation_polish: "Polish (B, H, Cis, Fis)",
+        minor_display_label: "Minor Chords:",
+        minor_uppercase: "Uppercase (Am, Em)",
+        minor_lowercase: "Lowercase (am, em)",
         projector_screen: "Projector (External Screen)",
         font_label: "Font:",
         bg_color: "Background",
@@ -1001,6 +1007,7 @@ function parseSongSections(raw) {
     // Regex /\n\s*\n/ oznacza: "Enter, potem opcjonalne spacje, potem kolejny Enter".
     // To gwarantuje, że podział nastąpi TYLKO w miejscach pustych linii.
     // Jeśli piosenka nie ma pustych linii, zostanie potraktowana jako 1 kafelek.
+    raw = raw.replace(/(\n\s*){2,}\n/g, '\n\n');
     const parts = raw.split(/\n\s*\n/);
 
     return parts.filter(b => b.trim()).map((block, i) => {
