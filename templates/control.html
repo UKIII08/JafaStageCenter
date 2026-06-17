@@ -990,8 +990,11 @@
                     <input type="number" name="bpm" id="add-bpm-input" class="input-small" placeholder="BPM">
                     <div class="tap-btn" onclick="tapTempo('add-bpm-input')">TAP</div>
                 </div>
-                
-                <textarea name="content" id="add-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('add-content', 'add-key-input')" placeholder="Wklej tekst tutaj..." data-t-ph="paste_ph"></textarea>
+                <div style="background: var(--bg-element); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;">
+                    Akordy w nawiasach: <code style="color:var(--accent-primary);">[Am]tekst [G]dalej</code><br>
+                    Sekcje oddzielaj pustą linią. Notacja dowolna (H, Bb, C#m, Fis) &mdash; zostanie ustandaryzowana automatycznie.
+                </div>
+                <textarea name="content" id="add-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('add-content', 'add-key-input')" placeholder="Zwrotka 1&#10;[C]Tekst piosenki [Am]z akordami&#10;[F]Kolejna linia [G]tekstu&#10;&#10;Refren&#10;[F]Tekst refrenu [C]z akordami" data-t-ph="paste_ph"></textarea>
                 <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
                     <button type="submit" class="secondary" style="padding:10px 30px;" data-t="save_db_btn">ZAPISZ DO BAZY</button>
                 </div>
@@ -1181,45 +1184,16 @@
             serverIp: "{{ server_ip }}"
         };
 
-        // --- FUNKCJA OBSŁUGUJĄCA PODGLĄD "PUSTYCH" SLAJDÓW ---
-        // Funkcja wyświetla tekst lub etykietę (badge), gdy tekst jest pusty.
-        function updateLocalPreview(text, label) {
+        // Helper preview function
+        window.updateLocalPreview = function(text, label) {
             const previewBox = document.getElementById('live-preview-box');
-            
-            // Sprawdź czy to stan specjalny (Blackout/Logo) ustawiony przez inne funkcje
-            // Jeśli nie ma tekstu, wyświetl badge
             if (!text || text.trim() === '') {
                 let displayLabel = label ? label : '...';
-                
-                // Dodatkowe sprawdzenie atrybutów, jeśli blackout/logo były wywołane
-                if(previewBox.getAttribute('data-status') === 'blackout') displayLabel = 'BLACKOUT';
-                if(previewBox.getAttribute('data-status') === 'logo') displayLabel = 'LOGO';
-
                 previewBox.innerHTML = `<span class="preview-info-label">${displayLabel}</span>`;
             } else {
-                // Usuń statusy specjalne i wyświetl tekst
-                previewBox.removeAttribute('data-status');
                 previewBox.innerText = text;
             }
-        }
-        
-        // Helpery dla przycisków Blackout/Logo, aby od razu aktualizowały podgląd
-        function blackout() {
-             const previewBox = document.getElementById('live-preview-box');
-             previewBox.setAttribute('data-status', 'blackout');
-             updateLocalPreview('', 'BLACKOUT');
-             if(typeof window.emitBlackout === 'function') window.emitBlackout();
-        }
-        
-        function showLogo() {
-             const previewBox = document.getElementById('live-preview-box');
-             previewBox.setAttribute('data-status', 'logo');
-             updateLocalPreview('', 'LOGO');
-             if(typeof window.emitLogo === 'function') window.emitLogo();
-        }
-        
-        // Eksportujemy funkcję do window
-        window.updateLocalPreview = updateLocalPreview;
+        };
 
     </script>
     

@@ -23,8 +23,12 @@ import tempfile
 from pathlib import Path
 import webbrowser
 import fitz  # PyMuPDF do cięcia prezentacji
-import pythoncom
-import win32com.client
+try:
+    import pythoncom
+    import win32com.client
+    HAS_WIN32 = True
+except ImportError:
+    HAS_WIN32 = False
 # --- ENGINE IMPORTS ---
 from Mingus_silnik import WorshipHybridEngineV1
 try:
@@ -153,11 +157,61 @@ def check_db_schema():
 
 # --- MAPPINGS ---
 PITCH_CLASS_MAP = {
-    'C': 0, 'C#': 1, 'DB': 1, 'D': 2, 'D#': 3, 'EB': 3, 'E': 4, 
-    'F': 5, 'F#': 6, 'GB': 6, 'G': 7, 'G#': 8, 'AB': 8, 
-    'A': 9, 'A#': 10, 'BB': 10, 'B': 11, 'CB': 11, 'H': 11 
+    'C': 0, 'C#': 1, 'DB': 1, 'D': 2, 'D#': 3, 'EB': 3, 'E': 4,
+    'F': 5, 'F#': 6, 'GB': 6, 'G': 7, 'G#': 8, 'AB': 8,
+    'A': 9, 'A#': 10, 'BB': 10, 'B': 11, 'CB': 11, 'H': 11
 }
 TRANSPOSE_LOOKUP = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
+
+CHORD_NORMALIZE_MAP = {
+    'CB': 'B', 'DB': 'C#', 'EB': 'Eb', 'FB': 'E', 'GB': 'F#', 'AB': 'Ab', 'BB': 'Bb',
+    'H': 'B', 'B#': 'C', 'E#': 'F',
+    'CIS': 'C#', 'DIS': 'D#', 'FIS': 'F#', 'GIS': 'G#', 'AIS': 'A#',
+}
+
+def normalize_chord_root(root_str):
+    """Normalize chord root to standard international notation."""
+    upper = root_str.upper()
+    if upper in CHORD_NORMALIZE_MAP:
+        return CHORD_NORMALIZE_MAP[upper]
+    if len(upper) >= 2 and upper.endswith('IS') and upper in CHORD_NORMALIZE_MAP:
+        return CHORD_NORMALIZE_MAP[upper]
+    if len(upper) == 1 and upper in 'CDEFGAB':
+        return upper
+    if len(upper) == 2 and upper[1] in ('#',) and upper[0] in 'CDEFGAB':
+        return upper[0] + '#'
+    if len(upper) == 2 and upper[1] == 'B' and upper[0] in 'CDEFGA':
+        canon = {'CB': 'B', 'DB': 'C#', 'EB': 'Eb', 'FB': 'E', 'GB': 'F#', 'AB': 'Ab', 'BB': 'Bb'}
+        return canon.get(upper, root_str)
+    return root_str
+
+def normalize_chord(chord_str):
+    """Normalize a single chord string (e.g. 'c#m7' -> 'C#m7', 'H' -> 'B', 'Fis' -> 'F#')."""
+    if not chord_str or not chord_str.strip():
+        return chord_str
+    chord_str = chord_str.strip()
+    m = re.match(r'^([A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$', chord_str)
+    if not m:
+        return chord_str
+    raw_root = m.group(1)
+    suffix = m.group(2)
+    is_minor_lowercase = raw_root[0].islower()
+    normalized_root = normalize_chord_root(raw_root)
+    if is_minor_lowercase and not suffix.startswith('m'):
+        suffix = 'm' + suffix
+        normalized_root = normalized_root[0].upper() + normalized_root[1:]
+    return normalized_root + suffix
+
+def normalize_song_chords(content):
+    """Normalize all [chord] notations in song content to standard form."""
+    def replace_chord(m):
+        inner = m.group(1)
+        if '/' in inner:
+            parts = inner.split('/')
+            normalized_parts = [normalize_chord(p) for p in parts]
+            return '[' + '/'.join(normalized_parts) + ']'
+        return '[' + normalize_chord(inner) + ']'
+    return re.sub(r'\[(.*?)\]', replace_chord, content)
 
 def get_local_ip():
     try:
@@ -397,11 +451,10 @@ def process_song(text, transpose_amount=0):
                 needs_width_expansion = False
                 missing_width = 0
 
-                # Dodajemy ratunkową szerokość tylko gdy to absolutnie konieczne:
                 if text_len == 0:
                     needs_width_expansion = True
                     missing_width = ch_width
-                elif has_next_chord and text_len < ch_width:
+                elif text_len < ch_width:
                     needs_width_expansion = True
                     missing_width = ch_width - text_len
 
@@ -525,6 +578,10 @@ def add_song():
     content = request.form.get('content')
     key = request.form.get('key') or ''
     bpm = request.form.get('bpm')
+    if content:
+        content = normalize_song_chords(content)
+    if key:
+        key = normalize_chord(key)
     if not key and content: key = detect_key_algorithm(content)
     if title and content:
         try: bpm_val = int(bpm) if bpm else 0
@@ -544,12 +601,15 @@ def import_songs():
     files = request.files.getlist('import_files')
     def save_or_update(song_title, song_content, song_key='', song_bpm=0):
         existing = Song.query.filter_by(title=song_title).first()
-        if not song_key: song_key = detect_key_algorithm(song_content) 
-        if existing: 
+        song_content = normalize_song_chords(song_content)
+        if song_key:
+            song_key = normalize_chord(song_key)
+        if not song_key: song_key = detect_key_algorithm(song_content)
+        if existing:
             existing.content = song_content
             existing.key = song_key
             existing.bpm = song_bpm
-        else: 
+        else:
             db.session.add(Song(title=song_title, content=song_content, key=song_key, bpm=song_bpm))
 
     for file in files:
@@ -596,7 +656,11 @@ def edit_song(id):
     song = Song.query.get_or_404(id)
     song.title = request.form.get('title')
     song.content = request.form.get('content')
+    if song.content:
+        song.content = normalize_song_chords(song.content)
     song.key = request.form.get('key')
+    if song.key:
+        song.key = normalize_chord(song.key)
     bpm = request.form.get('bpm')
     try: song.bpm = int(bpm) if bpm else 0
     except ValueError: song.bpm = 0
@@ -785,8 +849,9 @@ def upload_presentation():
     try:
         # 1. KONWERSJA Z POWERPOINTA DO PDF (JEŚLI POTRZEBA)
         if ext in ['.pptx', '.ppt']:
-            # Poniższa linijka pozwala Pythonowi komunikować się z Windowsem wewnątrz środowiska webowego
-            pythoncom.CoInitialize() 
+            if not HAS_WIN32:
+                return {'status': 'error', 'message': 'Konwersja PowerPoint wymaga systemu Windows z zainstalowanym MS Office.'}
+            pythoncom.CoInitialize()
             
             # PowerPoint wymaga bezwzględnych (pełnych) ścieżek na dysku do zadziałania
             abs_input = os.path.abspath(temp_input_path)
