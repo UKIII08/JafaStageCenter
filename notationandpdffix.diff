@@ -1,0 +1,411 @@
+diff --git a/app.py b/app.py
+index eec57bd..45dbf3c 100644
+--- a/app.py
++++ b/app.py
+@@ -113,6 +113,11 @@ class Settings(db.Model):
+     transition_engine = db.Column(db.String(10), default='v20')
+     # NEW FIELD: Language
+     language = db.Column(db.String(5), default='pl')
++    chord_notation = db.Column(db.String(15), default='international')
++
++def get_notation():
++    s = Settings.query.first()
++    return s.chord_notation if s and s.chord_notation else 'international'
+ 
+ def init_settings():
+     try:
+@@ -151,66 +156,70 @@ def check_db_schema():
+                     conn.execute(text("ALTER TABLE settings ADD COLUMN language VARCHAR(5) DEFAULT 'pl'"))
+                     conn.commit()
+ 
++            if 'chord_notation' not in settings_columns:
++                with db.engine.connect() as conn:
++                    conn.execute(text("ALTER TABLE settings ADD COLUMN chord_notation VARCHAR(15) DEFAULT 'international'"))
++                    conn.commit()
++
+         except Exception as e:
+             # Silent fail for exe log
+             pass
+ 
+ # --- MAPPINGS ---
+ PITCH_CLASS_MAP = {
+-    'C': 0, 'C#': 1, 'DB': 1, 'D': 2, 'D#': 3, 'EB': 3, 'E': 4,
+-    'F': 5, 'F#': 6, 'GB': 6, 'G': 7, 'G#': 8, 'AB': 8,
+-    'A': 9, 'A#': 10, 'BB': 10, 'B': 11, 'CB': 11, 'H': 11
++    'C': 0, 'C#': 1, 'DB': 1, 'D': 2, 'D#': 3, 'EB': 3, 'E': 4, 'FB': 4,
++    'E#': 5, 'F': 5, 'F#': 6, 'GB': 6, 'G': 7, 'G#': 8, 'AB': 8,
++    'A': 9, 'A#': 10, 'BB': 10, 'B': 11, 'CB': 11, 'H': 11, 'B#': 0
+ }
+-TRANSPOSE_LOOKUP = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
+-
+-CHORD_NORMALIZE_MAP = {
+-    'CB': 'B', 'DB': 'C#', 'EB': 'Eb', 'FB': 'E', 'GB': 'F#', 'AB': 'Ab', 'BB': 'Bb',
+-    'H': 'B', 'B#': 'C', 'E#': 'F',
+-    'CIS': 'C#', 'DIS': 'D#', 'FIS': 'F#', 'GIS': 'G#', 'AIS': 'A#',
++PITCH_CLASS_POLISH = {
++    'CIS': 1, 'DIS': 3, 'FIS': 6, 'GIS': 8, 'AIS': 10,
++    'ES': 3, 'AS': 8, 'HIS': 0
+ }
+-
+-def normalize_chord_root(root_str):
+-    """Normalize chord root to standard international notation."""
++TRANSPOSE_LOOKUP = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
++TRANSPOSE_LOOKUP_PL = ['C', 'Cis', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H']
++CHORD_ROOT_RE = re.compile(r'^([AaEe][Ss]|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$')
++
++def _resolve_pitch_class(root_upper, notation='international'):
++    if root_upper in PITCH_CLASS_POLISH:
++        return PITCH_CLASS_POLISH[root_upper]
++    if root_upper == 'B' and notation == 'polish':
++        return 10
++    if root_upper in PITCH_CLASS_MAP:
++        return PITCH_CLASS_MAP[root_upper]
++    return None
++
++def normalize_chord_root(root_str, notation='international'):
+     upper = root_str.upper()
+-    if upper in CHORD_NORMALIZE_MAP:
+-        return CHORD_NORMALIZE_MAP[upper]
+-    if len(upper) >= 2 and upper.endswith('IS') and upper in CHORD_NORMALIZE_MAP:
+-        return CHORD_NORMALIZE_MAP[upper]
+-    if len(upper) == 1 and upper in 'CDEFGAB':
+-        return upper
+-    if len(upper) == 2 and upper[1] in ('#',) and upper[0] in 'CDEFGAB':
+-        return upper[0] + '#'
+-    if len(upper) == 2 and upper[1] == 'B' and upper[0] in 'CDEFGA':
+-        canon = {'CB': 'B', 'DB': 'C#', 'EB': 'Eb', 'FB': 'E', 'GB': 'F#', 'AB': 'Ab', 'BB': 'Bb'}
+-        return canon.get(upper, root_str)
+-    return root_str
+-
+-def normalize_chord(chord_str):
+-    """Normalize a single chord string (e.g. 'c#m7' -> 'C#m7', 'H' -> 'B', 'Fis' -> 'F#')."""
++    pc = _resolve_pitch_class(upper, notation)
++    if pc is None:
++        return root_str
++    lookup = TRANSPOSE_LOOKUP_PL if notation == 'polish' else TRANSPOSE_LOOKUP
++    return lookup[pc]
++
++def normalize_chord(chord_str, notation='international'):
+     if not chord_str or not chord_str.strip():
+         return chord_str
+     chord_str = chord_str.strip()
+-    m = re.match(r'^([A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$', chord_str)
++    m = CHORD_ROOT_RE.match(chord_str)
+     if not m:
+         return chord_str
+     raw_root = m.group(1)
+     suffix = m.group(2)
+     is_minor_lowercase = raw_root[0].islower()
+-    normalized_root = normalize_chord_root(raw_root)
++    normalized_root = normalize_chord_root(raw_root, notation)
+     if is_minor_lowercase and not suffix.startswith('m'):
+         suffix = 'm' + suffix
+         normalized_root = normalized_root[0].upper() + normalized_root[1:]
+     return normalized_root + suffix
+ 
+-def normalize_song_chords(content):
+-    """Normalize all [chord] notations in song content to standard form."""
++def normalize_song_chords(content, notation='international'):
+     def replace_chord(m):
+         inner = m.group(1)
+         if '/' in inner:
+             parts = inner.split('/')
+-            normalized_parts = [normalize_chord(p) for p in parts]
++            normalized_parts = [normalize_chord(p, notation) for p in parts]
+             return '[' + '/'.join(normalized_parts) + ']'
+-        return '[' + normalize_chord(inner) + ']'
++        return '[' + normalize_chord(inner, notation) + ']'
+     return re.sub(r'\[(.*?)\]', replace_chord, content)
+ 
+ def get_local_ip():
+@@ -354,16 +363,18 @@ key_detector = AdvancedKeyDetector()
+ def detect_key_algorithm(text): return key_detector.detect(text)
+ 
+ # --- TRANSPOSE & PARSING HELPERS ---
+-def transpose_chord(match, shift):
++def transpose_chord(match, shift, notation='international'):
+     full_chord = match.group(1)
++    lookup = TRANSPOSE_LOOKUP_PL if notation == 'polish' else TRANSPOSE_LOOKUP
+     def trans_part(part):
+         if not part: return ""
+-        m = re.match(r'^([A-G][#b]?)(.*)$', part, re.IGNORECASE)
++        m = CHORD_ROOT_RE.match(part)
+         if not m: return part
+-        root, suffix = m.group(1).upper(), m.group(2)
++        root_str, suffix = m.group(1), m.group(2)
+         is_lower = part[0].islower()
+-        if root in PITCH_CLASS_MAP:
+-            new_root = TRANSPOSE_LOOKUP[(PITCH_CLASS_MAP[root] + shift) % 12]
++        pc = _resolve_pitch_class(root_str.upper(), notation)
++        if pc is not None:
++            new_root = lookup[(pc + shift) % 12]
+             return f"{new_root.lower() if is_lower else new_root}{suffix}"
+         return part
+     
+@@ -372,9 +383,9 @@ def transpose_chord(match, shift):
+         return f"[{trans_part(parts[0])}/{trans_part(parts[1])}]" if len(parts)>=2 else f"[{trans_part(full_chord)}]"
+     return f"[{trans_part(full_chord)}]"
+ 
+-def apply_transpose_to_single_chord(chord_str, shift):
++def apply_transpose_to_single_chord(chord_str, shift, notation='international'):
+     if shift == 0: return chord_str
+-    return re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, shift), chord_str)
++    return re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, shift, notation), chord_str)
+ 
+ def get_first_chord_from_chorus(content):
+     if not content: return None
+@@ -393,11 +404,11 @@ def get_first_chord_of_song(content):
+     chords = [c.strip() for c in re.findall(r'\[(.*?)\]', content) if c.strip()]
+     return chords[0] if chords else None
+ 
+-def process_song(text, transpose_amount=0):
++def process_song(text, transpose_amount=0, notation='international'):
+     if not text: return "", "", ""
+     text = text.strip()
+     if transpose_amount != 0:
+-        text = re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, transpose_amount), text)
++        text = re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, transpose_amount, notation), text)
+     text_people = re.sub(r'\[.*?\]', '', text).strip().replace('\n', '<br>')
+     tokens = re.split(r'(\[.*?\])', text)
+     text_smart = ""
+@@ -423,7 +434,7 @@ def process_song(text, transpose_amount=0):
+             t = all_tokens[k]
+             if t.startswith('[') and t.endswith(']'):
+                 has_next_chord = True
+-                break 
++                break
+             if '\n' in t:
+                 line_end_text = t.split('\n')[0].rstrip()
+                 text_len += len(line_end_text)
+@@ -431,6 +442,24 @@ def process_song(text, transpose_amount=0):
+             text_len += len(t)
+         return text_len, has_next_chord
+ 
++    def is_chord_mid_word(idx, all_tokens):
++        prev_is_text = False
++        for k in range(idx - 1, -1, -1):
++            t = all_tokens[k]
++            if t.startswith('[') and t.endswith(']'): continue
++            if t and '\n' not in t:
++                prev_is_text = len(t) > 0 and not t[-1].isspace()
++            break
++        next_is_text = False
++        for k in range(idx + 1, len(all_tokens)):
++            t = all_tokens[k]
++            if t.startswith('[') and t.endswith(']'): continue
++            if t:
++                first_char = t.split('\n')[0][:1] if '\n' in t else t[:1]
++                next_is_text = bool(first_char) and not first_char.isspace()
++            break
++        return prev_is_text and next_is_text
++
+     for i, token in enumerate(tokens):
+         if token.startswith('[') and token.endswith(']'):
+             chord_content = token[1:-1]
+@@ -439,15 +468,17 @@ def process_song(text, transpose_amount=0):
+                 root_part = parts[0]
+                 bass_part = "/".join(parts[1:])
+                 chord_content = f"{root_part}<span class='bass-slash'>/</span><span class='bass-note'>{bass_part}</span>"
+-            
++
+             if not has_text_anywhere_on_line(i, tokens):
+                 text_smart += f'<span class="chord-wrapper" style="width:auto; display:inline-block; margin-right:0.5em;"><span class="chord" style="position:static; font-size:1em;">{chord_content}</span>&nbsp;</span>'
++            elif is_chord_mid_word(i, tokens):
++                text_smart += f'<span class="chord-wrapper"><span class="chord">{chord_content}</span></span>'
+             else:
+                 clean_chord = re.sub(r"<[^>]+>", "", chord_content)
+                 ch_width = (len(clean_chord) * 1.2) + 1.2
+-                
++
+                 text_len, has_next_chord = get_text_info_until_next_chord(i, tokens)
+-                
++
+                 needs_width_expansion = False
+                 missing_width = 0
+ 
+@@ -461,10 +492,8 @@ def process_song(text, transpose_amount=0):
+                 if needs_width_expansion:
+                     text_smart += f'<span class="chord-wrapper" style="display:inline-block; width:{missing_width}ch; height:0px; position:relative;"><span class="chord">{chord_content}</span></span>'
+                 else:
+-                    # WRACAMY DO TWOJEGO ORYGINAŁU - zero ingerencji w style dla akordów wewnątrz słów!
+                     text_smart += f'<span class="chord-wrapper"><span class="chord">{chord_content}</span></span>'
+         else:
+-            # Zamienia taby i wielokrotne spacje na twarde spacje, żeby HTML ich nie zjadał
+             safe_token = token.replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;').replace('  ', '&nbsp;&nbsp;')
+             text_smart += safe_token
+             
+@@ -505,8 +534,9 @@ def route_detect_key():
+     data = request.json
+     text = data.get('text', '')
+     transpose = int(data.get('transpose', 0))
++    notation = get_notation()
+     if transpose != 0:
+-        text = re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, transpose), text)
++        text = re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, transpose, notation=notation), text)
+     detected = detect_key_algorithm(text)
+     pad_note = detected.replace('m', '') if detected != "N/A" else "N/A"
+     return {'key': detected, 'pad': pad_note}
+@@ -550,10 +580,11 @@ def route_generate_transition():
+     if not end_chord_raw.startswith('['): end_to_trans = f"[{end_chord_raw}]"
+     else: end_to_trans = end_chord_raw
+ 
+-    real_start_chord = apply_transpose_to_single_chord(start_to_trans, trans_start)
+-    real_end_chord = apply_transpose_to_single_chord(end_to_trans, trans_end)
+-    real_key_start = apply_transpose_to_single_chord(f"[{key_start}]", trans_start)
+-    real_key_end = apply_transpose_to_single_chord(f"[{key_end}]", trans_end)
++    notation = get_notation()
++    real_start_chord = apply_transpose_to_single_chord(start_to_trans, trans_start, notation=notation)
++    real_end_chord = apply_transpose_to_single_chord(end_to_trans, trans_end, notation=notation)
++    real_key_start = apply_transpose_to_single_chord(f"[{key_start}]", trans_start, notation=notation)
++    real_key_end = apply_transpose_to_single_chord(f"[{key_end}]", trans_end, notation=notation)
+ 
+     settings = Settings.query.first()
+     engine_choice = settings.transition_engine if settings else 'v2'
+@@ -578,10 +609,11 @@ def add_song():
+     content = request.form.get('content')
+     key = request.form.get('key') or ''
+     bpm = request.form.get('bpm')
++    notation = get_notation()
+     if content:
+-        content = normalize_song_chords(content)
++        content = normalize_song_chords(content, notation=notation)
+     if key:
+-        key = normalize_chord(key)
++        key = normalize_chord(key, notation=notation)
+     if not key and content: key = detect_key_algorithm(content)
+     if title and content:
+         try: bpm_val = int(bpm) if bpm else 0
+@@ -599,11 +631,12 @@ def add_song():
+ @app.route('/import_songs', methods=['POST'])
+ def import_songs():
+     files = request.files.getlist('import_files')
++    notation = get_notation()
+     def save_or_update(song_title, song_content, song_key='', song_bpm=0):
+         existing = Song.query.filter_by(title=song_title).first()
+-        song_content = normalize_song_chords(song_content)
++        song_content = normalize_song_chords(song_content, notation=notation)
+         if song_key:
+-            song_key = normalize_chord(song_key)
++            song_key = normalize_chord(song_key, notation=notation)
+         if not song_key: song_key = detect_key_algorithm(song_content)
+         if existing:
+             existing.content = song_content
+@@ -656,11 +689,12 @@ def edit_song(id):
+     song = Song.query.get_or_404(id)
+     song.title = request.form.get('title')
+     song.content = request.form.get('content')
++    notation = get_notation()
+     if song.content:
+-        song.content = normalize_song_chords(song.content)
++        song.content = normalize_song_chords(song.content, notation=notation)
+     song.key = request.form.get('key')
+     if song.key:
+-        song.key = normalize_chord(song.key)
++        song.key = normalize_chord(song.key, notation=notation)
+     bpm = request.form.get('bpm')
+     try: song.bpm = int(bpm) if bpm else 0
+     except ValueError: song.bpm = 0
+@@ -681,8 +715,8 @@ def update_settings():
+     settings.text_color = request.form.get('text_color')
+     settings.chord_color = request.form.get('chord_color')
+     settings.transition_engine = request.form.get('transition_engine')
+-    # NOWE: Zapis języka
+     settings.language = request.form.get('language')
++    settings.chord_notation = request.form.get('chord_notation', 'international')
+     
+     db.session.commit()
+     socketio.emit('apply_settings', {'font_family': settings.font_family, 'bg_color': settings.bg_color, 'text_color': settings.text_color})
+@@ -692,7 +726,8 @@ def update_settings():
+ def reset_settings():
+     settings = Settings.query.first()
+     settings.font_family = 'Sen'; settings.bg_color = '#000000'; settings.text_color = '#ffffff'; settings.chord_color = '#00e5ff'; settings.transition_engine = 'v20'
+-    settings.language = 'pl' # Reset języka
++    settings.language = 'pl'
++    settings.chord_notation = 'international'
+     db.session.commit()
+     bg_path = os.path.join(app.static_folder, 'background.png')
+     if os.path.exists(bg_path):
+@@ -729,10 +764,11 @@ def delete_background():
+ 
+ @app.route('/print_setlist', methods=['POST'])
+ def print_setlist():
+-    data = request.json 
++    data = request.json
++    notation = get_notation()
+     songs_to_print = []
+     for item in data:
+-        _, _, text_print = process_song(item['content'], int(item['transpose']))
++        _, _, text_print = process_song(item['content'], int(item['transpose']), notation=notation)
+         songs_to_print.append({'title': item['title'], 'html': text_print})
+     return render_template('print_view.html', songs=songs_to_print)
+ 
+@@ -770,12 +806,13 @@ def send_text():
+     is_blackout = data.get('blackout', False)
+     
+     shift = int(data.get('transpose', 0))
+-    next_shift = int(data.get('next_transpose', shift)) # Łapiemy nową transpozycję z JS
++    next_shift = int(data.get('next_transpose', shift))
+     passed_key = data.get('key', 'N/A')
+     passed_bpm = data.get('bpm', 0)
+-    
+-    people_html, band_html, _ = process_song(raw_text, shift)
+-    _, band_next_html, _ = process_song(data.get('next_text', ''), next_shift) # Zmieniamy używany shift
++    notation = get_notation()
++
++    people_html, band_html, _ = process_song(raw_text, shift, notation=notation)
++    _, band_next_html, _ = process_song(data.get('next_text', ''), next_shift, notation=notation)
+     
+     socketio.emit('update_slide', {
+         'mode': 'worship', 
+diff --git a/static/js/control_logic.js b/static/js/control_logic.js
+index 88e9f86..427afb6 100644
+--- a/static/js/control_logic.js
++++ b/static/js/control_logic.js
+@@ -46,6 +46,9 @@ const translations = {
+         auto_trans: "Automatyczne przejścia:",
+         key_suggest: "Sugerowanie tonacji:",
+         trans_engine: "Styl przejść (Silnik AI):",
++        chord_notation_label: "Notacja akordów:",
++        notation_international: "Międzynarodowa (Bb, B)",
++        notation_polish: "Polska (B, H, Cis, Fis)",
+         projector_screen: "Rzutnik (Ekran Zewnętrzny)",
+         font_label: "Czcionka:",
+         bg_color: "Tło",
+@@ -127,6 +130,9 @@ const translations = {
+         auto_trans: "Auto Transitions:",
+         key_suggest: "Key Suggestion:",
+         trans_engine: "Transition Style (AI Engine):",
++        chord_notation_label: "Chord Notation:",
++        notation_international: "International (Bb, B)",
++        notation_polish: "Polish (B, H, Cis, Fis)",
+         projector_screen: "Projector (External Screen)",
+         font_label: "Font:",
+         bg_color: "Background",
+diff --git a/templates/control.html b/templates/control.html
+index 52ece41..ca32e49 100644
+--- a/templates/control.html
++++ b/templates/control.html
+@@ -1079,6 +1079,13 @@
+                             <option value="v1" {% if settings and settings.transition_engine == 'v1' %}selected{% endif %}>Moderate(Easier) </option>
+                         </select>
+                     </div>
++                    <div class="settings-row">
++                        <label data-t="chord_notation_label">Notacja akordów:</label>
++                        <select name="chord_notation" style="width: 50%;">
++                            <option value="international" {% if settings and settings.chord_notation == 'international' %}selected{% endif %} data-t="notation_international">Międzynarodowa (Bb, B)</option>
++                            <option value="polish" {% if settings and settings.chord_notation == 'polish' %}selected{% endif %} data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
++                        </select>
++                    </div>
+                 </div>
+ 
+                 <div class="settings-section">
+@@ -1178,7 +1185,8 @@
+                 text_color: "{{ settings.text_color if settings else '#ffffff' }}",
+                 chord_color: "{{ settings.chord_color if settings else '#00e5ff' }}",
+                 font_family: "{{ settings.font_family if settings else 'Sen' }}",
+-                transition_engine: "{{ settings.transition_engine if settings else 'v2' }}"
++                transition_engine: "{{ settings.transition_engine if settings else 'v2' }}",
++                chord_notation: "{{ settings.chord_notation if settings else 'international' }}"
+             },
+             logoUrl: "{{ url_for('static', filename='logo.png') }}",
+             serverIp: "{{ server_ip }}"

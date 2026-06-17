@@ -1079,6 +1079,13 @@
                             <option value="v1" {% if settings and settings.transition_engine == 'v1' %}selected{% endif %}>Moderate(Easier) </option>
                         </select>
                     </div>
+                    <div class="settings-row">
+                        <label data-t="chord_notation_label">Notacja akordów:</label>
+                        <select name="chord_notation" style="width: 50%;">
+                            <option value="international" {% if settings and settings.chord_notation == 'international' %}selected{% endif %} data-t="notation_international">Międzynarodowa (Bb, B)</option>
+                            <option value="polish" {% if settings and settings.chord_notation == 'polish' %}selected{% endif %} data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="settings-section">
@@ -1178,7 +1185,8 @@
                 text_color: "{{ settings.text_color if settings else '#ffffff' }}",
                 chord_color: "{{ settings.chord_color if settings else '#00e5ff' }}",
                 font_family: "{{ settings.font_family if settings else 'Sen' }}",
-                transition_engine: "{{ settings.transition_engine if settings else 'v2' }}"
+                transition_engine: "{{ settings.transition_engine if settings else 'v2' }}",
+                chord_notation: "{{ settings.chord_notation if settings else 'international' }}"
             },
             logoUrl: "{{ url_for('static', filename='logo.png') }}",
             serverIp: "{{ server_ip }}"
