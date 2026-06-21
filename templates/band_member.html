@@ -355,6 +355,10 @@
                     {% endfor %}
                 </select>
             </label>
+            <div id="capo-suggestion" style="margin-top:10px; padding:10px; background:#1a1a2e; border-radius:8px; font-size:12px; color:#888; display:none;">
+                <div style="color:#69f0ae; font-weight:bold; margin-bottom:4px;" id="capo-suggest-title"></div>
+                <div id="capo-suggest-details"></div>
+            </div>
         </div>
 
         <div class="setting-group">
@@ -461,6 +465,71 @@
             return { display, cls };
         }
 
+        // ===== CAPO SUGGESTION =====
+        const EASY_CHORDS = new Set(['C','G','D','A','E','Am','Em','Dm','F','Bm']);
+
+        function extractChords(rawText) {
+            if (!rawText) return [];
+            const matches = rawText.match(/\[(.*?)\]/g);
+            if (!matches) return [];
+            const unique = new Set();
+            for (const m of matches) {
+                let ch = m.slice(1, -1);
+                if (ch.includes('/')) ch = ch.split('/')[0];
+                const p = parseRoot(ch);
+                if (p) unique.add(ch);
+            }
+            return [...unique];
+        }
+
+        function chordSimplifiedRoot(chord) {
+            const p = parseRoot(chord);
+            if (!p) return chord;
+            const pc = rootToPitch(p.root);
+            if (pc === null) return chord;
+            const note = pitchToNote(pc);
+            const isMinor = /^m(?!aj)/i.test(p.suffix);
+            return note + (isMinor ? 'm' : '');
+        }
+
+        function suggestCapo() {
+            const box = document.getElementById('capo-suggestion');
+            const chords = extractChords(currentRawText);
+            if (chords.length === 0) { box.style.display = 'none'; return; }
+
+            let bestCapo = 0;
+            let bestScore = -1;
+            let bestChords = [];
+
+            for (let capo = 0; capo <= 7; capo++) {
+                const transposed = chords.map(ch => {
+                    const simple = simplifyChord(transposeChord(ch, -capo));
+                    return chordSimplifiedRoot(simple);
+                });
+                const uniqueT = [...new Set(transposed)];
+                const easyCount = uniqueT.filter(c => EASY_CHORDS.has(c)).length;
+                const score = easyCount / uniqueT.length;
+                if (score > bestScore || (score === bestScore && capo < bestCapo)) {
+                    bestScore = score;
+                    bestCapo = capo;
+                    bestChords = uniqueT;
+                }
+            }
+
+            if (bestCapo === 0 && bestScore >= 1) {
+                box.style.display = 'block';
+                document.getElementById('capo-suggest-title').textContent = '✓ Bez kapo — akordy są proste';
+                document.getElementById('capo-suggest-details').textContent = bestChords.join(', ');
+            } else if (bestCapo > 0) {
+                box.style.display = 'block';
+                document.getElementById('capo-suggest-title').textContent = '💡 Sugerowany kapo: próg ' + bestCapo;
+                document.getElementById('capo-suggest-details').innerHTML =
+                    'Akordy z capo ' + bestCapo + ': <span style="color:#ccc;">' + bestChords.join(', ') + '</span>';
+            } else {
+                box.style.display = 'none';
+            }
+        }
+
         // ===== RENDERING =====
         function renderRawToHtml(rawText) {
             if (!rawText) return '';
@@ -545,6 +614,8 @@
             } else {
                 bpmBox.style.display = 'none';
             }
+
+            suggestCapo();
         }
 
         // Auto-Scale (same as stage)
