@@ -159,6 +159,72 @@
         .key-black.active { background: #005f73; border-color: #00d2ff; box-shadow: 0 0 40px rgba(0, 210, 255, 0.5); transform: translateY(4px); }
         .kb-1 { left: 40px; } .kb-2 { left: 96px; } .kb-3 { left: 206px; } .kb-4 { left: 260px; } .kb-5 { left: 316px; }
 
+        /* --- EKRAN WYBORU --- */
+        #choice-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #111a22 0%, #000000 100%);
+            z-index: 100;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+        }
+        #choice-screen.visible { display: flex; }
+
+        .choice-title {
+            color: white;
+            font-size: 3vh;
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
+
+        .choice-buttons {
+            display: flex;
+            gap: 40px;
+        }
+
+        .choice-btn {
+            width: 280px;
+            height: 200px;
+            border: 2px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            background: rgba(255,255,255,0.05);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .choice-btn:hover {
+            background: rgba(255,255,255,0.12);
+            border-color: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+        .choice-btn .icon { font-size: 6vh; }
+        .choice-btn .label { font-size: 2.5vh; font-weight: 700; letter-spacing: 1px; }
+        .choice-btn .desc { font-size: 1.5vh; opacity: 0.5; }
+
+        .choice-btn.stage-btn { border-color: rgba(0, 210, 255, 0.3); }
+        .choice-btn.stage-btn:hover { border-color: rgba(0, 210, 255, 0.6); box-shadow: 0 0 40px rgba(0, 210, 255, 0.2); }
+
+        .choice-btn.control-btn { border-color: rgba(29, 185, 84, 0.3); }
+        .choice-btn.control-btn:hover { border-color: rgba(29, 185, 84, 0.6); box-shadow: 0 0 40px rgba(29, 185, 84, 0.2); }
+
+        .countdown-text {
+            color: rgba(255,255,255,0.4);
+            font-size: 1.8vh;
+            margin-top: 10px;
+        }
+        .countdown-text span { color: rgba(0, 210, 255, 0.8); font-weight: bold; }
+
     </style>
 </head>
 <body>
@@ -181,6 +247,23 @@
     <div class="piano-wrapper">
         <!-- (Zawartość pianina bez zmian) -->
         <div class="keyboard-layout"><div class="octave"><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-black kb-1"></div><div class="key-black kb-2"></div><div class="key-black kb-3"></div><div class="key-black kb-4"></div><div class="key-black kb-5"></div></div><div class="octave"><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-black kb-1"></div><div class="key-black kb-2"></div><div class="key-black kb-3"></div><div class="key-black kb-4"></div><div class="key-black kb-5"></div></div><div class="octave"><div class="key-white" id="C4"></div><div class="key-white" id="D4"></div><div class="key-white" id="E4"></div><div class="key-white" id="F4"></div><div class="key-white" id="G4"></div><div class="key-white" id="A4"></div><div class="key-white" id="B4"></div><div class="key-black kb-1" id="Cs4"></div><div class="key-black kb-2" id="Ds4"></div><div class="key-black kb-3" id="Fs4"></div><div class="key-black kb-4" id="Gs4"></div><div class="key-black kb-5" id="As4"></div></div><div class="octave"><div class="key-white" id="C5"></div><div class="key-white" id="D5"></div><div class="key-white" id="E5"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-black kb-1" id="Cs5"></div><div class="key-black kb-2" id="Ds5"></div><div class="key-black kb-3"></div><div class="key-black kb-4"></div><div class="key-black kb-5"></div></div><div class="octave"><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-white"></div><div class="key-black kb-1"></div><div class="key-black kb-2"></div><div class="key-black kb-3"></div><div class="key-black kb-4"></div><div class="key-black kb-5"></div></div></div>
+    </div>
+
+    <div id="choice-screen">
+        <div class="choice-title">Wybierz tryb</div>
+        <div class="choice-buttons">
+            <div class="choice-btn stage-btn" onclick="goTo('/stage')">
+                <div class="icon">🎸</div>
+                <div class="label">ZESPÓŁ</div>
+                <div class="desc">Ekran z tekstami i akordami</div>
+            </div>
+            <div class="choice-btn control-btn" onclick="goTo('/control')">
+                <div class="icon">🎛️</div>
+                <div class="label">STEROWANIE</div>
+                <div class="desc">Panel kontrolny</div>
+            </div>
+        </div>
+        <div class="countdown-text">Automatyczne uruchomienie widoku zespołu za <span id="countdown-num">20</span>s</div>
     </div>
 
     <script>
@@ -331,32 +414,51 @@
         }
 
         // --- SEKWENCJA KOŃCOWA (FADE OUT) ---
+        let countdownInterval = null;
+        let countdownValue = 20;
+
         function finishSequence() {
-            // 1. Dobijamy pasek do 100%
             progressBar.style.width = '100%';
+            setTimeout(showChoiceScreen, 600);
+        }
 
-            // 2. Wygaszamy
-            document.body.style.transition = "opacity 0.8s ease-in-out"; // Trochę wolniejszy fade (0.8s) jest ładniejszy
+        function showChoiceScreen() {
+            document.querySelector('.logo-container').style.display = 'none';
+            document.querySelector('.loader-container').style.display = 'none';
+            document.querySelector('.piano-wrapper').style.display = 'none';
+            document.getElementById('choice-screen').classList.add('visible');
+
+            countdownValue = 20;
+            document.getElementById('countdown-num').innerText = countdownValue;
+            countdownInterval = setInterval(() => {
+                countdownValue--;
+                document.getElementById('countdown-num').innerText = countdownValue;
+                if (countdownValue <= 0) {
+                    clearInterval(countdownInterval);
+                    goTo('/stage');
+                }
+            }, 1000);
+        }
+
+        function goTo(path) {
+            if (countdownInterval) clearInterval(countdownInterval);
+            document.body.style.transition = "opacity 0.5s ease";
             document.body.style.opacity = "0";
-
-            // 3. Przekierowanie po zakończeniu animacji wygaszania
             setTimeout(() => {
-                window.location.replace(SERVER_URL);
-            }, 800);
+                window.location.replace(SERVER_URL + path);
+            }, 500);
         }
 
         // --- START ---
         window.onload = () => {
-            // Obsługa loga (z poprzedniego kroku)
             const logoImg = document.getElementById('app-logo');
-            // logoImg.src = "../static/logo.png"; // Odkomentuj jeśli masz poprawne ścieżki
             logoImg.onerror = function() {
                  this.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
             };
 
             startPianoLoop();
-            updateFakeProgress(); // Startuje pętlę paska
-            checkServer();        // Startuje pętlę sprawdzania serwera
+            updateFakeProgress();
+            checkServer();
         };
     </script>
 </body>
