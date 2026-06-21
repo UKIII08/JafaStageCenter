@@ -82,7 +82,8 @@ socketio = SocketIO(app, async_mode='threading', cors_allowed_origins='*', logge
 # --- 2. SHARED MEMORY ---
 SERVER_STATE = {
     'setlist': [],
-    'current_index': -1
+    'current_index': -1,
+    'is_blackout': False
 }
 
 @socketio.on('connect')
@@ -778,7 +779,8 @@ def update_settings():
     settings.minor_display = request.form.get('minor_display', 'uppercase')
 
     db.session.commit()
-    socketio.emit('apply_settings', {'font_family': settings.font_family, 'bg_color': settings.bg_color, 'text_color': settings.text_color})
+    socketio.emit('apply_settings', {'font_family': settings.font_family, 'bg_color': settings.bg_color, 'text_color': settings.text_color, 'lang': settings.language})
+    socketio.emit('settings_changed')
     return redirect(url_for('control'))
 
 @app.route('/reset_settings', methods=['POST'])
@@ -866,31 +868,37 @@ def send_text():
     if state_updated: socketio.emit('sync_state_to_client', SERVER_STATE)
 
     if data.get('logo') is True:
+        SERVER_STATE['is_blackout'] = False
         socketio.emit('update_slide', {'mode': 'logo'})
         return {'status': 'ok'}
     if data.get('mode') in ['conference', 'canva', 'presentation']:
-        socketio.emit('update_slide', data) 
+        socketio.emit('update_slide', data)
         return {'status': 'ok'}
     raw_text = data.get('text', '')
     is_blackout = data.get('blackout', False)
-    
+    SERVER_STATE['is_blackout'] = is_blackout
+
     shift = int(data.get('transpose', 0))
     next_shift = int(data.get('next_transpose', shift))
     passed_key = data.get('key', 'N/A')
     passed_bpm = data.get('bpm', 0)
     notation, minor_display = get_notation()
 
+    settings = Settings.query.first()
+    lang = settings.language if settings else 'pl'
+
     people_html, band_html, _ = process_song(raw_text, shift, notation=notation, minor_display=minor_display)
     _, band_next_html, _ = process_song(data.get('next_text', ''), next_shift, notation=notation, minor_display=minor_display)
-    
+
     socketio.emit('update_slide', {
-        'mode': 'worship', 
-        'people': people_html, 
-        'band': band_html, 
+        'mode': 'worship',
+        'people': people_html,
+        'band': band_html,
         'band_next': band_next_html,
         'current_key': passed_key,
         'current_bpm': passed_bpm,
-        'is_blackout': is_blackout
+        'is_blackout': is_blackout,
+        'lang': lang
     })
     return {'status': 'ok'}
 

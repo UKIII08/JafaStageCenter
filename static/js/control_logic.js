@@ -1144,7 +1144,9 @@ function selectForLive(i, broadcast = true){
 
 function adjustLiveTrans(a){
     if(currentSetIndex!==-1){
-        setlist[currentSetIndex].transpose+=a;
+        let newVal = setlist[currentSetIndex].transpose + a;
+        if (newVal < -12 || newVal > 12) return;
+        setlist[currentSetIndex].transpose = newVal;
         document.getElementById('current-trans').innerText = (setlist[currentSetIndex].transpose>0?"+":"")+setlist[currentSetIndex].transpose;
         let finalKey = calculateTransposedKey(setlist[currentSetIndex].key, setlist[currentSetIndex].transpose);
         document.getElementById('live-key').innerText = finalKey;
