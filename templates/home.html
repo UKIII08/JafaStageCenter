@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JafaStageCenter</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: radial-gradient(ellipse at 30% 20%, #0d1b2a 0%, #000 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', 'Sen', sans-serif;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        canvas#bg-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
+            opacity: 0.4;
+        }
+
+        .content {
+            position: relative; z-index: 10;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 40px;
+            animation: fadeIn 0.8s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .app-title {
+            font-size: 2.2rem;
+            font-weight: 300;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            color: #00e5ff;
+            text-shadow: 0 0 30px rgba(0, 229, 255, 0.3);
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: #667;
+            margin-top: -20px;
+            letter-spacing: 2px;
+        }
+
+        .cards {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 900px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 36px 32px 28px;
+            width: 200px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .card:hover {
+            background: rgba(0, 229, 255, 0.06);
+            border-color: rgba(0, 229, 255, 0.3);
+            transform: translateY(-6px);
+            box-shadow: 0 12px 40px rgba(0, 229, 255, 0.15);
+        }
+
+        .card-icon {
+            font-size: 2.8rem;
+            line-height: 1;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .card-desc {
+            font-size: 0.78rem;
+            color: #889;
+            line-height: 1.5;
+        }
+
+        .card.primary {
+            border-color: rgba(0, 229, 255, 0.2);
+            background: rgba(0, 229, 255, 0.04);
+        }
+
+        .footer-hint {
+            position: fixed;
+            bottom: 20px;
+            font-size: 0.75rem;
+            color: #445;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="content">
+        <div class="app-title">JafaStageCenter</div>
+        <div class="subtitle">Wybierz widok</div>
+
+        <div class="cards">
+            <a href="/control" class="card primary">
+                <div class="card-icon">🎛️</div>
+                <div class="card-title">Panel Sterowania</div>
+                <div class="card-desc">Zarządzaj setlistą, piosenkami i prezentacją</div>
+            </a>
+
+            <a href="/band_member" class="card">
+                <div class="card-icon">🎸</div>
+                <div class="card-title">Członek Zespołu</div>
+                <div class="card-desc">Akordy, capo, Nashville, diagramy chwytów</div>
+            </a>
+
+            <a href="/stage" class="card">
+                <div class="card-icon">🎤</div>
+                <div class="card-title">Widok Zespołu</div>
+                <div class="card-desc">Tekst i akordy na scenie</div>
+            </a>
+
+            <a href="/projector" class="card">
+                <div class="card-icon">📽️</div>
+                <div class="card-title">Projektor</div>
+                <div class="card-desc">Czysty tekst dla widowni</div>
+            </a>
+        </div>
+    </div>
+
+    <div class="footer-hint">JafaStageCenter &bull; Worship Presentation</div>
+
+    <script>
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class P {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.s = Math.random() * 1.5 + 0.3;
+                this.vx = (Math.random() - 0.5) * 0.4;
+                this.vy = (Math.random() - 0.5) * 0.4;
+                this.o = Math.random() * 0.4 + 0.1;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+            }
+            draw() {
+                ctx.fillStyle = `rgba(100,180,255,${this.o})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.s, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 80; i++) particles.push(new P());
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>

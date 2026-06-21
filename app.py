@@ -590,6 +590,9 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
 
 # --- 6. ROUTING ---
 @app.route('/')
+def home():
+    return render_template('home.html')
+
 @app.route('/control')
 def control():
     songs = Song.query.all()
