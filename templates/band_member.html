@@ -178,17 +178,8 @@
         #current-slide .chord.capo { color: #69f0ae; }
 
         #next-slide-container .chord {
-            position: relative; bottom: auto; left: auto;
-            color: #4db6ac; font-size: 0.85em; font-weight: bold;
-            white-space: nowrap;
-        }
-        #next-slide-container .chord-wrapper {
-            display: inline;
-        }
-        #next-slide-container .chord-only-line .chord {
-            position: static !important;
-            display: inline-block;
-            margin-right: 0.5em;
+            position: absolute; bottom: 0.8em; left: 0;
+            color: #4db6ac; font-size: 0.7em; font-weight: bold;
         }
         #next-slide-container .chord.nashville { color: #ffd60099; }
         #next-slide-container .chord.capo { color: #69f0ae99; }
@@ -434,6 +425,8 @@
         };
         let currentRawText = '';
         let currentRawNext = '';
+        let currentBandHtml = '';
+        let currentBandNext = '';
         let currentKey = 'C';
         let currentBpm = 0;
         let activePresetId = null;
@@ -578,70 +571,53 @@
         }
 
         // ===== RENDERING =====
-        function renderRawToHtml(rawText) {
-            if (!rawText) return '';
-            const blocks = rawText.split(/\n\s*\n/);
-            let html = '';
-            for (const block of blocks) {
-                if (!block.trim()) continue;
-                const lines = block.trim().split('\n');
-                let blockHtml = '';
-                for (const line of lines) {
-                    const tokens = line.split(/(\[.*?\])/);
-                    let lineHtml = '';
-                    let hasText = false, hasChord = false;
-                    for (const tok of tokens) {
-                        if (tok.startsWith('[') && tok.endsWith(']')) hasChord = true;
-                        else if (tok.trim()) hasText = true;
-                    }
-                    const chordOnly = hasChord && !hasText;
-                    for (const tok of tokens) {
-                        if (tok.startsWith('[') && tok.endsWith(']')) {
-                            const raw = tok.slice(1, -1);
-                            if (!currentSettings.show_chords) continue;
-                            const { display, cls } = processChord(raw);
-                            let ch = display;
-                            if (display.includes('/') && !currentSettings.nashville_mode) {
-                                const parts = display.split('/');
-                                ch = parts[0] + "<span class='bass-slash'>/</span><span class='bass-note'>" + parts.slice(1).join('/') + "</span>";
-                            }
-                            let extraCls = '';
-                            let extraAttr = '';
-                            if (currentSettings.show_diagrams && !currentSettings.nashville_mode) {
-                                const lookupName = display.includes('/') ? display.split('/')[0] : display;
-                                extraCls = ' clickable';
-                                extraAttr = ` data-chord="${lookupName.replace(/"/g,'&quot;')}" onclick="showChordPopup(event, this.dataset.chord)"`;
-                            }
-                            if (chordOnly) {
-                                lineHtml += `<span class="chord-only-line"><span class="${cls}${extraCls}"${extraAttr}>${ch}</span></span>`;
-                            } else {
-                                lineHtml += `<span class="chord-wrapper"><span class="${cls}${extraCls}"${extraAttr}>${ch}</span></span>`;
-                            }
-                        } else {
-                            lineHtml += tok.replace(/  /g, '&nbsp;&nbsp;');
-                        }
-                    }
-                    blockHtml += lineHtml + '<br>';
-                }
-                html += blockHtml;
+        // Use server-generated HTML (same as stage view) and transform chords client-side
+        function transformServerHtml(html) {
+            if (!html) return '';
+
+            const container = document.createElement('div');
+            container.innerHTML = html;
+
+            if (!currentSettings.show_chords) {
+                container.querySelectorAll('.chord-wrapper').forEach(el => el.remove());
+                return container.innerHTML;
             }
-            return html;
+            const chordEls = container.querySelectorAll('.chord');
+            chordEls.forEach(el => {
+                const rawChord = el.textContent;
+                const { display, cls } = processChord(rawChord);
+
+                el.className = cls;
+                if (currentSettings.show_diagrams && !currentSettings.nashville_mode) {
+                    el.classList.add('clickable');
+                    const lookupName = display.includes('/') ? display.split('/')[0] : display;
+                    el.dataset.chord = lookupName;
+                    el.onclick = function(e) { showChordPopup(e, this.dataset.chord); };
+                }
+
+                if (display.includes('/') && !currentSettings.nashville_mode) {
+                    const parts = display.split('/');
+                    el.innerHTML = parts[0] + "<span class='bass-slash'>/</span><span class='bass-note'>" + parts.slice(1).join('/') + "</span>";
+                } else {
+                    el.textContent = display;
+                }
+            });
+            return container.innerHTML;
         }
 
         function rerender() {
             if (currentContent.style.display === 'none') return;
-            currentContent.innerHTML = renderRawToHtml(currentRawText);
+            currentContent.innerHTML = transformServerHtml(currentBandHtml);
             currentContent.style.fontSize = currentSettings.font_size + 'vh';
             setTimeout(() => fitText('current-slide', 'current-content', currentSettings.font_size, 3), 0);
 
             // Next section (max 4 lines like stage view)
-            if (currentRawNext && currentRawNext.trim()) {
-                let nextHtml = renderRawToHtml(currentRawNext);
-                let nextLines = nextHtml.split('<br>');
-                if (nextLines.length > 4) {
-                    nextHtml = nextLines.slice(0, 4).join('<br>') + '<br><span style="opacity:0.6;font-size:0.8em;">(...)</span>';
-                }
-                document.getElementById('next-text-inner').innerHTML = nextHtml;
+            if (currentBandNext && currentBandNext.trim()) {
+                let rawLines = currentBandNext.split('<br>');
+                let trimmed = rawLines.length > 4
+                    ? rawLines.slice(0, 4).join('<br>') + '<br><span style="opacity:0.6;font-size:0.8em;">(...)</span>'
+                    : currentBandNext;
+                document.getElementById('next-text-inner').innerHTML = transformServerHtml(trimmed);
                 document.getElementById('next-label').style.display = 'block';
                 setTimeout(() => fitText('next-content', 'next-text-inner', 4.5, 2.5), 0);
             } else {
@@ -721,6 +697,8 @@
                 document.getElementById('next-label').style.display = 'none';
                 currentRawText = '';
                 currentRawNext = '';
+                currentBandHtml = '';
+                currentBandNext = '';
             }
             else if (data.mode === 'blackout') {
                 worshipView.style.display = 'flex';
@@ -728,6 +706,7 @@
                 document.getElementById('next-text-inner').innerHTML = '';
                 document.getElementById('next-label').style.display = 'none';
                 currentRawNext = '';
+                currentBandNext = '';
             }
             else if (data.mode === 'conference') {
                 worshipView.style.display = 'none';
@@ -744,6 +723,8 @@
 
                 if (data.raw_text !== undefined) currentRawText = data.raw_text;
                 if (data.raw_next !== undefined) currentRawNext = data.raw_next;
+                if (data.band !== undefined) currentBandHtml = data.band;
+                if (data.band_next !== undefined) currentBandNext = data.band_next;
 
                 if (data.current_key && data.current_key !== 'N/A') {
                     currentKey = data.current_key;
