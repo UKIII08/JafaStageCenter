@@ -178,8 +178,17 @@
         #current-slide .chord.capo { color: #69f0ae; }
 
         #next-slide-container .chord {
-            position: absolute; bottom: 0.8em; left: 0;
-            color: #4db6ac; font-size: 0.7em; font-weight: bold;
+            position: relative; bottom: auto; left: auto;
+            color: #4db6ac; font-size: 0.85em; font-weight: bold;
+            white-space: nowrap;
+        }
+        #next-slide-container .chord-wrapper {
+            display: inline;
+        }
+        #next-slide-container .chord-only-line .chord {
+            position: static !important;
+            display: inline-block;
+            margin-right: 0.5em;
         }
         #next-slide-container .chord.nashville { color: #ffd60099; }
         #next-slide-container .chord.capo { color: #69f0ae99; }
@@ -625,9 +634,14 @@
             currentContent.style.fontSize = currentSettings.font_size + 'vh';
             setTimeout(() => fitText('current-slide', 'current-content', currentSettings.font_size, 3), 0);
 
-            // Next section
+            // Next section (max 4 lines like stage view)
             if (currentRawNext && currentRawNext.trim()) {
-                document.getElementById('next-text-inner').innerHTML = renderRawToHtml(currentRawNext);
+                let nextHtml = renderRawToHtml(currentRawNext);
+                let nextLines = nextHtml.split('<br>');
+                if (nextLines.length > 4) {
+                    nextHtml = nextLines.slice(0, 4).join('<br>') + '<br><span style="opacity:0.6;font-size:0.8em;">(...)</span>';
+                }
+                document.getElementById('next-text-inner').innerHTML = nextHtml;
                 document.getElementById('next-label').style.display = 'block';
                 setTimeout(() => fitText('next-content', 'next-text-inner', 4.5, 2.5), 0);
             } else {
