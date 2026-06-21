@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         @font-face {
             font-family: 'Sen';
@@ -19,191 +20,230 @@
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
         body {
-            background: #0a0a0f;
-            color: #e8e8e8;
+            background-color: #000;
+            color: #fff;
             font-family: 'Sen', sans-serif;
+            margin: 0; padding: 0;
             height: 100vh; width: 100vw;
             overflow: hidden;
             display: flex; flex-direction: column;
         }
 
-        /* TOP BAR */
-        #top-bar {
-            height: 48px; min-height: 48px;
-            background: #151520;
-            border-bottom: 1px solid #2a2a3a;
-            display: flex; align-items: center;
-            padding: 0 12px;
-            gap: 10px;
-            z-index: 100;
+        /* PRZYCISKI GÓRNE */
+        #fs-btn, #settings-btn {
+            position: absolute;
+            top: 10px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            font-size: 2vh;
+            padding: 8px 12px;
+            cursor: pointer;
+            z-index: 9999;
+            border-radius: 5px;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #fs-btn { right: 10px; }
+        #settings-btn { right: 60px; }
+        #fs-btn:hover, #fs-btn:active, #settings-btn:hover, #settings-btn:active { opacity: 1; background: rgba(255,255,255,0.3); }
+
+        /* --- WIDOK UWIELBIENIA --- */
+        #worship-view {
+            display: flex;
+            flex-direction: column;
+            height: 100%; width: 100%;
         }
 
-        #top-bar .song-title {
-            flex: 1;
-            font-size: 16px; font-weight: 700;
-            color: #fff;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        /* GÓRA (70%) */
+        #current-slide {
+            height: 70vh;
+            width: 100%;
+            padding: 0 20px; box-sizing: border-box;
+            border-bottom: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 8vh;
+            line-height: 2.2;
+            overflow: hidden;
+            position: relative;
         }
 
-        #top-bar .meta {
-            font-size: 13px; color: #888;
+        #stage-logo {
+            max-width: 60%;
+            max-height: 80%;
+            object-fit: contain;
+            display: block;
+        }
+
+        #current-content {
+            display: none;
+            width: 100%;
+        }
+
+        /* DÓŁ (30%) */
+        #next-slide-container {
+            height: 30vh;
+            width: 100%;
+            background-color: #111;
+            padding: 10px 40px; box-sizing: border-box;
+            border-top: 1px solid #444;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .meta-info-container {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            text-align: right;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+        #realtime-clock {
+            font-size: 3.5vh;
+            color: #888;
             font-family: monospace;
-            display: flex; gap: 12px; align-items: center;
+            font-weight: bold;
         }
 
-        #top-bar .meta .key-badge {
-            background: #00e5ff22; color: #00e5ff;
-            padding: 2px 8px; border-radius: 4px; font-weight: bold;
-        }
-
-        #top-bar .meta .bpm-badge {
-            background: #fb634022; color: #fb6340;
-            padding: 2px 8px; border-radius: 4px;
-        }
-
-        #top-bar .meta .capo-badge {
-            background: #ffd60022; color: #ffd600;
-            padding: 2px 8px; border-radius: 4px;
+        #key-display {
+            font-size: 3.5vh;
+            color: #00e5ff;
+            font-weight: bold;
             display: none;
         }
 
-        .icon-btn {
-            background: none; border: none; color: #888;
-            font-size: 22px; cursor: pointer; padding: 4px 8px;
-            border-radius: 6px; transition: all 0.2s;
-        }
-        .icon-btn:hover { color: #fff; background: #ffffff15; }
-
-        /* MAIN CONTENT */
-        #main-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px 20px 20px 20px;
-            scroll-behavior: smooth;
+        #capo-display {
+            font-size: 2.5vh;
+            color: #69f0ae;
+            font-weight: bold;
+            display: none;
         }
 
-        #lyrics-container {
-            max-width: 900px;
-            margin: 0 auto;
-            line-height: 2.4;
+        #bpm-display {
+            font-size: 2.5vh;
+            color: #fb6340;
+            font-weight: bold;
+            font-family: monospace;
+            letter-spacing: 1px;
+            display: none;
         }
 
-        #lyrics-container .section-block {
-            margin-bottom: 28px;
+        #next-label {
+            font-size: 2vh;
+            color: #f5365c;
+            font-weight: bold;
+            margin-bottom: 5px;
+            flex-shrink: 0;
         }
 
-        .chord-line {
-            position: relative;
-            display: inline;
+        #next-content {
+            flex-grow: 1;
+            color: #999;
+            font-size: 4vh;
+            line-height: 2.0;
+            text-align: left;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-start;
+            padding-top: 15px;
+            padding-right: 180px;
         }
 
-        .chord-wrapper {
-            display: inline-block;
-            position: relative;
-            vertical-align: baseline;
-        }
+        .text-wrapper { width: 100%; }
 
-        .chord {
-            position: absolute;
-            bottom: 0.8em;
-            left: 0;
-            color: #00e5ff;
-            font-weight: 700;
-            font-size: 0.7em;
-            white-space: nowrap;
-            text-shadow: 1px 1px 2px #000;
-            transition: color 0.3s;
-        }
+        /* AKORDY */
+        .chord-wrapper { display: inline-block; position: relative; overflow: visible; vertical-align: baseline; }
+        .bass-slash { color: #ff6b6b; opacity: 0.8; }
+        .bass-note { color: #ff4d4d; font-weight: 800; font-size: 0.95em; }
 
-        .chord.nashville { color: #ffd600; }
-        .chord.capo { color: #69f0ae; }
+        #current-slide .chord {
+            position: absolute; bottom: 0.7em; left: 0; transform: none;
+            color: #00e5ff; font-weight: 700; font-size: 0.65em;
+            background: transparent; padding: 0; text-shadow: 1px 1px 2px #000;
+        }
+        #current-slide .chord.nashville { color: #ffd600; }
+        #current-slide .chord.capo { color: #69f0ae; }
+
+        #next-slide-container .chord {
+            position: absolute; bottom: 0.8em; left: 0;
+            color: #4db6ac; font-size: 0.7em; font-weight: bold;
+        }
+        #next-slide-container .chord.nashville { color: #ffd60099; }
+        #next-slide-container .chord.capo { color: #69f0ae99; }
 
         .chord-only-line .chord {
-            position: static;
-            font-size: 1em;
+            position: static !important;
+            font-size: 1em !important;
             display: inline-block;
             margin-right: 0.5em;
         }
 
-        .bass-slash { color: #ff6b6b; opacity: 0.8; }
-        .bass-note { color: #ff4d4d; font-weight: 800; }
-
-        /* LOGO */
-        #logo-view {
-            display: flex;
-            align-items: center; justify-content: center;
-            height: 100%;
+        /* --- WIDOK KONFERENCJI --- */
+        #conference-view {
+            display: none; height: 100%; width: 100%;
+            background: black;
+            flex-direction: column; justify-content: center; align-items: center; text-align: center;
         }
-        #logo-view img {
-            max-width: 50%; max-height: 50%; object-fit: contain;
-        }
+        #conf-timer { font-size: 25vh; font-weight: bold; font-family: monospace; color: white; margin-bottom: 5vh; }
+        #conf-message { font-size: 8vh; color: yellow; padding: 20px; max-width: 90%; }
 
-        /* CONFERENCE VIEW */
-        #conf-view {
-            display: none;
-            flex-direction: column;
-            align-items: center; justify-content: center;
-            height: 100%; text-align: center;
-        }
-        #conf-view .timer { font-size: 18vh; font-weight: bold; font-family: monospace; }
-        #conf-view .message { font-size: 5vh; color: yellow; margin-top: 20px; }
-
-        /* SETTINGS PANEL */
+        /* --- PANEL USTAWIEŃ --- */
         #settings-overlay {
             display: none;
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.7);
-            z-index: 500;
+            z-index: 10000;
         }
-
         #settings-panel {
             position: fixed; top: 0; right: -360px;
             width: 340px; height: 100%;
             background: #1a1a28;
             border-left: 1px solid #333;
-            z-index: 600;
+            z-index: 10001;
             transition: right 0.3s ease;
             overflow-y: auto;
             padding: 20px;
             display: flex; flex-direction: column; gap: 16px;
         }
-
         #settings-panel.open { right: 0; }
-
         #settings-panel h2 {
             font-size: 18px; color: #fff;
             padding-bottom: 10px; border-bottom: 1px solid #333;
             display: flex; justify-content: space-between; align-items: center;
         }
-
         .setting-group {
             background: #22223a;
             border-radius: 10px;
             padding: 14px;
         }
-
-        .setting-group label {
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 14px; color: #ccc;
-            margin-bottom: 10px;
-        }
-
-        .setting-group label:last-child { margin-bottom: 0; }
-
         .setting-group .group-title {
             font-size: 12px; color: #888;
             text-transform: uppercase; letter-spacing: 1px;
             margin-bottom: 10px;
         }
+        .setting-group label {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 14px; color: #ccc;
+            margin-bottom: 10px;
+        }
+        .setting-group label:last-child { margin-bottom: 0; }
 
-        /* Toggle switch */
         .toggle {
             position: relative; width: 44px; height: 24px;
             background: #444; border-radius: 12px; cursor: pointer;
-            transition: background 0.3s;
+            transition: background 0.3s; flex-shrink: 0;
         }
         .toggle.active { background: #00e5ff; }
         .toggle::after {
@@ -215,157 +255,63 @@
         }
         .toggle.active::after { transform: translateX(20px); }
 
-        /* Range */
-        input[type="range"] {
-            width: 100%; accent-color: #00e5ff;
-        }
-
-        select, input[type="text"] {
+        input[type="range"] { width: 100%; accent-color: #00e5ff; }
+        #settings-panel select {
             width: 100%; padding: 8px 10px;
             background: #2a2a44; border: 1px solid #444;
             color: #fff; border-radius: 6px; font-size: 14px;
         }
-
-        /* Preset buttons */
-        .preset-bar {
-            display: flex; gap: 8px; flex-wrap: wrap;
-        }
-
-        .preset-chip {
-            padding: 6px 14px;
-            background: #2a2a44; border: 1px solid #444;
-            border-radius: 20px; color: #ccc;
-            font-size: 13px; cursor: pointer;
-            transition: all 0.2s;
-            display: flex; align-items: center; gap: 6px;
-        }
-        .preset-chip:hover { background: #3a3a5a; color: #fff; }
-        .preset-chip.active { background: #00e5ff33; border-color: #00e5ff; color: #00e5ff; }
-        .preset-chip .del {
-            font-size: 11px; opacity: 0.5; cursor: pointer;
-        }
-        .preset-chip .del:hover { opacity: 1; color: #f5365c; }
-
         .btn {
-            padding: 10px 16px;
-            border: none; border-radius: 8px;
-            font-size: 14px; font-weight: 600;
-            cursor: pointer; transition: all 0.2s;
+            padding: 10px 16px; border: none; border-radius: 8px;
+            font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
         }
         .btn-primary { background: #00e5ff; color: #000; }
         .btn-primary:hover { background: #00b8d4; }
         .btn-danger { background: #f5365c22; color: #f5365c; border: 1px solid #f5365c44; }
         .btn-danger:hover { background: #f5365c44; }
-        .btn-outline { background: none; color: #aaa; border: 1px solid #444; }
-        .btn-outline:hover { background: #ffffff10; color: #fff; }
-
-        /* Fullscreen button */
-        #fs-btn {
-            position: fixed; bottom: 12px; right: 12px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: white; font-size: 18px;
-            padding: 8px 12px; cursor: pointer;
-            z-index: 9999; border-radius: 8px;
-            opacity: 0.4; transition: opacity 0.3s;
-        }
-        #fs-btn:hover { opacity: 1; }
-
-        /* NEXT SECTION PREVIEW */
-        #next-section {
-            border-top: 2px solid #2a2a3a;
-            background: #111118;
-            padding: 12px 20px;
-            min-height: 80px;
-            position: relative;
-        }
-
-        #next-section .next-label {
-            font-size: 12px;
-            color: #f5365c;
-            font-weight: bold;
-            letter-spacing: 1px;
-            margin-bottom: 6px;
-        }
-
-        #next-section .next-text {
-            color: #777;
-            font-size: 14px;
-            line-height: 1.8;
-            overflow: hidden;
-            max-height: 80px;
-        }
-
-        /* BOTTOM META BAR */
-        #bottom-bar {
-            height: 36px; min-height: 36px;
-            background: #0d0d14;
-            border-top: 1px solid #2a2a3a;
-            display: flex; align-items: center;
-            justify-content: space-between;
-            padding: 0 16px;
-            font-family: monospace;
-            font-size: 13px;
-            color: #666;
-        }
-
-        #bottom-bar .clock {
-            color: #888;
-            font-weight: bold;
-        }
-
-        #bottom-bar .meta-item {
-            display: flex; gap: 12px; align-items: center;
-        }
 
         @media (max-width: 600px) {
             #settings-panel { width: 100%; right: -100%; }
-            #main-content { padding: 16px 12px 80px 12px; }
-            #lyrics-container { line-height: 2.2; }
         }
     </style>
 </head>
 <body>
 
-    <div id="top-bar">
-        <span class="song-title" id="song-title">—</span>
-        <div class="meta">
-            <span class="key-badge" id="key-badge" style="display:none"></span>
-            <span class="capo-badge" id="capo-badge"></span>
-            <span class="bpm-badge" id="bpm-badge" style="display:none"></span>
+    <button id="fs-btn" onclick="toggleFullscreen()">⛶</button>
+    <button id="settings-btn" onclick="toggleSettings()">⚙</button>
+
+    <div id="worship-view">
+        <div id="current-slide">
+            <img id="stage-logo" src="{{ url_for('static', filename='logo.png') }}">
+            <div id="current-content" class="text-wrapper"></div>
         </div>
-        <button class="icon-btn" onclick="toggleSettings()" title="Ustawienia">⚙</button>
+
+        <div id="next-slide-container">
+            <div class="meta-info-container">
+                <div id="realtime-clock">00:00</div>
+                <div id="key-display"></div>
+                <div id="capo-display"></div>
+                <div id="bpm-display"></div>
+            </div>
+
+            <div id="next-label">NASTĘPNIE:</div>
+            <div id="next-content">
+                <div id="next-text-inner" class="text-wrapper"></div>
+            </div>
+        </div>
     </div>
 
-    <div id="main-content">
-        <div id="logo-view">
-            <img src="{{ url_for('static', filename='logo.png') }}">
-        </div>
-        <div id="lyrics-container" style="display:none"></div>
-        <div id="conf-view">
-            <div class="timer" id="bm-conf-timer">00:00</div>
-            <div class="message" id="bm-conf-msg"></div>
-        </div>
+    <div id="conference-view">
+        <div id="conf-timer">00:00</div>
+        <div id="conf-message"></div>
     </div>
 
-    <div id="next-section" style="display:none;">
-        <div class="next-label">NASTĘPNIE:</div>
-        <div class="next-text" id="next-text"></div>
-    </div>
-
-    <div id="bottom-bar">
-        <div class="meta-item">
-            <span id="bb-key" style="color:#00e5ff; display:none;"></span>
-            <span id="bb-bpm" style="color:#fb6340; display:none;"></span>
-        </div>
-        <span class="clock" id="bb-clock">00:00</span>
-    </div>
-
+    <!-- PANEL USTAWIEŃ -->
     <div id="settings-overlay" onclick="toggleSettings()"></div>
     <div id="settings-panel">
         <h2>
             Ustawienia
-            <button class="icon-btn" onclick="toggleSettings()" style="font-size:18px;">✕</button>
+            <button style="background:none; border:none; color:#888; font-size:18px; cursor:pointer;" onclick="toggleSettings()">✕</button>
         </h2>
 
         <div class="setting-group">
@@ -377,7 +323,7 @@
                 {% endfor %}
             </select>
             <div style="display:flex; gap:8px; margin-top:10px;">
-                <button class="btn btn-primary" style="flex:1;" onclick="savePresetDialog()">💾 Zapisz preset</button>
+                <button class="btn btn-primary" style="flex:1;" onclick="savePresetDialog()">💾 Zapisz</button>
                 <button class="btn btn-danger" onclick="deleteCurrentPreset()">🗑</button>
             </div>
         </div>
@@ -404,457 +350,367 @@
                 Próg kapo
                 <select id="capo-select" onchange="setCapo(+this.value)">
                     <option value="0">Brak</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                    <option value="9">9</option>
-                    <option value="10">10</option>
-                    <option value="11">11</option>
-                    <option value="12">12</option>
+                    {% for i in range(1, 13) %}
+                    <option value="{{ i }}">{{ i }}</option>
+                    {% endfor %}
                 </select>
             </label>
         </div>
 
         <div class="setting-group">
-            <div class="group-title">Wyświetlanie</div>
+            <div class="group-title">Rozmiar czcionki</div>
             <label>
-                Rozmiar czcionki: <span id="font-size-val">6</span>vh
+                <span id="font-size-val">8</span> vh
             </label>
-            <input type="range" id="font-size-range" min="3" max="12" step="0.5" value="6" oninput="setFontSize(+this.value)">
+            <input type="range" id="font-size-range" min="4" max="14" step="0.5" value="8" oninput="setFontSize(+this.value)">
         </div>
     </div>
 
-    <button id="fs-btn" onclick="toggleFullscreen()">⛶</button>
-
     <script>
-    var socket = io();
+        var socket = io();
+        const worshipView = document.getElementById('worship-view');
+        const confView = document.getElementById('conference-view');
+        const currentContent = document.getElementById('current-content');
+        const stageLogo = document.getElementById('stage-logo');
 
-    // ===== STATE =====
-    let currentSettings = {
-        show_chords: true,
-        nashville_mode: false,
-        capo_fret: 0,
-        beginner_mode: false,
-        font_size: 6
-    };
+        // ===== SETTINGS STATE =====
+        let currentSettings = {
+            show_chords: true,
+            nashville_mode: false,
+            capo_fret: 0,
+            beginner_mode: false,
+            font_size: 8
+        };
+        let currentRawText = '';
+        let currentRawNext = '';
+        let currentKey = 'C';
+        let currentBpm = 0;
+        let activePresetId = null;
 
-    let currentRawText = '';
-    let currentRawNext = '';
-    let currentKey = 'C';
-    let currentBpm = 0;
-    let activePresetId = null;
+        // ===== MUSIC THEORY =====
+        const NOTES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+        const NOTE_MAP = {};
+        NOTES.forEach((n, i) => NOTE_MAP[n] = i);
+        Object.assign(NOTE_MAP, {
+            'Db': 1, 'D#': 3, 'E#': 5, 'Fb': 4, 'Gb': 6,
+            'G#': 8, 'A#': 10, 'B#': 0, 'Cb': 11,
+            'Cis': 1, 'Dis': 3, 'Es': 3, 'Fis': 6, 'Gis': 8, 'As': 8, 'Ais': 10, 'H': 11, 'B': 10, 'His': 0
+        });
 
-    // ===== MUSIC THEORY =====
-    const NOTES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
-    const NOTE_MAP = {};
-    NOTES.forEach((n, i) => NOTE_MAP[n] = i);
-    // Aliases
-    Object.assign(NOTE_MAP, {
-        'Db': 1, 'D#': 3, 'E#': 5, 'Fb': 4, 'F#': 6, 'Gb': 6,
-        'G#': 8, 'A#': 10, 'B#': 0, 'Cb': 11,
-        // Polish
-        'Cis': 1, 'Dis': 3, 'Es': 3, 'Fis': 6, 'Gis': 8, 'As': 8, 'Ais': 10, 'H': 11, 'B': 10,
-        'His': 0
-    });
+        const CHORD_RE = /^([A-Ha-h][#b]?(?:is|IS|Is|es|ES|Es|s)?)(.*)$/;
 
-    const CHORD_RE = /^([A-Ha-h][#b]?(?:is|IS|Is|es|ES|Es|s)?)(.*)$/;
-
-    function parseRoot(chordStr) {
-        const m = chordStr.match(CHORD_RE);
-        if (!m) return null;
-        return { root: m[1], suffix: m[2] };
-    }
-
-    function rootToPitch(root) {
-        let r = root.charAt(0).toUpperCase() + root.slice(1);
-        if (NOTE_MAP[r] !== undefined) return NOTE_MAP[r];
-        r = root.toUpperCase();
-        if (NOTE_MAP[r] !== undefined) return NOTE_MAP[r];
-        return null;
-    }
-
-    function pitchToNote(p) {
-        return NOTES[((p % 12) + 12) % 12];
-    }
-
-    function transposeChord(chordStr, semitones) {
-        if (chordStr.includes('/')) {
-            const parts = chordStr.split('/');
-            return transposeChord(parts[0], semitones) + '/' + transposeChord(parts.slice(1).join('/'), semitones);
-        }
-        const parsed = parseRoot(chordStr);
-        if (!parsed) return chordStr;
-        const pc = rootToPitch(parsed.root);
-        if (pc === null) return chordStr;
-        const newPc = ((pc + semitones) % 12 + 12) % 12;
-        return pitchToNote(newPc) + parsed.suffix;
-    }
-
-    function simplifyChord(chordStr) {
-        if (chordStr.includes('/')) {
-            chordStr = chordStr.split('/')[0];
-        }
-        const parsed = parseRoot(chordStr);
-        if (!parsed) return chordStr;
-        let suffix = parsed.suffix;
-        const isMinor = /^m(?!aj)/i.test(suffix);
-        return parsed.root + (isMinor ? 'm' : '');
-    }
-
-    function toNashville(chordStr, keyRoot) {
-        if (chordStr.includes('/')) {
-            const parts = chordStr.split('/');
-            return toNashville(parts[0], keyRoot) + '/' + toNashville(parts.slice(1).join('/'), keyRoot);
-        }
-        const parsed = parseRoot(chordStr);
-        if (!parsed) return chordStr;
-        const pc = rootToPitch(parsed.root);
-        const keyPc = rootToPitch(keyRoot);
-        if (pc === null || keyPc === null) return chordStr;
-        const interval = ((pc - keyPc) % 12 + 12) % 12;
-        const NASHVILLE = {0:'1', 1:'♭2', 2:'2', 3:'♭3', 4:'3', 5:'4', 6:'♭5', 7:'5', 8:'♭6', 9:'6', 10:'♭7', 11:'7'};
-        let num = NASHVILLE[interval];
-        let suffix = parsed.suffix;
-        const isMinor = /^m(?!aj)/i.test(suffix);
-        if (isMinor) {
-            suffix = suffix.replace(/^m/i, '');
-            num += 'm';
-        }
-        if (suffix && suffix !== '') num += suffix;
-        return num;
-    }
-
-    function processChord(chordStr) {
-        let display = chordStr;
-        let cls = 'chord';
-
-        if (currentSettings.capo_fret > 0) {
-            display = transposeChord(display, -currentSettings.capo_fret);
-            cls += ' capo';
+        function parseRoot(str) {
+            const m = str.match(CHORD_RE);
+            return m ? { root: m[1], suffix: m[2] } : null;
         }
 
-        if (currentSettings.beginner_mode) {
-            display = simplifyChord(display);
+        function rootToPitch(root) {
+            let r = root.charAt(0).toUpperCase() + root.slice(1);
+            if (NOTE_MAP[r] !== undefined) return NOTE_MAP[r];
+            r = root.toUpperCase();
+            return NOTE_MAP[r] !== undefined ? NOTE_MAP[r] : null;
         }
 
-        if (currentSettings.nashville_mode) {
-            let keyRoot = currentKey.replace('m', '');
-            display = toNashville(display, keyRoot);
-            cls = 'chord nashville';
+        function pitchToNote(p) { return NOTES[((p % 12) + 12) % 12]; }
+
+        function transposeChord(chord, semi) {
+            if (chord.includes('/')) {
+                const parts = chord.split('/');
+                return transposeChord(parts[0], semi) + '/' + transposeChord(parts.slice(1).join('/'), semi);
+            }
+            const p = parseRoot(chord);
+            if (!p) return chord;
+            const pc = rootToPitch(p.root);
+            if (pc === null) return chord;
+            return pitchToNote(((pc + semi) % 12 + 12) % 12) + p.suffix;
         }
 
-        return { display, cls };
-    }
+        function simplifyChord(chord) {
+            if (chord.includes('/')) chord = chord.split('/')[0];
+            const p = parseRoot(chord);
+            if (!p) return chord;
+            const isMinor = /^m(?!aj)/i.test(p.suffix);
+            return p.root + (isMinor ? 'm' : '');
+        }
 
-    // ===== RENDERING =====
-    function renderText(rawText) {
-        if (!rawText) return '';
-        const blocks = rawText.split(/\n\s*\n/);
-        let html = '';
+        function toNashville(chord, keyRoot) {
+            if (chord.includes('/')) {
+                const parts = chord.split('/');
+                return toNashville(parts[0], keyRoot) + '/' + toNashville(parts.slice(1).join('/'), keyRoot);
+            }
+            const p = parseRoot(chord);
+            if (!p) return chord;
+            const pc = rootToPitch(p.root);
+            const kpc = rootToPitch(keyRoot);
+            if (pc === null || kpc === null) return chord;
+            const interval = ((pc - kpc) % 12 + 12) % 12;
+            const NASH = {0:'1',1:'♭2',2:'2',3:'♭3',4:'3',5:'4',6:'♭5',7:'5',8:'♭6',9:'6',10:'♭7',11:'7'};
+            let num = NASH[interval];
+            let suffix = p.suffix;
+            if (/^m(?!aj)/i.test(suffix)) { suffix = suffix.replace(/^m/i, ''); num += 'm'; }
+            if (suffix) num += suffix;
+            return num;
+        }
 
-        for (const block of blocks) {
-            if (!block.trim()) continue;
-            const lines = block.trim().split('\n');
-            let blockHtml = '';
+        function processChord(chord) {
+            let display = chord;
+            let cls = 'chord';
+            if (currentSettings.capo_fret > 0) { display = transposeChord(display, -currentSettings.capo_fret); cls += ' capo'; }
+            if (currentSettings.beginner_mode) display = simplifyChord(display);
+            if (currentSettings.nashville_mode) { display = toNashville(display, currentKey.replace('m', '')); cls = 'chord nashville'; }
+            return { display, cls };
+        }
 
-            for (const line of lines) {
-                const tokens = line.split(/(\[.*?\])/);
-                let lineHtml = '';
-                let hasText = false;
-                let hasChord = false;
-
-                for (const tok of tokens) {
-                    if (tok.startsWith('[') && tok.endsWith(']')) {
-                        hasChord = true;
-                    } else if (tok.trim()) {
-                        hasText = true;
+        // ===== RENDERING =====
+        function renderRawToHtml(rawText) {
+            if (!rawText) return '';
+            const blocks = rawText.split(/\n\s*\n/);
+            let html = '';
+            for (const block of blocks) {
+                if (!block.trim()) continue;
+                const lines = block.trim().split('\n');
+                let blockHtml = '';
+                for (const line of lines) {
+                    const tokens = line.split(/(\[.*?\])/);
+                    let lineHtml = '';
+                    let hasText = false, hasChord = false;
+                    for (const tok of tokens) {
+                        if (tok.startsWith('[') && tok.endsWith(']')) hasChord = true;
+                        else if (tok.trim()) hasText = true;
                     }
-                }
-
-                const chordOnlyLine = hasChord && !hasText;
-
-                for (const tok of tokens) {
-                    if (tok.startsWith('[') && tok.endsWith(']')) {
-                        const raw = tok.slice(1, -1);
-                        if (!currentSettings.show_chords) continue;
-
-                        const { display, cls } = processChord(raw);
-                        let chordHtml = display;
-                        if (display.includes('/') && !currentSettings.nashville_mode) {
-                            const parts = display.split('/');
-                            chordHtml = parts[0] + "<span class='bass-slash'>/</span><span class='bass-note'>" + parts.slice(1).join('/') + "</span>";
-                        }
-
-                        if (chordOnlyLine) {
-                            lineHtml += `<span class="chord-only-line"><span class="${cls}">${chordHtml}</span></span>`;
+                    const chordOnly = hasChord && !hasText;
+                    for (const tok of tokens) {
+                        if (tok.startsWith('[') && tok.endsWith(']')) {
+                            const raw = tok.slice(1, -1);
+                            if (!currentSettings.show_chords) continue;
+                            const { display, cls } = processChord(raw);
+                            let ch = display;
+                            if (display.includes('/') && !currentSettings.nashville_mode) {
+                                const parts = display.split('/');
+                                ch = parts[0] + "<span class='bass-slash'>/</span><span class='bass-note'>" + parts.slice(1).join('/') + "</span>";
+                            }
+                            if (chordOnly) {
+                                lineHtml += `<span class="chord-only-line"><span class="${cls}">${ch}</span></span>`;
+                            } else {
+                                lineHtml += `<span class="chord-wrapper"><span class="${cls}">${ch}</span></span>`;
+                            }
                         } else {
-                            lineHtml += `<span class="chord-wrapper"><span class="${cls}">${chordHtml}</span></span>`;
+                            lineHtml += tok.replace(/  /g, '&nbsp;&nbsp;');
                         }
-                    } else {
-                        lineHtml += tok.replace(/  /g, '&nbsp;&nbsp;');
                     }
+                    blockHtml += lineHtml + '<br>';
+                }
+                html += blockHtml;
+            }
+            return html;
+        }
+
+        function rerender() {
+            if (currentContent.style.display === 'none') return;
+            currentContent.innerHTML = renderRawToHtml(currentRawText);
+            currentContent.style.fontSize = currentSettings.font_size + 'vh';
+            setTimeout(() => fitText('current-slide', 'current-content', currentSettings.font_size, 3), 0);
+
+            // Next section
+            if (currentRawNext && currentRawNext.trim()) {
+                document.getElementById('next-text-inner').innerHTML = renderRawToHtml(currentRawNext);
+                document.getElementById('next-label').style.display = 'block';
+                setTimeout(() => fitText('next-content', 'next-text-inner', 4.5, 2.5), 0);
+            } else {
+                document.getElementById('next-text-inner').innerHTML = '';
+                document.getElementById('next-label').style.display = 'none';
+            }
+
+            // Meta info
+            const keyBox = document.getElementById('key-display');
+            const capoBox = document.getElementById('capo-display');
+            if (currentKey && currentKey !== 'N/A' && currentKey.trim() !== '-') {
+                keyBox.innerText = 'Tonacja: ' + currentKey;
+                keyBox.style.display = 'block';
+                if (currentSettings.capo_fret > 0) {
+                    capoBox.innerText = 'Capo ' + currentSettings.capo_fret + ' → graj ' + transposeChord(currentKey, -currentSettings.capo_fret);
+                    capoBox.style.display = 'block';
+                } else {
+                    capoBox.style.display = 'none';
+                }
+            } else {
+                keyBox.style.display = 'none';
+                capoBox.style.display = 'none';
+            }
+
+            const bpmBox = document.getElementById('bpm-display');
+            if (currentBpm && currentBpm > 0) {
+                bpmBox.innerText = currentBpm + ' BPM';
+                bpmBox.style.display = 'block';
+            } else {
+                bpmBox.style.display = 'none';
+            }
+        }
+
+        // Auto-Scale (same as stage)
+        function fitText(containerId, contentId, maxVh, minVh) {
+            const container = document.getElementById(containerId);
+            const content = document.getElementById(contentId);
+            if (container.style.display === 'none' || content.style.display === 'none') return;
+            let size = maxVh;
+            content.style.fontSize = size + 'vh';
+            while (content.scrollHeight > container.clientHeight && size > minVh) {
+                size -= 0.2;
+                content.style.fontSize = size + 'vh';
+            }
+        }
+
+        // Clock
+        function updateClock() {
+            document.getElementById('realtime-clock').innerText =
+                new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ===== FULLSCREEN =====
+        function toggleFullscreen() {
+            var doc = window.document, docEl = doc.documentElement;
+            var req = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            var cancel = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                if (req) req.call(docEl).catch(() => {});
+            } else {
+                if (cancel) cancel.call(doc);
+            }
+        }
+
+        // ===== SOCKET EVENTS =====
+        socket.on('update_slide', function(data) {
+            if (data.mode === 'logo') {
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+                currentContent.style.display = 'none';
+                stageLogo.style.display = 'block';
+                document.getElementById('next-text-inner').innerHTML = '';
+                document.getElementById('next-label').style.display = 'none';
+                currentRawText = '';
+                currentRawNext = '';
+            }
+            else if (data.mode === 'blackout') {
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+                document.getElementById('next-text-inner').innerHTML = '';
+                document.getElementById('next-label').style.display = 'none';
+                currentRawNext = '';
+            }
+            else if (data.mode === 'conference') {
+                worshipView.style.display = 'none';
+                confView.style.display = 'flex';
+                document.getElementById('conf-timer').innerText = data.timer;
+                document.getElementById('conf-timer').style.color = data.timer_color;
+                document.getElementById('conf-message').innerText = data.message;
+            }
+            else {
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+                stageLogo.style.display = 'none';
+                currentContent.style.display = 'block';
+
+                if (data.raw_text !== undefined) currentRawText = data.raw_text;
+                if (data.raw_next !== undefined) currentRawNext = data.raw_next;
+
+                if (data.current_key && data.current_key !== 'N/A') {
+                    currentKey = data.current_key;
+                }
+                if (data.current_bpm && data.current_bpm > 0) {
+                    currentBpm = data.current_bpm;
                 }
 
-                blockHtml += lineHtml + '<br>';
+                rerender();
             }
+        });
 
-            html += `<div class="section-block">${blockHtml}</div>`;
-        }
-
-        return html;
-    }
-
-    function rerender() {
-        const container = document.getElementById('lyrics-container');
-        if (container.style.display === 'none') return;
-        container.innerHTML = renderText(currentRawText);
-        container.style.fontSize = currentSettings.font_size + 'vh';
-
-        // Update capo badge
-        const capoBadge = document.getElementById('capo-badge');
-        if (currentSettings.capo_fret > 0) {
-            capoBadge.textContent = 'Capo ' + currentSettings.capo_fret;
-            capoBadge.style.display = 'inline';
-        } else {
-            capoBadge.style.display = 'none';
-        }
-
-        // Next section preview
-        const nextSection = document.getElementById('next-section');
-        const nextTextEl = document.getElementById('next-text');
-        if (currentRawNext && currentRawNext.trim()) {
-            let nextHtml = renderText(currentRawNext);
-            nextTextEl.innerHTML = nextHtml;
-            nextSection.style.display = 'block';
-        } else {
-            nextSection.style.display = 'none';
-        }
-
-        // Bottom bar meta
-        const bbKey = document.getElementById('bb-key');
-        const bbBpm = document.getElementById('bb-bpm');
-        if (currentKey && currentKey !== 'N/A') {
-            let keyLabel = currentKey;
-            if (currentSettings.capo_fret > 0) {
-                keyLabel += ' (Capo ' + currentSettings.capo_fret + ' → graj ' + transposeChord(currentKey, -currentSettings.capo_fret) + ')';
+        socket.on('sync_state_to_client', function(state) {
+            if (state.is_blackout) {
+                document.getElementById('next-text-inner').innerHTML = '';
+                document.getElementById('next-label').style.display = 'none';
             }
-            bbKey.textContent = 'Tonacja: ' + keyLabel;
-            bbKey.style.display = 'inline';
-        } else {
-            bbKey.style.display = 'none';
-        }
-        if (currentBpm && currentBpm > 0) {
-            bbBpm.textContent = currentBpm + ' BPM';
-            bbBpm.style.display = 'inline';
-        } else {
-            bbBpm.style.display = 'none';
-        }
-    }
+        });
 
-    // ===== SOCKET EVENTS =====
-    socket.on('update_slide', function(data) {
-        const logoView = document.getElementById('logo-view');
-        const lyricsContainer = document.getElementById('lyrics-container');
-        const confView = document.getElementById('conf-view');
+        socket.on('refresh_logo', function() { location.reload(); });
 
-        if (data.mode === 'logo') {
-            logoView.style.display = 'flex';
-            lyricsContainer.style.display = 'none';
-            confView.style.display = 'none';
-            document.getElementById('next-section').style.display = 'none';
-            document.getElementById('song-title').textContent = '—';
-            document.getElementById('key-badge').style.display = 'none';
-            document.getElementById('bpm-badge').style.display = 'none';
-            currentRawNext = '';
+        // ===== SETTINGS UI =====
+        function toggleSettings() {
+            const panel = document.getElementById('settings-panel');
+            const overlay = document.getElementById('settings-overlay');
+            const open = panel.classList.toggle('open');
+            overlay.style.display = open ? 'block' : 'none';
         }
-        else if (data.mode === 'blackout') {
-            // Freeze current view, hide next
-            document.getElementById('next-section').style.display = 'none';
-            currentRawNext = '';
-        }
-        else if (data.mode === 'conference') {
-            logoView.style.display = 'none';
-            lyricsContainer.style.display = 'none';
-            confView.style.display = 'flex';
-            document.getElementById('next-section').style.display = 'none';
-            document.getElementById('bm-conf-timer').textContent = data.timer;
-            document.getElementById('bm-conf-timer').style.color = data.timer_color;
-            document.getElementById('bm-conf-msg').textContent = data.message;
-        }
-        else {
-            logoView.style.display = 'none';
-            confView.style.display = 'none';
-            lyricsContainer.style.display = 'block';
 
-            if (data.raw_text !== undefined) {
-                currentRawText = data.raw_text;
-            }
-            if (data.raw_next !== undefined) {
-                currentRawNext = data.raw_next;
-            }
-            if (data.song_title) {
-                document.getElementById('song-title').textContent = data.song_title;
-            }
-            if (data.current_key && data.current_key !== 'N/A') {
-                currentKey = data.current_key;
-                document.getElementById('key-badge').textContent = currentKey;
-                document.getElementById('key-badge').style.display = 'inline';
-            } else {
-                document.getElementById('key-badge').style.display = 'none';
-            }
-            if (data.current_bpm && data.current_bpm > 0) {
-                currentBpm = data.current_bpm;
-                document.getElementById('bpm-badge').textContent = currentBpm + ' BPM';
-                document.getElementById('bpm-badge').style.display = 'inline';
-            } else {
-                document.getElementById('bpm-badge').style.display = 'none';
-            }
-
+        function toggleOpt(key) {
+            currentSettings[key] = !currentSettings[key];
+            updateToggles();
             rerender();
-
-            // Scroll to top on new section
-            document.getElementById('main-content').scrollTop = 0;
         }
-    });
 
-    socket.on('sync_state_to_client', function(state) {
-        if (state.is_blackout) {
-            // Keep current state frozen
+        function updateToggles() {
+            document.getElementById('tog-chords').classList.toggle('active', currentSettings.show_chords);
+            document.getElementById('tog-nashville').classList.toggle('active', currentSettings.nashville_mode);
+            document.getElementById('tog-beginner').classList.toggle('active', currentSettings.beginner_mode);
         }
-    });
 
-    socket.on('refresh_logo', function() {
-        location.reload();
-    });
+        function setCapo(val) { currentSettings.capo_fret = val; rerender(); }
 
-    // ===== SETTINGS UI =====
-    function toggleSettings() {
-        const panel = document.getElementById('settings-panel');
-        const overlay = document.getElementById('settings-overlay');
-        const open = panel.classList.toggle('open');
-        overlay.style.display = open ? 'block' : 'none';
-    }
+        function setFontSize(val) {
+            currentSettings.font_size = val;
+            document.getElementById('font-size-val').textContent = val;
+            rerender();
+        }
 
-    function toggleOpt(key) {
-        currentSettings[key] = !currentSettings[key];
+        // ===== PRESETS =====
+        function loadPreset(id) {
+            if (!id) { activePresetId = null; return; }
+            const opt = document.querySelector(`#preset-select option[value="${id}"]`);
+            if (!opt) return;
+            const cfg = JSON.parse(opt.dataset.cfg);
+            currentSettings = { ...currentSettings, ...cfg };
+            activePresetId = +id;
+            document.getElementById('capo-select').value = currentSettings.capo_fret;
+            document.getElementById('font-size-range').value = currentSettings.font_size;
+            document.getElementById('font-size-val').textContent = currentSettings.font_size;
+            updateToggles();
+            rerender();
+        }
+
+        function savePresetDialog() {
+            const name = prompt('Nazwa presetu:', activePresetId ? document.querySelector(`#preset-select option[value="${activePresetId}"]`)?.textContent : '');
+            if (!name) return;
+            const payload = { ...currentSettings, name };
+            if (activePresetId) payload.id = activePresetId;
+            fetch('/api/presets', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(r => r.json()).then(data => { activePresetId = data.id; refreshPresetList(); });
+        }
+
+        function deleteCurrentPreset() {
+            if (!activePresetId) return;
+            if (!confirm('Usunąć ten preset?')) return;
+            fetch('/api/presets/' + activePresetId, { method: 'DELETE' })
+            .then(() => { activePresetId = null; refreshPresetList(); });
+        }
+
+        function refreshPresetList() {
+            fetch('/api/presets').then(r => r.json()).then(presets => {
+                const sel = document.getElementById('preset-select');
+                sel.innerHTML = '<option value="">— Wybierz preset —</option>';
+                for (const p of presets) {
+                    const opt = document.createElement('option');
+                    opt.value = p.id; opt.textContent = p.name;
+                    opt.dataset.cfg = JSON.stringify({ show_chords: p.show_chords, nashville_mode: p.nashville_mode, capo_fret: p.capo_fret, beginner_mode: p.beginner_mode, font_size: p.font_size });
+                    sel.appendChild(opt);
+                }
+                if (activePresetId) sel.value = activePresetId;
+            });
+        }
+
         updateToggles();
-        rerender();
-    }
-
-    function updateToggles() {
-        document.getElementById('tog-chords').classList.toggle('active', currentSettings.show_chords);
-        document.getElementById('tog-nashville').classList.toggle('active', currentSettings.nashville_mode);
-        document.getElementById('tog-beginner').classList.toggle('active', currentSettings.beginner_mode);
-    }
-
-    function setCapo(val) {
-        currentSettings.capo_fret = val;
-        rerender();
-    }
-
-    function setFontSize(val) {
-        currentSettings.font_size = val;
-        document.getElementById('font-size-val').textContent = val;
-        rerender();
-    }
-
-    // ===== PRESETS =====
-    function loadPreset(id) {
-        if (!id) { activePresetId = null; return; }
-        const opt = document.querySelector(`#preset-select option[value="${id}"]`);
-        if (!opt) return;
-        const cfg = JSON.parse(opt.dataset.cfg);
-        currentSettings = { ...currentSettings, ...cfg };
-        activePresetId = +id;
-
-        document.getElementById('capo-select').value = currentSettings.capo_fret;
-        document.getElementById('font-size-range').value = currentSettings.font_size;
-        document.getElementById('font-size-val').textContent = currentSettings.font_size;
-        updateToggles();
-        rerender();
-    }
-
-    function savePresetDialog() {
-        const name = prompt('Nazwa presetu:', activePresetId ? document.querySelector(`#preset-select option[value="${activePresetId}"]`)?.textContent : '');
-        if (!name) return;
-
-        const payload = { ...currentSettings, name };
-        if (activePresetId) payload.id = activePresetId;
-
-        fetch('/api/presets', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        .then(r => r.json())
-        .then(data => {
-            activePresetId = data.id;
-            refreshPresetList();
-        });
-    }
-
-    function deleteCurrentPreset() {
-        if (!activePresetId) return;
-        if (!confirm('Usunąć ten preset?')) return;
-        fetch('/api/presets/' + activePresetId, { method: 'DELETE' })
-        .then(() => {
-            activePresetId = null;
-            refreshPresetList();
-        });
-    }
-
-    function refreshPresetList() {
-        fetch('/api/presets')
-        .then(r => r.json())
-        .then(presets => {
-            const sel = document.getElementById('preset-select');
-            sel.innerHTML = '<option value="">— Wybierz preset —</option>';
-            for (const p of presets) {
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.textContent = p.name;
-                opt.dataset.cfg = JSON.stringify({
-                    show_chords: p.show_chords,
-                    nashville_mode: p.nashville_mode,
-                    capo_fret: p.capo_fret,
-                    beginner_mode: p.beginner_mode,
-                    font_size: p.font_size
-                });
-                sel.appendChild(opt);
-            }
-            if (activePresetId) sel.value = activePresetId;
-        });
-    }
-
-    // ===== FULLSCREEN =====
-    function toggleFullscreen() {
-        const doc = window.document;
-        const docEl = doc.documentElement;
-        const req = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
-        const cancel = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
-        if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
-            if (req) req.call(docEl).catch(() => {});
-        } else {
-            if (cancel) cancel.call(doc);
-        }
-    }
-
-    // ===== CLOCK =====
-    function updateClock() {
-        const now = new Date();
-        document.getElementById('bb-clock').textContent =
-            now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
-
-    // ===== INIT =====
-    updateToggles();
     </script>
 </body>
 </html>
