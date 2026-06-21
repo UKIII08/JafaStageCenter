@@ -973,6 +973,13 @@
 ---</pre></div>
             </div>
             <form action="/import_songs" method="POST" enctype="multipart/form-data" id="importForm" style="text-align: center;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; text-align:left;">
+                    <label data-t="input_notation_label" style="font-size:0.8rem; white-space:nowrap;">Notacja wejściowa:</label>
+                    <select name="input_notation" style="flex:1; padding:6px;">
+                        <option value="international" data-t="notation_international">Międzynarodowa (Bb, B)</option>
+                        <option value="polish" data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
+                    </select>
+                </div>
                 <input type="file" name="import_files" id="importInput" multiple accept=".txt" style="display:none;" onchange="document.getElementById('importForm').submit()">
                 <button type="button" class="action-btn" style="width: 100%; justify-content: center; padding: 15px; font-size: 1.1rem; background: var(--accent-primary);" onclick="document.getElementById('importInput').click()" data-t="choose_file">📂 WYBIERZ PLIK</button>
             </form>
@@ -990,9 +997,16 @@
                     <input type="number" name="bpm" id="add-bpm-input" class="input-small" placeholder="BPM">
                     <div class="tap-btn" onclick="tapTempo('add-bpm-input')">TAP</div>
                 </div>
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                    <label data-t="input_notation_label" style="font-size:0.8rem; white-space:nowrap;">Notacja wejściowa:</label>
+                    <select name="input_notation" style="flex:1; padding:6px;">
+                        <option value="international" data-t="notation_international">Międzynarodowa (Bb, B)</option>
+                        <option value="polish" data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
+                    </select>
+                </div>
                 <div style="background: var(--bg-element); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;">
                     Akordy w nawiasach: <code style="color:var(--accent-primary);">[Am]tekst [G]dalej</code><br>
-                    Sekcje oddzielaj pustą linią. Notacja dowolna (H, Bb, C#m, Fis) &mdash; zostanie ustandaryzowana automatycznie.
+                    Sekcje oddzielaj pustą linią. Akordy zostaną ustandaryzowane automatycznie.
                 </div>
                 <textarea name="content" id="add-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('add-content', 'add-key-input')" placeholder="Zwrotka 1&#10;[C]Tekst piosenki [Am]z akordami&#10;[F]Kolejna linia [G]tekstu&#10;&#10;Refren&#10;[F]Tekst refrenu [C]z akordami" data-t-ph="paste_ph"></textarea>
                 <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
@@ -1015,6 +1029,13 @@
                     <div class="tap-btn" onclick="tapTempo('edit-bpm-input')">TAP</div>
                 </div>
                 
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                    <label data-t="input_notation_label" style="font-size:0.8rem; white-space:nowrap;">Notacja wejściowa:</label>
+                    <select name="input_notation" style="flex:1; padding:6px;">
+                        <option value="international" data-t="notation_international">Międzynarodowa (Bb, B)</option>
+                        <option value="polish" data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
+                    </select>
+                </div>
                 <textarea name="content" id="edit-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('edit-content', 'edit-key-input')"></textarea>
                 <div style="display: flex; justify-content: space-between; margin-top: 20px;">
                     <button type="button" onclick="deleteCurrentSong()" class="danger" style="padding:10px;" data-t="delete_btn">USUŃ</button>
@@ -1084,6 +1105,13 @@
                         <select name="chord_notation" style="width: 50%;">
                             <option value="international" {% if settings and settings.chord_notation == 'international' %}selected{% endif %} data-t="notation_international">Międzynarodowa (Bb, B)</option>
                             <option value="polish" {% if settings and settings.chord_notation == 'polish' %}selected{% endif %} data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
+                        </select>
+                    </div>
+                    <div class="settings-row">
+                        <label data-t="minor_style_label">Akordy molowe:</label>
+                        <select name="minor_style" style="width: 50%;">
+                            <option value="lowercase" {% if settings and settings.minor_style == 'lowercase' %}selected{% endif %} data-t="minor_lowercase">Małe litery (a, cis, f#)</option>
+                            <option value="uppercase" {% if settings and settings.minor_style == 'uppercase' %}selected{% endif %} data-t="minor_uppercase">Wielkie + m (Am, C#m)</option>
                         </select>
                     </div>
                 </div>
@@ -1186,7 +1214,8 @@
                 chord_color: "{{ settings.chord_color if settings else '#00e5ff' }}",
                 font_family: "{{ settings.font_family if settings else 'Sen' }}",
                 transition_engine: "{{ settings.transition_engine if settings else 'v2' }}",
-                chord_notation: "{{ settings.chord_notation if settings else 'international' }}"
+                chord_notation: "{{ settings.chord_notation if settings else 'international' }}",
+                minor_style: "{{ settings.minor_style if settings else 'lowercase' }}"
             },
             logoUrl: "{{ url_for('static', filename='logo.png') }}",
             serverIp: "{{ server_ip }}"
