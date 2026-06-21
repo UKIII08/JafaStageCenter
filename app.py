@@ -839,9 +839,18 @@ def qr_code(subpath):
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(url); qr.make(fit=True)
     img_io = BytesIO()
-    qr.make_image(fill_color="black", back_color="white").save(img_io, 'PNG')
-    img_io.seek(0)
-    return send_file(img_io, mimetype='image/png')
+    try:
+        qr.make_image(fill_color="black", back_color="white").save(img_io, 'PNG')
+        img_io.seek(0)
+        return send_file(img_io, mimetype='image/png')
+    except Exception:
+        import qrcode.image.svg
+        factory = qrcode.image.svg.SvgPathImage
+        svg_img = qr.make_image(image_factory=factory)
+        svg_io = BytesIO()
+        svg_img.save(svg_io)
+        svg_io.seek(0)
+        return send_file(svg_io, mimetype='image/svg+xml')
 
 @app.route('/send_text', methods=['POST'])
 def send_text():
