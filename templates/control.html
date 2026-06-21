@@ -1086,13 +1086,6 @@
                             <option value="polish" {% if settings and settings.chord_notation == 'polish' %}selected{% endif %} data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
                         </select>
                     </div>
-                    <div class="settings-row">
-                        <label data-t="minor_display_label">Akordy molowe:</label>
-                        <select name="minor_display" style="width: 50%;">
-                            <option value="uppercase" {% if settings and settings.minor_display == 'uppercase' %}selected{% endif %} data-t="minor_uppercase">Wielkie litery (Am, Em)</option>
-                            <option value="lowercase" {% if settings and settings.minor_display == 'lowercase' %}selected{% endif %} data-t="minor_lowercase">Małe litery (am, em)</option>
-                        </select>
-                    </div>
                 </div>
 
                 <div class="settings-section">
@@ -1193,8 +1186,7 @@
                 chord_color: "{{ settings.chord_color if settings else '#00e5ff' }}",
                 font_family: "{{ settings.font_family if settings else 'Sen' }}",
                 transition_engine: "{{ settings.transition_engine if settings else 'v2' }}",
-                chord_notation: "{{ settings.chord_notation if settings else 'international' }}",
-                minor_display: "{{ settings.minor_display if settings else 'uppercase' }}"
+                chord_notation: "{{ settings.chord_notation if settings else 'international' }}"
             },
             logoUrl: "{{ url_for('static', filename='logo.png') }}",
             serverIp: "{{ server_ip }}"
