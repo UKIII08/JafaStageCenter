@@ -405,11 +405,11 @@ function playPad(rawKey, fadeOutSec = 4) {
         const t = ctx.currentTime;
         currentPadEl = next;
 
-        // Nowy pad wchodzi szybko na pełną głośność (0.5s ramp)
+        // Nowy pad narasta powoli
         nextNode.gain.gain.setValueAtTime(0.001, t);
-        nextNode.gain.gain.exponentialRampToValueAtTime(globalPadVolume, t + 0.5);
+        nextNode.gain.gain.exponentialRampToValueAtTime(globalPadVolume, t + fadeOutSec);
 
-        // Stary pad wygasza się powoli — oba grają jednocześnie
+        // Stary pad maleje powoli — równoległy crossfade
         if (active && active !== next && !active.paused) {
             const activeNode = getPadNode(active);
             const currentVol = activeNode.gain.gain.value;
