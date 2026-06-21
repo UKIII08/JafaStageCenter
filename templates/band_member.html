@@ -81,7 +81,7 @@
         #main-content {
             flex: 1;
             overflow-y: auto;
-            padding: 24px 20px 80px 20px;
+            padding: 24px 20px 20px 20px;
             scroll-behavior: smooth;
         }
 
@@ -271,6 +271,53 @@
         }
         #fs-btn:hover { opacity: 1; }
 
+        /* NEXT SECTION PREVIEW */
+        #next-section {
+            border-top: 2px solid #2a2a3a;
+            background: #111118;
+            padding: 12px 20px;
+            min-height: 80px;
+            position: relative;
+        }
+
+        #next-section .next-label {
+            font-size: 12px;
+            color: #f5365c;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        #next-section .next-text {
+            color: #777;
+            font-size: 14px;
+            line-height: 1.8;
+            overflow: hidden;
+            max-height: 80px;
+        }
+
+        /* BOTTOM META BAR */
+        #bottom-bar {
+            height: 36px; min-height: 36px;
+            background: #0d0d14;
+            border-top: 1px solid #2a2a3a;
+            display: flex; align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #666;
+        }
+
+        #bottom-bar .clock {
+            color: #888;
+            font-weight: bold;
+        }
+
+        #bottom-bar .meta-item {
+            display: flex; gap: 12px; align-items: center;
+        }
+
         @media (max-width: 600px) {
             #settings-panel { width: 100%; right: -100%; }
             #main-content { padding: 16px 12px 80px 12px; }
@@ -299,6 +346,19 @@
             <div class="timer" id="bm-conf-timer">00:00</div>
             <div class="message" id="bm-conf-msg"></div>
         </div>
+    </div>
+
+    <div id="next-section" style="display:none;">
+        <div class="next-label">NASTĘPNIE:</div>
+        <div class="next-text" id="next-text"></div>
+    </div>
+
+    <div id="bottom-bar">
+        <div class="meta-item">
+            <span id="bb-key" style="color:#00e5ff; display:none;"></span>
+            <span id="bb-bpm" style="color:#fb6340; display:none;"></span>
+        </div>
+        <span class="clock" id="bb-clock">00:00</span>
     </div>
 
     <div id="settings-overlay" onclick="toggleSettings()"></div>
@@ -443,9 +503,7 @@
         if (!parsed) return chordStr;
         let suffix = parsed.suffix;
         const isMinor = /^m(?!aj)/i.test(suffix);
-        const pc = rootToPitch(parsed.root);
-        if (pc === null) return chordStr;
-        return pitchToNote(pc) + (isMinor ? 'm' : '');
+        return parsed.root + (isMinor ? 'm' : '');
     }
 
     function toNashville(chordStr, keyRoot) {
@@ -565,6 +623,37 @@
         } else {
             capoBadge.style.display = 'none';
         }
+
+        // Next section preview
+        const nextSection = document.getElementById('next-section');
+        const nextTextEl = document.getElementById('next-text');
+        if (currentRawNext && currentRawNext.trim()) {
+            let nextHtml = renderText(currentRawNext);
+            nextTextEl.innerHTML = nextHtml;
+            nextSection.style.display = 'block';
+        } else {
+            nextSection.style.display = 'none';
+        }
+
+        // Bottom bar meta
+        const bbKey = document.getElementById('bb-key');
+        const bbBpm = document.getElementById('bb-bpm');
+        if (currentKey && currentKey !== 'N/A') {
+            let keyLabel = currentKey;
+            if (currentSettings.capo_fret > 0) {
+                keyLabel += ' (Capo ' + currentSettings.capo_fret + ' → graj ' + transposeChord(currentKey, -currentSettings.capo_fret) + ')';
+            }
+            bbKey.textContent = 'Tonacja: ' + keyLabel;
+            bbKey.style.display = 'inline';
+        } else {
+            bbKey.style.display = 'none';
+        }
+        if (currentBpm && currentBpm > 0) {
+            bbBpm.textContent = currentBpm + ' BPM';
+            bbBpm.style.display = 'inline';
+        } else {
+            bbBpm.style.display = 'none';
+        }
     }
 
     // ===== SOCKET EVENTS =====
@@ -577,17 +666,22 @@
             logoView.style.display = 'flex';
             lyricsContainer.style.display = 'none';
             confView.style.display = 'none';
+            document.getElementById('next-section').style.display = 'none';
             document.getElementById('song-title').textContent = '—';
             document.getElementById('key-badge').style.display = 'none';
             document.getElementById('bpm-badge').style.display = 'none';
+            currentRawNext = '';
         }
         else if (data.mode === 'blackout') {
-            // Freeze current view
+            // Freeze current view, hide next
+            document.getElementById('next-section').style.display = 'none';
+            currentRawNext = '';
         }
         else if (data.mode === 'conference') {
             logoView.style.display = 'none';
             lyricsContainer.style.display = 'none';
             confView.style.display = 'flex';
+            document.getElementById('next-section').style.display = 'none';
             document.getElementById('bm-conf-timer').textContent = data.timer;
             document.getElementById('bm-conf-timer').style.color = data.timer_color;
             document.getElementById('bm-conf-msg').textContent = data.message;
@@ -749,6 +843,15 @@
             if (cancel) cancel.call(doc);
         }
     }
+
+    // ===== CLOCK =====
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('bb-clock').textContent =
+            now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
 
     // ===== INIT =====
     updateToggles();
