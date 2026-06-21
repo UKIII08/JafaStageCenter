@@ -222,16 +222,16 @@ function toggleTheme() {
     localStorage.setItem('theme', newTheme);
 }
 
-// --- AUDIO PAD LOGIC ---
-const padA = document.getElementById('pad-player-a');
-const padB = document.getElementById('pad-player-b');
+// --- AUDIO PAD LOGIC (Web Audio API) ---
+const padElA = document.getElementById('pad-player-a');
+const padElB = document.getElementById('pad-player-b');
 
-let currentPadPlayer = null; 
+let audioCtx = null;
+let padNodes = new Map(); // element -> { source, gain }
+let currentPadEl = null;
+let currentPadKey = null;
 let isPadPlaying = false;
 let globalPadVolume = 0.5;
-let activeFadeIntervals = new Map();
-
-let currentTargetKey = null;
 
 let padDebounceTimer = null;
 const PAD_DELAY_MS = 2000;
@@ -239,14 +239,35 @@ const PAD_DELAY_MS = 2000;
 const KEY_MAP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const FLAT_TO_SHARP = {'Db':'C#', 'Eb':'D#', 'Gb':'F#', 'Ab':'G#', 'Bb':'A#', 'Cb':'B'};
 
+function ensureAudioCtx() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+
+function getPadNode(el) {
+    if (padNodes.has(el)) return padNodes.get(el);
+    const ctx = ensureAudioCtx();
+    const source = ctx.createMediaElementSource(el);
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    const node = { source, gain };
+    padNodes.set(el, node);
+    return node;
+}
+
 document.addEventListener("DOMContentLoaded", function() {
     const slider = document.getElementById('pad-volume-slider');
     if(slider) updatePadVolume(slider);
-    
+
     // Init Language
     const savedLang = localStorage.getItem('appLang') || 'pl';
     setLanguage(savedLang);
-    
+
     // Load library from Global Window Object
     if(window.SERVER_DATA && window.SERVER_DATA.songs) {
         // Initial render
@@ -261,7 +282,7 @@ function normalizeKey(k) {
     let root = match[1];
     root = root.charAt(0).toUpperCase() + root.slice(1).toLowerCase();
     if(FLAT_TO_SHARP[root]) root = FLAT_TO_SHARP[root];
-    
+
     let suffix = match[2].trim().toLowerCase();
     if(suffix.startsWith('m') && !suffix.startsWith('maj')) {
         let idx = KEY_MAP.indexOf(root);
@@ -277,7 +298,7 @@ function triggerDebouncedPad(targetKey) {
     if(!isPadPlaying) return;
 
     if (padDebounceTimer) clearTimeout(padDebounceTimer);
-    
+
     console.log(`[PAD] Oczekiwanie na ustabilizowanie tonacji: ${targetKey}...`);
 
     padDebounceTimer = setTimeout(() => {
@@ -290,20 +311,21 @@ function togglePad() {
     isPadPlaying = !isPadPlaying;
     const btn = document.getElementById('pad-toggle-btn');
     const status = document.getElementById('pad-status-text');
-    
+
     if (padDebounceTimer) clearTimeout(padDebounceTimer);
 
     if(isPadPlaying) {
+        ensureAudioCtx();
         btn.classList.add('active');
         status.innerText = "ON";
         if(currentSetIndex !== -1 && setlist[currentSetIndex]) {
             let rawKey = calculateTransposedKey(setlist[currentSetIndex].key, setlist[currentSetIndex].transpose);
-            playPad(rawKey); 
+            playPad(rawKey);
         }
     } else {
         btn.classList.remove('active');
         status.innerText = "OFF";
-        currentTargetKey = null; 
+        currentPadKey = null;
         fadeOutAllPads();
     }
 }
@@ -311,20 +333,22 @@ function togglePad() {
 function updatePadVolume(slider) {
     let val = parseFloat(slider.value);
     globalPadVolume = val;
-    
-    if(currentPadPlayer && !currentPadPlayer.paused) {
-         if (!activeFadeIntervals.has(currentPadPlayer)) {
-              currentPadPlayer.volume = globalPadVolume;
-         }
+
+    if(currentPadEl && !currentPadEl.paused && audioCtx) {
+        const node = padNodes.get(currentPadEl);
+        if (node) {
+            node.gain.gain.cancelScheduledValues(audioCtx.currentTime);
+            node.gain.gain.setTargetAtTime(globalPadVolume, audioCtx.currentTime, 0.1);
+        }
     }
 
     const percentage = (val - slider.min) / (slider.max - slider.min) * 100;
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     const accentColor = isDark ? '#4e95ff' : '#5e72e4';
     const trackColor = isDark ? '#333' : '#e9ecef';
-    
+
     slider.style.background = `linear-gradient(to right, ${accentColor} 0%, ${accentColor} ${percentage}%, ${trackColor} ${percentage}%, ${trackColor} 100%)`;
-    
+
     const txt = document.getElementById('pad-vol-text');
     if(txt) txt.innerText = Math.round(percentage) + "%";
 }
@@ -339,112 +363,91 @@ const observer = new MutationObserver(function(mutations) {
 });
 observer.observe(document.documentElement, { attributes: true });
 
-function playPad(rawKey, transitionDuration = 2000) {
+function playPad(rawKey, transitionDuration = 2.5) {
     if(!isPadPlaying) return;
     let targetKey = normalizeKey(rawKey);
-    if(!targetKey) return; 
+    if(!targetKey) return;
 
-    currentTargetKey = targetKey;
+    const ctx = ensureAudioCtx();
+    const now = ctx.currentTime;
+
+    if (targetKey === currentPadKey && currentPadEl && !currentPadEl.paused) {
+        const node = getPadNode(currentPadEl);
+        node.gain.gain.cancelScheduledValues(now);
+        node.gain.gain.setTargetAtTime(globalPadVolume, now, transitionDuration * 0.3);
+        return;
+    }
+
+    currentPadKey = targetKey;
 
     let filename = `/static/pads/${targetKey}.mp3`;
-    let active = currentPadPlayer;
-    let next = (active === padA) ? padB : padA;
-
-    if(active && active.src.includes(encodeURIComponent(targetKey)+".mp3") && !active.paused && !activeFadeIntervals.has(active)) {
-        fadeInPlayer(active, transitionDuration);
-        return; 
-    }
+    let active = currentPadEl;
+    let next = (active === padElA) ? padElB : padElA;
 
     console.log(`[PAD] Przełączam na ${targetKey}`);
     document.getElementById('pad-status-text').innerText = targetKey;
 
+    const nextNode = getPadNode(next);
+    nextNode.gain.gain.cancelScheduledValues(now);
+    nextNode.gain.gain.setValueAtTime(0, now);
+
     next.src = filename;
-    next.volume = 0; 
-    
+    next.volume = 1; // HTML element volume stays at 1, GainNode controls actual volume
+
     next.play().then(() => {
         if (!isPadPlaying) {
             next.pause();
             next.currentTime = 0;
             return;
         }
-        if (currentTargetKey !== targetKey) {
-            return;
-        }
+        if (currentPadKey !== targetKey) return;
 
-        currentPadPlayer = next;
-        fadeInPlayer(next, transitionDuration);
-        
-        if (active && active !== next) {
-            fadeOutPlayer(active, transitionDuration);
+        const t = ctx.currentTime;
+        currentPadEl = next;
+
+        // Smooth fade in with exponential ramp (natural sounding)
+        nextNode.gain.gain.setValueAtTime(0.001, t);
+        nextNode.gain.gain.exponentialRampToValueAtTime(globalPadVolume, t + transitionDuration);
+
+        // Crossfade out the old pad
+        if (active && active !== next && !active.paused) {
+            const activeNode = getPadNode(active);
+            const currentVol = activeNode.gain.gain.value;
+            activeNode.gain.gain.cancelScheduledValues(t);
+            activeNode.gain.gain.setValueAtTime(Math.max(currentVol, 0.001), t);
+            activeNode.gain.gain.exponentialRampToValueAtTime(0.001, t + transitionDuration);
+            setTimeout(() => {
+                if (currentPadEl !== active) {
+                    active.pause();
+                    active.currentTime = 0;
+                }
+            }, transitionDuration * 1000 + 100);
         }
 
     }).catch(e => console.error("Pad play error:", e));
 }
 
-function fadeInPlayer(player, duration) {
-    if (activeFadeIntervals.has(player)) {
-        clearInterval(activeFadeIntervals.get(player));
-        activeFadeIntervals.delete(player);
+function fadeOutAllPads(duration = 2.5) {
+    if (!audioCtx) {
+        [padElA, padElB].forEach(p => { p.pause(); p.currentTime = 0; });
+        currentPadEl = null;
+        return;
     }
-
-    const startTime = Date.now();
-    const startVol = player.volume;
-    const targetVol = globalPadVolume;
-
-    const interval = setInterval(() => {
-        if (!player || (player !== currentPadPlayer && !activeFadeIntervals.has(player))) {
-             clearInterval(interval);
-             return;
+    const now = audioCtx.currentTime;
+    [padElA, padElB].forEach(el => {
+        if (!el.paused) {
+            const node = getPadNode(el);
+            const vol = node.gain.gain.value;
+            node.gain.gain.cancelScheduledValues(now);
+            node.gain.gain.setValueAtTime(Math.max(vol, 0.001), now);
+            node.gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+            setTimeout(() => {
+                el.pause();
+                el.currentTime = 0;
+            }, duration * 1000 + 100);
         }
-
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        
-        const newVol = startVol + (targetVol - startVol) * progress;
-        player.volume = Math.max(0, Math.min(1, newVol));
-
-        if (progress >= 1) {
-            clearInterval(interval);
-            activeFadeIntervals.delete(player);
-            player.volume = targetVol; 
-        }
-    }, 20);
-
-    activeFadeIntervals.set(player, interval);
-}
-
-function fadeOutPlayer(player, duration) {
-    if (activeFadeIntervals.has(player)) {
-        clearInterval(activeFadeIntervals.get(player));
-        activeFadeIntervals.delete(player);
-    }
-
-    const startTime = Date.now();
-    const startVol = player.volume;
-
-    const interval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-
-        player.volume = Math.max(0, startVol * (1 - progress));
-
-        if (progress >= 1) {
-            clearInterval(interval);
-            activeFadeIntervals.delete(player);
-            player.pause();
-            player.currentTime = 0;
-            player.volume = 0;
-        }
-    }, 20);
-
-    activeFadeIntervals.set(player, interval);
-}
-
-function fadeOutAllPads() {
-    [padA, padB].forEach(p => {
-        if(!p.paused) fadeOutPlayer(p, 2000); 
     });
-    currentPadPlayer = null;
+    currentPadEl = null;
 }
 
 // --- SYNCHRONIZACJA ---
@@ -1124,7 +1127,7 @@ function selectForLive(i, broadcast = true){
                     console.log(`[TRANSITION] Kliknięto przejście. Pad zmieni się na ${nextKey} za 5s.`);
                     
                     setTimeout(() => {
-                        playPad(nextKey, 5000);
+                        playPad(nextKey, 5);
                     }, 8000);
                 }
 
