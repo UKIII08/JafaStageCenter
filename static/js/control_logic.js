@@ -405,17 +405,17 @@ function playPad(rawKey, fadeOutSec = 4) {
         const t = ctx.currentTime;
         currentPadEl = next;
 
-        // Nowy pad narasta powoli
-        nextNode.gain.gain.setValueAtTime(0.001, t);
-        nextNode.gain.gain.exponentialRampToValueAtTime(globalPadVolume, t + fadeOutSec);
+        // Nowy pad narasta liniowo
+        nextNode.gain.gain.setValueAtTime(0, t);
+        nextNode.gain.gain.linearRampToValueAtTime(globalPadVolume, t + fadeOutSec);
 
-        // Stary pad maleje powoli — równoległy crossfade
+        // Stary pad maleje liniowo — równoległy crossfade
         if (active && active !== next && !active.paused) {
             const activeNode = getPadNode(active);
             const currentVol = activeNode.gain.gain.value;
             activeNode.gain.gain.cancelScheduledValues(t);
-            activeNode.gain.gain.setValueAtTime(Math.max(currentVol, 0.001), t);
-            activeNode.gain.gain.exponentialRampToValueAtTime(0.001, t + fadeOutSec);
+            activeNode.gain.gain.setValueAtTime(currentVol, t);
+            activeNode.gain.gain.linearRampToValueAtTime(0, t + fadeOutSec);
             setTimeout(() => {
                 if (currentPadEl !== active) {
                     active.pause();
@@ -439,8 +439,8 @@ function fadeOutAllPads(duration = 3) {
             const node = getPadNode(el);
             const vol = node.gain.gain.value;
             node.gain.gain.cancelScheduledValues(now);
-            node.gain.gain.setValueAtTime(Math.max(vol, 0.001), now);
-            node.gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+            node.gain.gain.setValueAtTime(vol, now);
+            node.gain.gain.linearRampToValueAtTime(0, now + duration);
             setTimeout(() => {
                 el.pause();
                 el.currentTime = 0;
