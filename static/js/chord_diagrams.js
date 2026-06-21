@@ -200,3 +200,158 @@ function renderChordSVG(chordName, data) {
     svg += '</svg>';
     return svg;
 }
+
+// ===== PIANO CHORD DATABASE =====
+// Format: array of MIDI-style note numbers (C=0, C#=1, ..., B=11) across 2 octaves
+// Notes 0-11 = lower octave, 12-23 = upper octave
+const PIANO_DB = {
+    // Major
+    'C':  [0, 4, 7],    'C#': [1, 5, 8],    'Db': [1, 5, 8],
+    'D':  [2, 6, 9],    'Eb': [3, 7, 10],   'D#': [3, 7, 10],
+    'E':  [4, 8, 11],   'F':  [5, 9, 12],   'F#': [6, 10, 13],
+    'Gb': [6, 10, 13],  'G':  [7, 11, 14],  'Ab': [8, 12, 15],
+    'G#': [8, 12, 15],  'A':  [9, 13, 16],  'Bb': [10, 14, 17],
+    'A#': [10, 14, 17], 'B':  [11, 15, 18],
+
+    // Minor
+    'Cm':  [0, 3, 7],   'C#m': [1, 4, 8],   'Dbm': [1, 4, 8],
+    'Dm':  [2, 5, 9],   'Ebm': [3, 6, 10],  'D#m': [3, 6, 10],
+    'Em':  [4, 7, 11],  'Fm':  [5, 8, 12],  'F#m': [6, 9, 13],
+    'Gbm': [6, 9, 13],  'Gm':  [7, 10, 14], 'Abm': [8, 11, 15],
+    'G#m': [8, 11, 15], 'Am':  [9, 12, 16], 'Bbm': [10, 13, 17],
+    'A#m': [10, 13, 17],'Bm':  [11, 14, 18],
+
+    // 7th (dominant)
+    'C7':  [0, 4, 7, 10],   'D7':  [2, 6, 9, 12],   'E7':  [4, 8, 11, 14],
+    'F7':  [5, 9, 12, 15],  'G7':  [7, 11, 14, 17],  'A7':  [9, 13, 16, 19],
+    'B7':  [11, 15, 18, 21],'Bb7': [10, 14, 17, 20],
+
+    // Minor 7th
+    'Am7': [9, 12, 16, 19], 'Bm7': [11, 14, 18, 21], 'Cm7': [0, 3, 7, 10],
+    'Dm7': [2, 5, 9, 12],   'Em7': [4, 7, 11, 14],   'F#m7':[6, 9, 13, 16],
+    'G#m7':[8, 11, 15, 18],
+
+    // Major 7th
+    'Cmaj7': [0, 4, 7, 11],  'Dmaj7': [2, 6, 9, 13],  'Emaj7': [4, 8, 11, 15],
+    'Fmaj7': [5, 9, 12, 16], 'Gmaj7': [7, 11, 14, 18], 'Amaj7': [9, 13, 16, 20],
+    'Bbmaj7':[10, 14, 17, 21],
+
+    // sus2
+    'Csus2': [0, 2, 7],  'Dsus2': [2, 4, 9],  'Esus2': [4, 6, 11],
+    'Fsus2': [5, 7, 12], 'Gsus2': [7, 9, 14], 'Asus2': [9, 11, 16],
+    'Bsus2': [11, 13, 18],
+
+    // sus4
+    'Csus4': [0, 5, 7],  'Dsus4': [2, 7, 9],  'Esus4': [4, 9, 11],
+    'Fsus4': [5, 10, 12],'Gsus4': [7, 12, 14], 'Asus4': [9, 14, 16],
+    'Bsus4': [11, 16, 18],
+
+    // add9
+    'Cadd9': [0, 4, 7, 14],  'Dadd9': [2, 6, 9, 16],  'Eadd9': [4, 8, 11, 18],
+    'Gadd9': [7, 11, 14, 21], 'Aadd9': [9, 13, 16, 23], 'Fadd9': [5, 9, 12, 19],
+
+    // dim
+    'Bdim': [11, 14, 17], 'Cdim': [0, 3, 6],   'Ddim': [2, 5, 8],
+    'Edim': [4, 7, 10],   'F#dim':[6, 9, 12],  'Gdim': [7, 10, 13],
+    'Adim': [9, 12, 15],
+
+    // aug
+    'Caug': [0, 4, 8],  'Daug': [2, 6, 10],  'Eaug': [4, 8, 12],
+    'Faug': [5, 9, 13], 'Gaug': [7, 11, 15], 'Aaug': [9, 13, 17],
+};
+
+function lookupPianoChord(chordName) {
+    if (PIANO_DB[chordName]) return PIANO_DB[chordName];
+    const aliases = {
+        'H': 'B', 'Hm': 'Bm', 'H7': 'B7', 'Hm7': 'Bm7', 'Hmaj7': 'Bmaj7',
+        'Hsus4': 'Bsus4', 'Hsus2': 'Bsus2', 'Hadd9': 'Badd9',
+    };
+    if (aliases[chordName] && PIANO_DB[aliases[chordName]]) return PIANO_DB[aliases[chordName]];
+    // Auto-generate from chord theory if not in DB
+    return generatePianoChord(chordName);
+}
+
+function generatePianoChord(chordName) {
+    const NOTE_TO_PITCH = {'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11,'H':11};
+    const m = chordName.match(/^([A-H][#b]?)(.*)$/);
+    if (!m) return null;
+    let root = m[1];
+    if (root === 'H') root = 'B';
+    const pc = NOTE_TO_PITCH[root];
+    if (pc === undefined) return null;
+    const suffix = m[2].toLowerCase();
+
+    let intervals;
+    if (suffix === '' || suffix === 'maj') intervals = [0, 4, 7];
+    else if (suffix === 'm' || suffix === 'min') intervals = [0, 3, 7];
+    else if (suffix === '7') intervals = [0, 4, 7, 10];
+    else if (suffix === 'm7' || suffix === 'min7') intervals = [0, 3, 7, 10];
+    else if (suffix === 'maj7') intervals = [0, 4, 7, 11];
+    else if (suffix === 'dim') intervals = [0, 3, 6];
+    else if (suffix === 'aug') intervals = [0, 4, 8];
+    else if (suffix === 'sus2') intervals = [0, 2, 7];
+    else if (suffix === 'sus4') intervals = [0, 5, 7];
+    else if (suffix === 'add9') intervals = [0, 4, 7, 14];
+    else if (suffix === '9') intervals = [0, 4, 7, 10, 14];
+    else if (suffix === 'm9') intervals = [0, 3, 7, 10, 14];
+    else if (suffix === '6') intervals = [0, 4, 7, 9];
+    else if (suffix === 'm6') intervals = [0, 3, 7, 9];
+    else if (suffix === 'dim7') intervals = [0, 3, 6, 9];
+    else if (suffix === '7sus4') intervals = [0, 5, 7, 10];
+    else if (suffix === '11') intervals = [0, 4, 7, 10, 14, 17];
+    else return null;
+
+    return intervals.map(i => pc + i);
+}
+
+function renderPianoSVG(chordName, notes) {
+    const W = 200, H = 120;
+    const TOP = 28;
+    const KW = 13, KH = 65;
+    const BKW = 9, BKH = 40;
+    const NUM_WHITES = 14; // 2 octaves
+    const pianoW = NUM_WHITES * KW;
+    const LEFT = (W - pianoW) / 2;
+
+    // Map white keys: C=0, D=1, E=2, F=3, G=4, A=5, B=6 (per octave)
+    const WHITE_NOTE = [0, 2, 4, 5, 7, 9, 11]; // semitone values
+    const BLACK_POSITIONS = [0.65, 1.75, 3.6, 4.7, 5.75]; // x positions relative to white keys
+    const BLACK_NOTE = [1, 3, 6, 8, 10]; // semitone values
+
+    // Normalize notes to 0-23 range
+    const activeNotes = new Set(notes.map(n => ((n % 24) + 24) % 24));
+
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+    svg += `<rect x="0" y="0" width="${W}" height="${H}" rx="8" fill="#1a1a2e"/>`;
+    svg += `<text x="${W/2}" y="18" text-anchor="middle" font-size="13" font-weight="bold" fill="#ff9800" font-family="Sen,sans-serif">${chordName}</text>`;
+
+    // Draw white keys
+    for (let oct = 0; oct < 2; oct++) {
+        for (let i = 0; i < 7; i++) {
+            const idx = oct * 7 + i;
+            const x = LEFT + idx * KW;
+            const semitone = oct * 12 + WHITE_NOTE[i];
+            const active = activeNotes.has(semitone);
+            svg += `<rect x="${x}" y="${TOP}" width="${KW-1}" height="${KH}" rx="2" fill="${active ? '#ff9800' : '#f5f5f5'}" stroke="#333" stroke-width="0.5"/>`;
+            if (active) {
+                svg += `<rect x="${x}" y="${TOP + KH - 14}" width="${KW-1}" height="12" rx="1" fill="#e65100" opacity="0.6"/>`;
+            }
+        }
+    }
+
+    // Draw black keys
+    for (let oct = 0; oct < 2; oct++) {
+        for (let i = 0; i < 5; i++) {
+            const x = LEFT + (oct * 7 + BLACK_POSITIONS[i]) * KW;
+            const semitone = oct * 12 + BLACK_NOTE[i];
+            const active = activeNotes.has(semitone);
+            svg += `<rect x="${x}" y="${TOP}" width="${BKW}" height="${BKH}" rx="1.5" fill="${active ? '#ff9800' : '#222'}" stroke="#000" stroke-width="0.5"/>`;
+            if (active) {
+                svg += `<rect x="${x+1}" y="${TOP + BKH - 10}" width="${BKW-2}" height="8" rx="1" fill="#ffcc02" opacity="0.7"/>`;
+            }
+        }
+    }
+
+    svg += '</svg>';
+    return svg;
+}

@@ -195,6 +195,13 @@
         #next-slide-container .chord.nashville { color: #ffd60099; }
         #next-slide-container .chord.capo { color: #69f0ae99; }
 
+        #current-slide .chord.hard-chord {
+            color: #ff9800;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            text-underline-offset: 3px;
+        }
+
         .chord-only-line .chord {
             position: static !important;
             font-size: 1em !important;
@@ -507,12 +514,22 @@
             return num;
         }
 
+        function isHardChord(chordDisplay) {
+            if (!chordDisplay) return false;
+            const base = chordDisplay.includes('/') ? chordDisplay.split('/')[0] : chordDisplay;
+            const p = parseRoot(base);
+            if (!p) return false;
+            const simple = p.root + (/^m(?!aj)/i.test(p.suffix) ? 'm' : '');
+            return !EASY_CHORDS.has(simple);
+        }
+
         function processChord(chord) {
             let display = chord;
             let cls = 'chord';
             if (currentSettings.capo_fret > 0) { display = transposeChord(display, -currentSettings.capo_fret); cls += ' capo'; }
             if (currentSettings.beginner_mode) display = simplifyChord(display);
             if (currentSettings.nashville_mode) { display = toNashville(display, currentKey.replace('m', '')); cls = 'chord nashville'; }
+            if (!currentSettings.nashville_mode && currentSettings.beginner_mode && isHardChord(display)) cls += ' hard-chord';
             return { display, cls };
         }
 
@@ -602,8 +619,8 @@
                 if (currentSettings.show_diagrams && !currentSettings.nashville_mode) {
                     el.classList.add('clickable');
                     const lookupName = display.includes('/') ? display.split('/')[0] : display;
-                    el.dataset.chord = lookupName;
-                    el.onclick = function(e) { showChordPopup(e, this.dataset.chord); };
+                    el.setAttribute('data-chord', lookupName);
+                    el.setAttribute('onclick', 'showChordPopup(event, this.dataset.chord)');
                 }
 
                 if (display.includes('/') && !currentSettings.nashville_mode) {
@@ -783,23 +800,33 @@
             event.stopPropagation();
             const popup = document.getElementById('chord-popup');
             const content = document.getElementById('chord-popup-content');
-            const data = lookupChord(chordName);
 
-            if (data) {
-                content.innerHTML = renderChordSVG(chordName, data);
-            } else {
-                content.innerHTML = `<div class="no-diagram"><strong>${chordName}</strong><br>Brak diagramu</div>`;
+            const guitarData = lookupChord(chordName);
+            const pianoNotes = lookupPianoChord(chordName);
+
+            let html = '<div style="display:flex; gap:4px; align-items:flex-start;">';
+            if (guitarData) {
+                html += renderChordSVG(chordName, guitarData);
+            }
+            if (pianoNotes) {
+                html += renderPianoSVG(chordName, pianoNotes);
+            }
+            html += '</div>';
+
+            if (!guitarData && !pianoNotes) {
+                html = `<div class="no-diagram"><strong>${chordName}</strong><br>Brak diagramu</div>`;
             }
 
+            content.innerHTML = html;
             popup.style.display = 'block';
 
-            // Position near the clicked chord
             const rect = event.target.getBoundingClientRect();
-            let x = rect.left + rect.width / 2 - 68;
+            const popupW = (guitarData && pianoNotes) ? 330 : 150;
+            let x = rect.left + rect.width / 2 - popupW / 2;
             let y = rect.bottom + 8;
 
             if (x < 8) x = 8;
-            if (x + 136 > window.innerWidth) x = window.innerWidth - 144;
+            if (x + popupW > window.innerWidth) x = window.innerWidth - popupW - 8;
             if (y + 180 > window.innerHeight) y = rect.top - 180;
 
             popup.style.left = x + 'px';
