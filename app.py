@@ -554,8 +554,15 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
                 text_smart += f'<span class="chord-wrapper"><span class="chord">{chord_content}</span></span>'
             else:
                 clean_chord = re.sub(r"<[^>]+>", "", chord_content)
-                min_w = (len(clean_chord) * 0.55) + 0.5
-                text_smart += f'<span class="chord-wrapper" style="min-width:{min_w}em;"><span class="chord">{chord_content}</span></span>'
+                ch_width = (len(clean_chord) * 1.2) + 1.2
+
+                text_len, has_next_chord = get_text_info_until_next_chord(i, tokens)
+
+                if text_len < ch_width:
+                    missing_width = ch_width - text_len if text_len > 0 else ch_width
+                    text_smart += f'<span class="chord-wrapper" style="display:inline-block; width:{missing_width}ch; position:relative;"><span class="chord">{chord_content}</span></span>'
+                else:
+                    text_smart += f'<span class="chord-wrapper"><span class="chord">{chord_content}</span></span>'
         else:
             safe_token = token.replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;').replace('  ', '&nbsp;&nbsp;')
             text_smart += safe_token

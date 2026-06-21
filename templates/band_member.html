@@ -177,9 +177,20 @@
         #current-slide .chord.nashville { color: #ffd600; }
         #current-slide .chord.capo { color: #69f0ae; }
 
+        #next-slide-container .chord-wrapper {
+            display: inline !important;
+            width: auto !important;
+            min-width: 0 !important;
+        }
         #next-slide-container .chord {
-            position: absolute; bottom: 0.8em; left: 0;
-            color: #4db6ac; font-size: 0.7em; font-weight: bold;
+            position: relative !important;
+            bottom: auto !important;
+            left: auto !important;
+            color: #4db6ac;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-right: 0.3em;
+            white-space: nowrap;
         }
         #next-slide-container .chord.nashville { color: #ffd60099; }
         #next-slide-container .chord.capo { color: #69f0ae99; }
