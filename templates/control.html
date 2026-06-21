@@ -1004,19 +1004,10 @@
                         <option value="polish" data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
                     </select>
                 </div>
-                <div class="chord-toolbar" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px; padding:8px; background:var(--bg-element); border:1px solid var(--border-color); border-radius:8px;">
-                    <div style="width:100%; font-size:0.7rem; color:var(--text-muted); margin-bottom:4px;" data-t="chord_toolbar_hint">Kliknij akord aby wstawić w tekst:</div>
-                    {% for ch in ['C','D','E','F','G','A','B'] %}
-                    <button type="button" class="chord-btn" onclick="insertChord('add-content','{{ch}}')" style="padding:4px 8px; font-size:0.75rem; background:var(--accent-primary); color:white; border:none; border-radius:4px; cursor:pointer;">{{ch}}</button>
-                    <button type="button" class="chord-btn" onclick="insertChord('add-content','{{ch}}m')" style="padding:4px 8px; font-size:0.75rem; background:var(--bg-element-hover); color:white; border:none; border-radius:4px; cursor:pointer;">{{ch}}m</button>
-                    {% endfor %}
-                    <div style="width:100%; border-top:1px solid var(--border-color); margin:4px 0;"></div>
-                    {% for ch in ['C#','D#','F#','G#','Bb','Eb','Ab'] %}
-                    <button type="button" class="chord-btn" onclick="insertChord('add-content','{{ch}}')" style="padding:4px 8px; font-size:0.7rem; background:var(--accent-primary); color:white; border:none; border-radius:4px; cursor:pointer; opacity:0.8;">{{ch}}</button>
-                    {% endfor %}
-                    <div style="width:100%; border-top:1px solid var(--border-color); margin:4px 0;"></div>
-                    <input type="text" id="add-custom-chord" placeholder="sus4, 7, maj7..." style="width:80px; padding:4px; font-size:0.75rem; border:1px solid var(--border-color); border-radius:4px; background:var(--bg-main); color:var(--text-main);">
-                    <button type="button" onclick="insertCustomChord('add-content','add-custom-chord')" style="padding:4px 10px; font-size:0.75rem; background:var(--accent-success); color:white; border:none; border-radius:4px; cursor:pointer;" data-t="insert_chord_btn">WSTAW</button>
+                <div style="background: var(--bg-element); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.6;">
+                    <span data-t="chord_format_hint">Akordy wpisuj w nawiasach kwadratowych:</span> <code style="color:var(--accent-primary);">[Am]tekst [G]dalej</code><br>
+                    <span data-t="chord_format_hint2">Sekcje (Zwrotka, Refren) oddzielaj pustą linią. Obsługiwane formaty:</span>
+                    <code style="color:var(--accent-primary);">C, Am, F#m, Bb, Csus4, G/B, E7, Dmaj7, Asus2</code>
                 </div>
                 <textarea name="content" id="add-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('add-content', 'add-key-input')" placeholder="Zwrotka 1&#10;[C]Tekst piosenki [Am]z akordami&#10;[F]Kolejna linia [G]tekstu&#10;&#10;Refren&#10;[F]Tekst refrenu [C]z akordami" data-t-ph="paste_ph"></textarea>
                 <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
@@ -1046,19 +1037,10 @@
                         <option value="polish" data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
                     </select>
                 </div>
-                <div class="chord-toolbar" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px; padding:8px; background:var(--bg-element); border:1px solid var(--border-color); border-radius:8px;">
-                    <div style="width:100%; font-size:0.7rem; color:var(--text-muted); margin-bottom:4px;" data-t="chord_toolbar_hint">Kliknij akord aby wstawić w tekst:</div>
-                    {% for ch in ['C','D','E','F','G','A','B'] %}
-                    <button type="button" class="chord-btn" onclick="insertChord('edit-content','{{ch}}')" style="padding:4px 8px; font-size:0.75rem; background:var(--accent-primary); color:white; border:none; border-radius:4px; cursor:pointer;">{{ch}}</button>
-                    <button type="button" class="chord-btn" onclick="insertChord('edit-content','{{ch}}m')" style="padding:4px 8px; font-size:0.75rem; background:var(--bg-element-hover); color:white; border:none; border-radius:4px; cursor:pointer;">{{ch}}m</button>
-                    {% endfor %}
-                    <div style="width:100%; border-top:1px solid var(--border-color); margin:4px 0;"></div>
-                    {% for ch in ['C#','D#','F#','G#','Bb','Eb','Ab'] %}
-                    <button type="button" class="chord-btn" onclick="insertChord('edit-content','{{ch}}')" style="padding:4px 8px; font-size:0.7rem; background:var(--accent-primary); color:white; border:none; border-radius:4px; cursor:pointer; opacity:0.8;">{{ch}}</button>
-                    {% endfor %}
-                    <div style="width:100%; border-top:1px solid var(--border-color); margin:4px 0;"></div>
-                    <input type="text" id="edit-custom-chord" placeholder="sus4, 7, maj7..." style="width:80px; padding:4px; font-size:0.75rem; border:1px solid var(--border-color); border-radius:4px; background:var(--bg-main); color:var(--text-main);">
-                    <button type="button" onclick="insertCustomChord('edit-content','edit-custom-chord')" style="padding:4px 10px; font-size:0.75rem; background:var(--accent-success); color:white; border:none; border-radius:4px; cursor:pointer;" data-t="insert_chord_btn">WSTAW</button>
+                <div style="background: var(--bg-element); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.6;">
+                    <span data-t="chord_format_hint">Akordy wpisuj w nawiasach kwadratowych:</span> <code style="color:var(--accent-primary);">[Am]tekst [G]dalej</code><br>
+                    <span data-t="chord_format_hint2">Sekcje (Zwrotka, Refren) oddzielaj pustą linią. Obsługiwane formaty:</span>
+                    <code style="color:var(--accent-primary);">C, Am, F#m, Bb, Csus4, G/B, E7, Dmaj7, Asus2</code>
                 </div>
                 <textarea name="content" id="edit-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('edit-content', 'edit-key-input')"></textarea>
                 <div style="display: flex; justify-content: space-between; margin-top: 20px;">

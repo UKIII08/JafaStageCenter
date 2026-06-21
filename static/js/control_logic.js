@@ -53,8 +53,8 @@ const translations = {
         minor_lowercase: "Małe litery (a, cis, f#)",
         minor_uppercase: "Wielkie + m (Am, C#m)",
         input_notation_label: "Notacja wejściowa:",
-        chord_toolbar_hint: "Kliknij akord aby wstawić w tekst:",
-        insert_chord_btn: "WSTAW",
+        chord_format_hint: "Akordy wpisuj w nawiasach kwadratowych:",
+        chord_format_hint2: "Sekcje (Zwrotka, Refren) oddzielaj pustą linią. Obsługiwane formaty:",
         projector_screen: "Rzutnik (Ekran Zewnętrzny)",
         font_label: "Czcionka:",
         bg_color: "Tło",
@@ -143,8 +143,8 @@ const translations = {
         minor_lowercase: "Lowercase (a, c#, f#)",
         minor_uppercase: "Uppercase + m (Am, C#m)",
         input_notation_label: "Input Notation:",
-        chord_toolbar_hint: "Click a chord to insert into text:",
-        insert_chord_btn: "INSERT",
+        chord_format_hint: "Enter chords in square brackets:",
+        chord_format_hint2: "Separate sections (Verse, Chorus) with blank lines. Supported formats:",
         projector_screen: "Projector (External Screen)",
         font_label: "Font:",
         bg_color: "Background",
@@ -1365,23 +1365,3 @@ document.addEventListener('keydown', function(e) {
     ta.selectionStart = ta.selectionEnd = start + 1;
     ta.dispatchEvent(new Event('input'));
 });
-
-function insertChord(textareaId, chord) {
-    const ta = document.getElementById(textareaId);
-    if (!ta) return;
-    ta.focus();
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const val = ta.value;
-    const insertion = '[' + chord + ']';
-    ta.value = val.substring(0, start) + insertion + val.substring(end);
-    ta.selectionStart = ta.selectionEnd = start + insertion.length;
-    ta.dispatchEvent(new Event('input'));
-}
-
-function insertCustomChord(textareaId, inputId) {
-    const input = document.getElementById(inputId);
-    if (!input || !input.value.trim()) return;
-    insertChord(textareaId, input.value.trim());
-    input.value = '';
-}
