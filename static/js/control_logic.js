@@ -363,7 +363,7 @@ const observer = new MutationObserver(function(mutations) {
 });
 observer.observe(document.documentElement, { attributes: true });
 
-function playPad(rawKey, transitionDuration = 2.5) {
+function playPad(rawKey, fadeOutSec = 4) {
     if(!isPadPlaying) return;
     let targetKey = normalizeKey(rawKey);
     if(!targetKey) return;
@@ -374,7 +374,7 @@ function playPad(rawKey, transitionDuration = 2.5) {
     if (targetKey === currentPadKey && currentPadEl && !currentPadEl.paused) {
         const node = getPadNode(currentPadEl);
         node.gain.gain.cancelScheduledValues(now);
-        node.gain.gain.setTargetAtTime(globalPadVolume, now, transitionDuration * 0.3);
+        node.gain.gain.setTargetAtTime(globalPadVolume, now, 0.3);
         return;
     }
 
@@ -392,7 +392,7 @@ function playPad(rawKey, transitionDuration = 2.5) {
     nextNode.gain.gain.setValueAtTime(0, now);
 
     next.src = filename;
-    next.volume = 1; // HTML element volume stays at 1, GainNode controls actual volume
+    next.volume = 1;
 
     next.play().then(() => {
         if (!isPadPlaying) {
@@ -405,29 +405,29 @@ function playPad(rawKey, transitionDuration = 2.5) {
         const t = ctx.currentTime;
         currentPadEl = next;
 
-        // Smooth fade in with exponential ramp (natural sounding)
+        // Nowy pad wchodzi szybko na pełną głośność (0.5s ramp)
         nextNode.gain.gain.setValueAtTime(0.001, t);
-        nextNode.gain.gain.exponentialRampToValueAtTime(globalPadVolume, t + transitionDuration);
+        nextNode.gain.gain.exponentialRampToValueAtTime(globalPadVolume, t + 0.5);
 
-        // Crossfade out the old pad
+        // Stary pad wygasza się powoli — oba grają jednocześnie
         if (active && active !== next && !active.paused) {
             const activeNode = getPadNode(active);
             const currentVol = activeNode.gain.gain.value;
             activeNode.gain.gain.cancelScheduledValues(t);
             activeNode.gain.gain.setValueAtTime(Math.max(currentVol, 0.001), t);
-            activeNode.gain.gain.exponentialRampToValueAtTime(0.001, t + transitionDuration);
+            activeNode.gain.gain.exponentialRampToValueAtTime(0.001, t + fadeOutSec);
             setTimeout(() => {
                 if (currentPadEl !== active) {
                     active.pause();
                     active.currentTime = 0;
                 }
-            }, transitionDuration * 1000 + 100);
+            }, fadeOutSec * 1000 + 200);
         }
 
     }).catch(e => console.error("Pad play error:", e));
 }
 
-function fadeOutAllPads(duration = 2.5) {
+function fadeOutAllPads(duration = 3) {
     if (!audioCtx) {
         [padElA, padElB].forEach(p => { p.pause(); p.currentTime = 0; });
         currentPadEl = null;
@@ -444,7 +444,7 @@ function fadeOutAllPads(duration = 2.5) {
             setTimeout(() => {
                 el.pause();
                 el.currentTime = 0;
-            }, duration * 1000 + 100);
+            }, duration * 1000 + 200);
         }
     });
     currentPadEl = null;
