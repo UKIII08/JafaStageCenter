@@ -370,7 +370,7 @@
             <select id="preset-select" onchange="loadPreset(this.value)">
                 <option value="">— Wybierz preset —</option>
                 {% for p in presets %}
-                <option value="{{ p.id }}" data-cfg='{{ {"show_chords": p.show_chords, "nashville_mode": p.nashville_mode, "capo_fret": p.capo_fret, "beginner_mode": p.beginner_mode, "show_diagrams": p.show_diagrams, "font_size": p.font_size}|tojson }}'>{{ p.name }}</option>
+                <option value="{{ p.id }}" data-cfg='{{ {"show_chords": p.show_chords, "nashville_mode": p.nashville_mode, "capo_fret": p.capo_fret, "beginner_mode": p.beginner_mode, "diagram_instrument": p.diagram_instrument, "font_size": p.font_size}|tojson }}'>{{ p.name }}</option>
                 {% endfor %}
             </select>
             <div style="display:flex; gap:8px; margin-top:10px;">
@@ -395,7 +395,11 @@
             </label>
             <label>
                 Diagramy chwytów
-                <div class="toggle active" id="tog-diagrams" onclick="toggleOpt('show_diagrams')"></div>
+                <select id="diagram-instrument" onchange="setDiagramInstrument(this.value)" style="margin-left:auto; padding:4px 8px; border-radius:6px; background:#222; color:#fff; border:1px solid #555;">
+                    <option value="off">Wyłączone</option>
+                    <option value="guitar" selected>Gitara</option>
+                    <option value="piano">Piano</option>
+                </select>
             </label>
         </div>
 
@@ -438,7 +442,7 @@
             nashville_mode: false,
             capo_fret: 0,
             beginner_mode: false,
-            show_diagrams: true,
+            diagram_instrument: 'guitar',
             font_size: 8
         };
         let currentRawText = '';
@@ -616,7 +620,7 @@
                 const { display, cls } = processChord(rawChord);
 
                 el.className = cls;
-                if (currentSettings.show_diagrams && !currentSettings.nashville_mode) {
+                if (currentSettings.diagram_instrument !== 'off' && !currentSettings.nashville_mode) {
                     el.classList.add('clickable');
                     const lookupName = display.includes('/') ? display.split('/')[0] : display;
                     el.setAttribute('data-chord', lookupName);
@@ -788,11 +792,16 @@
             rerender();
         }
 
+        function setDiagramInstrument(val) {
+            currentSettings.diagram_instrument = val;
+            rerender();
+        }
+
         function updateToggles() {
             document.getElementById('tog-chords').classList.toggle('active', currentSettings.show_chords);
             document.getElementById('tog-nashville').classList.toggle('active', currentSettings.nashville_mode);
             document.getElementById('tog-beginner').classList.toggle('active', currentSettings.beginner_mode);
-            document.getElementById('tog-diagrams').classList.toggle('active', currentSettings.show_diagrams);
+            document.getElementById('diagram-instrument').value = currentSettings.diagram_instrument || 'guitar';
         }
 
         // ===== CHORD POPUP =====
@@ -801,27 +810,22 @@
             const popup = document.getElementById('chord-popup');
             const content = document.getElementById('chord-popup-content');
 
-            const guitarData = lookupChord(chordName);
-            const pianoNotes = lookupPianoChord(chordName);
+            const inst = currentSettings.diagram_instrument;
+            let html = '';
 
-            let html = '<div style="display:flex; gap:4px; align-items:flex-start;">';
-            if (guitarData) {
-                html += renderChordSVG(chordName, guitarData);
-            }
-            if (pianoNotes) {
-                html += renderPianoSVG(chordName, pianoNotes);
-            }
-            html += '</div>';
-
-            if (!guitarData && !pianoNotes) {
-                html = `<div class="no-diagram"><strong>${chordName}</strong><br>Brak diagramu</div>`;
+            if (inst === 'guitar') {
+                const data = lookupChord(chordName);
+                html = data ? renderChordSVG(chordName, data) : `<div class="no-diagram"><strong>${chordName}</strong><br>Brak diagramu</div>`;
+            } else {
+                const notes = lookupPianoChord(chordName);
+                html = notes ? renderPianoSVG(chordName, notes) : `<div class="no-diagram"><strong>${chordName}</strong><br>Brak diagramu</div>`;
             }
 
             content.innerHTML = html;
             popup.style.display = 'block';
 
             const rect = event.target.getBoundingClientRect();
-            const popupW = (guitarData && pianoNotes) ? 330 : 150;
+            const popupW = inst === 'piano' ? 220 : 140;
             let x = rect.left + rect.width / 2 - popupW / 2;
             let y = rect.bottom + 8;
 
@@ -858,6 +862,10 @@
             const opt = document.querySelector(`#preset-select option[value="${id}"]`);
             if (!opt) return;
             const cfg = JSON.parse(opt.dataset.cfg);
+            if ('show_diagrams' in cfg && !('diagram_instrument' in cfg)) {
+                cfg.diagram_instrument = cfg.show_diagrams ? 'guitar' : 'off';
+                delete cfg.show_diagrams;
+            }
             currentSettings = { ...currentSettings, ...cfg };
             activePresetId = +id;
             document.getElementById('capo-select').value = currentSettings.capo_fret;

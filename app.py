@@ -124,7 +124,7 @@ class BandPreset(db.Model):
     nashville_mode = db.Column(db.Boolean, default=False)
     capo_fret = db.Column(db.Integer, default=0)
     beginner_mode = db.Column(db.Boolean, default=False)
-    show_diagrams = db.Column(db.Boolean, default=True)
+    diagram_instrument = db.Column(db.String(10), default='guitar')
     font_size = db.Column(db.Integer, default=6)
 
 def get_notation():
@@ -185,9 +185,9 @@ def check_db_schema():
                 BandPreset.__table__.create(db.engine)
             else:
                 bp_columns = [col['name'] for col in inspector.get_columns('band_preset')]
-                if 'show_diagrams' not in bp_columns:
+                if 'diagram_instrument' not in bp_columns:
                     with db.engine.connect() as conn:
-                        conn.execute(text("ALTER TABLE band_preset ADD COLUMN show_diagrams BOOLEAN DEFAULT 1"))
+                        conn.execute(text("ALTER TABLE band_preset ADD COLUMN diagram_instrument VARCHAR(10) DEFAULT 'guitar'"))
                         conn.commit()
 
         except Exception as e:
@@ -612,7 +612,7 @@ def get_presets():
     presets = BandPreset.query.all()
     return [{'id': p.id, 'name': p.name, 'show_chords': p.show_chords,
              'nashville_mode': p.nashville_mode, 'capo_fret': p.capo_fret,
-             'beginner_mode': p.beginner_mode, 'show_diagrams': p.show_diagrams,
+             'beginner_mode': p.beginner_mode, 'diagram_instrument': p.diagram_instrument,
              'font_size': p.font_size} for p in presets]
 
 @app.route('/api/presets', methods=['POST'])
@@ -631,7 +631,7 @@ def save_preset():
     p.nashville_mode = data.get('nashville_mode', False)
     p.capo_fret = int(data.get('capo_fret', 0))
     p.beginner_mode = data.get('beginner_mode', False)
-    p.show_diagrams = data.get('show_diagrams', True)
+    p.diagram_instrument = data.get('diagram_instrument', 'guitar')
     p.font_size = int(data.get('font_size', 6))
     db.session.commit()
     return {'id': p.id, 'name': p.name}
