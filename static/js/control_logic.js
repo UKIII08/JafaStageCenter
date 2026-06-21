@@ -49,9 +49,12 @@ const translations = {
         chord_notation_label: "Notacja akordów:",
         notation_international: "Międzynarodowa (Bb, B)",
         notation_polish: "Polska (B, H, Cis, Fis)",
-        minor_display_label: "Akordy molowe:",
-        minor_uppercase: "Wielkie litery (Am, Em)",
-        minor_lowercase: "Małe litery (am, em)",
+        minor_style_label: "Akordy molowe:",
+        minor_lowercase: "Małe litery (a, cis, f#)",
+        minor_uppercase: "Wielkie + m (Am, C#m)",
+        input_notation_label: "Notacja wejściowa:",
+        chord_toolbar_hint: "Kliknij akord aby wstawić w tekst:",
+        insert_chord_btn: "WSTAW",
         projector_screen: "Rzutnik (Ekran Zewnętrzny)",
         font_label: "Czcionka:",
         bg_color: "Tło",
@@ -136,9 +139,12 @@ const translations = {
         chord_notation_label: "Chord Notation:",
         notation_international: "International (Bb, B)",
         notation_polish: "Polish (B, H, Cis, Fis)",
-        minor_display_label: "Minor Chords:",
-        minor_uppercase: "Uppercase (Am, Em)",
-        minor_lowercase: "Lowercase (am, em)",
+        minor_style_label: "Minor Chords:",
+        minor_lowercase: "Lowercase (a, c#, f#)",
+        minor_uppercase: "Uppercase + m (Am, C#m)",
+        input_notation_label: "Input Notation:",
+        chord_toolbar_hint: "Click a chord to insert into text:",
+        insert_chord_btn: "INSERT",
         projector_screen: "Projector (External Screen)",
         font_label: "Font:",
         bg_color: "Background",
@@ -1359,3 +1365,23 @@ document.addEventListener('keydown', function(e) {
     ta.selectionStart = ta.selectionEnd = start + 1;
     ta.dispatchEvent(new Event('input'));
 });
+
+function insertChord(textareaId, chord) {
+    const ta = document.getElementById(textareaId);
+    if (!ta) return;
+    ta.focus();
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const val = ta.value;
+    const insertion = '[' + chord + ']';
+    ta.value = val.substring(0, start) + insertion + val.substring(end);
+    ta.selectionStart = ta.selectionEnd = start + insertion.length;
+    ta.dispatchEvent(new Event('input'));
+}
+
+function insertCustomChord(textareaId, inputId) {
+    const input = document.getElementById(inputId);
+    if (!input || !input.value.trim()) return;
+    insertChord(textareaId, input.value.trim());
+    input.value = '';
+}
