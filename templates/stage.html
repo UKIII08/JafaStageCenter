@@ -51,6 +51,7 @@
             -webkit-tap-highlight-color: transparent;
         }
         #fs-btn:hover, #fs-btn:active { opacity: 1; background: rgba(255,255,255,0.3); }
+        #qr-btn:hover, #qr-btn:active { opacity: 1; background: rgba(255,255,255,0.3); }
 
         /* --- WIDOK UWIELBIENIA --- */
         #worship-view { 
@@ -201,6 +202,14 @@
 <body>
 
     <button id="fs-btn" onclick="toggleFullscreen()">⛶</button>
+    <button id="qr-btn" onclick="toggleQrOverlay()" style="position:absolute; top:10px; right:60px; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:white; font-size:2vh; padding:8px 12px; cursor:pointer; z-index:9999; border-radius:5px; opacity:0.5; transition:opacity 0.3s; user-select:none;">QR</button>
+
+    <div id="qr-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:10000; flex-direction:column; align-items:center; justify-content:center; gap:30px;">
+        <span onclick="toggleQrOverlay()" style="position:absolute; top:20px; right:30px; color:white; font-size:4vh; cursor:pointer;">✕</span>
+        <div style="color:white; font-size:3vh; font-weight:bold; margin-bottom:10px;">Panel sterowania</div>
+        <img id="qr-control-img" style="width:250px; height:250px; background:white; border-radius:12px; padding:10px;">
+        <div style="color:#aaa; font-size:2vh;" id="qr-url-text"></div>
+    </div>
 
     <div id="worship-view">
         <div id="current-slide">
@@ -371,6 +380,19 @@
         socket.on('refresh_logo', function() {
             location.reload();
         });
+
+        function toggleQrOverlay() {
+            const overlay = document.getElementById('qr-overlay');
+            if (overlay.style.display === 'flex') {
+                overlay.style.display = 'none';
+            } else {
+                overlay.style.display = 'flex';
+                const img = document.getElementById('qr-control-img');
+                img.src = '/qr_code/control?v=' + Date.now();
+                const host = location.protocol + '//' + location.hostname + ':' + location.port;
+                document.getElementById('qr-url-text').innerText = host + '/control';
+            }
+        }
     </script>
 </body>
 </html>

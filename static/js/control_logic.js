@@ -1307,10 +1307,16 @@ function saveBackupDesktop() {
     }
 }
 
-socket.on('refresh_logo', function() { 
-    var logo = document.getElementById('control-logo'); 
+socket.on('refresh_logo', function() {
+    var logo = document.getElementById('control-logo');
     if(window.SERVER_DATA && window.SERVER_DATA.logoUrl) {
-        logo.src = window.SERVER_DATA.logoUrl + "?v=" + new Date().getTime(); 
+        logo.src = window.SERVER_DATA.logoUrl + "?v=" + new Date().getTime();
+    }
+});
+
+socket.on('settings_changed', function() {
+    if (currentSetIndex !== -1 && currentLiveState.c) {
+        goLiveSection(currentLiveState.c, currentLiveState.n, currentLiveState.forceTrans, currentLiveState.nextTrans);
     }
 });
 // --- INICJALIZACJA DRAG & DROP W SETLIŚCIE ---

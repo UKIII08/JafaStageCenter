@@ -811,6 +811,7 @@ def update_settings():
 
     db.session.commit()
     socketio.emit('apply_settings', {'font_family': settings.font_family, 'bg_color': settings.bg_color, 'text_color': settings.text_color})
+    socketio.emit('settings_changed')
     return redirect(url_for('control'))
 
 @app.route('/reset_settings', methods=['POST'])
