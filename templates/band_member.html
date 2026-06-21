@@ -19,6 +19,7 @@
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='js/chord_diagrams.js') }}"></script>
     <style>
         body {
             background-color: #000;
@@ -270,6 +271,32 @@
         .btn-danger { background: #f5365c22; color: #f5365c; border: 1px solid #f5365c44; }
         .btn-danger:hover { background: #f5365c44; }
 
+        /* CHORD POPUP */
+        #chord-popup {
+            display: none;
+            position: fixed;
+            z-index: 20000;
+            background: #1a1a2e;
+            border: 1px solid #00e5ff44;
+            border-radius: 12px;
+            padding: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+            pointer-events: auto;
+        }
+        #chord-popup .popup-close {
+            position: absolute; top: 4px; right: 8px;
+            background: none; border: none; color: #666;
+            font-size: 14px; cursor: pointer;
+        }
+        #chord-popup .popup-close:hover { color: #fff; }
+        #chord-popup .no-diagram {
+            padding: 20px 16px;
+            color: #888; font-size: 13px; text-align: center;
+        }
+
+        .chord.clickable { cursor: pointer; }
+        .chord.clickable:hover { text-decoration: underline; }
+
         @media (max-width: 600px) {
             #settings-panel { width: 100%; right: -100%; }
         }
@@ -306,6 +333,12 @@
         <div id="conf-message"></div>
     </div>
 
+    <!-- CHORD POPUP -->
+    <div id="chord-popup">
+        <button class="popup-close" onclick="hideChordPopup()">✕</button>
+        <div id="chord-popup-content"></div>
+    </div>
+
     <!-- PANEL USTAWIEŃ -->
     <div id="settings-overlay" onclick="toggleSettings()"></div>
     <div id="settings-panel">
@@ -319,7 +352,7 @@
             <select id="preset-select" onchange="loadPreset(this.value)">
                 <option value="">— Wybierz preset —</option>
                 {% for p in presets %}
-                <option value="{{ p.id }}" data-cfg='{{ {"show_chords": p.show_chords, "nashville_mode": p.nashville_mode, "capo_fret": p.capo_fret, "beginner_mode": p.beginner_mode, "font_size": p.font_size}|tojson }}'>{{ p.name }}</option>
+                <option value="{{ p.id }}" data-cfg='{{ {"show_chords": p.show_chords, "nashville_mode": p.nashville_mode, "capo_fret": p.capo_fret, "beginner_mode": p.beginner_mode, "show_diagrams": p.show_diagrams, "font_size": p.font_size}|tojson }}'>{{ p.name }}</option>
                 {% endfor %}
             </select>
             <div style="display:flex; gap:8px; margin-top:10px;">
@@ -341,6 +374,10 @@
             <label>
                 Tryb początkującego
                 <div class="toggle" id="tog-beginner" onclick="toggleOpt('beginner_mode')"></div>
+            </label>
+            <label>
+                Diagramy chwytów
+                <div class="toggle active" id="tog-diagrams" onclick="toggleOpt('show_diagrams')"></div>
             </label>
         </div>
 
@@ -383,6 +420,7 @@
             nashville_mode: false,
             capo_fret: 0,
             beginner_mode: false,
+            show_diagrams: true,
             font_size: 8
         };
         let currentRawText = '';
@@ -558,10 +596,17 @@
                                 const parts = display.split('/');
                                 ch = parts[0] + "<span class='bass-slash'>/</span><span class='bass-note'>" + parts.slice(1).join('/') + "</span>";
                             }
+                            let extraCls = '';
+                            let extraAttr = '';
+                            if (currentSettings.show_diagrams && !currentSettings.nashville_mode) {
+                                const lookupName = display.includes('/') ? display.split('/')[0] : display;
+                                extraCls = ' clickable';
+                                extraAttr = ` data-chord="${lookupName.replace(/"/g,'&quot;')}" onclick="showChordPopup(event, this.dataset.chord)"`;
+                            }
                             if (chordOnly) {
-                                lineHtml += `<span class="chord-only-line"><span class="${cls}">${ch}</span></span>`;
+                                lineHtml += `<span class="chord-only-line"><span class="${cls}${extraCls}"${extraAttr}>${ch}</span></span>`;
                             } else {
-                                lineHtml += `<span class="chord-wrapper"><span class="${cls}">${ch}</span></span>`;
+                                lineHtml += `<span class="chord-wrapper"><span class="${cls}${extraCls}"${extraAttr}>${ch}</span></span>`;
                             }
                         } else {
                             lineHtml += tok.replace(/  /g, '&nbsp;&nbsp;');
@@ -724,7 +769,47 @@
             document.getElementById('tog-chords').classList.toggle('active', currentSettings.show_chords);
             document.getElementById('tog-nashville').classList.toggle('active', currentSettings.nashville_mode);
             document.getElementById('tog-beginner').classList.toggle('active', currentSettings.beginner_mode);
+            document.getElementById('tog-diagrams').classList.toggle('active', currentSettings.show_diagrams);
         }
+
+        // ===== CHORD POPUP =====
+        function showChordPopup(event, chordName) {
+            event.stopPropagation();
+            const popup = document.getElementById('chord-popup');
+            const content = document.getElementById('chord-popup-content');
+            const data = lookupChord(chordName);
+
+            if (data) {
+                content.innerHTML = renderChordSVG(chordName, data);
+            } else {
+                content.innerHTML = `<div class="no-diagram"><strong>${chordName}</strong><br>Brak diagramu</div>`;
+            }
+
+            popup.style.display = 'block';
+
+            // Position near the clicked chord
+            const rect = event.target.getBoundingClientRect();
+            let x = rect.left + rect.width / 2 - 68;
+            let y = rect.bottom + 8;
+
+            if (x < 8) x = 8;
+            if (x + 136 > window.innerWidth) x = window.innerWidth - 144;
+            if (y + 180 > window.innerHeight) y = rect.top - 180;
+
+            popup.style.left = x + 'px';
+            popup.style.top = y + 'px';
+        }
+
+        function hideChordPopup() {
+            document.getElementById('chord-popup').style.display = 'none';
+        }
+
+        document.addEventListener('click', function(e) {
+            const popup = document.getElementById('chord-popup');
+            if (popup.style.display === 'block' && !popup.contains(e.target) && !e.target.classList.contains('clickable')) {
+                hideChordPopup();
+            }
+        });
 
         function setCapo(val) { currentSettings.capo_fret = val; rerender(); }
 
