@@ -189,6 +189,25 @@ TRANSPOSE_LOOKUP_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', '
 TRANSPOSE_LOOKUP_PL = ['C', 'Cis', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H']
 TRANSPOSE_LOOKUP_PL_SHARP = ['C', 'Cis', 'D', 'Dis', 'E', 'F', 'Fis', 'G', 'Gis', 'A', 'Ais', 'H']
 CHORD_ROOT_RE = re.compile(r'^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$')
+VALID_CHORD_SUFFIX_RE = re.compile(r'^(m(?!aj)|maj|min|dim|aug|sus[24]?|add)?[0-9]*(b[0-9]+|#[0-9]+)*(/.*)?[-]?$', re.IGNORECASE)
+
+def is_valid_chord(chord_str):
+    if not chord_str or not chord_str.strip():
+        return False
+    chord_str = chord_str.strip().rstrip('-').rstrip()
+    if '/' in chord_str:
+        parts = chord_str.split('/', 1)
+        return is_valid_chord(parts[0]) and (is_valid_chord(parts[1]) or parts[1].strip() == '')
+    m = CHORD_ROOT_RE.match(chord_str)
+    if not m:
+        return False
+    root = m.group(1)
+    if not root or not root[0].upper() in 'ABCDEFGH':
+        return False
+    return True
+
+def clean_chord(chord_str):
+    return chord_str.strip().rstrip('-').rstrip()
 
 def _resolve_pitch_class(root_upper, notation='international'):
     if root_upper in PITCH_CLASS_POLISH:
@@ -220,7 +239,9 @@ def _pick_lookup_for_input(raw_root):
 def normalize_chord(chord_str, input_notation='international'):
     if not chord_str or not chord_str.strip():
         return chord_str
-    chord_str = chord_str.strip()
+    chord_str = clean_chord(chord_str)
+    if not is_valid_chord(chord_str):
+        return chord_str
     m = CHORD_ROOT_RE.match(chord_str)
     if not m:
         return chord_str
@@ -240,12 +261,17 @@ def normalize_chord(chord_str, input_notation='international'):
 
 def normalize_song_chords(content, input_notation='international'):
     def replace_chord(m):
-        inner = m.group(1)
-        if '/' in inner:
-            parts = inner.split('/')
-            normalized_parts = [normalize_chord(p, input_notation) for p in parts]
-            return '[' + '/'.join(normalized_parts) + ']'
-        return '[' + normalize_chord(inner, input_notation) + ']'
+        inner = m.group(1).strip()
+        cleaned = clean_chord(inner)
+        if '/' in cleaned:
+            parts = cleaned.split('/', 1)
+            if is_valid_chord(parts[0]):
+                normalized_parts = [normalize_chord(p, input_notation) for p in cleaned.split('/')]
+                return '[' + '/'.join(normalized_parts) + ']'
+            return '[' + cleaned + ']'
+        if not is_valid_chord(cleaned):
+            return '[' + cleaned + ']'
+        return '[' + normalize_chord(cleaned, input_notation) + ']'
     return re.sub(r'\[(.*?)\]', replace_chord, content)
 
 def get_local_ip():
@@ -439,9 +465,12 @@ def get_first_chord_of_song(content):
 def _format_chord_for_display(chord_str, notation='international', minor_style='lowercase'):
     if not chord_str:
         return chord_str
+    chord_str = clean_chord(chord_str)
     if '/' in chord_str:
         parts = chord_str.split('/')
         return '/'.join(_format_chord_for_display(p, notation, minor_style) for p in parts)
+    if not is_valid_chord(chord_str):
+        return chord_str
     m = CHORD_ROOT_RE.match(chord_str)
     if not m:
         return chord_str
