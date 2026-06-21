@@ -554,7 +554,7 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
                 text_smart += f'<span class="chord-wrapper"><span class="chord">{chord_content}</span></span>'
             else:
                 clean_chord = re.sub(r"<[^>]+>", "", chord_content)
-                ch_width = (len(clean_chord) * 1.4) + 1.5
+                ch_width = (len(clean_chord) * 0.85) + 0.8
 
                 text_len, has_next_chord = get_text_info_until_next_chord(i, tokens)
 
@@ -569,7 +569,7 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
                     missing_width = ch_width - text_len
 
                 if needs_width_expansion:
-                    text_smart += f'<span class="chord-wrapper" style="display:inline-block; width:{missing_width}ch; height:0px; position:relative;"><span class="chord">{chord_content}</span></span>'
+                    text_smart += f'<span class="chord-wrapper" style="display:inline-block; min-width:{missing_width}em; position:relative;"><span class="chord">{chord_content}</span></span>'
                 else:
                     text_smart += f'<span class="chord-wrapper"><span class="chord">{chord_content}</span></span>'
         else:
