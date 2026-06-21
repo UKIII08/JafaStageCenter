@@ -187,6 +187,7 @@ TRANSPOSE_LOOKUP = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 
 TRANSPOSE_LOOKUP_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 TRANSPOSE_LOOKUP_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
 TRANSPOSE_LOOKUP_PL = ['C', 'Cis', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H']
+TRANSPOSE_LOOKUP_PL_SHARP = ['C', 'Cis', 'D', 'Dis', 'E', 'F', 'Fis', 'G', 'Gis', 'A', 'Ais', 'H']
 CHORD_ROOT_RE = re.compile(r'^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$')
 
 def _resolve_pitch_class(root_upper, notation='international'):
@@ -391,16 +392,21 @@ def detect_key_algorithm(text): return key_detector.detect(text)
 # --- TRANSPOSE & PARSING HELPERS ---
 def transpose_chord(match, shift, notation='international'):
     full_chord = match.group(1)
-    lookup = TRANSPOSE_LOOKUP_PL if notation == 'polish' else TRANSPOSE_LOOKUP
     def trans_part(part):
         if not part: return ""
         m = CHORD_ROOT_RE.match(part)
         if not m: return part
         root_str, suffix = m.group(1), m.group(2)
         is_lower = part[0].islower()
-        pc = _resolve_pitch_class(root_str.upper(), notation)
+        has_sharp = '#' in root_str
+        pc = _resolve_pitch_class(root_str.upper(), 'international')
         if pc is not None:
-            new_root = lookup[(pc + shift) % 12]
+            new_pc = (pc + shift) % 12
+            if notation == 'polish':
+                lookup = TRANSPOSE_LOOKUP_PL_SHARP if has_sharp else TRANSPOSE_LOOKUP_PL
+            else:
+                lookup = TRANSPOSE_LOOKUP_SHARP if has_sharp else TRANSPOSE_LOOKUP_FLAT
+            new_root = lookup[new_pc]
             return f"{new_root.lower() if is_lower else new_root}{suffix}"
         return part
     
@@ -446,7 +452,7 @@ def _format_chord_for_display(chord_str, notation='international', minor_style='
     if pc is None:
         return chord_str
     if notation == 'polish':
-        lookup = TRANSPOSE_LOOKUP_PL
+        lookup = TRANSPOSE_LOOKUP_PL_SHARP if '#' in raw_root else TRANSPOSE_LOOKUP_PL
     else:
         lookup = _pick_lookup_for_input(raw_root)
     normalized = lookup[pc]
