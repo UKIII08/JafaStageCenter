@@ -184,6 +184,8 @@ PITCH_CLASS_POLISH = {
     'ES': 3, 'AS': 8, 'HIS': 0
 }
 TRANSPOSE_LOOKUP = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
+TRANSPOSE_LOOKUP_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+TRANSPOSE_LOOKUP_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
 TRANSPOSE_LOOKUP_PL = ['C', 'Cis', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H']
 CHORD_ROOT_RE = re.compile(r'^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$')
 
@@ -204,6 +206,16 @@ def normalize_chord_root(root_str, notation='international'):
     lookup = TRANSPOSE_LOOKUP_PL if notation == 'polish' else TRANSPOSE_LOOKUP
     return lookup[pc]
 
+def _pick_lookup_for_input(raw_root):
+    if '#' in raw_root:
+        return TRANSPOSE_LOOKUP_SHARP
+    if 'b' in raw_root or 'B' in raw_root[1:]:
+        return TRANSPOSE_LOOKUP_FLAT
+    upper = raw_root.upper()
+    if upper in PITCH_CLASS_POLISH and upper not in ('AS', 'ES'):
+        return TRANSPOSE_LOOKUP_SHARP
+    return TRANSPOSE_LOOKUP
+
 def normalize_chord(chord_str, input_notation='international'):
     if not chord_str or not chord_str.strip():
         return chord_str
@@ -218,7 +230,8 @@ def normalize_chord(chord_str, input_notation='international'):
     pc = _resolve_pitch_class(upper, input_notation)
     if pc is None:
         return chord_str
-    normalized_root = TRANSPOSE_LOOKUP[pc]
+    lookup = _pick_lookup_for_input(raw_root)
+    normalized_root = lookup[pc]
     if is_minor_lowercase and not suffix.startswith('m'):
         suffix = 'm' + suffix
     normalized_root = normalized_root[0].upper() + normalized_root[1:]
@@ -432,7 +445,10 @@ def _format_chord_for_display(chord_str, notation='international', minor_style='
     pc = _resolve_pitch_class(upper, 'international')
     if pc is None:
         return chord_str
-    lookup = TRANSPOSE_LOOKUP_PL if notation == 'polish' else TRANSPOSE_LOOKUP
+    if notation == 'polish':
+        lookup = TRANSPOSE_LOOKUP_PL
+    else:
+        lookup = _pick_lookup_for_input(raw_root)
     normalized = lookup[pc]
     is_minor = suffix.startswith('m') and not suffix.startswith('maj')
     if is_minor and minor_style == 'lowercase':
