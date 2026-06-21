@@ -622,7 +622,7 @@
                 el.className = cls;
                 if (currentSettings.diagram_instrument !== 'off' && !currentSettings.nashville_mode) {
                     el.classList.add('clickable');
-                    const lookupName = display.includes('/') ? display.split('/')[0] : display;
+                    const lookupName = display;
                     el.setAttribute('data-chord', lookupName);
                     el.setAttribute('onclick', 'showChordPopup(event, this.dataset.chord)');
                 }
@@ -814,7 +814,8 @@
             let html = '';
 
             if (inst === 'guitar') {
-                const data = lookupChord(chordName);
+                const guitarName = chordName.includes('/') ? chordName.split('/')[0] : chordName;
+                const data = lookupChord(guitarName);
                 html = data ? renderChordSVG(chordName, data) : `<div class="no-diagram"><strong>${chordName}</strong><br>Brak diagramu</div>`;
             } else {
                 const notes = lookupPianoChord(chordName);

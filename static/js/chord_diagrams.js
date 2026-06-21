@@ -261,45 +261,118 @@ const PIANO_DB = {
 };
 
 function lookupPianoChord(chordName) {
-    if (PIANO_DB[chordName]) return PIANO_DB[chordName];
-    const aliases = {
-        'H': 'B', 'Hm': 'Bm', 'H7': 'B7', 'Hm7': 'Bm7', 'Hmaj7': 'Bmaj7',
-        'Hsus4': 'Bsus4', 'Hsus2': 'Bsus2', 'Hadd9': 'Badd9',
-    };
-    if (aliases[chordName] && PIANO_DB[aliases[chordName]]) return PIANO_DB[aliases[chordName]];
-    // Auto-generate from chord theory if not in DB
-    return generatePianoChord(chordName);
+    // Handle slash chords: parse bass note separately
+    let bassPitch = null;
+    let mainChord = chordName;
+    if (chordName.includes('/')) {
+        const parts = chordName.split('/');
+        mainChord = parts[0];
+        const bassNote = parts.slice(1).join('/');
+        bassPitch = _noteToPitch(bassNote);
+    }
+
+    let notes = null;
+    if (PIANO_DB[mainChord]) {
+        notes = [...PIANO_DB[mainChord]];
+    } else {
+        const aliases = {
+            'H': 'B', 'Hm': 'Bm', 'H7': 'B7', 'Hm7': 'Bm7', 'Hmaj7': 'Bmaj7',
+            'Hsus4': 'Bsus4', 'Hsus2': 'Bsus2', 'Hadd9': 'Badd9',
+        };
+        if (aliases[mainChord] && PIANO_DB[aliases[mainChord]]) {
+            notes = [...PIANO_DB[aliases[mainChord]]];
+        } else {
+            notes = generatePianoChord(mainChord);
+        }
+    }
+
+    if (!notes) return null;
+
+    // Add bass note below the chord
+    if (bassPitch !== null) {
+        const lowest = Math.min(...notes);
+        // Place bass note below the lowest chord note
+        let bass = bassPitch;
+        while (bass >= lowest) bass -= 12;
+        if (bass < 0) bass += 12;
+        if (bass >= lowest) bass -= 12;
+        notes = [bass, ...notes.filter(n => n % 12 !== bassPitch % 12)];
+    }
+
+    return notes;
+}
+
+const _NOTE_TO_PITCH = {'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11,'H':11};
+
+function _noteToPitch(note) {
+    let n = note.trim();
+    n = n.charAt(0).toUpperCase() + n.slice(1);
+    if (n === 'H') n = 'B';
+    return _NOTE_TO_PITCH[n] !== undefined ? _NOTE_TO_PITCH[n] : null;
 }
 
 function generatePianoChord(chordName) {
-    const NOTE_TO_PITCH = {'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11,'H':11};
-    const m = chordName.match(/^([A-H][#b]?)(.*)$/);
+    const m = chordName.match(/^([A-Ha-h][#b]?)(.*)$/);
     if (!m) return null;
-    let root = m[1];
+    let root = m[1].charAt(0).toUpperCase() + m[1].slice(1);
     if (root === 'H') root = 'B';
-    const pc = NOTE_TO_PITCH[root];
-    if (pc === undefined) return null;
-    const suffix = m[2].toLowerCase();
+    const pc = _noteToPitch(root);
+    if (pc === null) return null;
+    const raw = m[2];
 
-    let intervals;
-    if (suffix === '' || suffix === 'maj') intervals = [0, 4, 7];
-    else if (suffix === 'm' || suffix === 'min') intervals = [0, 3, 7];
-    else if (suffix === '7') intervals = [0, 4, 7, 10];
-    else if (suffix === 'm7' || suffix === 'min7') intervals = [0, 3, 7, 10];
-    else if (suffix === 'maj7') intervals = [0, 4, 7, 11];
-    else if (suffix === 'dim') intervals = [0, 3, 6];
-    else if (suffix === 'aug') intervals = [0, 4, 8];
-    else if (suffix === 'sus2') intervals = [0, 2, 7];
-    else if (suffix === 'sus4') intervals = [0, 5, 7];
-    else if (suffix === 'add9') intervals = [0, 4, 7, 14];
-    else if (suffix === '9') intervals = [0, 4, 7, 10, 14];
-    else if (suffix === 'm9') intervals = [0, 3, 7, 10, 14];
-    else if (suffix === '6') intervals = [0, 4, 7, 9];
-    else if (suffix === 'm6') intervals = [0, 3, 7, 9];
-    else if (suffix === 'dim7') intervals = [0, 3, 6, 9];
-    else if (suffix === '7sus4') intervals = [0, 5, 7, 10];
-    else if (suffix === '11') intervals = [0, 4, 7, 10, 14, 17];
-    else return null;
+    // Build intervals by parsing the suffix into components
+    let third = 4;   // major third (default)
+    let fifth = 7;   // perfect fifth (default)
+    let extras = [];
+    let noThird = false;
+    let noFifth = false;
+
+    const s = raw.toLowerCase();
+
+    // Quality: minor, dim, aug
+    if (/^m(?!aj)/i.test(raw)) third = 3;
+    if (s.includes('dim')) { third = 3; fifth = 6; }
+    if (s.includes('aug')) { fifth = 8; }
+
+    // Suspended: replaces the third
+    if (s.includes('sus4')) { third = 5; noThird = false; }
+    else if (s.includes('sus2')) { third = 2; noThird = false; }
+    else if (s.includes('sus')) { third = 5; } // sus alone = sus4
+
+    // Extensions and additions
+    if (s.includes('maj7'))        extras.push(11);
+    else if (s.includes('7'))      extras.push(10);
+
+    if (s.includes('add9') || s.includes('add2'))   extras.push(14);
+    if (s.includes('add11') || s.includes('add4'))  extras.push(17);
+    if (s.includes('add13') || s.includes('add6'))  extras.push(21);
+
+    // Numbered extensions (9, 11, 13) imply lower extensions
+    if (/(?:^|[^d])13/.test(s)) {
+        if (!extras.includes(10) && !extras.includes(11)) extras.push(10);
+        if (!extras.includes(14)) extras.push(14);
+        extras.push(21);
+    } else if (/(?:^|[^d])11/.test(s)) {
+        if (!extras.includes(10) && !extras.includes(11)) extras.push(10);
+        if (!extras.includes(14)) extras.push(14);
+        extras.push(17);
+    } else if (/(?:^|[^d])9(?!$)/.test(s) || s.endsWith('9')) {
+        if (!extras.includes(10) && !extras.includes(11)) extras.push(10);
+        extras.push(14);
+    }
+
+    // 6th chord
+    if (/(?:^|m)6(?!\/|$)/.test(s) || s.endsWith('6')) {
+        if (!extras.includes(21)) extras.push(9);
+    }
+
+    // Build the note set
+    let intervals = [0];
+    if (!noThird) intervals.push(third);
+    if (!noFifth) intervals.push(fifth);
+    extras.forEach(e => {
+        if (!intervals.includes(e) && !intervals.includes(e % 12)) intervals.push(e);
+    });
 
     return intervals.map(i => pc + i);
 }
