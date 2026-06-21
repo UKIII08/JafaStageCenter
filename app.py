@@ -876,9 +876,8 @@ def qr_code(subpath):
         img_io.seek(0)
         return send_file(img_io, mimetype='image/png')
     except Exception:
-        import qrcode.image.svg
-        factory = qrcode.image.svg.SvgPathImage
-        svg_img = qr.make_image(image_factory=factory)
+        from qrcode.image.svg import SvgPathImage
+        svg_img = qr.make_image(image_factory=SvgPathImage)
         svg_io = BytesIO()
         svg_img.save(svg_io)
         svg_io.seek(0)
