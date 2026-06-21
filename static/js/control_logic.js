@@ -70,6 +70,7 @@ const translations = {
         control_qr: "STEROWANIE",
         band_qr: "ZESPÓŁ",
         proj_qr: "RZUTNIK",
+        member_qr: "CZŁONEK ZESPOŁU",
         open_win: "OTWÓRZ OKNO ↗",
         ios_install: "Zainstaluj jako aplikację",
         ios_desc: "Aby uruchomić na pełnym ekranie, kliknij przycisk <span class=\"icon-share\"></span> i wybierz <strong>\"Do ekranu początkowego\"</strong>.",
@@ -160,6 +161,7 @@ const translations = {
         control_qr: "CONTROL",
         band_qr: "STAGE BAND",
         proj_qr: "PROJECTOR",
+        member_qr: "BAND MEMBER",
         open_win: "OPEN WINDOW ↗",
         ios_install: "Install as App",
         ios_desc: "To launch in full screen, tap the <span class=\"icon-share\"></span> button and select <strong>\"Add to Home Screen\"</strong>.",
@@ -1214,21 +1216,21 @@ function goLiveSection(c, n, forceTrans = null, nextTrans = null) {
     
     let currentKey = document.getElementById('live-key') ? document.getElementById('live-key').innerText : '';
     let currentBpm = setlist[currentSetIndex] ? setlist[currentSetIndex].bpm : '';
-    
-    // Wysyłamy nowy slajd, PODTRZYMUJĄC obecny stan blackoutu!
-    // Jeśli blackout jest włączony, rzutnik to zignoruje, ale widok zespołu (stage) się zaktualizuje.
+    let songTitle = setlist[currentSetIndex] ? setlist[currentSetIndex].title : '';
+
     fetch('/send_text', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            text: c, 
-            next_text: n, 
-            transpose: t, 
+        body: JSON.stringify({
+            text: c,
+            next_text: n,
+            transpose: t,
             next_transpose: nt,
-            key: currentKey, 
+            key: currentKey,
             bpm: currentBpm,
+            song_title: songTitle,
             current_index: currentSetIndex,
             setlist: setlist,
-            blackout: isBlackoutActive 
+            blackout: isBlackoutActive
         })
     });
     

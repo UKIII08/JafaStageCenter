@@ -117,6 +117,15 @@ class Settings(db.Model):
     chord_notation = db.Column(db.String(15), default='international')
     minor_display = db.Column(db.String(10), default='uppercase')
 
+class BandPreset(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    show_chords = db.Column(db.Boolean, default=True)
+    nashville_mode = db.Column(db.Boolean, default=False)
+    capo_fret = db.Column(db.Integer, default=0)
+    beginner_mode = db.Column(db.Boolean, default=False)
+    font_size = db.Column(db.Integer, default=6)
+
 def get_notation():
     s = Settings.query.first()
     notation = s.chord_notation if s and s.chord_notation else 'international'
@@ -169,6 +178,10 @@ def check_db_schema():
                 with db.engine.connect() as conn:
                     conn.execute(text("ALTER TABLE settings ADD COLUMN minor_display VARCHAR(10) DEFAULT 'uppercase'"))
                     conn.commit()
+
+            # Check if BandPreset table exists
+            if 'band_preset' not in inspector.get_table_names():
+                BandPreset.__table__.create(db.engine)
 
         except Exception as e:
             # Silent fail for exe log
@@ -588,6 +601,46 @@ def projector():
 @app.route('/stage')
 def stage(): return render_template('stage.html')
 
+@app.route('/band_member')
+def band_member():
+    presets = BandPreset.query.all()
+    return render_template('band_member.html', presets=presets)
+
+@app.route('/api/presets', methods=['GET'])
+def get_presets():
+    presets = BandPreset.query.all()
+    return [{'id': p.id, 'name': p.name, 'show_chords': p.show_chords,
+             'nashville_mode': p.nashville_mode, 'capo_fret': p.capo_fret,
+             'beginner_mode': p.beginner_mode, 'font_size': p.font_size} for p in presets]
+
+@app.route('/api/presets', methods=['POST'])
+def save_preset():
+    data = request.json
+    preset_id = data.get('id')
+    if preset_id:
+        p = BandPreset.query.get(preset_id)
+        if not p:
+            return {'error': 'not found'}, 404
+    else:
+        p = BandPreset()
+        db.session.add(p)
+    p.name = data.get('name', 'Preset')
+    p.show_chords = data.get('show_chords', True)
+    p.nashville_mode = data.get('nashville_mode', False)
+    p.capo_fret = int(data.get('capo_fret', 0))
+    p.beginner_mode = data.get('beginner_mode', False)
+    p.font_size = int(data.get('font_size', 6))
+    db.session.commit()
+    return {'id': p.id, 'name': p.name}
+
+@app.route('/api/presets/<int:pid>', methods=['DELETE'])
+def delete_preset(pid):
+    p = BandPreset.query.get(pid)
+    if p:
+        db.session.delete(p)
+        db.session.commit()
+    return {'status': 'ok'}
+
 @app.route('/detect_key', methods=['POST'])
 def route_detect_key():
     data = request.json
@@ -846,8 +899,8 @@ def qr_code(subpath):
         img_io.seek(0)
         return send_file(img_io, mimetype='image/png')
     except Exception:
-        import qrcode.image.svg
-        factory = qrcode.image.svg.SvgPathImage
+        from qrcode.image.svg import SvgPathImage
+        factory = SvgPathImage
         svg_img = qr.make_image(image_factory=factory)
         svg_io = BytesIO()
         svg_img.save(svg_io)
@@ -895,8 +948,11 @@ def send_text():
         'people': people_html,
         'band': band_html,
         'band_next': band_next_html,
+        'raw_text': raw_text,
+        'raw_next': data.get('next_text', ''),
         'current_key': passed_key,
         'current_bpm': passed_bpm,
+        'song_title': data.get('song_title', ''),
         'is_blackout': is_blackout,
         'lang': lang
     })
