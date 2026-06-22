@@ -957,7 +957,8 @@ def send_text():
         'current_bpm': passed_bpm,
         'song_title': data.get('song_title', ''),
         'is_blackout': is_blackout,
-        'lang': lang
+        'lang': lang,
+        'notation': notation
     })
     return {'status': 'ok'}
 

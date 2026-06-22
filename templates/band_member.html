@@ -455,12 +455,18 @@
 
         // ===== MUSIC THEORY =====
         const NOTES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
-        const NOTE_MAP = {};
-        NOTES.forEach((n, i) => NOTE_MAP[n] = i);
-        Object.assign(NOTE_MAP, {
+        const NOTES_PL = ['C', 'Cis', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H'];
+        let currentNotation = 'international';
+        const NOTE_MAP_INT = {};
+        NOTES.forEach((n, i) => NOTE_MAP_INT[n] = i);
+        Object.assign(NOTE_MAP_INT, {
             'Db': 1, 'D#': 3, 'E#': 5, 'Fb': 4, 'Gb': 6,
-            'G#': 8, 'A#': 10, 'B#': 0, 'Cb': 11,
-            'Cis': 1, 'Dis': 3, 'Es': 3, 'Fis': 6, 'Gis': 8, 'As': 8, 'Ais': 10, 'H': 11, 'B': 10, 'His': 0
+            'G#': 8, 'A#': 10, 'B#': 0, 'Cb': 11
+        });
+        const NOTE_MAP_PL = {};
+        NOTES_PL.forEach((n, i) => NOTE_MAP_PL[n] = i);
+        Object.assign(NOTE_MAP_PL, {
+            'Cis': 1, 'Dis': 3, 'Es': 3, 'Fis': 6, 'Gis': 8, 'As': 8, 'Ais': 10, 'His': 0, 'H': 11, 'B': 10
         });
 
         const CHORD_RE = /^([A-Ha-h][#b]?(?:is|IS|Is|es|ES|Es|s)?)(.*)$/;
@@ -472,12 +478,18 @@
 
         function rootToPitch(root) {
             let r = root.charAt(0).toUpperCase() + root.slice(1);
-            if (NOTE_MAP[r] !== undefined) return NOTE_MAP[r];
-            r = root.toUpperCase();
-            return NOTE_MAP[r] !== undefined ? NOTE_MAP[r] : null;
+            if (currentNotation === 'polish') {
+                if (NOTE_MAP_PL[r] !== undefined) return NOTE_MAP_PL[r];
+            }
+            if (NOTE_MAP_INT[r] !== undefined) return NOTE_MAP_INT[r];
+            if (NOTE_MAP_PL[r] !== undefined) return NOTE_MAP_PL[r];
+            return null;
         }
 
-        function pitchToNote(p) { return NOTES[((p % 12) + 12) % 12]; }
+        function pitchToNote(p) {
+            const table = currentNotation === 'polish' ? NOTES_PL : NOTES;
+            return table[((p % 12) + 12) % 12];
+        }
 
         function transposeChord(chord, semi) {
             if (chord.includes('/')) {
@@ -753,6 +765,7 @@
                 stageLogo.style.display = 'none';
                 currentContent.style.display = 'block';
 
+                if (data.notation) currentNotation = data.notation;
                 if (data.raw_text !== undefined) currentRawText = data.raw_text;
                 if (data.raw_next !== undefined) currentRawNext = data.raw_next;
                 if (data.band !== undefined) currentBandHtml = data.band;
