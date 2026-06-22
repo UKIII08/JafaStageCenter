@@ -835,7 +835,7 @@ def update_settings():
     settings.minor_display = request.form.get('minor_display', 'uppercase')
 
     db.session.commit()
-    socketio.emit('apply_settings', {'font_family': settings.font_family, 'bg_color': settings.bg_color, 'text_color': settings.text_color, 'lang': settings.language})
+    socketio.emit('apply_settings', {'font_family': settings.font_family, 'bg_color': settings.bg_color, 'text_color': settings.text_color, 'lang': settings.language, 'chord_notation': settings.chord_notation})
     socketio.emit('settings_changed')
     return redirect(url_for('control'))
 

@@ -542,7 +542,12 @@
         function processChord(chord) {
             let display = chord;
             let cls = 'chord';
-            if (currentSettings.capo_fret > 0) { display = transposeChord(display, -currentSettings.capo_fret); cls += ' capo'; }
+            if (currentSettings.capo_fret > 0) {
+                display = transposeChord(display, -currentSettings.capo_fret);
+                cls += ' capo';
+            } else {
+                display = transposeChord(display, 0);
+            }
             if (currentSettings.beginner_mode) display = simplifyChord(display);
             if (currentSettings.nashville_mode) { display = toNashville(display, currentKey.replace('m', '')); cls = 'chord nashville'; }
             if (!currentSettings.nashville_mode && currentSettings.beginner_mode && isHardChord(display)) cls += ' hard-chord';
@@ -790,6 +795,13 @@
         });
 
         socket.on('refresh_logo', function() { location.reload(); });
+
+        socket.on('apply_settings', function(data) {
+            if (data.chord_notation) {
+                currentNotation = data.chord_notation;
+                rerender();
+            }
+        });
 
         // ===== SETTINGS UI =====
         function toggleSettings() {
