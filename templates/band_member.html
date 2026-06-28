@@ -178,7 +178,7 @@
 
         #current-slide .chord {
             position: absolute; bottom: 0.7em; left: 0; transform: none;
-            color: #6c5ce7; font-weight: 700; font-size: 0.65em;
+            color: #3B82F6; font-weight: 700; font-size: 0.65em;
             background: transparent; padding: 0; text-shadow: 1px 1px 2px #000;
         }
         #current-slide .chord.nashville { color: #fdcb6e; }
@@ -237,7 +237,7 @@
             width: 340px; height: 100%;
             background: rgba(14,14,20,0.95);
             backdrop-filter: blur(20px);
-            border-left: 1px solid rgba(108,92,231,0.1);
+            border-left: 1px solid rgba(59,130,246,0.1);
             border-radius: 16px 0 0 16px;
             z-index: 10001;
             transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
@@ -273,7 +273,7 @@
             background: rgba(255,255,255,0.06); border-radius: 12px; cursor: pointer;
             transition: background 0.3s cubic-bezier(0.4,0,0.2,1); flex-shrink: 0;
         }
-        .toggle.active { background: #6c5ce7; }
+        .toggle.active { background: #3B82F6; }
         .toggle::after {
             content: '';
             position: absolute; top: 2px; left: 2px;
@@ -283,7 +283,7 @@
         }
         .toggle.active::after { transform: translateX(20px); }
 
-        input[type="range"] { width: 100%; accent-color: #6c5ce7; }
+        input[type="range"] { width: 100%; accent-color: #3B82F6; }
         #settings-panel select {
             width: 100%; padding: 8px 10px;
             background: #0e0e14; border: 1px solid rgba(255,255,255,0.06);
@@ -295,7 +295,7 @@
         }
         .btn:hover { filter: brightness(1.15); }
         .btn:active { transform: scale(0.97); }
-        .btn-primary { background: #6c5ce7; color: #fff; }
+        .btn-primary { background: #3B82F6; color: #fff; }
         .btn-primary:hover { filter: brightness(1.15); }
         .btn-danger { background: #ff6b6b; color: #fff; border: none; }
         .btn-danger:hover { filter: brightness(1.15); }
@@ -306,10 +306,10 @@
             position: fixed;
             z-index: 20000;
             background: rgba(14,14,20,0.96);
-            border: 1px solid rgba(108,92,231,0.15);
+            border: 1px solid rgba(59,130,246,0.15);
             border-radius: 16px;
             padding: 8px;
-            box-shadow: 0 8px 32px rgba(108,92,231,0.15), 0 4px 16px rgba(0,0,0,0.6);
+            box-shadow: 0 8px 32px rgba(59,130,246,0.15), 0 4px 16px rgba(0,0,0,0.6);
             pointer-events: auto;
         }
         #chord-popup .popup-close {

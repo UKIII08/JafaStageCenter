@@ -344,7 +344,7 @@ function updatePadVolume(slider) {
 
     const percentage = (val - slider.min) / (slider.max - slider.min) * 100;
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const accentColor = isDark ? '#6c5ce7' : '#6c5ce7';
+    const accentColor = isDark ? '#3B82F6' : '#3B82F6';
     const trackColor = isDark ? '#333' : '#e9ecef';
 
     slider.style.background = `linear-gradient(to right, ${accentColor} 0%, ${accentColor} ${percentage}%, ${trackColor} ${percentage}%, ${trackColor} 100%)`;
@@ -1485,9 +1485,7 @@ document.addEventListener('keydown', function(e) {
             position: fixed;
             top: 0; left: 0;
             width: 100vw; height: 100vh;
-            background: rgba(6,6,10,0.85);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
+            background: transparent;
             z-index: 99990;
             transition: opacity 0.4s ease;
             opacity: 0;
@@ -1499,9 +1497,10 @@ document.addEventListener('keydown', function(e) {
         }
         .onboarding-spotlight {
             position: fixed;
-            z-index: 99990;
+            z-index: 99991;
             border-radius: 8px;
-            box-shadow: 0 0 0 9999px rgba(6,6,10,0.85);
+            background: transparent;
+            box-shadow: 0 0 0 9999px rgba(6,6,10,0.82);
             transition: top 0.45s ease, left 0.45s ease, width 0.45s ease, height 0.45s ease;
             pointer-events: none;
         }
@@ -1510,22 +1509,22 @@ document.addEventListener('keydown', function(e) {
             position: absolute;
             inset: -4px;
             border-radius: 12px;
-            border: 2px solid rgba(108,92,231,0.5);
+            border: 2px solid rgba(59,130,246,0.5);
             animation: onboarding-pulse 2s ease-in-out infinite;
         }
         @keyframes onboarding-pulse {
-            0%, 100% { border-color: rgba(108,92,231,0.5); box-shadow: 0 0 8px rgba(108,92,231,0.2); }
-            50% { border-color: rgba(108,92,231,0.9); box-shadow: 0 0 20px rgba(108,92,231,0.4); }
+            0%, 100% { border-color: rgba(59,130,246,0.5); box-shadow: 0 0 8px rgba(59,130,246,0.2); }
+            50% { border-color: rgba(59,130,246,0.9); box-shadow: 0 0 20px rgba(59,130,246,0.4); }
         }
         .onboarding-tooltip {
             position: absolute;
             max-width: 340px;
             background: rgba(14,14,20,0.96);
-            border: 1px solid rgba(108,92,231,0.2);
+            border: 1px solid rgba(59,130,246,0.2);
             border-radius: 16px;
             padding: 24px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            z-index: 99991;
+            z-index: 99992;
             opacity: 0;
             transform: translateY(10px);
             transition: opacity 0.35s ease, transform 0.35s ease;
@@ -1563,8 +1562,8 @@ document.addEventListener('keydown', function(e) {
         }
         .onboarding-step-counter {
             display: inline-block;
-            background: rgba(108,92,231,0.15);
-            color: rgba(108,92,231,0.9);
+            background: rgba(59,130,246,0.15);
+            color: rgba(59,130,246,0.9);
             font-size: 11px;
             font-weight: 600;
             padding: 3px 10px;
@@ -1590,7 +1589,7 @@ document.addEventListener('keydown', function(e) {
             gap: 8px;
         }
         .onboarding-btn-primary {
-            background: linear-gradient(135deg, #6c5ce7, #8b5cf6);
+            background: linear-gradient(135deg, #3B82F6, #60A5FA);
             color: #fff;
             border: none;
             padding: 8px 20px;
@@ -1602,7 +1601,7 @@ document.addEventListener('keydown', function(e) {
         }
         .onboarding-btn-primary:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 16px rgba(108,92,231,0.4);
+            box-shadow: 0 4px 16px rgba(59,130,246,0.4);
         }
         .onboarding-btn-ghost {
             background: transparent;

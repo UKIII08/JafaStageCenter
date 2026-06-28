@@ -39,16 +39,16 @@
             --border-color: rgba(255,255,255,0.06);
             --text-main: rgba(255,255,255,0.92);
             --text-muted: rgba(255,255,255,0.45);
-            --accent-primary: #6c5ce7;
+            --accent-primary: #3B82F6;
             --accent-secondary: #00cec9;
             --accent-success: #00b894;
             --accent-danger: #ff6b6b;
             --accent-warning: #fdcb6e;
-            --accent-active-bg: rgba(108,92,231,0.12);
+            --accent-active-bg: rgba(59,130,246,0.12);
             --shadow-color: rgba(0,0,0,0.6);
             --glass-bg: rgba(14,14,20,0.92);
             --glass-border: rgba(255,255,255,0.04);
-            --glow-primary: rgba(108,92,231,0.25);
+            --glow-primary: rgba(59,130,246,0.25);
             --glow-success: rgba(0,184,148,0.25);
             --radius-sm: 8px;
             --radius-md: 12px;
@@ -65,17 +65,17 @@
             --bg-element-hover: #e8e8f2;
             --bg-preview: #fafafe;
             --input-bg: #f0f0f8;
-            --border-color: rgba(108,92,231,0.08);
+            --border-color: rgba(59,130,246,0.08);
             --text-main: rgba(0,0,0,0.87);
             --text-muted: rgba(0,0,0,0.45);
-            --accent-primary: #6c5ce7;
+            --accent-primary: #3B82F6;
             --accent-secondary: #00b5ad;
             --accent-success: #00a884;
             --accent-danger: #e74c3c;
-            --accent-active-bg: rgba(108,92,231,0.08);
-            --shadow-color: rgba(108,92,231,0.06);
+            --accent-active-bg: rgba(59,130,246,0.08);
+            --shadow-color: rgba(59,130,246,0.06);
             --glass-bg: rgba(255,255,255,0.92);
-            --glass-border: rgba(108,92,231,0.06);
+            --glass-border: rgba(59,130,246,0.06);
         }
 
         * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
@@ -113,7 +113,7 @@
             font-size: 0.9rem;
             box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px var(--accent-primary), 0 0 20px var(--glow-primary);
             backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(108,92,231,0.3);
+            border: 1px solid rgba(59,130,246,0.3);
             /* Dymek wjeżdża z góry i po 2 sekundach wyjeżdża */
             animation: toastIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, toastOut 0.3s 2s forwards;
             opacity: 0;
@@ -169,9 +169,9 @@
         }
         .mode-btn:hover { color: var(--text-main); background: var(--bg-element-hover); }
         .mode-btn.active {
-            background: rgba(108,92,231,0.15);
+            background: rgba(59,130,246,0.15);
             color: #fff;
-            box-shadow: 0 0 20px var(--glow-primary), inset 0 0 12px rgba(108,92,231,0.08);
+            box-shadow: 0 0 20px var(--glow-primary), inset 0 0 12px rgba(59,130,246,0.08);
         }
         
         .action-btn {
@@ -189,9 +189,9 @@
             font-weight: 700;
             transition: transform var(--transition-fast), box-shadow var(--transition-smooth), filter var(--transition-fast);
             text-decoration: none;
-            box-shadow: 0 2px 8px rgba(108,92,231,0.25);
+            box-shadow: 0 2px 8px rgba(59,130,246,0.25);
         }
-        .action-btn:hover { filter: brightness(1.12); box-shadow: 0 4px 16px rgba(108,92,231,0.35); }
+        .action-btn:hover { filter: brightness(1.12); box-shadow: 0 4px 16px rgba(59,130,246,0.35); }
         .action-btn:active { transform: scale(0.97); }
         
         .settings-btn {
@@ -203,7 +203,7 @@
         .settings-btn:hover {
             background: var(--bg-element);
             color: var(--text-main);
-            border-color: rgba(108,92,231,0.3);
+            border-color: rgba(59,130,246,0.3);
             box-shadow: 0 0 12px var(--glow-primary);
         }
 
@@ -231,7 +231,7 @@
         }
         .col:last-child { border-right: none; }
         #col-library {
-            background: linear-gradient(180deg, var(--bg-panel) 0%, rgba(108,92,231,0.02) 100%);
+            background: linear-gradient(180deg, var(--bg-panel) 0%, rgba(59,130,246,0.02) 100%);
             box-shadow: inset 0 0 30px rgba(0,0,0,0.1);
         }
         #col-setlist {
@@ -245,7 +245,7 @@
         
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(108,92,231,0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
         
         h2 {
@@ -298,8 +298,8 @@
 
             white-space: pre-wrap;
             flex-shrink: 0;
-            border: 1px solid rgba(108,92,231,0.2);
-            box-shadow: 0 10px 30px -10px black, 0 0 0 1px rgba(108,92,231,0.1);
+            border: 1px solid rgba(59,130,246,0.2);
+            box-shadow: 0 10px 30px -10px black, 0 0 0 1px rgba(59,130,246,0.1);
             text-shadow: 0 2px 10px rgba(0,0,0,0.8);
             transition: border-color var(--transition-smooth);
             overflow: hidden;
@@ -341,17 +341,17 @@
             initial-value: 0deg;
             inherits: false;
         }
-        #live-preview-box:hover { border-color: rgba(108,92,231,0.5); }
+        #live-preview-box:hover { border-color: rgba(59,130,246,0.5); }
 
         .preview-info-label {
             color: var(--text-muted);
             font-weight: 800;
             letter-spacing: 0.3px;
-            border: 1px dashed rgba(108,92,231,0.25);
+            border: 1px dashed rgba(59,130,246,0.25);
             padding: 8px 16px;
             border-radius: var(--radius-sm);
             font-size: 0.8rem;
-            background: rgba(108,92,231,0.05);
+            background: rgba(59,130,246,0.05);
             text-shadow: none;
         }
 
@@ -402,7 +402,7 @@
             flex-shrink: 0; margin: 0;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        .pad-btn:hover { color: var(--text-main); border-color: rgba(108,92,231,0.3); }
+        .pad-btn:hover { color: var(--text-main); border-color: rgba(59,130,246,0.3); }
         .pad-btn.active {
             background: var(--accent-success);
             color: #fff;
@@ -442,7 +442,7 @@
             outline: none;
             border-color: var(--accent-primary);
             background: var(--bg-element);
-            box-shadow: 0 0 0 3px rgba(108,92,231,0.2);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
         }
         ::placeholder { color: var(--text-muted); opacity: 0.5; }
 
@@ -509,7 +509,7 @@
         }
         .setlist-item:hover { background: var(--bg-element); transform: translateY(-1px); }
         .setlist-item.active {
-            background: linear-gradient(90deg, rgba(108,92,231,0.05) 0%, transparent 100%);
+            background: linear-gradient(90deg, rgba(59,130,246,0.05) 0%, transparent 100%);
             border-left-color: var(--accent-primary);
         }
         .setlist-item.active .setlist-content span { color: var(--accent-primary); font-weight: bold; }
@@ -543,7 +543,7 @@
             border-radius: 6px; font-size: 0.85rem; border: 1px solid var(--border-color);
             transition: all var(--transition-smooth);
         }
-        .btn-sm:hover { background: var(--bg-element-hover); border-color: rgba(108,92,231,0.3); }
+        .btn-sm:hover { background: var(--bg-element-hover); border-color: rgba(59,130,246,0.3); }
 
         button.danger {
             background: rgba(255,107,107,0.08); border: 1px solid var(--accent-danger);
@@ -555,7 +555,7 @@
         button.danger:active { transform: scale(0.97); }
 
         button.secondary {
-            background: rgba(108,92,231,0.08); border: 1px solid var(--accent-primary);
+            background: rgba(59,130,246,0.08); border: 1px solid var(--accent-primary);
             color: var(--accent-primary); padding: 15px; flex-grow: 1;
             font-size: 0.9rem; letter-spacing: 1px;
             transition: all var(--transition-smooth);
@@ -593,7 +593,7 @@
             background: var(--bg-element);
             color: var(--text-main);
             border: 2px solid var(--accent-primary);
-            box-shadow: 0 0 20px var(--glow-primary), 0 0 40px rgba(108,92,231,0.1);
+            box-shadow: 0 0 20px var(--glow-primary), 0 0 40px rgba(59,130,246,0.1);
         }
         .slide-btn.active::before {
             content: '';
@@ -618,7 +618,7 @@
         }
         .slide-btn.active .slide-label { color: var(--accent-secondary); opacity: 1; }
 
-        .transition-tile { border: 1px dashed rgba(108,92,231,0.35) !important; background: transparent; opacity: 0.5; transition: all var(--transition-smooth); }
+        .transition-tile { border: 1px dashed rgba(59,130,246,0.35) !important; background: transparent; opacity: 0.5; transition: all var(--transition-smooth); }
         .transition-tile:hover { opacity: 1; border-color: var(--accent-primary) !important; border-style: solid !important; box-shadow: 0 0 15px var(--glow-primary); }
         .transition-tile.active { border-style: solid !important; background: linear-gradient(135deg, var(--accent-primary), #7c6cf0); opacity: 1; color: white; border: none !important; }
 
@@ -862,7 +862,7 @@
 
         @keyframes pulse-glow {
             0%, 100% { box-shadow: 0 0 8px var(--glow-primary); }
-            50% { box-shadow: 0 0 20px var(--glow-primary), 0 0 40px rgba(108,92,231,0.1); }
+            50% { box-shadow: 0 0 20px var(--glow-primary), 0 0 40px rgba(59,130,246,0.1); }
         }
     </style>
     <script>
@@ -1067,7 +1067,7 @@
                             <div style="background: var(--bg-panel); padding: 25px; border-radius: 14px; text-align:center; border: 1px solid var(--border-color); margin-top: auto; box-shadow: inset 0 4px 20px rgba(0,0,0,0.15);">
                                 <div data-t="slides_control_title" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:20px; text-transform:uppercase; letter-spacing:1.5px; font-weight:900;">Sterowanie Slajdami</div>
                                 
-                                <button class="action-btn" style="width:100%; justify-content:center; margin-bottom: 25px; background:var(--accent-primary); padding:18px; font-size:1.05rem; border-radius: 10px; box-shadow: 0 6px 20px rgba(108,92,231,0.3);" onclick="sendPresentationState()" data-t="show_pres_btn">Pokaż prezentację na ekranach</button>
+                                <button class="action-btn" style="width:100%; justify-content:center; margin-bottom: 25px; background:var(--accent-primary); padding:18px; font-size:1.05rem; border-radius: 10px; box-shadow: 0 6px 20px rgba(59,130,246,0.3);" onclick="sendPresentationState()" data-t="show_pres_btn">Pokaż prezentację na ekranach</button>
 
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 25px;">
                                     <button class="action-btn" style="background:var(--bg-element); border: 1px solid var(--border-color); color:var(--text-main); font-size:2rem; padding:12px 40px; border-radius: 12px; transition: all 0.2s;" onmouseover="this.style.background='var(--text-muted)'; this.style.color='var(--bg-panel)';" onmouseout="this.style.background='var(--bg-element)'; this.style.color='var(--text-main)';" onclick="changeSlide(-1)">◀</button>
@@ -1083,7 +1083,7 @@
             </div>
             
             <div style="margin-top: 30px;">
-                <button class="action-btn" style="width:100%; justify-content:center; background: var(--bg-panel); color: var(--text-main); border: 2px dashed var(--border-color); padding: 25px; font-size: 1.2rem; border-radius: 16px; font-weight: 800; letter-spacing: 1px; transition: all 0.2s; box-shadow: 0 5px 15px rgba(0,0,0,0.1);" onmouseover="this.style.borderColor='var(--accent-primary)'; this.style.color='var(--accent-primary)'; this.style.boxShadow='0 10px 30px rgba(108,92,231,0.15)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.color='var(--text-main)'; this.style.boxShadow='0 5px 15px rgba(0,0,0,0.1)';" onclick="window.open('/presenter', '_blank')" data-t="open_presenter_btn">Otwórz widok prezentera (w nowej karcie)</button>
+                <button class="action-btn" style="width:100%; justify-content:center; background: var(--bg-panel); color: var(--text-main); border: 2px dashed var(--border-color); padding: 25px; font-size: 1.2rem; border-radius: 16px; font-weight: 800; letter-spacing: 1px; transition: all 0.2s; box-shadow: 0 5px 15px rgba(0,0,0,0.1);" onmouseover="this.style.borderColor='var(--accent-primary)'; this.style.color='var(--accent-primary)'; this.style.boxShadow='0 10px 30px rgba(59,130,246,0.15)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.color='var(--text-main)'; this.style.boxShadow='0 5px 15px rgba(0,0,0,0.1)';" onclick="window.open('/presenter', '_blank')" data-t="open_presenter_btn">Otwórz widok prezentera (w nowej karcie)</button>
             </div>
             
          </div>

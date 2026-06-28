@@ -36,8 +36,8 @@
         }
 
         @keyframes titleGlow {
-            0%, 100% { text-shadow: 0 0 30px rgba(108,92,231,0.3); }
-            50% { text-shadow: 0 0 50px rgba(108,92,231,0.5), 0 0 80px rgba(108,92,231,0.2); }
+            0%, 100% { text-shadow: 0 0 30px rgba(59,130,246,0.3); }
+            50% { text-shadow: 0 0 50px rgba(59,130,246,0.5), 0 0 80px rgba(59,130,246,0.2); }
         }
 
         .app-title {
@@ -45,8 +45,8 @@
             font-weight: 200;
             letter-spacing: 8px;
             text-transform: uppercase;
-            color: #6c5ce7;
-            text-shadow: 0 0 30px rgba(108,92,231,0.3);
+            color: #3B82F6;
+            text-shadow: 0 0 30px rgba(59,130,246,0.3);
             animation: titleGlow 4s ease-in-out infinite;
         }
 
@@ -66,8 +66,8 @@
         }
 
         .card {
-            background: rgba(108,92,231,0.03);
-            border: 1px solid rgba(108,92,231,0.08);
+            background: rgba(59,130,246,0.03);
+            border: 1px solid rgba(59,130,246,0.08);
             border-radius: 20px;
             padding: 40px 36px 32px;
             width: 210px;
@@ -83,10 +83,10 @@
         }
 
         .card:hover {
-            background: rgba(108,92,231,0.08);
-            border-color: rgba(108,92,231,0.3);
+            background: rgba(59,130,246,0.08);
+            border-color: rgba(59,130,246,0.3);
             transform: translateY(-8px);
-            box-shadow: 0 20px 60px rgba(108,92,231,0.15);
+            box-shadow: 0 20px 60px rgba(59,130,246,0.15);
         }
 
         .card-icon {
@@ -101,7 +101,7 @@
         }
 
         .card:hover .card-icon svg {
-            stroke: #6c5ce7;
+            stroke: #3B82F6;
         }
 
         .card-title {
@@ -117,8 +117,8 @@
         }
 
         .card.primary {
-            border-color: rgba(108,92,231,0.2);
-            background: rgba(108,92,231,0.06);
+            border-color: rgba(59,130,246,0.2);
+            background: rgba(59,130,246,0.06);
         }
 
         .footer-hint {
@@ -199,7 +199,7 @@
                 if (this.y > canvas.height) this.y = 0;
             }
             draw() {
-                ctx.fillStyle = `rgba(108,92,231,${this.o})`;
+                ctx.fillStyle = `rgba(59,130,246,${this.o})`;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.s, 0, Math.PI * 2);
                 ctx.fill();
