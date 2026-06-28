@@ -1640,7 +1640,7 @@ document.addEventListener('keydown', function(e) {
         {
             target: '.plus-btn',
             title: 'Dodaj piosenki',
-            text: 'Kliknij tutaj aby dodac nowa piosenke do biblioteki lub zaimportowac pliki .txt.',
+            text: 'Kliknij tutaj aby dodac nowa piosenke do biblioteki lub zaimportowac pliki .txt z akordami.',
             position: 'bottom'
         },
         {
@@ -1652,13 +1652,25 @@ document.addEventListener('keydown', function(e) {
         {
             target: '#col-setlist',
             title: 'Setlista',
-            text: 'Przeciagaj piosenki z biblioteki tutaj. Mozesz zmieniac kolejnosc przeciagajac elementy.',
+            text: 'Przeciagaj piosenki z biblioteki tutaj. Mozesz zmieniac kolejnosc przeciagajac elementy. Gdy dodasz dwie piosenki — system automatycznie wygeneruje inteligentne przejscie akordowe miedzy nimi.',
             position: 'right'
+        },
+        {
+            target: '.music-info-box',
+            title: 'Automatyczna detekcja tonacji',
+            text: 'Program automatycznie wykrywa tonacje piosenki na podstawie akordow (algorytm Krumhansl-Schmuckler). Mozesz tez wpisac tonacje recznie w edytorze piosenki.',
+            position: 'left'
+        },
+        {
+            target: '#slides-container',
+            title: 'Smart przejscia miedzy piosenkami',
+            text: 'Gdy w setliscie sa co najmniej 2 piosenki, tu pojawia sie kafelek "Transition" z inteligentnym przejsciem akordowym. Silnik AI analizuje ostatni akord jednej piosenki i pierwszy nastepnej, generujac plynne przejscie.',
+            position: 'left'
         },
         {
             target: '#live-preview-box',
             title: 'Podglad ekranu',
-            text: 'Tu widzisz dokladnie to co jest wyswietlane na rzutniku. Kliknij slajd aby go wyslac.',
+            text: 'Tu widzisz dokladnie to co jest wyswietlane na rzutniku. Kliknij slajd aby go wyslac na ekran.',
             position: 'left'
         },
         {
@@ -1666,6 +1678,36 @@ document.addEventListener('keydown', function(e) {
             title: 'Pad atmosfery',
             text: 'Wlacz pad aby grac w tle delikatna muzyke tla dopasowana do tonacji piosenki.',
             position: 'left'
+        },
+        {
+            target: '.settings-btn',
+            title: 'Personalizacja i ustawienia',
+            text: 'Tutaj znajdziesz ustawienia notacji akordow, trybu wyswietlania i inteligentnych funkcji. Kliknij aby je otworzyc.',
+            position: 'bottom'
+        },
+        {
+            target: 'select[name="chord_notation"]',
+            title: 'Notacja akordow',
+            text: 'Wybierz miedzy notacja miedzynarodowa (Bb, B, F#) a polska (B, H, Fis). Kazdy czlonek zespolu moze widziec akordy w swoim ulubionym formacie — niezaleznie od tego jak zostaly wpisane!',
+            position: 'bottom',
+            beforeShow: function() { openSettingsModal(); },
+            afterHide: function() { closeSettingsModal(); }
+        },
+        {
+            target: '#trans-toggle',
+            title: 'Inteligentne przejscia AI',
+            text: 'Wlacz lub wylacz automatyczne generowanie przejsc akordowych miedzy piosenkami. Mozesz tez wybrac silnik: Advanced (wiecej mozliwosci) lub Moderate (prostsze akordy).',
+            position: 'bottom',
+            beforeShow: function() { openSettingsModal(); },
+            afterHide: function() { closeSettingsModal(); }
+        },
+        {
+            target: '.qr-container',
+            title: 'Polacz ekrany',
+            text: 'Kazdy muzyk skanuje QR kod i widzi akordy na swoim telefonie. Widok "Czlonek Zespolu" oferuje: capo z sugestia progu dla latwych akordow, diagramy chwytow na gitare i piano, notacje Nashville — wszystko spersonalizowane per uzytkownik!',
+            position: 'top',
+            beforeShow: function() { openQRModal(); },
+            afterHide: function() { closeQRModal(); }
         },
         {
             target: '.bottom-controls',
@@ -1807,34 +1849,49 @@ document.addEventListener('keydown', function(e) {
 
         onboardingCurrentStep = stepIndex;
         const stepDef = ONBOARDING_STEPS[stepIndex];
-        const targetEl = document.querySelector(stepDef.target);
+
+        if (stepDef.beforeShow) {
+            stepDef.beforeShow();
+        }
+
+        var findTarget = function() {
+            return document.querySelector(stepDef.target);
+        };
+
+        var targetEl = findTarget();
 
         if (!targetEl) {
-            // Target not found (possibly hidden on mobile), skip to next
-            if (stepIndex < ONBOARDING_STEPS.length - 1) {
-                onboardingShowStep(stepIndex + 1);
-            } else {
-                onboardingEnd();
-            }
+            setTimeout(function() {
+                targetEl = findTarget();
+                if (!targetEl) {
+                    if (stepIndex < ONBOARDING_STEPS.length - 1) {
+                        onboardingShowStep(stepIndex + 1);
+                    } else {
+                        onboardingEnd();
+                    }
+                    return;
+                }
+                onboardingPositionOnTarget(targetEl, stepDef, stepIndex);
+            }, 300);
             return;
         }
 
-        // Scroll target into view
+        onboardingPositionOnTarget(targetEl, stepDef, stepIndex);
+    }
+
+    function onboardingPositionOnTarget(targetEl, stepDef, stepIndex) {
         targetEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
 
-        // Small delay for scroll to settle
         setTimeout(function() {
-            const rect = targetEl.getBoundingClientRect();
-            const PAD = 8;
+            var rect = targetEl.getBoundingClientRect();
+            var PAD = 8;
 
-            // Position spotlight
             onboardingSpotlight.style.top = (rect.top - PAD) + 'px';
             onboardingSpotlight.style.left = (rect.left - PAD) + 'px';
             onboardingSpotlight.style.width = (rect.width + PAD * 2) + 'px';
             onboardingSpotlight.style.height = (rect.height + PAD * 2) + 'px';
             onboardingSpotlight.style.display = 'block';
 
-            // Position tooltip
             onboardingTooltip.classList.remove('visible');
             setTimeout(function() {
                 onboardingPositionTooltip(rect, stepDef.position, stepIndex, ONBOARDING_STEPS.length);
@@ -1842,21 +1899,31 @@ document.addEventListener('keydown', function(e) {
         }, 350);
     }
 
+    function onboardingLeaveStep() {
+        var stepDef = ONBOARDING_STEPS[onboardingCurrentStep];
+        if (stepDef && stepDef.afterHide) {
+            stepDef.afterHide();
+        }
+    }
+
     function onboardingNext() {
         if (onboardingCurrentStep >= ONBOARDING_STEPS.length - 1) {
             onboardingEnd();
         } else {
+            onboardingLeaveStep();
             onboardingShowStep(onboardingCurrentStep + 1);
         }
     }
 
     function onboardingBack() {
         if (onboardingCurrentStep > 0) {
+            onboardingLeaveStep();
             onboardingShowStep(onboardingCurrentStep - 1);
         }
     }
 
     function onboardingEnd() {
+        onboardingLeaveStep();
         localStorage.setItem('jafa_onboarding_done', '1');
 
         if (onboardingOverlay) {
