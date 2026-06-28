@@ -906,6 +906,47 @@ function liveKeyCheck(contentId, inputId) {
     }, 500); 
 }
 
+const CHORD_VALID_RE = /^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$/;
+function isValidChordStr(s) {
+    if (!s || !s.trim()) return false;
+    s = s.trim().replace(/-+$/, '').trim();
+    if (s.includes('/')) {
+        const parts = s.split('/', 2);
+        return isValidChordStr(parts[0]) && (isValidChordStr(parts[1]) || !parts[1].trim());
+    }
+    const m = s.match(CHORD_VALID_RE);
+    if (!m) return false;
+    const root = m[1];
+    return root && 'ABCDEFGH'.includes(root[0].toUpperCase());
+}
+
+function validateChords(contentId, statusId) {
+    const text = document.getElementById(contentId).value;
+    const statusEl = document.getElementById(statusId);
+    if (!statusEl) return;
+    const matches = text.match(/\[(.*?)\]/g);
+    if (!matches || matches.length === 0) {
+        statusEl.innerHTML = '';
+        return;
+    }
+    const invalid = [];
+    const valid = [];
+    for (const m of matches) {
+        const chord = m.slice(1, -1).trim();
+        if (!chord) continue;
+        if (isValidChordStr(chord)) {
+            valid.push(chord);
+        } else {
+            invalid.push(chord);
+        }
+    }
+    if (invalid.length > 0) {
+        statusEl.innerHTML = '<span style="color:#ff5252;">⚠ Nierozpoznane akordy: <b>' + invalid.map(c => '[' + c + ']').join(', ') + '</b></span>';
+    } else {
+        statusEl.innerHTML = '<span style="color:#69f0ae;">✓ ' + valid.length + ' akordów — wszystkie poprawne</span>';
+    }
+}
+
 function renderLibrary(f="") {
     const c = document.getElementById('library-list'); 
     if(!c) return;

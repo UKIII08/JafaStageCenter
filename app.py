@@ -116,12 +116,15 @@ class Settings(db.Model):
     language = db.Column(db.String(5), default='pl')
     chord_notation = db.Column(db.String(15), default='international')
     minor_display = db.Column(db.String(10), default='uppercase')
+    chords_standardized = db.Column(db.Boolean, default=False)
 
 class BandPreset(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     show_chords = db.Column(db.Boolean, default=True)
     nashville_mode = db.Column(db.Boolean, default=False)
+    chord_notation = db.Column(db.String(15), default='international')
+    lowercase_minor = db.Column(db.Boolean, default=False)
     capo_fret = db.Column(db.Integer, default=0)
     beginner_mode = db.Column(db.Boolean, default=False)
     diagram_instrument = db.Column(db.String(10), default='guitar')
@@ -189,10 +192,41 @@ def check_db_schema():
                     with db.engine.connect() as conn:
                         conn.execute(text("ALTER TABLE band_preset ADD COLUMN diagram_instrument VARCHAR(10) DEFAULT 'guitar'"))
                         conn.commit()
+                if 'chord_notation' not in bp_columns:
+                    with db.engine.connect() as conn:
+                        conn.execute(text("ALTER TABLE band_preset ADD COLUMN chord_notation VARCHAR(15) DEFAULT 'international'"))
+                        conn.commit()
+                if 'lowercase_minor' not in bp_columns:
+                    with db.engine.connect() as conn:
+                        conn.execute(text("ALTER TABLE band_preset ADD COLUMN lowercase_minor BOOLEAN DEFAULT 0"))
+                        conn.commit()
+
+            if 'chords_standardized' not in settings_columns:
+                with db.engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE settings ADD COLUMN chords_standardized BOOLEAN DEFAULT 0"))
+                    conn.commit()
+                _migrate_songs_to_international()
 
         except Exception as e:
             # Silent fail for exe log
             pass
+
+def _migrate_songs_to_international():
+    """One-time migration: convert all songs to international notation."""
+    try:
+        settings = Settings.query.first()
+        old_notation = settings.chord_notation if settings else 'international'
+        songs = Song.query.all()
+        for song in songs:
+            if song.content:
+                song.content = normalize_song_chords_to_international(song.content, input_notation=old_notation)
+            if song.key:
+                song.key = normalize_chord_to_international(song.key, input_notation=old_notation)
+        if settings:
+            settings.chords_standardized = True
+        db.session.commit()
+    except Exception:
+        pass
 
 # --- MAPPINGS ---
 PITCH_CLASS_MAP = {
@@ -244,6 +278,32 @@ def normalize_chord_root(root_str, notation='international'):
     lookup = TRANSPOSE_LOOKUP_PL if notation == 'polish' else TRANSPOSE_LOOKUP
     return lookup[pc]
 
+def normalize_chord_to_international(chord_str, input_notation='international'):
+    """Normalize a chord to international notation for storage."""
+    if not chord_str or not chord_str.strip():
+        return chord_str
+    chord_str = clean_chord(chord_str)
+    if '/' in chord_str:
+        parts = chord_str.split('/')
+        return '/'.join(normalize_chord_to_international(p, input_notation) for p in parts)
+    if not is_valid_chord(chord_str):
+        return chord_str
+    m = CHORD_ROOT_RE.match(chord_str)
+    if not m:
+        return chord_str
+    raw_root = m.group(1)
+    suffix = m.group(2)
+    is_minor_lowercase = raw_root[0].islower()
+    upper = raw_root.upper()
+    pc = _resolve_pitch_class(upper, input_notation)
+    if pc is None:
+        return chord_str
+    normalized_root = TRANSPOSE_LOOKUP[pc]
+    if is_minor_lowercase and not suffix.startswith('m'):
+        suffix = 'm' + suffix
+        normalized_root = normalized_root[0].upper() + normalized_root[1:]
+    return normalized_root + suffix
+
 def normalize_chord(chord_str, notation='international'):
     if not chord_str or not chord_str.strip():
         return chord_str
@@ -261,6 +321,22 @@ def normalize_chord(chord_str, notation='international'):
         suffix = 'm' + suffix
         normalized_root = normalized_root[0].upper() + normalized_root[1:]
     return normalized_root + suffix
+
+def normalize_song_chords_to_international(content, input_notation='international'):
+    """Normalize all chords in song content to international notation for storage."""
+    def replace_chord(m):
+        inner = m.group(1).strip()
+        cleaned = clean_chord(inner)
+        if '/' in cleaned:
+            parts = cleaned.split('/', 1)
+            if is_valid_chord(parts[0]):
+                normalized_parts = [normalize_chord_to_international(p, input_notation) for p in cleaned.split('/')]
+                return '[' + '/'.join(normalized_parts) + ']'
+            return '[' + cleaned + ']'
+        if not is_valid_chord(cleaned):
+            return '[' + cleaned + ']'
+        return '[' + normalize_chord_to_international(cleaned, input_notation) + ']'
+    return re.sub(r'\[(.*?)\]', replace_chord, content)
 
 def normalize_song_chords(content, notation='international'):
     def replace_chord(m):
@@ -332,8 +408,7 @@ class JafaApi:
                     try: t_val = int(item.get('transpose', 0))
                     except: t_val = 0
                     
-                    notation, minor_display = get_notation()
-                    _, _, text_print = process_song(item.get('content', ''), t_val, notation=notation, minor_display=minor_display)
+                    _, _, text_print = process_song(item.get('content', ''), t_val)
                     songs_to_print.append({'title': item.get('title', 'Bez tytułu'), 'html': text_print})
                 
                 # --- POPRAWKA: TWORZENIE POPRAWNEGO LINKU LOKALNEGO ---
@@ -484,10 +559,7 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
     if not text: return "", "", ""
     text = text.strip()
     if transpose_amount != 0:
-        text = re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, transpose_amount, notation), text)
-    def format_display(m):
-        return '[' + _format_chord_for_display(m.group(1), notation, minor_display) + ']'
-    text = re.sub(r'\[(.*?)\]', format_display, text)
+        text = re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, transpose_amount, 'international'), text)
     text_people = re.sub(r'\[.*?\]', '', text).strip().replace('\n', '<br>')
     tokens = re.split(r'(\[.*?\])', text)
     text_smart = ""
@@ -611,7 +683,10 @@ def band_member():
 def get_presets():
     presets = BandPreset.query.all()
     return [{'id': p.id, 'name': p.name, 'show_chords': p.show_chords,
-             'nashville_mode': p.nashville_mode, 'capo_fret': p.capo_fret,
+             'nashville_mode': p.nashville_mode,
+             'chord_notation': p.chord_notation or ('nashville' if p.nashville_mode else 'international'),
+             'lowercase_minor': p.lowercase_minor or False,
+             'capo_fret': p.capo_fret,
              'beginner_mode': p.beginner_mode, 'diagram_instrument': p.diagram_instrument,
              'font_size': p.font_size} for p in presets]
 
@@ -628,7 +703,9 @@ def save_preset():
         db.session.add(p)
     p.name = data.get('name', 'Preset')
     p.show_chords = data.get('show_chords', True)
-    p.nashville_mode = data.get('nashville_mode', False)
+    p.chord_notation = data.get('chord_notation', 'international')
+    p.lowercase_minor = data.get('lowercase_minor', False)
+    p.nashville_mode = (p.chord_notation == 'nashville')
     p.capo_fret = int(data.get('capo_fret', 0))
     p.beginner_mode = data.get('beginner_mode', False)
     p.diagram_instrument = data.get('diagram_instrument', 'guitar')
@@ -649,9 +726,8 @@ def route_detect_key():
     data = request.json
     text = data.get('text', '')
     transpose = int(data.get('transpose', 0))
-    notation, minor_display = get_notation()
     if transpose != 0:
-        text = re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, transpose, notation=notation), text)
+        text = re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, transpose, 'international'), text)
     detected = detect_key_algorithm(text)
     pad_note = detected.replace('m', '') if detected != "N/A" else "N/A"
     return {'key': detected, 'pad': pad_note}
@@ -695,11 +771,10 @@ def route_generate_transition():
     if not end_chord_raw.startswith('['): end_to_trans = f"[{end_chord_raw}]"
     else: end_to_trans = end_chord_raw
 
-    notation, minor_display = get_notation()
-    real_start_chord = apply_transpose_to_single_chord(start_to_trans, trans_start, notation=notation)
-    real_end_chord = apply_transpose_to_single_chord(end_to_trans, trans_end, notation=notation)
-    real_key_start = apply_transpose_to_single_chord(f"[{key_start}]", trans_start, notation=notation)
-    real_key_end = apply_transpose_to_single_chord(f"[{key_end}]", trans_end, notation=notation)
+    real_start_chord = apply_transpose_to_single_chord(start_to_trans, trans_start, 'international')
+    real_end_chord = apply_transpose_to_single_chord(end_to_trans, trans_end, 'international')
+    real_key_start = apply_transpose_to_single_chord(f"[{key_start}]", trans_start, 'international')
+    real_key_end = apply_transpose_to_single_chord(f"[{key_end}]", trans_end, 'international')
 
     settings = Settings.query.first()
     engine_choice = settings.transition_engine if settings else 'v2'
@@ -724,11 +799,11 @@ def add_song():
     content = request.form.get('content')
     key = request.form.get('key') or ''
     bpm = request.form.get('bpm')
-    notation, minor_display = get_notation()
+    input_notation = request.form.get('input_notation', 'international')
     if content:
-        content = normalize_song_chords(content, notation=notation)
+        content = normalize_song_chords_to_international(content, input_notation=input_notation)
     if key:
-        key = normalize_chord(key, notation=notation)
+        key = normalize_chord_to_international(key, input_notation=input_notation)
     if not key and content: key = detect_key_algorithm(content)
     if title and content:
         try: bpm_val = int(bpm) if bpm else 0
@@ -746,12 +821,12 @@ def add_song():
 @app.route('/import_songs', methods=['POST'])
 def import_songs():
     files = request.files.getlist('import_files')
-    notation, minor_display = get_notation()
+    input_notation = request.form.get('input_notation', 'international')
     def save_or_update(song_title, song_content, song_key='', song_bpm=0):
         existing = Song.query.filter_by(title=song_title).first()
-        song_content = normalize_song_chords(song_content, notation=notation)
+        song_content = normalize_song_chords_to_international(song_content, input_notation=input_notation)
         if song_key:
-            song_key = normalize_chord(song_key, notation=notation)
+            song_key = normalize_chord_to_international(song_key, input_notation=input_notation)
         if not song_key: song_key = detect_key_algorithm(song_content)
         if existing:
             existing.content = song_content
@@ -804,12 +879,12 @@ def edit_song(id):
     song = Song.query.get_or_404(id)
     song.title = request.form.get('title')
     song.content = request.form.get('content')
-    notation, minor_display = get_notation()
+    input_notation = request.form.get('input_notation', 'international')
     if song.content:
-        song.content = normalize_song_chords(song.content, notation=notation)
+        song.content = normalize_song_chords_to_international(song.content, input_notation=input_notation)
     song.key = request.form.get('key')
     if song.key:
-        song.key = normalize_chord(song.key, notation=notation)
+        song.key = normalize_chord_to_international(song.key, input_notation=input_notation)
     bpm = request.form.get('bpm')
     try: song.bpm = int(bpm) if bpm else 0
     except ValueError: song.bpm = 0
@@ -835,7 +910,7 @@ def update_settings():
     settings.minor_display = request.form.get('minor_display', 'uppercase')
 
     db.session.commit()
-    socketio.emit('apply_settings', {'font_family': settings.font_family, 'bg_color': settings.bg_color, 'text_color': settings.text_color, 'lang': settings.language, 'chord_notation': settings.chord_notation})
+    socketio.emit('apply_settings', {'font_family': settings.font_family, 'bg_color': settings.bg_color, 'text_color': settings.text_color, 'lang': settings.language, 'chord_notation': settings.chord_notation, 'minor_display': settings.minor_display})
     socketio.emit('settings_changed')
     return redirect(url_for('control'))
 
@@ -883,10 +958,9 @@ def delete_background():
 @app.route('/print_setlist', methods=['POST'])
 def print_setlist():
     data = request.json
-    notation, minor_display = get_notation()
     songs_to_print = []
     for item in data:
-        _, _, text_print = process_song(item['content'], int(item['transpose']), notation=notation, minor_display=minor_display)
+        _, _, text_print = process_song(item['content'], int(item['transpose']))
         songs_to_print.append({'title': item['title'], 'html': text_print})
     return render_template('print_view.html', songs=songs_to_print)
 
@@ -938,13 +1012,14 @@ def send_text():
     next_shift = int(data.get('next_transpose', shift))
     passed_key = data.get('key', 'N/A')
     passed_bpm = data.get('bpm', 0)
-    notation, minor_display = get_notation()
 
     settings = Settings.query.first()
     lang = settings.language if settings else 'pl'
+    notation = settings.chord_notation if settings else 'international'
+    minor_display = settings.minor_display if settings else 'uppercase'
 
-    people_html, band_html, _ = process_song(raw_text, shift, notation=notation, minor_display=minor_display)
-    _, band_next_html, _ = process_song(data.get('next_text', ''), next_shift, notation=notation, minor_display=minor_display)
+    people_html, band_html, _ = process_song(raw_text, shift)
+    _, band_next_html, _ = process_song(data.get('next_text', ''), next_shift)
 
     socketio.emit('update_slide', {
         'mode': 'worship',
@@ -958,7 +1033,8 @@ def send_text():
         'song_title': data.get('song_title', ''),
         'is_blackout': is_blackout,
         'lang': lang,
-        'notation': notation
+        'notation': notation,
+        'minor_display': minor_display
     })
     return {'status': 'ok'}
 

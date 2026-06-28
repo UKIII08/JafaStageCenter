@@ -1002,7 +1002,8 @@
                     <span data-t="chord_format_hint2">Sekcje (Zwrotka, Refren) oddzielaj pustą linią. Obsługiwane formaty:</span>
                     <code style="color:var(--accent-primary);">C, Am, F#m, Bb, Csus4, G/B, E7, Dmaj7, Asus2</code>
                 </div>
-                <textarea name="content" id="add-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('add-content', 'add-key-input')" placeholder="Zwrotka 1&#10;[C]Tekst piosenki [Am]z akordami&#10;[F]Kolejna linia [G]tekstu&#10;&#10;Refren&#10;[F]Tekst refrenu [C]z akordami" data-t-ph="paste_ph"></textarea>
+                <textarea name="content" id="add-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('add-content', 'add-key-input'); validateChords('add-content', 'add-chord-status')" placeholder="Zwrotka 1&#10;[C]Tekst piosenki [Am]z akordami&#10;[F]Kolejna linia [G]tekstu&#10;&#10;Refren&#10;[F]Tekst refrenu [C]z akordami" data-t-ph="paste_ph"></textarea>
+                <div id="add-chord-status" style="font-size:0.75rem; margin-top:4px; min-height:1.2em;"></div>
                 <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
                     <button type="submit" class="secondary" style="padding:10px 30px;" data-t="save_db_btn">ZAPISZ DO BAZY</button>
                 </div>
@@ -1035,7 +1036,8 @@
                     <span data-t="chord_format_hint2">Sekcje (Zwrotka, Refren) oddzielaj pustą linią. Obsługiwane formaty:</span>
                     <code style="color:var(--accent-primary);">C, Am, F#m, Bb, Csus4, G/B, E7, Dmaj7, Asus2</code>
                 </div>
-                <textarea name="content" id="edit-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('edit-content', 'edit-key-input')"></textarea>
+                <textarea name="content" id="edit-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('edit-content', 'edit-key-input'); validateChords('edit-content', 'edit-chord-status')"></textarea>
+                <div id="edit-chord-status" style="font-size:0.75rem; margin-top:4px; min-height:1.2em;"></div>
                 <div style="display: flex; justify-content: space-between; margin-top: 20px;">
                     <button type="button" onclick="deleteCurrentSong()" class="danger" style="padding:10px;" data-t="delete_btn">USUŃ</button>
                     <button type="submit" class="secondary" style="padding:10px 30px;" data-t="save_btn">ZAPISZ</button>

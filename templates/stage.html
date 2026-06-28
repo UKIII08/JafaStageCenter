@@ -313,6 +313,61 @@
             }
         }
 
+        // Notation conversion for stage view
+        const NOTES_INT = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+        const NOTES_PL = ['C', 'Cis', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H'];
+        const NOTE_MAP = {};
+        NOTES_INT.forEach((n, i) => NOTE_MAP[n] = i);
+        Object.assign(NOTE_MAP, {'Db':1,'D#':3,'E#':5,'Fb':4,'Gb':6,'G#':8,'A#':10,'B#':0,'Cb':11,'H':11,'Cis':1,'Dis':3,'Es':3,'Fis':6,'Gis':8,'As':8,'Ais':10,'His':0});
+        const STAGE_CHORD_RE = /^([A-Ha-h][#b]?(?:is|IS|Is|es|ES|Es|s)?)(.*)$/;
+
+        let stageNotation = 'international';
+        let stageMinorDisplay = 'uppercase';
+
+        function stageConvertChord(chord) {
+            if (chord.includes('/')) {
+                const parts = chord.split('/');
+                return stageConvertChord(parts[0]) + '/' + stageConvertChord(parts.slice(1).join('/'));
+            }
+            const m = chord.match(STAGE_CHORD_RE);
+            if (!m) return chord;
+            const root = m[1], suffix = m[2];
+            const r = root.charAt(0).toUpperCase() + root.slice(1);
+            let pc = NOTE_MAP[r];
+            if (pc === undefined) return chord;
+            const table = stageNotation === 'polish' ? NOTES_PL : NOTES_INT;
+            let newRoot = table[((pc % 12) + 12) % 12];
+            let newSuffix = suffix;
+            const isMinor = /^m(?!aj)/i.test(suffix);
+            if (stageMinorDisplay === 'lowercase' && isMinor) {
+                newRoot = newRoot[0].toLowerCase() + newRoot.slice(1);
+                newSuffix = suffix.replace(/^m/i, '');
+            }
+            return newRoot + newSuffix;
+        }
+
+        function transformStageHtml(html) {
+            if (!html || stageNotation === 'international' && stageMinorDisplay === 'uppercase') return html;
+            const container = document.createElement('div');
+            container.innerHTML = html;
+            container.querySelectorAll('.chord').forEach(el => {
+                const raw = el.textContent;
+                const converted = stageConvertChord(raw);
+                if (converted.includes('/')) {
+                    const parts = converted.split('/');
+                    el.innerHTML = parts[0] + "<span class='bass-slash'>/</span><span class='bass-note'>" + parts.slice(1).join('/') + "</span>";
+                } else {
+                    el.textContent = converted;
+                }
+            });
+            return container.innerHTML;
+        }
+
+        socket.on('apply_settings', function(sdata) {
+            if (sdata.chord_notation) stageNotation = sdata.chord_notation;
+            if (sdata.minor_display) stageMinorDisplay = sdata.minor_display;
+        });
+
         socket.on('update_slide', function(data) {
             if (data.lang) setStageLanguage(data.lang);
 
@@ -361,7 +416,7 @@
                 // 1. Wyświetlanie TONACJI
                 const keyBox = document.getElementById('key-display');
                 if (data.current_key && data.current_key !== 'N/A' && data.current_key.trim() !== '-') {
-                    keyBox.innerText = tr('key_prefix') + data.current_key;
+                    keyBox.innerText = tr('key_prefix') + stageConvertChord(data.current_key);
                     keyBox.style.display = 'block';
                 } else {
                     keyBox.style.display = 'none';
@@ -376,9 +431,13 @@
                     bpmBox.style.display = 'none';
                 }
                 
-                // 3. Wyświetlanie treści
+                // 3. Notation settings from server
+                if (data.notation) stageNotation = data.notation;
+                if (data.minor_display) stageMinorDisplay = data.minor_display;
+
+                // 4. Wyświetlanie treści
                 if(data.band !== undefined) {
-                    currentContent.innerHTML = data.band;
+                    currentContent.innerHTML = transformStageHtml(data.band);
                     setTimeout(() => fitText('current-slide', 'current-content', 12, 4), 0);
 
                     if (data.band_next && data.band_next.trim() !== "") {
@@ -390,10 +449,10 @@
                             finalText = data.band_next;
                         }
 
-                        document.getElementById('next-text-inner').innerHTML = finalText;
+                        document.getElementById('next-text-inner').innerHTML = transformStageHtml(finalText);
                         document.getElementById('next-label').style.display = 'block';
                         setTimeout(() => fitText('next-content', 'next-text-inner', 4.5, 2.5), 0);
-                        
+
                     } else {
                         document.getElementById('next-text-inner').innerHTML = "";
                         document.getElementById('next-label').style.display = 'none';
