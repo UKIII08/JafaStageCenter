@@ -478,7 +478,7 @@
             'Cis': 1, 'Dis': 3, 'Es': 3, 'Fis': 6, 'Gis': 8, 'As': 8, 'Ais': 10, 'His': 0, 'H': 11, 'B': 10
         });
 
-        const CHORD_RE = /^([A-Ha-h][#b]?(?:is|IS|Is|es|ES|Es|s)?)(.*)$/;
+        const CHORD_RE = /^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$/;
 
         function parseRoot(str) {
             const m = str.match(CHORD_RE);

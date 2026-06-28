@@ -325,7 +325,7 @@
         const NOTE_MAP = {};
         NOTES_INT.forEach((n, i) => NOTE_MAP[n] = i);
         Object.assign(NOTE_MAP, {'Db':1,'D#':3,'E#':5,'Fb':4,'Gb':6,'G#':8,'A#':10,'B#':0,'Cb':11,'H':11,'Cis':1,'Dis':3,'Es':3,'Fis':6,'Gis':8,'As':8,'Ais':10,'His':0});
-        const STAGE_CHORD_RE = /^([A-Ha-h][#b]?(?:is|IS|Is|es|ES|Es|s)?)(.*)$/;
+        const STAGE_CHORD_RE = /^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$/;
 
         let stageNotation = 'international';
         let stageMinorDisplay = 'uppercase';
