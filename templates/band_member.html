@@ -27,8 +27,8 @@
         }
 
         body {
-            background-color: #0a0a0f;
-            color: rgba(255, 255, 255, 0.95);
+            background-color: #06060a;
+            color: rgba(255, 255, 255, 0.92);
             font-family: 'Sen', sans-serif;
             margin: 0; padding: 0;
             height: 100vh; width: 100vw;
@@ -40,23 +40,24 @@
         #fs-btn, #settings-btn {
             position: absolute;
             top: 10px;
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(14,14,20,0.6);
+            border: 1px solid rgba(255,255,255,0.06);
             color: white;
             font-size: 2vh;
             padding: 8px 12px;
             cursor: pointer;
             z-index: 9999;
-            border-radius: 5px;
+            border-radius: 10px;
             opacity: 0.5;
-            transition: all 0.15s ease;
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+            backdrop-filter: blur(8px);
         }
         #fs-btn { right: 10px; }
         #settings-btn { right: 60px; }
         #fs-btn:hover, #settings-btn:hover { opacity: 1; filter: brightness(1.15); }
-        #fs-btn:active, #settings-btn:active { transform: scale(0.98); }
+        #fs-btn:active, #settings-btn:active { transform: scale(0.97); }
 
         /* --- WIDOK UWIELBIENIA --- */
         #worship-view {
@@ -70,7 +71,7 @@
             height: 70vh;
             width: 100%;
             padding: 0 20px; box-sizing: border-box;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.10);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.06);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -97,9 +98,9 @@
         #next-slide-container {
             height: 30vh;
             width: 100%;
-            background-color: #0a0a0f;
+            background-color: #06060a;
             padding: 10px 40px; box-sizing: border-box;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
             display: flex;
             flex-direction: column;
             position: relative;
@@ -126,21 +127,21 @@
 
         #key-display {
             font-size: 3.5vh;
-            color: #4f8cff;
+            color: #00cec9;
             font-weight: bold;
             display: none;
         }
 
         #capo-display {
             font-size: 2.5vh;
-            color: #69f0ae;
+            color: #00b894;
             font-weight: bold;
             display: none;
         }
 
         #bpm-display {
             font-size: 2.5vh;
-            color: #fb6340;
+            color: #fdcb6e;
             font-weight: bold;
             font-family: monospace;
             letter-spacing: 1px;
@@ -149,7 +150,7 @@
 
         #next-label {
             font-size: 2vh;
-            color: #f5365c;
+            color: #ff6b6b;
             font-weight: bold;
             margin-bottom: 5px;
             flex-shrink: 0;
@@ -157,7 +158,7 @@
 
         #next-content {
             flex-grow: 1;
-            color: rgba(255, 255, 255, 0.55);
+            color: rgba(255, 255, 255, 0.4);
             font-size: 4vh;
             line-height: 2.0;
             text-align: left;
@@ -173,15 +174,15 @@
         /* AKORDY */
         .chord-wrapper { display: inline-block; position: relative; overflow: visible; vertical-align: baseline; }
         .bass-slash { color: #ff6b6b; opacity: 0.8; }
-        .bass-note { color: #ff4d4d; font-weight: 800; font-size: 0.95em; }
+        .bass-note { color: #00cec9; font-weight: 800; font-size: 0.95em; }
 
         #current-slide .chord {
             position: absolute; bottom: 0.7em; left: 0; transform: none;
-            color: #4f8cff; font-weight: 700; font-size: 0.65em;
+            color: #6c5ce7; font-weight: 700; font-size: 0.65em;
             background: transparent; padding: 0; text-shadow: 1px 1px 2px #000;
         }
-        #current-slide .chord.nashville { color: #ffd600; }
-        #current-slide .chord.capo { color: #69f0ae; }
+        #current-slide .chord.nashville { color: #fdcb6e; }
+        #current-slide .chord.capo { color: #00b894; }
 
         #next-slide-container .chord-wrapper {
             display: inline-block !important;
@@ -193,16 +194,16 @@
             position: absolute !important;
             bottom: 0.6em;
             left: 0;
-            color: #34d399;
+            color: #00b894;
             font-size: 0.6em;
             font-weight: bold;
             white-space: nowrap;
         }
-        #next-slide-container .chord.nashville { color: #ffd60099; }
-        #next-slide-container .chord.capo { color: #69f0ae99; }
+        #next-slide-container .chord.nashville { color: #fdcb6e99; }
+        #next-slide-container .chord.capo { color: rgba(0,184,148,0.6); }
 
         #current-slide .chord.hard-chord {
-            color: #ff9800;
+            color: #fdcb6e;
             text-decoration: underline;
             text-decoration-style: dotted;
             text-underline-offset: 3px;
@@ -218,7 +219,7 @@
         /* --- WIDOK KONFERENCJI --- */
         #conference-view {
             display: none; height: 100%; width: 100%;
-            background: #0a0a0f;
+            background: #06060a;
             flex-direction: column; justify-content: center; align-items: center; text-align: center;
         }
         #conf-timer { font-size: 25vh; font-weight: bold; font-family: monospace; color: white; margin-bottom: 5vh; }
@@ -234,10 +235,12 @@
         #settings-panel {
             position: fixed; top: 0; right: -360px;
             width: 340px; height: 100%;
-            background: #1a1a28;
-            border-left: 1px solid #333;
+            background: rgba(14,14,20,0.95);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(108,92,231,0.1);
+            border-radius: 16px 0 0 16px;
             z-index: 10001;
-            transition: right 0.3s ease;
+            transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
             overflow-y: auto;
             padding: 20px;
             display: flex; flex-direction: column; gap: 16px;
@@ -245,11 +248,11 @@
         #settings-panel.open { right: 0; }
         #settings-panel h2 {
             font-size: 18px; color: #fff;
-            padding-bottom: 10px; border-bottom: 1px solid #333;
+            padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.06);
             display: flex; justify-content: space-between; align-items: center;
         }
         .setting-group {
-            background: #22223a;
+            background: #0e0e14;
             border-radius: 10px;
             padding: 14px;
         }
@@ -267,44 +270,46 @@
 
         .toggle {
             position: relative; width: 44px; height: 24px;
-            background: #444; border-radius: 12px; cursor: pointer;
-            transition: background 0.3s; flex-shrink: 0;
+            background: rgba(255,255,255,0.06); border-radius: 12px; cursor: pointer;
+            transition: background 0.3s cubic-bezier(0.4,0,0.2,1); flex-shrink: 0;
         }
-        .toggle.active { background: #00e5ff; }
+        .toggle.active { background: #6c5ce7; }
         .toggle::after {
             content: '';
             position: absolute; top: 2px; left: 2px;
             width: 20px; height: 20px;
             background: #fff; border-radius: 50%;
-            transition: transform 0.3s;
+            transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
         }
         .toggle.active::after { transform: translateX(20px); }
 
-        input[type="range"] { width: 100%; accent-color: #00e5ff; }
+        input[type="range"] { width: 100%; accent-color: #6c5ce7; }
         #settings-panel select {
             width: 100%; padding: 8px 10px;
-            background: #2a2a44; border: 1px solid #444;
+            background: #0e0e14; border: 1px solid rgba(255,255,255,0.06);
             color: #fff; border-radius: 6px; font-size: 14px;
         }
         .btn {
-            padding: 10px 16px; border: none; border-radius: 8px;
-            font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+            padding: 10px 16px; border: none; border-radius: 10px;
+            font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
         }
-        .btn-primary { background: #00e5ff; color: #000; }
-        .btn-primary:hover { background: #00b8d4; }
-        .btn-danger { background: #f5365c22; color: #f5365c; border: 1px solid #f5365c44; }
-        .btn-danger:hover { background: #f5365c44; }
+        .btn:hover { filter: brightness(1.15); }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: #6c5ce7; color: #fff; }
+        .btn-primary:hover { filter: brightness(1.15); }
+        .btn-danger { background: #ff6b6b; color: #fff; border: none; }
+        .btn-danger:hover { filter: brightness(1.15); }
 
         /* CHORD POPUP */
         #chord-popup {
             display: none;
             position: fixed;
             z-index: 20000;
-            background: #1a1a2e;
-            border: 1px solid #00e5ff44;
-            border-radius: 12px;
+            background: rgba(14,14,20,0.96);
+            border: 1px solid rgba(108,92,231,0.15);
+            border-radius: 16px;
             padding: 8px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+            box-shadow: 0 8px 32px rgba(108,92,231,0.15), 0 4px 16px rgba(0,0,0,0.6);
             pointer-events: auto;
         }
         #chord-popup .popup-close {
@@ -393,7 +398,7 @@
             </label>
             <label>
                 Notacja
-                <select id="chord-notation" onchange="setNotation(this.value)" style="margin-left:auto; padding:4px 8px; border-radius:6px; background:#222; color:#fff; border:1px solid #555;">
+                <select id="chord-notation" onchange="setNotation(this.value)" style="margin-left:auto; padding:4px 8px; border-radius:6px; background:#0e0e14; color:#fff; border:1px solid rgba(255,255,255,0.06);">
                     <option value="international">Międzynarodowa (Bb, B)</option>
                     <option value="polish">Polska (B, H)</option>
                     <option value="nashville">Nashville (1-2-3)</option>
@@ -409,7 +414,7 @@
             </label>
             <label>
                 Diagramy chwytów
-                <select id="diagram-instrument" onchange="setDiagramInstrument(this.value)" style="margin-left:auto; padding:4px 8px; border-radius:6px; background:#222; color:#fff; border:1px solid #555;">
+                <select id="diagram-instrument" onchange="setDiagramInstrument(this.value)" style="margin-left:auto; padding:4px 8px; border-radius:6px; background:#0e0e14; color:#fff; border:1px solid rgba(255,255,255,0.06);">
                     <option value="off">Wyłączone</option>
                     <option value="guitar" selected>Gitara</option>
                     <option value="piano">Piano</option>
@@ -428,8 +433,8 @@
                     {% endfor %}
                 </select>
             </label>
-            <div id="capo-suggestion" style="margin-top:10px; padding:10px; background:#1a1a2e; border-radius:8px; font-size:12px; color:#888; display:none;">
-                <div style="color:#69f0ae; font-weight:bold; margin-bottom:4px;" id="capo-suggest-title"></div>
+            <div id="capo-suggestion" style="margin-top:10px; padding:10px; background:rgba(0,206,201,0.05); border:1px solid rgba(0,206,201,0.3); border-radius:8px; font-size:12px; color:#888; display:none;">
+                <div style="color:#00b894; font-weight:bold; margin-bottom:4px;" id="capo-suggest-title"></div>
                 <div id="capo-suggest-details"></div>
             </div>
         </div>

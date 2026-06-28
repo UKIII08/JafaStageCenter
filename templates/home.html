@@ -7,7 +7,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: radial-gradient(ellipse at 30% 20%, #0d1b2a 0%, #000 100%);
+            background: radial-gradient(ellipse at 30% 20%, #0d0d1a 0%, #06060a 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -35,18 +35,24 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 0 30px rgba(108,92,231,0.3); }
+            50% { text-shadow: 0 0 50px rgba(108,92,231,0.5), 0 0 80px rgba(108,92,231,0.2); }
+        }
+
         .app-title {
             font-size: 2.2rem;
-            font-weight: 300;
-            letter-spacing: 6px;
+            font-weight: 200;
+            letter-spacing: 8px;
             text-transform: uppercase;
-            color: #00e5ff;
-            text-shadow: 0 0 30px rgba(0, 229, 255, 0.3);
+            color: #6c5ce7;
+            text-shadow: 0 0 30px rgba(108,92,231,0.3);
+            animation: titleGlow 4s ease-in-out infinite;
         }
 
         .subtitle {
             font-size: 0.95rem;
-            color: #667;
+            color: rgba(255,255,255,0.3);
             margin-top: -20px;
             letter-spacing: 2px;
         }
@@ -60,14 +66,14 @@
         }
 
         .card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 16px;
-            padding: 36px 32px 28px;
-            width: 200px;
+            background: rgba(108,92,231,0.03);
+            border: 1px solid rgba(108,92,231,0.08);
+            border-radius: 20px;
+            padding: 40px 36px 32px;
+            width: 210px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
             text-decoration: none;
             color: inherit;
             display: flex;
@@ -77,39 +83,49 @@
         }
 
         .card:hover {
-            background: rgba(0, 229, 255, 0.06);
-            border-color: rgba(0, 229, 255, 0.3);
-            transform: translateY(-6px);
-            box-shadow: 0 12px 40px rgba(0, 229, 255, 0.15);
+            background: rgba(108,92,231,0.08);
+            border-color: rgba(108,92,231,0.3);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 60px rgba(108,92,231,0.15);
         }
 
         .card-icon {
             font-size: 2.8rem;
             line-height: 1;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .card-icon svg {
+            stroke: rgba(255,255,255,0.7);
+            transition: stroke 0.4s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        .card:hover .card-icon svg {
+            stroke: #6c5ce7;
         }
 
         .card-title {
             font-size: 1.1rem;
-            font-weight: 600;
+            font-weight: 700;
             color: #fff;
         }
 
         .card-desc {
-            font-size: 0.78rem;
-            color: #889;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.35);
             line-height: 1.5;
         }
 
         .card.primary {
-            border-color: rgba(0, 229, 255, 0.2);
-            background: rgba(0, 229, 255, 0.04);
+            border-color: rgba(108,92,231,0.2);
+            background: rgba(108,92,231,0.06);
         }
 
         .footer-hint {
             position: fixed;
             bottom: 20px;
             font-size: 0.75rem;
-            color: #445;
+            color: rgba(255,255,255,0.2);
             letter-spacing: 1px;
         }
     </style>
@@ -183,7 +199,7 @@
                 if (this.y > canvas.height) this.y = 0;
             }
             draw() {
-                ctx.fillStyle = `rgba(100,180,255,${this.o})`;
+                ctx.fillStyle = `rgba(108,92,231,${this.o})`;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.s, 0, Math.PI * 2);
                 ctx.fill();

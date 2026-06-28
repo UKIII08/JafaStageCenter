@@ -7,7 +7,7 @@
         body {
             margin: 0;
             padding: 0;
-            background: radial-gradient(circle at center, #111a22 0%, #000000 100%);
+            background: radial-gradient(circle at center, #0d0d1a 0%, #06060a 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -40,7 +40,7 @@
             z-index: 10;
             
             /* Styl "Ducha" */
-            opacity: 0.4; 
+            opacity: 0.5;
             /* overflow: hidden; <--- TO USUWAJMY, bo maska załatwi sprawę */
 
             /* --- KLUCZOWA ZMIANA: MASKOWANIE --- */
@@ -115,9 +115,9 @@
         .loader-bar {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, #005f73 0%, #00d2ff 50%, #005f73 100%);
+            background: linear-gradient(90deg, #3d2b8a 0%, #6c5ce7 50%, #3d2b8a 100%);
             background-size: 200% 100%;
-            box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
+            box-shadow: 0 0 20px rgba(108, 92, 231, 0.5);
             border-radius: 2px;
             transition: width 0.4s ease-out;
             animation: shimmer 2s linear infinite;
@@ -155,8 +155,8 @@
         .key-black {
             width: 30px; height: 120px; background: rgba(5, 10, 15, 0.8); border: 1px solid rgba(255, 255, 255, 0.05); border-top: none; border-radius: 0 0 4px 4px; position: absolute; top: 0; z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: all 0.15s ease;
         }
-        .key-white.active { background: rgba(0, 210, 255, 0.3); border-color: rgba(0, 210, 255, 0.6); box-shadow: 0 0 60px rgba(0, 210, 255, 0.6), inset 0 0 30px rgba(0, 210, 255, 0.3); transform: translateY(4px) scale(0.98); }
-        .key-black.active { background: #005f73; border-color: #00d2ff; box-shadow: 0 0 40px rgba(0, 210, 255, 0.5); transform: translateY(4px); }
+        .key-white.active { background: rgba(108, 92, 231, 0.3); border-color: rgba(108, 92, 231, 0.6); box-shadow: 0 0 60px rgba(108, 92, 231, 0.6), inset 0 0 30px rgba(108, 92, 231, 0.3); transform: translateY(4px) scale(0.98); }
+        .key-black.active { background: #3d2b8a; border-color: #6c5ce7; box-shadow: 0 0 40px rgba(108, 92, 231, 0.5); transform: translateY(4px); }
         .kb-1 { left: 40px; } .kb-2 { left: 96px; } .kb-3 { left: 206px; } .kb-4 { left: 260px; } .kb-5 { left: 316px; }
 
     </style>
@@ -227,7 +227,7 @@
                 else if (this.y < 0) this.y = canvas.height;
             }
             draw() {
-                ctx.fillStyle = `rgba(150, 200, 255, ${this.opacity})`;
+                ctx.fillStyle = `rgba(108, 92, 231, ${this.opacity})`;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fill();

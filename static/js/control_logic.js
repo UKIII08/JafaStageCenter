@@ -344,7 +344,7 @@ function updatePadVolume(slider) {
 
     const percentage = (val - slider.min) / (slider.max - slider.min) * 100;
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const accentColor = isDark ? '#4e95ff' : '#5e72e4';
+    const accentColor = isDark ? '#6c5ce7' : '#6c5ce7';
     const trackColor = isDark ? '#333' : '#e9ecef';
 
     slider.style.background = `linear-gradient(to right, ${accentColor} 0%, ${accentColor} ${percentage}%, ${trackColor} ${percentage}%, ${trackColor} 100%)`;
@@ -478,7 +478,7 @@ socket.on('sync_state_to_client', function(data) {
             if (isBlackoutActive) {
                 btn.style.background = "var(--accent-danger)";
                 btn.style.color = "white";
-                btn.style.boxShadow = "0 0 20px rgba(233, 20, 41, 0.7)";
+                btn.style.boxShadow = "0 0 20px rgba(255, 107, 107, 0.7)";
                 btn.innerText = translations[currentLang].blackout_off_btn || "ZDEJMIJ BLACKOUT (POKAŻ EKRAN)";
             } else {
                 btn.style.background = "";
@@ -966,9 +966,9 @@ function validateChords(contentId, statusId) {
         }
     }
     if (invalid.length > 0) {
-        statusEl.innerHTML = '<span style="color:#f43f5e;">Nierozpoznane akordy: <b>' + invalid.map(c => '[' + c + ']').join(', ') + '</b></span>';
+        statusEl.innerHTML = '<span style="color:#ff6b6b;">Nierozpoznane akordy: <b>' + invalid.map(c => '[' + c + ']').join(', ') + '</b></span>';
     } else {
-        statusEl.innerHTML = '<span style="color:#34d399;">' + valid.length + ' akordów — wszystkie poprawne</span>';
+        statusEl.innerHTML = '<span style="color:#00b894;">' + valid.length + ' akordów — wszystkie poprawne</span>';
     }
 }
 
@@ -1244,7 +1244,7 @@ function blackout() {
         btns.forEach(btn => {
             btn.style.background = "var(--accent-danger)";
             btn.style.color = "white";
-            btn.style.boxShadow = "0 0 20px rgba(233, 20, 41, 0.7)";
+            btn.style.boxShadow = "0 0 20px rgba(255, 107, 107, 0.7)";
             // Czerpiemy tekst ze słownika (EN lub PL)
             btn.innerText = translations[currentLang].blackout_off_btn || "ZDEJMIJ BLACKOUT (POKAŻ EKRAN)";
         });
@@ -1329,7 +1329,7 @@ function deleteCurrentSong(){if(confirm("Usunąć?"))document.getElementById('de
 
 let tInt=null,totSec=0,isRun=false,actMsg="";
 function setTimer(){var v=parseInt(document.getElementById('timer-input').value);totSec=(isNaN(v)||v<0)?0:v*60;updTimer();sendConferenceData();}
-function updTimer(){let m=Math.floor(Math.abs(totSec)/60),s=Math.abs(totSec)%60,fmt=(totSec<0?"-":"")+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;document.getElementById('timer-val').innerText=fmt;document.getElementById('timer-val').style.color=totSec<=0?"#cf6679":"var(--text-main)";return{text:fmt,color:totSec<=0?"red":"white"};}
+function updTimer(){let m=Math.floor(Math.abs(totSec)/60),s=Math.abs(totSec)%60,fmt=(totSec<0?"-":"")+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;document.getElementById('timer-val').innerText=fmt;document.getElementById('timer-val').style.color=totSec<=0?"#ff6b6b":"var(--text-main)";return{text:fmt,color:totSec<=0?"red":"white"};}
 function startTimer(){if(isRun)return;isRun=true;tInt=setInterval(()=>{totSec--;updTimer();sendConferenceData();},1000);}
 function stopTimer(){isRun=false;clearInterval(tInt);}
 function resetTimer(){stopTimer();setTimer();}
@@ -1471,3 +1471,471 @@ document.addEventListener('keydown', function(e) {
     ta.selectionStart = ta.selectionEnd = start + 1;
     ta.dispatchEvent(new Event('input'));
 });
+
+// =============================================================================
+// ONBOARDING / GUIDED TOUR SYSTEM
+// =============================================================================
+(function() {
+    'use strict';
+
+    // --- Inject onboarding CSS ---
+    const onboardingStyleEl = document.createElement('style');
+    onboardingStyleEl.textContent = `
+        .onboarding-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(6,6,10,0.85);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 99990;
+            transition: opacity 0.4s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .onboarding-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .onboarding-spotlight {
+            position: fixed;
+            z-index: 99990;
+            border-radius: 8px;
+            box-shadow: 0 0 0 9999px rgba(6,6,10,0.85);
+            transition: top 0.45s ease, left 0.45s ease, width 0.45s ease, height 0.45s ease;
+            pointer-events: none;
+        }
+        .onboarding-spotlight::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 12px;
+            border: 2px solid rgba(108,92,231,0.5);
+            animation: onboarding-pulse 2s ease-in-out infinite;
+        }
+        @keyframes onboarding-pulse {
+            0%, 100% { border-color: rgba(108,92,231,0.5); box-shadow: 0 0 8px rgba(108,92,231,0.2); }
+            50% { border-color: rgba(108,92,231,0.9); box-shadow: 0 0 20px rgba(108,92,231,0.4); }
+        }
+        .onboarding-tooltip {
+            position: absolute;
+            max-width: 340px;
+            background: rgba(14,14,20,0.96);
+            border: 1px solid rgba(108,92,231,0.2);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            z-index: 99991;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.35s ease, transform 0.35s ease;
+            color: #e0e0e0;
+            font-family: inherit;
+        }
+        .onboarding-tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .onboarding-tooltip-arrow {
+            position: absolute;
+            width: 0; height: 0;
+            border: 8px solid transparent;
+        }
+        .onboarding-tooltip-arrow.arrow-top {
+            bottom: 100%;
+            left: 24px;
+            border-bottom-color: rgba(14,14,20,0.96);
+        }
+        .onboarding-tooltip-arrow.arrow-bottom {
+            top: 100%;
+            left: 24px;
+            border-top-color: rgba(14,14,20,0.96);
+        }
+        .onboarding-tooltip-arrow.arrow-left {
+            right: 100%;
+            top: 24px;
+            border-right-color: rgba(14,14,20,0.96);
+        }
+        .onboarding-tooltip-arrow.arrow-right {
+            left: 100%;
+            top: 24px;
+            border-left-color: rgba(14,14,20,0.96);
+        }
+        .onboarding-step-counter {
+            display: inline-block;
+            background: rgba(108,92,231,0.15);
+            color: rgba(108,92,231,0.9);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+        .onboarding-tooltip h3 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .onboarding-tooltip p {
+            margin: 0 0 18px 0;
+            font-size: 13.5px;
+            line-height: 1.5;
+            color: #b0b0b0;
+        }
+        .onboarding-btn-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .onboarding-btn-primary {
+            background: linear-gradient(135deg, #6c5ce7, #8b5cf6);
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .onboarding-btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(108,92,231,0.4);
+        }
+        .onboarding-btn-ghost {
+            background: transparent;
+            color: #b0b0b0;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: border-color 0.15s ease;
+        }
+        .onboarding-btn-ghost:hover {
+            border-color: rgba(255,255,255,0.25);
+            color: #e0e0e0;
+        }
+        .onboarding-btn-skip {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 11.5px;
+            cursor: pointer;
+            margin-left: auto;
+            padding: 4px 8px;
+            transition: color 0.15s ease;
+        }
+        .onboarding-btn-skip:hover {
+            color: #999;
+        }
+    `;
+    document.head.appendChild(onboardingStyleEl);
+
+    // --- Step definitions ---
+    const ONBOARDING_STEPS = [
+        {
+            target: '.plus-btn',
+            title: 'Dodaj piosenki',
+            text: 'Kliknij tutaj aby dodac nowa piosenke do biblioteki lub zaimportowac pliki .txt.',
+            position: 'bottom'
+        },
+        {
+            target: '#searchBox',
+            title: 'Wyszukiwarka',
+            text: 'Szybko znajdz piosenke w bibliotece wpisujac tytul lub fragment tekstu.',
+            position: 'bottom'
+        },
+        {
+            target: '#col-setlist',
+            title: 'Setlista',
+            text: 'Przeciagaj piosenki z biblioteki tutaj. Mozesz zmieniac kolejnosc przeciagajac elementy.',
+            position: 'right'
+        },
+        {
+            target: '#live-preview-box',
+            title: 'Podglad ekranu',
+            text: 'Tu widzisz dokladnie to co jest wyswietlane na rzutniku. Kliknij slajd aby go wyslac.',
+            position: 'left'
+        },
+        {
+            target: '.pad-panel-box',
+            title: 'Pad atmosfery',
+            text: 'Wlacz pad aby grac w tle delikatna muzyke tla dopasowana do tonacji piosenki.',
+            position: 'left'
+        },
+        {
+            target: '.bottom-controls',
+            title: 'Sterowanie ekranem',
+            text: 'BLACKOUT wygasza ekran, LOGO wyswietla logo twojego kosciola na rzutniku.',
+            position: 'top'
+        }
+    ];
+
+    // --- Tour state ---
+    let onboardingCurrentStep = 0;
+    let onboardingOverlay = null;
+    let onboardingSpotlight = null;
+    let onboardingTooltip = null;
+    let onboardingResizeHandler = null;
+
+    function onboardingCreateElements() {
+        // Overlay (click to advance)
+        onboardingOverlay = document.createElement('div');
+        onboardingOverlay.className = 'onboarding-overlay';
+        onboardingOverlay.addEventListener('click', function(e) {
+            if (e.target === onboardingOverlay) {
+                onboardingNext();
+            }
+        });
+        document.body.appendChild(onboardingOverlay);
+
+        // Spotlight cutout
+        onboardingSpotlight = document.createElement('div');
+        onboardingSpotlight.className = 'onboarding-spotlight';
+        document.body.appendChild(onboardingSpotlight);
+
+        // Tooltip
+        onboardingTooltip = document.createElement('div');
+        onboardingTooltip.className = 'onboarding-tooltip';
+        document.body.appendChild(onboardingTooltip);
+    }
+
+    function onboardingPositionTooltip(targetRect, position, step, totalSteps) {
+        const GAP = 16;
+
+        // Build tooltip content
+        const arrowClass = {
+            'bottom': 'arrow-top',
+            'top': 'arrow-bottom',
+            'left': 'arrow-right',
+            'right': 'arrow-left'
+        }[position] || 'arrow-top';
+
+        const isFirst = (step === 0);
+        const isLast = (step === totalSteps - 1);
+
+        onboardingTooltip.innerHTML = `
+            <div class="onboarding-tooltip-arrow ${arrowClass}"></div>
+            <div class="onboarding-step-counter">${step + 1} / ${totalSteps}</div>
+            <h3>${ONBOARDING_STEPS[step].title}</h3>
+            <p>${ONBOARDING_STEPS[step].text}</p>
+            <div class="onboarding-btn-row">
+                ${!isFirst ? '<button class="onboarding-btn-ghost" data-onboarding="back">Wstecz</button>' : ''}
+                <button class="onboarding-btn-primary" data-onboarding="next">${isLast ? 'Rozumiem!' : 'Dalej'}</button>
+                <button class="onboarding-btn-skip" data-onboarding="skip">Pomin</button>
+            </div>
+        `;
+
+        // Attach button listeners
+        onboardingTooltip.querySelector('[data-onboarding="next"]').addEventListener('click', function(e) {
+            e.stopPropagation();
+            onboardingNext();
+        });
+        const backBtn = onboardingTooltip.querySelector('[data-onboarding="back"]');
+        if (backBtn) {
+            backBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                onboardingBack();
+            });
+        }
+        onboardingTooltip.querySelector('[data-onboarding="skip"]').addEventListener('click', function(e) {
+            e.stopPropagation();
+            onboardingEnd();
+        });
+
+        // Make tooltip visible to measure it
+        onboardingTooltip.classList.remove('visible');
+        onboardingTooltip.style.visibility = 'hidden';
+        onboardingTooltip.style.display = 'block';
+
+        // Force layout to get dimensions
+        const tooltipRect = onboardingTooltip.getBoundingClientRect();
+        const tw = tooltipRect.width;
+        const th = tooltipRect.height;
+
+        let top, left;
+
+        switch (position) {
+            case 'bottom':
+                top = targetRect.bottom + GAP;
+                left = targetRect.left + (targetRect.width / 2) - (tw / 2);
+                break;
+            case 'top':
+                top = targetRect.top - th - GAP;
+                left = targetRect.left + (targetRect.width / 2) - (tw / 2);
+                break;
+            case 'left':
+                top = targetRect.top + (targetRect.height / 2) - (th / 2);
+                left = targetRect.left - tw - GAP;
+                break;
+            case 'right':
+                top = targetRect.top + (targetRect.height / 2) - (th / 2);
+                left = targetRect.right + GAP;
+                break;
+            default:
+                top = targetRect.bottom + GAP;
+                left = targetRect.left;
+        }
+
+        // Clamp to viewport
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        if (left < 10) left = 10;
+        if (left + tw > vw - 10) left = vw - tw - 10;
+        if (top < 10) top = 10;
+        if (top + th > vh - 10) top = vh - th - 10;
+
+        onboardingTooltip.style.top = top + 'px';
+        onboardingTooltip.style.left = left + 'px';
+        onboardingTooltip.style.visibility = '';
+
+        // Animate in
+        requestAnimationFrame(function() {
+            onboardingTooltip.classList.add('visible');
+        });
+    }
+
+    function onboardingShowStep(stepIndex) {
+        if (stepIndex < 0 || stepIndex >= ONBOARDING_STEPS.length) {
+            onboardingEnd();
+            return;
+        }
+
+        onboardingCurrentStep = stepIndex;
+        const stepDef = ONBOARDING_STEPS[stepIndex];
+        const targetEl = document.querySelector(stepDef.target);
+
+        if (!targetEl) {
+            // Target not found (possibly hidden on mobile), skip to next
+            if (stepIndex < ONBOARDING_STEPS.length - 1) {
+                onboardingShowStep(stepIndex + 1);
+            } else {
+                onboardingEnd();
+            }
+            return;
+        }
+
+        // Scroll target into view
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+        // Small delay for scroll to settle
+        setTimeout(function() {
+            const rect = targetEl.getBoundingClientRect();
+            const PAD = 8;
+
+            // Position spotlight
+            onboardingSpotlight.style.top = (rect.top - PAD) + 'px';
+            onboardingSpotlight.style.left = (rect.left - PAD) + 'px';
+            onboardingSpotlight.style.width = (rect.width + PAD * 2) + 'px';
+            onboardingSpotlight.style.height = (rect.height + PAD * 2) + 'px';
+            onboardingSpotlight.style.display = 'block';
+
+            // Position tooltip
+            onboardingTooltip.classList.remove('visible');
+            setTimeout(function() {
+                onboardingPositionTooltip(rect, stepDef.position, stepIndex, ONBOARDING_STEPS.length);
+            }, 50);
+        }, 350);
+    }
+
+    function onboardingNext() {
+        if (onboardingCurrentStep >= ONBOARDING_STEPS.length - 1) {
+            onboardingEnd();
+        } else {
+            onboardingShowStep(onboardingCurrentStep + 1);
+        }
+    }
+
+    function onboardingBack() {
+        if (onboardingCurrentStep > 0) {
+            onboardingShowStep(onboardingCurrentStep - 1);
+        }
+    }
+
+    function onboardingEnd() {
+        localStorage.setItem('jafa_onboarding_done', '1');
+
+        if (onboardingOverlay) {
+            onboardingOverlay.classList.remove('active');
+        }
+        if (onboardingTooltip) {
+            onboardingTooltip.classList.remove('visible');
+        }
+        if (onboardingSpotlight) {
+            onboardingSpotlight.style.display = 'none';
+        }
+
+        // Remove elements after transition
+        setTimeout(function() {
+            if (onboardingOverlay && onboardingOverlay.parentNode) {
+                onboardingOverlay.parentNode.removeChild(onboardingOverlay);
+            }
+            if (onboardingSpotlight && onboardingSpotlight.parentNode) {
+                onboardingSpotlight.parentNode.removeChild(onboardingSpotlight);
+            }
+            if (onboardingTooltip && onboardingTooltip.parentNode) {
+                onboardingTooltip.parentNode.removeChild(onboardingTooltip);
+            }
+            onboardingOverlay = null;
+            onboardingSpotlight = null;
+            onboardingTooltip = null;
+        }, 500);
+
+        // Remove resize handler
+        if (onboardingResizeHandler) {
+            window.removeEventListener('resize', onboardingResizeHandler);
+            onboardingResizeHandler = null;
+        }
+    }
+
+    function onboardingStart() {
+        onboardingCurrentStep = 0;
+
+        // Create DOM elements
+        onboardingCreateElements();
+
+        // Show overlay
+        requestAnimationFrame(function() {
+            onboardingOverlay.classList.add('active');
+        });
+
+        // Handle resize: reposition current step
+        onboardingResizeHandler = function() {
+            if (onboardingSpotlight && onboardingTooltip) {
+                onboardingShowStep(onboardingCurrentStep);
+            }
+        };
+        window.addEventListener('resize', onboardingResizeHandler);
+
+        // Show first step
+        setTimeout(function() {
+            onboardingShowStep(0);
+        }, 200);
+    }
+
+    // Expose global function to re-trigger the tour
+    window.startOnboarding = function() {
+        // Clean up any existing tour
+        if (onboardingOverlay) {
+            onboardingEnd();
+            setTimeout(function() {
+                onboardingStart();
+            }, 600);
+        } else {
+            onboardingStart();
+        }
+    };
+
+    // Auto-start on first visit
+    document.addEventListener('DOMContentLoaded', function() {
+        if (!localStorage.getItem('jafa_onboarding_done')) {
+            setTimeout(function() {
+                onboardingStart();
+            }, 1500);
+        }
+    });
+})();
