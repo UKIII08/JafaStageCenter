@@ -798,7 +798,10 @@
         <div id="col-setlist" class="col">
             <h2 data-t="setlist_header">Setlista</h2>
             <div class="scrollable" id="setlist-container"><div style="text-align: center; color: var(--text-muted); margin-top: 40px; font-size: 0.9rem;" data-t="empty_setlist">Brak piosenek w setliście.</div></div>
-            <button class="action-btn" onclick="exportToPDF()" style="width: 100%; justify-content: center; margin-top: 10px; background: var(--bg-element); color: var(--text-muted); border: 1px solid var(--border-color);" data-t="download_pdf">POBIERZ PDF</button>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+                <button class="action-btn" onclick="exportToPDF()" style="flex:1; justify-content: center; background: var(--bg-element); color: var(--text-muted); border: 1px solid var(--border-color);" data-t="download_pdf">PDF Z AKORDAMI</button>
+                <button class="action-btn" onclick="exportLyricsPDF()" style="flex:1; justify-content: center; background: var(--bg-element); color: var(--text-muted); border: 1px solid var(--border-color);">PDF TEKSTY</button>
+            </div>
         </div>
         
         <div id="col-live" class="col">

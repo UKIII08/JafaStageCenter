@@ -626,12 +626,13 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
                 text_smart += f'<span class="chord-wrapper"><span class="chord">{chord_content}</span></span>'
             else:
                 clean_chord = re.sub(r"<[^>]+>", "", chord_content)
-                ch_width = (len(clean_chord) * 1.2) + 1.2
+                ch_width = len(clean_chord) + 0.5
 
                 text_len, has_next_chord = get_text_info_until_next_chord(i, tokens)
 
                 if text_len < ch_width:
                     missing_width = ch_width - text_len if text_len > 0 else ch_width
+                    missing_width = min(missing_width, len(clean_chord) + 0.5)
                     text_smart += f'<span class="chord-wrapper" style="display:inline-block; width:{missing_width}ch; position:relative;"><span class="chord">{chord_content}</span></span>'
                 else:
                     text_smart += f'<span class="chord-wrapper"><span class="chord">{chord_content}</span></span>'
@@ -962,7 +963,23 @@ def print_setlist():
     for item in data:
         _, _, text_print = process_song(item['content'], int(item['transpose']))
         songs_to_print.append({'title': item['title'], 'html': text_print})
-    return render_template('print_view.html', songs=songs_to_print)
+    return render_template('print_view.html', songs=songs_to_print, static_root='/static')
+
+@app.route('/print_lyrics', methods=['POST'])
+def print_lyrics():
+    data = request.json
+    songs_to_print = []
+    for item in data:
+        raw = item['content']
+        raw = re.sub(r'\[.*?\]', '', raw).strip()
+        paragraphs = re.split(r'\n\s*\n', raw)
+        html_blocks = []
+        for p in paragraphs:
+            if p.strip():
+                lines = p.strip().replace('\n', '<br>')
+                html_blocks.append(f'<div class="lyrics-block">{lines}</div>')
+        songs_to_print.append({'title': item['title'], 'html': ''.join(html_blocks)})
+    return render_template('print_lyrics.html', songs=songs_to_print, static_root='/static')
 
 @app.route('/qr_code/<path:subpath>')
 def qr_code(subpath):

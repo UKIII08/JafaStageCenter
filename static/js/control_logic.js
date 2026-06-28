@@ -1341,6 +1341,22 @@ function exportToPDF() {
         });
     }
 }
+function exportLyricsPDF() {
+    if (!setlist || setlist.length === 0) {
+        alert("Setlista jest pusta! Dodaj najpierw piosenki.");
+        return;
+    }
+    fetch('/print_lyrics', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(setlist)
+    }).then(r => r.text()).then(h => {
+        const w = window.open('', '_blank');
+        w.document.write(h);
+        w.document.close();
+    });
+}
+
 function saveBackupDesktop() {
     if (window.pywebview) {
         window.pywebview.api.save_backup().then(response => {

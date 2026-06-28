@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>&nbsp;</title>
+    <style>
+        @font-face {
+            font-family: 'Sen';
+            src: url("{{ static_root }}/fonts/Sen-Regular.ttf") format('truetype');
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Sen';
+            src: url("{{ static_root }}/fonts/Sen-Bold.ttf") format('truetype');
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        @page {
+            margin: 1.5cm 2cm 3cm 2cm;
+            size: A4;
+        }
+        body {
+            font-family: 'Sen', sans-serif;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+
+        #print-header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 12px;
+            margin-bottom: 30px;
+        }
+        #print-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #333;
+        }
+        #print-date {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .song-container {
+            margin-bottom: 28px;
+            page-break-inside: auto;
+            break-inside: auto;
+        }
+
+        h2 {
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            color: #333;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #ddd;
+            break-after: avoid;
+            page-break-after: avoid;
+        }
+
+        .song-content {
+            font-size: 11pt;
+            line-height: 1.6;
+            font-weight: 400;
+            column-count: 2;
+            column-gap: 40px;
+            column-rule: 1px solid #eee;
+            white-space: pre-wrap;
+        }
+
+        .lyrics-block {
+            break-inside: avoid-column;
+            page-break-inside: avoid;
+            display: inline-block;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        #print-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            padding: 10px 0;
+        }
+        #print-footer img {
+            height: 50px;
+            opacity: 0.5;
+        }
+
+        .no-print-btn {
+            position: fixed; top: 20px; right: 20px;
+            font-family: 'Sen'; font-size: 16px;
+            padding: 15px 30px; cursor: pointer;
+            background: #2dce89; color: white;
+            border: none; border-radius: 30px;
+            font-weight: bold; z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        @media print {
+            .no-print-btn { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <button onclick="window.print()" class="no-print-btn">DRUKUJ</button>
+
+    <div id="print-header">
+        <div id="print-title">Teksty piosenek</div>
+        <div id="print-date"></div>
+    </div>
+
+    {% for song in songs %}
+        <div class="song-container">
+            <h2>{{ loop.index }}. {{ song.title }}</h2>
+            <div class="song-content">{{ song.html | safe }}</div>
+        </div>
+    {% endfor %}
+
+    <div id="print-footer">
+        <img src="{{ static_root }}/logo.png" alt="Logo">
+    </div>
+
+    <script>
+        const d = new Date();
+        document.getElementById('print-date').innerText = d.toLocaleDateString('pl-PL', { year: 'numeric', month: 'long', day: 'numeric' });
+    </script>
+</body>
+</html>

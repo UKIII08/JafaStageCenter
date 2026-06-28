@@ -184,13 +184,19 @@
         }
         
         #next-slide-container .chord-wrapper {
-            display: inline !important;
-            width: auto !important;
+            display: inline-block !important;
+            position: relative;
+            overflow: visible;
+            vertical-align: baseline;
         }
         #next-slide-container .chord {
-            position: relative !important; bottom: auto !important; left: auto !important;
-            color: #4db6ac; font-size: 0.85em; font-weight: bold;
-            margin-right: 0.3em; white-space: nowrap;
+            position: absolute !important;
+            bottom: 0.6em;
+            left: 0;
+            color: #4db6ac;
+            font-size: 0.6em;
+            font-weight: bold;
+            white-space: nowrap;
         }
 
         /* --- WIDOK KONFERENCJI --- */

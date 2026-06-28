@@ -178,18 +178,18 @@
         #current-slide .chord.capo { color: #69f0ae; }
 
         #next-slide-container .chord-wrapper {
-            display: inline !important;
-            width: auto !important;
-            min-width: 0 !important;
+            display: inline-block !important;
+            position: relative;
+            overflow: visible;
+            vertical-align: baseline;
         }
         #next-slide-container .chord {
-            position: relative !important;
-            bottom: auto !important;
-            left: auto !important;
+            position: absolute !important;
+            bottom: 0.6em;
+            left: 0;
             color: #4db6ac;
-            font-size: 0.85em;
+            font-size: 0.6em;
             font-weight: bold;
-            margin-right: 0.3em;
             white-space: nowrap;
         }
         #next-slide-container .chord.nashville { color: #ffd60099; }
@@ -685,9 +685,9 @@
                 const isNashville = currentSettings.chord_notation === 'nashville';
                 if (currentSettings.diagram_instrument !== 'off' && !isNashville) {
                     el.classList.add('clickable');
-                    const lookupName = display;
-                    el.setAttribute('data-chord', lookupName);
-                    el.setAttribute('onclick', 'showChordPopup(event, this.dataset.chord)');
+                    el.setAttribute('data-chord', rawChord);
+                    el.setAttribute('data-chord-display', display);
+                    el.setAttribute('onclick', 'showChordPopup(event, this.dataset.chord, this.dataset.chordDisplay)');
                 }
 
                 if (display.includes('/') && !isNashville) {
@@ -877,10 +877,11 @@
         }
 
         // ===== CHORD POPUP =====
-        function showChordPopup(event, chordName) {
+        function showChordPopup(event, chordName, displayName) {
             event.stopPropagation();
             const popup = document.getElementById('chord-popup');
             const content = document.getElementById('chord-popup-content');
+            const label = displayName || chordName;
 
             const inst = currentSettings.diagram_instrument;
             let html = '';
@@ -888,10 +889,10 @@
             if (inst === 'guitar') {
                 const guitarName = chordName.includes('/') ? chordName.split('/')[0] : chordName;
                 const data = lookupChord(guitarName);
-                html = data ? renderChordSVG(chordName, data) : `<div class="no-diagram"><strong>${chordName}</strong><br>Brak diagramu</div>`;
+                html = data ? renderChordSVG(label, data) : `<div class="no-diagram"><strong>${label}</strong><br>Brak diagramu</div>`;
             } else {
                 const notes = lookupPianoChord(chordName);
-                html = notes ? renderPianoSVG(chordName, notes) : `<div class="no-diagram"><strong>${chordName}</strong><br>Brak diagramu</div>`;
+                html = notes ? renderPianoSVG(label, notes) : `<div class="no-diagram"><strong>${label}</strong><br>Brak diagramu</div>`;
             }
 
             content.innerHTML = html;
