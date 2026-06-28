@@ -430,10 +430,45 @@ class JafaApi:
                 webbrowser.open('file://' + path)
                 
                 return {'status': 'ok', 'message': 'Otwarto w przeglądarce'}
-                
+
         except Exception as e:
             print(f"BŁĄD API: {str(e)}")
             return {'status': 'error', 'message': str(e)}
+
+    def save_lyrics_html(self, setlist_data):
+        """Generuje tymczasowy HTML z samymi tekstami i otwiera go w przeglądarce"""
+        try:
+            with app.test_request_context(base_url='http://127.0.0.1:5000'):
+                songs_to_print = []
+                for item in setlist_data:
+                    raw = item.get('content', '')
+                    raw = re.sub(r'\[.*?\]', '', raw).strip()
+                    paragraphs = re.split(r'\n\s*\n', raw)
+                    html_blocks = []
+                    for p in paragraphs:
+                        if p.strip():
+                            lines = p.strip().replace('\n', '<br>')
+                            html_blocks.append(f'<div class="lyrics-block">{lines}</div>')
+                    songs_to_print.append({'title': item.get('title', 'Bez tytułu'), 'html': ''.join(html_blocks)})
+
+                static_path_obj = Path(app.static_folder)
+                static_absolute_path = static_path_obj.as_uri()
+
+                html_content = render_template('print_lyrics.html',
+                                               songs=songs_to_print,
+                                               static_root=static_absolute_path)
+
+                fd, path = tempfile.mkstemp(suffix=".html", prefix="teksty_")
+                with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
+
+                webbrowser.open('file://' + path)
+                return {'status': 'ok', 'message': 'Otwarto w przeglądarce'}
+
+        except Exception as e:
+            print(f"BŁĄD API: {str(e)}")
+            return {'status': 'error', 'message': str(e)}
+
 # --- 4. KEY DETECTION LOGIC ---
 class AdvancedKeyDetector:
     def __init__(self):

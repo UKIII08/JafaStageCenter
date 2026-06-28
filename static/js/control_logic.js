@@ -1346,15 +1346,29 @@ function exportLyricsPDF() {
         alert("Setlista jest pusta! Dodaj najpierw piosenki.");
         return;
     }
-    fetch('/print_lyrics', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(setlist)
-    }).then(r => r.text()).then(h => {
-        const w = window.open('', '_blank');
-        w.document.write(h);
-        w.document.close();
-    });
+
+    if (window.pywebview) {
+        const cleanSetlist = JSON.parse(JSON.stringify(setlist));
+        window.pywebview.api.save_lyrics_html(cleanSetlist).then(response => {
+            if (response.status === 'ok') {
+                console.log(response.message);
+            } else if (response.status === 'error') {
+                alert("Błąd: " + response.message);
+            }
+        }).catch(err => {
+            alert("Krytyczny błąd komunikacji JS->Python: " + err);
+        });
+    } else {
+        fetch('/print_lyrics', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(setlist)
+        }).then(r => r.text()).then(h => {
+            const w = window.open('', '_blank');
+            w.document.write(h);
+            w.document.close();
+        });
+    }
 }
 
 function saveBackupDesktop() {
