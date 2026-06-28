@@ -457,22 +457,47 @@ socket.on('connect', function() {
 
 socket.on('sync_state_to_client', function(data) {
     console.log('Otrzymano synchronizację:', data);
-    
+
+    let needsRender = false;
+
     if (data.setlist && JSON.stringify(setlist) !== JSON.stringify(data.setlist)) {
         setlist = data.setlist;
-        renderSetlist();
+        needsRender = true;
     }
 
     if (data.current_index !== undefined && data.current_index !== currentSetIndex) {
         currentSetIndex = data.current_index;
-        renderSetlist(); 
-        
-        if (currentSetIndex !== -1 && setlist[currentSetIndex]) {
-            selectForLive(currentSetIndex, false); 
-        } else {
-            document.getElementById('live-header').style.display = 'none';
-            document.getElementById('slides-container').innerHTML = '';
-        }
+        needsRender = true;
+    }
+
+    // Restore blackout state from server
+    if (data.is_blackout !== undefined) {
+        isBlackoutActive = data.is_blackout;
+        const btns = document.querySelectorAll('button[onclick="blackout()"]');
+        btns.forEach(btn => {
+            if (isBlackoutActive) {
+                btn.style.background = "var(--accent-danger)";
+                btn.style.color = "white";
+                btn.style.boxShadow = "0 0 20px rgba(233, 20, 41, 0.7)";
+                btn.innerText = translations[currentLang].blackout_off_btn || "ZDEJMIJ BLACKOUT (POKAŻ EKRAN)";
+            } else {
+                btn.style.background = "";
+                btn.style.color = "";
+                btn.style.boxShadow = "";
+                btn.innerText = translations[currentLang].blackout_on_btn || "WYGAŚ EKRAN RZUTNIKA";
+            }
+        });
+    }
+
+    if (needsRender) {
+        renderSetlist();
+    }
+
+    if (data.current_index !== undefined && data.current_index !== -1 && setlist[data.current_index]) {
+        selectForLive(data.current_index, false);
+    } else if (data.current_index === -1) {
+        document.getElementById('live-header').style.display = 'none';
+        document.getElementById('slides-container').innerHTML = '';
     }
 });
 
@@ -1080,7 +1105,8 @@ function parseSongSections(raw) {
     });
 }
 function selectForLive(i, broadcast = true){
-    currentSetIndex=i; 
+    if (i < 0 || i >= setlist.length) return;
+    currentSetIndex=i;
     renderSetlist();
     
     if (broadcast) {
@@ -1300,7 +1326,7 @@ function closeEditModal(){document.getElementById('editModal').style.display='no
 function deleteCurrentSong(){if(confirm("Usunąć?"))document.getElementById('deleteForm').submit();}
 
 let tInt=null,totSec=0,isRun=false,actMsg="";
-function setTimer(){totSec=parseInt(document.getElementById('timer-input').value)*60;updTimer();sendConferenceData();}
+function setTimer(){var v=parseInt(document.getElementById('timer-input').value);totSec=(isNaN(v)||v<0)?0:v*60;updTimer();sendConferenceData();}
 function updTimer(){let m=Math.floor(Math.abs(totSec)/60),s=Math.abs(totSec)%60,fmt=(totSec<0?"-":"")+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;document.getElementById('timer-val').innerText=fmt;document.getElementById('timer-val').style.color=totSec<=0?"#cf6679":"var(--text-main)";return{text:fmt,color:totSec<=0?"red":"white"};}
 function startTimer(){if(isRun)return;isRun=true;tInt=setInterval(()=>{totSec--;updTimer();sendConferenceData();},1000);}
 function stopTimer(){isRun=false;clearInterval(tInt);}

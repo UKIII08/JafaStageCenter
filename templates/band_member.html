@@ -592,7 +592,7 @@
         function applyLowercaseMinorNashville(nashStr) {
             if (nashStr.includes('/')) {
                 const parts = nashStr.split('/');
-                return applyLowercaseMinorNashville(parts[0]) + '/' + parts.slice(1).join('/');
+                return applyLowercaseMinorNashville(parts[0]) + '/' + applyLowercaseMinorNashville(parts.slice(1).join('/'));
             }
             const m = nashStr.match(/^([♭#]*\d+)(m)(.*)$/);
             if (m) return m[1].toLowerCase() + m[3];
@@ -754,6 +754,7 @@
         function fitText(containerId, contentId, maxVh, minVh) {
             const container = document.getElementById(containerId);
             const content = document.getElementById(contentId);
+            if (!container || !content) return;
             if (container.style.display === 'none' || content.style.display === 'none') return;
             let size = maxVh;
             content.style.fontSize = size + 'vh';

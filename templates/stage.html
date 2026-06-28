@@ -329,6 +329,18 @@
 
         let stageNotation = 'international';
         let stageMinorDisplay = 'uppercase';
+        let stageCurrentKey = '';
+
+        function stageParseRoot(str) {
+            const m = str.match(STAGE_CHORD_RE);
+            return m ? { root: m[1], suffix: m[2] } : null;
+        }
+
+        function stageRootToPitch(root) {
+            let r = root.charAt(0).toUpperCase() + root.slice(1);
+            if (NOTE_MAP[r] !== undefined) return NOTE_MAP[r];
+            return null;
+        }
 
         function stageConvertChord(chord) {
             if (chord.includes('/')) {
@@ -352,13 +364,52 @@
             return newRoot + newSuffix;
         }
 
+        function stageToNashville(chord, keyRoot) {
+            if (chord.includes('/')) {
+                const parts = chord.split('/');
+                return stageToNashville(parts[0], keyRoot) + '/' + stageToNashville(parts.slice(1).join('/'), keyRoot);
+            }
+            const p = stageParseRoot(chord);
+            if (!p) return chord;
+            const pc = stageRootToPitch(p.root);
+            const kpc = stageRootToPitch(keyRoot);
+            if (pc === null || kpc === null) return chord;
+            const interval = ((pc - kpc) % 12 + 12) % 12;
+            const NASH = {0:'1',1:'♭2',2:'2',3:'♭3',4:'3',5:'4',6:'♭5',7:'5',8:'♭6',9:'6',10:'♭7',11:'7'};
+            let num = NASH[interval];
+            let suffix = p.suffix;
+            if (/^m(?!aj)/i.test(suffix)) { suffix = suffix.replace(/^m/i, ''); num += 'm'; }
+            if (suffix) num += suffix;
+            return num;
+        }
+
+        function applyLowercaseMinorNashville(nashStr) {
+            if (nashStr.includes('/')) {
+                const parts = nashStr.split('/');
+                return applyLowercaseMinorNashville(parts[0]) + '/' + applyLowercaseMinorNashville(parts.slice(1).join('/'));
+            }
+            const m = nashStr.match(/^([♭#]*\d+)(m)(.*)$/);
+            if (m) return m[1].toLowerCase() + m[3];
+            return nashStr;
+        }
+
         function transformStageHtml(html) {
-            if (!html || stageNotation === 'international' && stageMinorDisplay === 'uppercase') return html;
+            const isNashville = stageNotation === 'nashville';
+            if (!html || (!isNashville && stageNotation === 'international' && stageMinorDisplay === 'uppercase')) return html;
             const container = document.createElement('div');
             container.innerHTML = html;
+            const keyRoot = stageCurrentKey ? stageCurrentKey.replace(/m$/, '') : '';
             container.querySelectorAll('.chord').forEach(el => {
                 const raw = el.textContent;
-                const converted = stageConvertChord(raw);
+                let converted;
+                if (isNashville && keyRoot) {
+                    converted = stageToNashville(raw, keyRoot);
+                    if (stageMinorDisplay === 'lowercase') {
+                        converted = applyLowercaseMinorNashville(converted);
+                    }
+                } else {
+                    converted = stageConvertChord(raw);
+                }
                 if (converted.includes('/')) {
                     const parts = converted.split('/');
                     el.innerHTML = parts[0] + "<span class='bass-slash'>/</span><span class='bass-note'>" + parts.slice(1).join('/') + "</span>";
@@ -372,6 +423,7 @@
         socket.on('apply_settings', function(sdata) {
             if (sdata.chord_notation) stageNotation = sdata.chord_notation;
             if (sdata.minor_display) stageMinorDisplay = sdata.minor_display;
+            if (sdata.lang) setStageLanguage(sdata.lang);
         });
 
         socket.on('update_slide', function(data) {
@@ -422,7 +474,10 @@
                 // 1. Wyświetlanie TONACJI
                 const keyBox = document.getElementById('key-display');
                 if (data.current_key && data.current_key !== 'N/A' && data.current_key.trim() !== '-') {
-                    keyBox.innerText = tr('key_prefix') + stageConvertChord(data.current_key);
+                    stageCurrentKey = data.current_key;
+                    // For key display, always show the note name (not Nashville number)
+                    let displayKey = (stageNotation === 'nashville') ? data.current_key : stageConvertChord(data.current_key);
+                    keyBox.innerText = tr('key_prefix') + displayKey;
                     keyBox.style.display = 'block';
                 } else {
                     keyBox.style.display = 'none';
@@ -467,10 +522,6 @@
             }
         });
         
-        socket.on('apply_settings', function(data) {
-            if (data.lang) setStageLanguage(data.lang);
-        });
-
         socket.on('sync_state_to_client', function(state) {
             if (state.is_blackout) {
                 document.getElementById('next-text-inner').innerHTML = "";

@@ -56,7 +56,7 @@ app = Flask(__name__,
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
-app.config['SECRET_KEY'] = 'secret_key_change_in_prod'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_secret_key_jafa')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
 if getattr(sys, 'frozen', False):
@@ -225,8 +225,8 @@ def _migrate_songs_to_international():
         if settings:
             settings.chords_standardized = True
         db.session.commit()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"MIGRATION ERROR: {e}")
 
 # --- MAPPINGS ---
 PITCH_CLASS_MAP = {
@@ -241,7 +241,7 @@ PITCH_CLASS_POLISH = {
 TRANSPOSE_LOOKUP = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 TRANSPOSE_LOOKUP_PL = ['C', 'Cis', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H']
 CHORD_ROOT_RE = re.compile(r'^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$')
-VALID_CHORD_SUFFIX_RE = re.compile(r'^(m(?!aj)|maj|min|dim|aug|sus[24]?|add)?[0-9]*(b[0-9]+|#[0-9]+)*(/.*)?[-]?$', re.IGNORECASE)
+VALID_CHORD_SUFFIX_RE = re.compile(r'^[majindugsMINDUGSAJ0-9#b()+\-/]*$')
 
 def is_valid_chord(chord_str):
     if not chord_str or not chord_str.strip():
@@ -254,7 +254,10 @@ def is_valid_chord(chord_str):
     if not m:
         return False
     root = m.group(1)
+    suffix = m.group(2)
     if not root or not root[0].upper() in 'ABCDEFGH':
+        return False
+    if suffix and not VALID_CHORD_SUFFIX_RE.match(suffix):
         return False
     return True
 
