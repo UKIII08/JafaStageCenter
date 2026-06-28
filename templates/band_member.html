@@ -21,9 +21,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="{{ url_for('static', filename='js/chord_diagrams.js') }}"></script>
     <style>
+        @keyframes scaleIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
         body {
-            background-color: #000;
-            color: #fff;
+            background-color: #0a0a0f;
+            color: rgba(255, 255, 255, 0.95);
             font-family: 'Sen', sans-serif;
             margin: 0; padding: 0;
             height: 100vh; width: 100vw;
@@ -44,13 +49,14 @@
             z-index: 9999;
             border-radius: 5px;
             opacity: 0.5;
-            transition: opacity 0.3s;
+            transition: all 0.15s ease;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
         #fs-btn { right: 10px; }
         #settings-btn { right: 60px; }
-        #fs-btn:hover, #fs-btn:active, #settings-btn:hover, #settings-btn:active { opacity: 1; background: rgba(255,255,255,0.3); }
+        #fs-btn:hover, #settings-btn:hover { opacity: 1; filter: brightness(1.15); }
+        #fs-btn:active, #settings-btn:active { transform: scale(0.98); }
 
         /* --- WIDOK UWIELBIENIA --- */
         #worship-view {
@@ -64,7 +70,7 @@
             height: 70vh;
             width: 100%;
             padding: 0 20px; box-sizing: border-box;
-            border-bottom: 2px solid #333;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.10);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -91,9 +97,9 @@
         #next-slide-container {
             height: 30vh;
             width: 100%;
-            background-color: #111;
+            background-color: #0a0a0f;
             padding: 10px 40px; box-sizing: border-box;
-            border-top: 1px solid #444;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             flex-direction: column;
             position: relative;
@@ -113,14 +119,14 @@
 
         #realtime-clock {
             font-size: 3.5vh;
-            color: #888;
+            color: rgba(255, 255, 255, 0.55);
             font-family: monospace;
             font-weight: bold;
         }
 
         #key-display {
             font-size: 3.5vh;
-            color: #00e5ff;
+            color: #4f8cff;
             font-weight: bold;
             display: none;
         }
@@ -151,7 +157,7 @@
 
         #next-content {
             flex-grow: 1;
-            color: #999;
+            color: rgba(255, 255, 255, 0.55);
             font-size: 4vh;
             line-height: 2.0;
             text-align: left;
@@ -171,7 +177,7 @@
 
         #current-slide .chord {
             position: absolute; bottom: 0.7em; left: 0; transform: none;
-            color: #00e5ff; font-weight: 700; font-size: 0.65em;
+            color: #4f8cff; font-weight: 700; font-size: 0.65em;
             background: transparent; padding: 0; text-shadow: 1px 1px 2px #000;
         }
         #current-slide .chord.nashville { color: #ffd600; }
@@ -187,7 +193,7 @@
             position: absolute !important;
             bottom: 0.6em;
             left: 0;
-            color: #4db6ac;
+            color: #34d399;
             font-size: 0.6em;
             font-weight: bold;
             white-space: nowrap;
@@ -212,7 +218,7 @@
         /* --- WIDOK KONFERENCJI --- */
         #conference-view {
             display: none; height: 100%; width: 100%;
-            background: black;
+            background: #0a0a0f;
             flex-direction: column; justify-content: center; align-items: center; text-align: center;
         }
         #conf-timer { font-size: 25vh; font-weight: bold; font-family: monospace; color: white; margin-bottom: 5vh; }
@@ -323,7 +329,7 @@
 <body>
 
     <button id="fs-btn" onclick="toggleFullscreen()">⛶</button>
-    <button id="settings-btn" onclick="toggleSettings()">⚙</button>
+    <button id="settings-btn" onclick="toggleSettings()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
 
     <div id="worship-view">
         <div id="current-slide">
@@ -374,8 +380,8 @@
                 {% endfor %}
             </select>
             <div style="display:flex; gap:8px; margin-top:10px;">
-                <button class="btn btn-primary" style="flex:1;" onclick="savePresetDialog()">💾 Zapisz</button>
-                <button class="btn btn-danger" onclick="deleteCurrentPreset()">🗑</button>
+                <button class="btn btn-primary" style="flex:1;" onclick="savePresetDialog()">Zapisz</button>
+                <button class="btn btn-danger" onclick="deleteCurrentPreset()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
             </div>
         </div>
 
@@ -656,7 +662,7 @@
                 document.getElementById('capo-suggest-details').textContent = bestChords.join(', ');
             } else if (bestCapo > 0) {
                 box.style.display = 'block';
-                document.getElementById('capo-suggest-title').textContent = '💡 Sugerowany kapo: próg ' + bestCapo;
+                document.getElementById('capo-suggest-title').textContent = 'Sugerowany kapo: próg ' + bestCapo;
                 document.getElementById('capo-suggest-details').innerHTML =
                     'Akordy z capo ' + bestCapo + ': <span style="color:#ccc;">' + bestChords.join(', ') + '</span>';
             } else {

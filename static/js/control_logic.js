@@ -5,17 +5,17 @@ const translations = {
     pl: {
         worship_mode: "UWIELBIENIE",
         conf_mode: "KONFERENCJA",
-        settings_btn: "⚙️ USTAWIENIA",
-        connect_btn: "📱 POŁĄCZ EKRANY",
+        settings_btn: "Ustawienia",
+        connect_btn: "Połącz ekrany",
         library_header: "Biblioteka",
-        add_manual: "📝 Dodaj ręcznie",
-        import_file: "📂 Importuj z pliku",
+        add_manual: "Dodaj ręcznie",
+        import_file: "Importuj z pliku",
         search_ph: "Szukaj piosenki...",
         setlist_header: "Setlista",
         empty_setlist: "Brak piosenek w setliście.",
         download_pdf: "POBIERZ PDF",
         live_panel: "Panel Live",
-        next_btn: "NASTĘPNA ➔",
+        next_btn: "Następna",
         screen_off: "EKRAN WYGASZONY",
         mob_lib: "Biblioteka",
         mob_set: "Setlista",
@@ -30,7 +30,7 @@ const translations = {
         opt1_desc: "Wgraj pliki np. Barka (C).txt.",
         opt2: "OPCJA 2: Plik zbiorczy",
         opt2_desc: "Oddzielaj ---.",
-        choose_file: "📂 WYBIERZ PLIK",
+        choose_file: "Wybierz plik",
         add_header: "Dodaj Nową Piosenkę",
         title_ph: "Tytuł",
         paste_ph: "Wklej tekst tutaj...",
@@ -66,7 +66,7 @@ const translations = {
         choose_file_label: "Wybierz plik...",
         upload_btn: "WGRAJ",
         delete_current: "USUŃ OBECNE",
-        backup_btn: "💾 KOPIA BAZY",
+        backup_btn: "Kopia bazy",
         control_qr: "STEROWANIE",
         band_qr: "ZESPÓŁ",
         proj_qr: "RZUTNIK",
@@ -84,29 +84,29 @@ const translations = {
         add_link_btn: "+ DODAJ",
         no_canva_msg: "Brak dodanych prezentacji.",
         presentation_label: "Prezentacja",
-        show_btn: "🖥️ POKAŻ",
+        show_btn: "Pokaż",
         pdf_title: "2. PLIK PREZENTACJI (PDF / PPTX)",
         pdf_ph: "Wybierz plik PDF lub PPTX...",
         slides_control_title: "Sterowanie Slajdami",
-        show_pres_btn: "🖥️ POKAŻ PREZENTACJĘ NA EKRANACH",
+        show_pres_btn: "Pokaż prezentację na ekranach",
         blackout_on_btn: "WYGAŚ EKRAN RZUTNIKA",
         blackout_off_btn: "ZDEJMIJ BLACKOUT (POKAŻ EKRAN)",
-        open_presenter_btn: "📱 OTWÓRZ WIDOK PREZENTERA (W NOWEJ KARCIE) ↗"
+        open_presenter_btn: "Otwórz widok prezentera (w nowej karcie)"
     },
     en: {
-        worship_mode: "🎸 WORSHIP",
-        conf_mode: "🎤 CONFERENCE",
-        settings_btn: "⚙️ SETTINGS",
-        connect_btn: "📱 CONNECT SCREENS",
+        worship_mode: "Worship",
+        conf_mode: "Conference",
+        settings_btn: "Settings",
+        connect_btn: "Connect screens",
         library_header: "Library",
-        add_manual: "📝 Add Manually",
-        import_file: "📂 Import from File",
+        add_manual: "Add Manually",
+        import_file: "Import from File",
         search_ph: "Search song...",
         setlist_header: "Setlist",
         empty_setlist: "No songs in setlist.",
         download_pdf: "DOWNLOAD PDF",
         live_panel: "Live Panel",
-        next_btn: "NEXT ➔",
+        next_btn: "Next",
         screen_off: "SCREEN BLACKED OUT",
         mob_lib: "Library",
         mob_set: "Setlist",
@@ -121,7 +121,7 @@ const translations = {
         opt1_desc: "Upload files e.g. Amazing Grace (C).txt.",
         opt2: "OPTION 2: Batch File",
         opt2_desc: "Separate with ---.",
-        choose_file: "📂 CHOOSE FILE",
+        choose_file: "Choose file",
         add_header: "Add New Song",
         title_ph: "Title",
         paste_ph: "Paste lyrics here...",
@@ -157,7 +157,7 @@ const translations = {
         choose_file_label: "Choose file...",
         upload_btn: "UPLOAD",
         delete_current: "DELETE CURRENT",
-        backup_btn: "💾 DB BACKUP",
+        backup_btn: "DB Backup",
         control_qr: "CONTROL",
         band_qr: "STAGE BAND",
         proj_qr: "PROJECTOR",
@@ -175,14 +175,14 @@ const translations = {
         add_link_btn: "+ ADD",
         no_canva_msg: "No presentations added.",
         presentation_label: "Presentation",
-        show_btn: "🖥️ SHOW",
+        show_btn: "Show",
         pdf_title: "2. PRESENTATION FILE (PDF / PPTX)",
         pdf_ph: "Choose PDF or PPTX file...",
         slides_control_title: "Slide Controls",
-        show_pres_btn: "🖥️ SHOW PRESENTATION ON SCREENS",
+        show_pres_btn: "Show presentation on screens",
         blackout_on_btn: "BLACKOUT PROJECTOR SCREEN",
         blackout_off_btn: "REMOVE BLACKOUT (SHOW SCREEN)",
-        open_presenter_btn: "📱 OPEN PRESENTER VIEW (NEW TAB) ↗"
+        open_presenter_btn: "Open presenter view (new tab)"
     }
 };
 
@@ -639,7 +639,7 @@ function renderCanvaLinks() {
         
         // Tłumaczenia przycisków wewnątrz listy
         const label = translations[currentLang].presentation_label || "Prezentacja";
-        const btnShow = translations[currentLang].show_btn || "🖥️ POKAŻ";
+        const btnShow = translations[currentLang].show_btn || "Pokaż";
 
         item.innerHTML = `
             <div style="flex-grow: 1; font-size: 0.75rem; color: var(--text-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: monospace;" title="${link}">
@@ -966,9 +966,9 @@ function validateChords(contentId, statusId) {
         }
     }
     if (invalid.length > 0) {
-        statusEl.innerHTML = '<span style="color:#ff5252;">⚠ Nierozpoznane akordy: <b>' + invalid.map(c => '[' + c + ']').join(', ') + '</b></span>';
+        statusEl.innerHTML = '<span style="color:#f43f5e;">Nierozpoznane akordy: <b>' + invalid.map(c => '[' + c + ']').join(', ') + '</b></span>';
     } else {
-        statusEl.innerHTML = '<span style="color:#69f0ae;">✓ ' + valid.length + ' akordów — wszystkie poprawne</span>';
+        statusEl.innerHTML = '<span style="color:#34d399;">' + valid.length + ' akordów — wszystkie poprawne</span>';
     }
 }
 
@@ -985,7 +985,9 @@ function renderLibrary(f="") {
                 <summary class="lib-summary">
                     <div><b>${s.title}</b></div>
                     <div style="display:flex;gap:5px;">
-                        <button class="btn-icon" onclick="event.preventDefault(); openEditModal(${s.id})" style="background:none; border:none; cursor:pointer;">✏️</button> 
+                        <button class="btn-icon" onclick="event.preventDefault(); openEditModal(${s.id})" style="background:none; border:none; cursor:pointer; color:var(--text-muted);">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button> 
                         <button class="btn-sm" onclick="event.preventDefault(); addToSetlist(${s.id}, this)" style="background:var(--accent-success);color:white; border:none; transition: transform 0.2s;">${btnText}</button>
                     </div>
                 </summary>
@@ -1006,7 +1008,7 @@ function addToSetlist(id, btnElement) {
     // Animacja przycisku
     if (btnElement) {
         const originalText = btnElement.innerText;
-        btnElement.innerText = "✔"; // Krótka zmiana na ptaszka
+        btnElement.innerText = "OK";
         btnElement.style.transform = "scale(1.15)";
         
         setTimeout(() => {
@@ -1162,7 +1164,7 @@ function selectForLive(i, broadcast = true){
         const firstChordRaw = nextMatches ? nextMatches[0] : null;
         if (lastChordRaw && firstChordRaw) {
             const btn = document.createElement('div'); btn.className = 'slide-btn transition-tile';
-            btn.innerHTML = `<span class="slide-label">TRANSITION ➔</span><span id="trans-preview" style="font-size:0.7rem;color:var(--text-muted);">Ładowanie...</span>`;
+            btn.innerHTML = `<span class="slide-label">Transition</span><span id="trans-preview" style="font-size:0.7rem;color:var(--text-muted);">Ładowanie...</span>`;
             
             const fetchTransition = () => {
                 fetch('/generate_transition', { 
