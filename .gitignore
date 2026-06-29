@@ -27,3 +27,8 @@ venv/
 venv/
 __pycache__/
 static/pads/
+
+# --- Node / Playwright ---
+node_modules/
+package.json
+package-lock.json
