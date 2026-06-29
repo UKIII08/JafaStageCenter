@@ -1,216 +1,9 @@
 var socket = io();
 
-// --- I18N (TRANSLATION SYSTEM) ---
-const translations = {
-    pl: {
-        worship_mode: "UWIELBIENIE",
-        conf_mode: "KONFERENCJA",
-        settings_btn: "Ustawienia",
-        connect_btn: "Połącz ekrany",
-        library_header: "Biblioteka",
-        add_manual: "Dodaj ręcznie",
-        import_file: "Importuj z pliku",
-        search_ph: "Szukaj piosenki...",
-        setlist_header: "Setlista",
-        empty_setlist: "Brak piosenek w setliście.",
-        download_pdf: "POBIERZ PDF",
-        live_panel: "Panel Live",
-        next_btn: "Następna",
-        screen_off: "EKRAN WYGASZONY",
-        mob_lib: "Biblioteka",
-        mob_set: "Setlista",
-        speaker_panel: "Panel Mówcy / Konferencja",
-        time_label: "Czas (min):",
-        set_btn: "USTAW",
-        msg_ph: "Wiadomość do mówcy...",
-        send_btn: "WYŚLIJ",
-        clear_btn: "WYCZYŚĆ",
-        import_header: "Import Piosenek (.txt)",
-        opt1: "OPCJA 1: Pojedyncze pliki",
-        opt1_desc: "Wgraj pliki np. Barka (C).txt.",
-        opt2: "OPCJA 2: Plik zbiorczy",
-        opt2_desc: "Oddzielaj ---.",
-        choose_file: "Wybierz plik",
-        add_header: "Dodaj Nową Piosenkę",
-        title_ph: "Tytuł",
-        paste_ph: "Wklej tekst tutaj...",
-        save_db_btn: "ZAPISZ DO BAZY",
-        edit_header: "Edycja",
-        delete_btn: "USUŃ",
-        save_btn: "ZAPISZ",
-        settings_header: "Ustawienia",
-        general_settings: "Ogólne",
-        appearance: "Wygląd",
-        dark_mode: "Tryb ciemny:",
-        smart_features: "Inteligentne funkcje",
-        auto_trans: "Automatyczne przejścia:",
-        key_suggest: "Sugerowanie tonacji:",
-        trans_engine: "Styl przejść (Silnik AI):",
-        chord_notation_label: "Notacja akordów:",
-        notation_international: "Międzynarodowa (Bb, B)",
-        notation_polish: "Polska (B, H, Cis, Fis)",
-        minor_style_label: "Akordy molowe:",
-        minor_lowercase: "Małe litery (a, cis, f#)",
-        minor_uppercase: "Wielkie + m (Am, C#m)",
-        input_notation_label: "Notacja wejściowa:",
-        chord_format_hint: "Akordy wpisuj w nawiasach kwadratowych:",
-        chord_format_hint2: "Sekcje (Zwrotka, Refren) oddzielaj pustą linią. Obsługiwane formaty:",
-        projector_screen: "Rzutnik (Ekran Zewnętrzny)",
-        font_label: "Czcionka:",
-        bg_color: "Tło",
-        text_color: "Tekst",
-        chord_color: "Akordy",
-        save_settings: "ZAPISZ USTAWIENIA",
-        media_header: "Multimedia",
-        bg_proj_label: "Tło Rzutnika:",
-        choose_file_label: "Wybierz plik...",
-        upload_btn: "WGRAJ",
-        delete_current: "USUŃ OBECNE",
-        backup_btn: "Kopia bazy",
-        control_qr: "STEROWANIE",
-        band_qr: "ZESPÓŁ",
-        proj_qr: "RZUTNIK",
-        member_qr: "CZŁONEK ZESPOŁU",
-        open_win: "OTWÓRZ OKNO ↗",
-        ios_install: "Zainstaluj jako aplikację",
-        ios_desc: "Aby uruchomić na pełnym ekranie, kliknij przycisk <span class=\"icon-share\"></span> i wybierz <strong>\"Do ekranu początkowego\"</strong>.",
-        add_btn_small: "DODAJ",
-        
-        // --- NOWE: TRYB KONFERENCJI ---
-        clock_msg_title: "ZEGAR & WIADOMOŚĆ",
-        multimedia_pres_title: "MULTIMEDIA (EKRAN & PREZENTER)",
-        canva_title: "1. CANVA (Zapisane prezentacje)",
-        canva_link_ph: "Wklej link Canva...",
-        add_link_btn: "+ DODAJ",
-        no_canva_msg: "Brak dodanych prezentacji.",
-        presentation_label: "Prezentacja",
-        show_btn: "Pokaż",
-        pdf_title: "2. PLIK PREZENTACJI (PDF / PPTX)",
-        pdf_ph: "Wybierz plik PDF lub PPTX...",
-        slides_control_title: "Sterowanie Slajdami",
-        show_pres_btn: "Pokaż prezentację na ekranach",
-        blackout_on_btn: "WYGAŚ EKRAN RZUTNIKA",
-        blackout_off_btn: "ZDEJMIJ BLACKOUT (POKAŻ EKRAN)",
-        open_presenter_btn: "Otwórz widok prezentera (w nowej karcie)"
-    },
-    en: {
-        worship_mode: "Worship",
-        conf_mode: "Conference",
-        settings_btn: "Settings",
-        connect_btn: "Connect screens",
-        library_header: "Library",
-        add_manual: "Add Manually",
-        import_file: "Import from File",
-        search_ph: "Search song...",
-        setlist_header: "Setlist",
-        empty_setlist: "No songs in setlist.",
-        download_pdf: "DOWNLOAD PDF",
-        live_panel: "Live Panel",
-        next_btn: "Next",
-        screen_off: "SCREEN BLACKED OUT",
-        mob_lib: "Library",
-        mob_set: "Setlist",
-        speaker_panel: "Speaker Panel / Conference",
-        time_label: "Time (min):",
-        set_btn: "SET",
-        msg_ph: "Message to speaker...",
-        send_btn: "SEND",
-        clear_btn: "CLEAR",
-        import_header: "Import Songs (.txt)",
-        opt1: "OPTION 1: Single Files",
-        opt1_desc: "Upload files e.g. Amazing Grace (C).txt.",
-        opt2: "OPTION 2: Batch File",
-        opt2_desc: "Separate with ---.",
-        choose_file: "Choose file",
-        add_header: "Add New Song",
-        title_ph: "Title",
-        paste_ph: "Paste lyrics here...",
-        save_db_btn: "SAVE TO DB",
-        edit_header: "Edit Song",
-        delete_btn: "DELETE",
-        save_btn: "SAVE",
-        settings_header: "Settings",
-        general_settings: "General",
-        appearance: "Appearance",
-        dark_mode: "Dark Mode:",
-        smart_features: "Smart Features",
-        auto_trans: "Auto Transitions:",
-        key_suggest: "Key Suggestion:",
-        trans_engine: "Transition Style (AI Engine):",
-        chord_notation_label: "Chord Notation:",
-        notation_international: "International (Bb, B)",
-        notation_polish: "Polish (B, H, Cis, Fis)",
-        minor_style_label: "Minor Chords:",
-        minor_lowercase: "Lowercase (a, c#, f#)",
-        minor_uppercase: "Uppercase + m (Am, C#m)",
-        input_notation_label: "Input Notation:",
-        chord_format_hint: "Enter chords in square brackets:",
-        chord_format_hint2: "Separate sections (Verse, Chorus) with blank lines. Supported formats:",
-        projector_screen: "Projector (External Screen)",
-        font_label: "Font:",
-        bg_color: "Background",
-        text_color: "Text",
-        chord_color: "Chords",
-        save_settings: "SAVE SETTINGS",
-        media_header: "Multimedia",
-        bg_proj_label: "Projector Background:",
-        choose_file_label: "Choose file...",
-        upload_btn: "UPLOAD",
-        delete_current: "DELETE CURRENT",
-        backup_btn: "DB Backup",
-        control_qr: "CONTROL",
-        band_qr: "STAGE BAND",
-        proj_qr: "PROJECTOR",
-        member_qr: "BAND MEMBER",
-        open_win: "OPEN WINDOW ↗",
-        ios_install: "Install as App",
-        ios_desc: "To launch in full screen, tap the <span class=\"icon-share\"></span> button and select <strong>\"Add to Home Screen\"</strong>.",
-        add_btn_small: "ADD",
-        
-        // --- NEW: CONFERENCE MODE ---
-        clock_msg_title: "CLOCK & MESSAGE",
-        multimedia_pres_title: "MULTIMEDIA (SCREEN & PRESENTER)",
-        canva_title: "1. CANVA (Saved presentations)",
-        canva_link_ph: "Paste Canva link...",
-        add_link_btn: "+ ADD",
-        no_canva_msg: "No presentations added.",
-        presentation_label: "Presentation",
-        show_btn: "Show",
-        pdf_title: "2. PRESENTATION FILE (PDF / PPTX)",
-        pdf_ph: "Choose PDF or PPTX file...",
-        slides_control_title: "Slide Controls",
-        show_pres_btn: "Show presentation on screens",
-        blackout_on_btn: "BLACKOUT PROJECTOR SCREEN",
-        blackout_off_btn: "REMOVE BLACKOUT (SHOW SCREEN)",
-        open_presenter_btn: "Open presenter view (new tab)"
-    }
-};
-
-let currentLang = 'pl';
+// --- I18N: uses shared translations from i18n.js ---
 function setLanguage(lang) {
-    currentLang = lang;
-    localStorage.setItem('appLang', lang);
-    document.documentElement.setAttribute('data-lang', lang);
-    const langSelect = document.getElementById('lang-select');
-    if (langSelect) langSelect.value = lang;
-
-    // Update text elements
-    document.querySelectorAll('[data-t]').forEach(el => {
-        const key = el.getAttribute('data-t');
-        if (translations[lang][key]) {
-            el.innerHTML = translations[lang][key];
-        }
-    });
-
-    // Update placeholders
-    document.querySelectorAll('[data-t-ph]').forEach(el => {
-        const key = el.getAttribute('data-t-ph');
-        if (translations[lang][key]) {
-            el.placeholder = translations[lang][key];
-        }
-    });
-    
-    // Re-render library to update "Add" button
+    initI18n(lang);
+    socket.emit('set_language', {lang: lang});
     filterLibrary();
 }
 
@@ -552,7 +345,7 @@ let currentSlideIndex = 0;
 // Funkcja wgrywająca PDF
 function uploadPdfPresentation() {
     const fileInput = document.getElementById('pdf-upload');
-    if (!fileInput.files[0]) return alert("Wybierz plik PDF!");
+    if (!fileInput.files[0]) return alert(t('alert_choose_pdf'));
 
     const formData = new FormData();
     formData.append("pres_file", fileInput.files[0]);
@@ -564,7 +357,7 @@ function uploadPdfPresentation() {
     .then(r => r.json())
     .then(data => {
         if(data.status === 'ok') {
-            alert("Slajdy gotowe!");
+            alert(t('alert_slides_ready'));
             // Slajdy zostaną odebrane przez socket event 'presentation_ready'
         } else {
             alert(data.message);
@@ -767,7 +560,7 @@ function toggleFullscreen() {
     if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
         if (requestFullScreen) {
             requestFullScreen.call(docEl).catch(err => {
-                alert("Na iPhone/iPad: Dodaj stronę do ekranu gł, aby uzyskać pełny ekran.");
+                alert(t('alert_fullscreen_ios'));
             });
         }
     } else {
@@ -1325,7 +1118,7 @@ function openEditModal(id){
     }
 }
 function closeEditModal(){document.getElementById('editModal').style.display='none';}
-function deleteCurrentSong(){if(confirm("Usunąć?"))document.getElementById('deleteForm').submit();}
+function deleteCurrentSong(){if(confirm(t('alert_delete_confirm')))document.getElementById('deleteForm').submit();}
 
 let tInt=null,totSec=0,isRun=false,actMsg="";
 function setTimer(){var v=parseInt(document.getElementById('timer-input').value);totSec=(isNaN(v)||v<0)?0:v*60;updTimer();sendConferenceData();}
@@ -1339,7 +1132,7 @@ function sendConferenceData(){let d=updTimer();fetch('/send_text',{method:'POST'
 
 function exportToPDF() {
     if (!setlist || setlist.length === 0) {
-        alert("Setlista jest pusta! Dodaj najpierw piosenki.");
+        alert(t('alert_empty_setlist'));
         return;
     }
 
@@ -1350,12 +1143,12 @@ function exportToPDF() {
             if (response.status === 'ok') {
                 console.log(response.message);
             } else if (response.status === 'error') {
-                alert("Błąd po stronie aplikacji: " + response.message);
+                alert(t('alert_app_error') + response.message);
             } else if (response.status === 'cancelled') {
                 console.log("Anulowano zapis.");
             }
         }).catch(err => {
-            alert("Krytyczny błąd komunikacji JS->Python: " + err);
+            alert(t('alert_critical_error') + err);
         });
     } else {
         fetch('/print_setlist', {
@@ -1371,7 +1164,7 @@ function exportToPDF() {
 }
 function exportLyricsPDF() {
     if (!setlist || setlist.length === 0) {
-        alert("Setlista jest pusta! Dodaj najpierw piosenki.");
+        alert(t('alert_empty_setlist'));
         return;
     }
 
@@ -1381,10 +1174,10 @@ function exportLyricsPDF() {
             if (response.status === 'ok') {
                 console.log(response.message);
             } else if (response.status === 'error') {
-                alert("Błąd: " + response.message);
+                alert(t('alert_error') + ": " + response.message);
             }
         }).catch(err => {
-            alert("Krytyczny błąd komunikacji JS->Python: " + err);
+            alert(t('alert_critical_error') + err);
         });
     } else {
         fetch('/print_lyrics', {
@@ -1403,9 +1196,9 @@ function saveBackupDesktop() {
     if (window.pywebview) {
         window.pywebview.api.save_backup().then(response => {
             if (response.status === 'ok') {
-                alert("Baza została zapisana!");
+                alert(t('alert_db_saved'));
             } else if (response.status === 'error') {
-                alert("Błąd: " + response.message);
+                alert(t('alert_error') + ": " + response.message);
             }
         });
     } else {
@@ -1640,20 +1433,20 @@ document.addEventListener('keydown', function(e) {
     const ONBOARDING_STEPS = [
         {
             target: '.plus-btn',
-            title: 'Dodaj piosenki',
-            text: 'Kliknij tutaj aby dodac nowa piosenke do biblioteki lub zaimportowac pliki .txt z akordami.',
+            get title() { return t('onb_step1_title'); },
+            get text() { return t('onb_step1_text'); },
             position: 'bottom'
         },
         {
             target: '#searchBox',
-            title: 'Wyszukiwarka',
-            text: 'Szybko znajdz piosenke w bibliotece wpisujac tytul lub fragment tekstu.',
+            get title() { return t('onb_step2_title'); },
+            get text() { return t('onb_step2_text'); },
             position: 'bottom'
         },
         {
             target: '#add-key-input',
-            title: 'Automatyczna detekcja tonacji',
-            text: 'Po wpisaniu tekstu z akordami program automatycznie wykrywa tonacje piosenki (algorytm Krumhansl-Schmuckler). Tutaj widac sugerowane "Am" — mozesz zaakceptowac lub wpisac recznie dowolna tonacje.',
+            get title() { return t('onb_step3_title'); },
+            get text() { return t('onb_step3_text'); },
             position: 'bottom',
             beforeShow: function() {
                 openAddModal();
@@ -1683,60 +1476,60 @@ document.addEventListener('keydown', function(e) {
         },
         {
             target: '#col-setlist',
-            title: 'Setlista',
-            text: 'Przeciagaj piosenki z biblioteki tutaj. Mozesz zmieniac kolejnosc przeciagajac elementy. Gdy dodasz dwie piosenki — system automatycznie wygeneruje inteligentne przejscie akordowe miedzy nimi.',
+            get title() { return t('onb_step4_title'); },
+            get text() { return t('onb_step4_text'); },
             position: 'right'
         },
         {
             target: '#slides-container',
-            title: 'Smart przejscia miedzy piosenkami',
-            text: 'Gdy dodasz co najmniej 2 piosenki do setlisty, tutaj pojawi sie kafelek "Transition" — inteligentne przejscie akordowe wygenerowane przez silnik AI. Analizuje ostatni akord jednej piosenki i pierwszy nastepnej, generujac plynne przejscie.',
+            get title() { return t('onb_step5_title'); },
+            get text() { return t('onb_step5_text'); },
             position: 'left'
         },
         {
             target: '#live-preview-box',
-            title: 'Podglad ekranu',
-            text: 'Tu widzisz dokladnie to co jest wyswietlane na rzutniku. Kliknij slajd aby go wyslac na ekran.',
+            get title() { return t('onb_step6_title'); },
+            get text() { return t('onb_step6_text'); },
             position: 'left'
         },
         {
             target: '.pad-panel-box',
-            title: 'Pad atmosfery',
-            text: 'Wlacz pad aby grac w tle delikatna muzyke tla dopasowana do tonacji piosenki.',
+            get title() { return t('onb_step7_title'); },
+            get text() { return t('onb_step7_text'); },
             position: 'left'
         },
         {
             target: '.music-info-box',
-            title: 'Tonacja, transpozycja i BPM',
-            text: 'Gdy piosenka jest aktywna, tutaj widzisz wykryta tonacje, mozesz transponowac akordy w gore/dol i widzisz tempo BPM. Wszystko aktualizuje sie na zywo na ekranach zespolu.',
+            get title() { return t('onb_step8_title'); },
+            get text() { return t('onb_step8_text'); },
             position: 'left'
         },
         {
             target: '.settings-btn',
-            title: 'Personalizacja i ustawienia',
-            text: 'Tutaj znajdziesz ustawienia notacji akordow, trybu wyswietlania i inteligentnych funkcji. Kliknij aby je otworzyc.',
+            get title() { return t('onb_step9_title'); },
+            get text() { return t('onb_step9_text'); },
             position: 'bottom'
         },
         {
             target: 'select[name="chord_notation"]',
-            title: 'Notacja akordow',
-            text: 'Wybierz miedzy notacja miedzynarodowa (Bb, B, F#) a polska (B, H, Fis). Kazdy czlonek zespolu moze widziec akordy w swoim ulubionym formacie — niezaleznie od tego jak zostaly wpisane!',
+            get title() { return t('onb_step10_title'); },
+            get text() { return t('onb_step10_text'); },
             position: 'bottom',
             beforeShow: function() { openSettingsModal(); var m = document.getElementById('settingsModal'); if (m) m.style.zIndex = '99989'; },
             afterHide: function() { var m = document.getElementById('settingsModal'); if (m) m.style.zIndex = ''; closeSettingsModal(); }
         },
         {
             target: '.qr-container',
-            title: 'Polacz ekrany',
-            text: 'Kazdy muzyk skanuje QR kod i widzi akordy na swoim telefonie. Widok "Czlonek Zespolu" oferuje: capo z sugestia progu dla latwych akordow, diagramy chwytow na gitare i piano, notacje Nashville — wszystko spersonalizowane per uzytkownik!',
+            get title() { return t('onb_step11_title'); },
+            get text() { return t('onb_step11_text'); },
             position: 'top',
             beforeShow: function() { openQRModal(); var m = document.getElementById('qrModal'); if (m) m.style.zIndex = '99989'; },
             afterHide: function() { var m = document.getElementById('qrModal'); if (m) m.style.zIndex = ''; closeQRModal(); }
         },
         {
             target: '.bottom-controls',
-            title: 'Sterowanie ekranem',
-            text: 'BLACKOUT wygasza ekran, LOGO wyswietla logo twojego kosciola na rzutniku.',
+            get title() { return t('onb_step12_title'); },
+            get text() { return t('onb_step12_text'); },
             position: 'top'
         }
     ];
@@ -1790,9 +1583,9 @@ document.addEventListener('keydown', function(e) {
             <h3>${ONBOARDING_STEPS[step].title}</h3>
             <p>${ONBOARDING_STEPS[step].text}</p>
             <div class="onboarding-btn-row">
-                ${!isFirst ? '<button class="onboarding-btn-ghost" data-onboarding="back">Wstecz</button>' : ''}
-                <button class="onboarding-btn-primary" data-onboarding="next">${isLast ? 'Rozumiem!' : 'Dalej'}</button>
-                <button class="onboarding-btn-skip" data-onboarding="skip">Pomin</button>
+                ${!isFirst ? '<button class="onboarding-btn-ghost" data-onboarding="back">' + t('onb_back') + '</button>' : ''}
+                <button class="onboarding-btn-primary" data-onboarding="next">${isLast ? t('onb_finish') : t('onb_next')}</button>
+                <button class="onboarding-btn-skip" data-onboarding="skip">${t('onb_skip')}</button>
             </div>
         `;
 

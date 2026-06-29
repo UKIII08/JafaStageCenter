@@ -953,6 +953,10 @@ def update_settings():
     socketio.emit('settings_changed')
     return redirect(url_for('control'))
 
+@socketio.on('set_language')
+def handle_set_language(data):
+    emit('apply_settings', {'lang': data.get('lang', 'pl')}, broadcast=True)
+
 @app.route('/reset_settings', methods=['POST'])
 def reset_settings():
     settings = Settings.query.first()

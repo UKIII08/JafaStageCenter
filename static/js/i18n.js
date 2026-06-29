@@ -165,6 +165,11 @@ var translations = {
         pres_canva_msg: "Trwa prezentacja Canva (Brak podglądu)",
         pres_mode: "Tryb:",
 
+        // ── Print ──
+        print_btn: "DRUKUJ",
+        print_setlist_title: "SETLISTA",
+        print_lyrics_title: "Teksty piosenek",
+
         // ── Loading ──
         loading_title: "Ładowanie Aplikacji",
 
@@ -174,6 +179,13 @@ var translations = {
         alert_error: "Błąd",
         alert_loading: "Ładowanie...",
         alert_blackout: "EKRAN WYGASZONY",
+        alert_choose_pdf: "Wybierz plik PDF!",
+        alert_slides_ready: "Slajdy gotowe!",
+        alert_delete_confirm: "Usunąć?",
+        alert_app_error: "Błąd po stronie aplikacji: ",
+        alert_critical_error: "Krytyczny błąd komunikacji: ",
+        alert_db_saved: "Baza została zapisana!",
+        alert_fullscreen_ios: "Na iPhone/iPad: Dodaj stronę do ekranu głównego, aby uzyskać pełny ekran.",
 
         // ── Onboarding ──
         onb_step1_title: "Dodaj piosenki",
@@ -361,6 +373,11 @@ var translations = {
         pres_canva_msg: "Canva presentation active (No preview)",
         pres_mode: "Mode:",
 
+        // ── Print ──
+        print_btn: "PRINT",
+        print_setlist_title: "SETLIST",
+        print_lyrics_title: "Song Lyrics",
+
         // ── Loading ──
         loading_title: "Loading Application",
 
@@ -370,6 +387,13 @@ var translations = {
         alert_error: "Error",
         alert_loading: "Loading...",
         alert_blackout: "SCREEN BLACKED OUT",
+        alert_choose_pdf: "Choose a PDF file!",
+        alert_slides_ready: "Slides ready!",
+        alert_delete_confirm: "Delete?",
+        alert_app_error: "Application error: ",
+        alert_critical_error: "Critical communication error: ",
+        alert_db_saved: "Database saved!",
+        alert_fullscreen_ios: "On iPhone/iPad: Add page to home screen for full screen.",
 
         // ── Onboarding ──
         onb_step1_title: "Add songs",
