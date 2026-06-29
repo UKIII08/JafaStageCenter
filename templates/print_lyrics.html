@@ -109,12 +109,13 @@
             .no-print-btn { display: none; }
         }
     </style>
+    <script src="{{ static_root }}/js/i18n.js"></script>
 </head>
 <body>
-    <button onclick="window.print()" class="no-print-btn">DRUKUJ</button>
+    <button onclick="window.print()" class="no-print-btn" data-t="print_btn">DRUKUJ</button>
 
     <div id="print-header">
-        <div id="print-title">Teksty piosenek</div>
+        <div id="print-title" data-t="print_lyrics_title">Teksty piosenek</div>
         <div id="print-date"></div>
     </div>
 
@@ -130,8 +131,11 @@
     </div>
 
     <script>
+        var lang = localStorage.getItem('appLang') || 'pl';
+        var locale = lang === 'en' ? 'en-US' : 'pl-PL';
         const d = new Date();
-        document.getElementById('print-date').innerText = d.toLocaleDateString('pl-PL', { year: 'numeric', month: 'long', day: 'numeric' });
+        document.getElementById('print-date').innerText = d.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
+        initI18n();
     </script>
 </body>
 </html>
