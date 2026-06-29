@@ -260,10 +260,10 @@
 
         .toggle {
             position: relative; width: 44px; height: 24px;
-            background: rgba(255,255,255,0.06); border-radius: 12px; cursor: pointer;
+            background: var(--bg-element); border-radius: 12px; cursor: pointer;
             transition: background 0.3s cubic-bezier(0.4,0,0.2,1); flex-shrink: 0;
         }
-        .toggle.active { background: #3B82F6; }
+        .toggle.active { background: var(--accent-primary); }
         .toggle::after {
             content: '';
             position: absolute; top: 2px; left: 2px;
@@ -273,11 +273,11 @@
         }
         .toggle.active::after { transform: translateX(20px); }
 
-        input[type="range"] { width: 100%; accent-color: #3B82F6; }
+        input[type="range"] { width: 100%; accent-color: var(--accent-primary); }
         #settings-panel select {
             width: 100%; padding: 8px 10px;
-            background: #0e0e14; border: 1px solid rgba(255,255,255,0.06);
-            color: #fff; border-radius: 6px; font-size: 14px;
+            background: var(--bg-panel); border: 1px solid var(--border-color);
+            color: var(--text-main); border-radius: 6px; font-size: 14px;
         }
         .btn {
             padding: 10px 16px; border: none; border-radius: 10px;
@@ -285,9 +285,9 @@
         }
         .btn:hover { filter: brightness(1.15); }
         .btn:active { transform: scale(0.97); }
-        .btn-primary { background: #3B82F6; color: #fff; }
+        .btn-primary { background: var(--accent-primary); color: #fff; }
         .btn-primary:hover { filter: brightness(1.15); }
-        .btn-danger { background: #ff6b6b; color: #fff; border: none; }
+        .btn-danger { background: var(--accent-danger); color: #fff; border: none; }
         .btn-danger:hover { filter: brightness(1.15); }
 
         /* CHORD POPUP */
@@ -295,22 +295,22 @@
             display: none;
             position: fixed;
             z-index: 20000;
-            background: rgba(14,14,20,0.96);
-            border: 1px solid rgba(59,130,246,0.15);
+            background: var(--glass-bg);
+            border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 8px;
-            box-shadow: 0 8px 32px rgba(59,130,246,0.15), 0 4px 16px rgba(0,0,0,0.6);
+            box-shadow: 0 8px 32px var(--glow-primary), 0 4px 16px var(--shadow-color);
             pointer-events: auto;
         }
         #chord-popup .popup-close {
             position: absolute; top: 4px; right: 8px;
-            background: none; border: none; color: #666;
+            background: none; border: none; color: var(--text-muted);
             font-size: 14px; cursor: pointer;
         }
-        #chord-popup .popup-close:hover { color: #fff; }
+        #chord-popup .popup-close:hover { color: var(--text-main); }
         #chord-popup .no-diagram {
             padding: 20px 16px;
-            color: #888; font-size: 13px; text-align: center;
+            color: var(--text-muted); font-size: 13px; text-align: center;
         }
 
         .chord.clickable { cursor: pointer; }
@@ -318,6 +318,41 @@
 
         @media (max-width: 600px) {
             #settings-panel { width: 100%; right: -100%; }
+        }
+
+        /* Light theme overrides */
+        [data-theme="light"] #current-slide {
+            border-bottom-color: var(--border-color);
+        }
+        [data-theme="light"] #next-slide-container {
+            background-color: var(--bg-app);
+            border-top-color: var(--border-color);
+        }
+        [data-theme="light"] #settings-panel {
+            background: var(--glass-bg);
+            border-left-color: var(--border-color);
+        }
+        [data-theme="light"] .setting-group {
+            background: var(--bg-element);
+        }
+        [data-theme="light"] .toggle {
+            background: var(--bg-element-hover);
+        }
+        [data-theme="light"] .toggle.active {
+            background: var(--accent-primary);
+        }
+        [data-theme="light"] #chord-popup {
+            background: var(--glass-bg);
+            border-color: var(--border-color);
+        }
+        [data-theme="light"] #conf-timer {
+            color: var(--text-main);
+        }
+        [data-theme="light"] #conf-message {
+            color: var(--accent-warning);
+        }
+        [data-theme="light"] #current-slide .chord {
+            text-shadow: none;
         }
     </style>
 </head>
@@ -362,20 +397,20 @@
     <div id="settings-overlay" onclick="toggleSettings()"></div>
     <div id="settings-panel">
         <h2>
-            Ustawienia
-            <button style="background:none; border:none; color:#888; font-size:18px; cursor:pointer;" onclick="toggleSettings()">✕</button>
+            <span data-t="bm_settings">Ustawienia</span>
+            <button style="background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;" onclick="toggleSettings()">✕</button>
         </h2>
 
         <div class="setting-group">
             <div class="group-title">Preset</div>
             <select id="preset-select" onchange="loadPreset(this.value)">
-                <option value="">— Wybierz preset —</option>
+                <option value="" data-t="bm_choose_preset">— Wybierz preset —</option>
                 {% for p in presets %}
                 <option value="{{ p.id }}" data-cfg='{{ {"show_chords": p.show_chords, "chord_notation": p.chord_notation or "international", "lowercase_minor": p.lowercase_minor or false, "capo_fret": p.capo_fret, "beginner_mode": p.beginner_mode, "diagram_instrument": p.diagram_instrument, "font_size": p.font_size}|tojson }}'>{{ p.name }}</option>
                 {% endfor %}
             </select>
             <div style="display:flex; gap:8px; margin-top:10px;">
-                <button class="btn btn-primary" style="flex:1;" onclick="savePresetDialog()">Zapisz</button>
+                <button class="btn btn-primary" style="flex:1;" onclick="savePresetDialog()" data-t="bm_save">Zapisz</button>
                 <button class="btn btn-danger" onclick="deleteCurrentPreset()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
             </div>
         </div>
@@ -388,7 +423,7 @@
             </label>
             <label>
                 Notacja
-                <select id="chord-notation" onchange="setNotation(this.value)" style="margin-left:auto; padding:4px 8px; border-radius:6px; background:#0e0e14; color:#fff; border:1px solid rgba(255,255,255,0.06);">
+                <select id="chord-notation" onchange="setNotation(this.value)" style="margin-left:auto; padding:4px 8px; border-radius:6px; background:var(--bg-panel); color:var(--text-main); border:1px solid var(--border-color);">
                     <option value="international">Międzynarodowa (Bb, B)</option>
                     <option value="polish">Polska (B, H)</option>
                     <option value="nashville">Nashville (1-2-3)</option>
@@ -404,7 +439,7 @@
             </label>
             <label>
                 Diagramy chwytów
-                <select id="diagram-instrument" onchange="setDiagramInstrument(this.value)" style="margin-left:auto; padding:4px 8px; border-radius:6px; background:#0e0e14; color:#fff; border:1px solid rgba(255,255,255,0.06);">
+                <select id="diagram-instrument" onchange="setDiagramInstrument(this.value)" style="margin-left:auto; padding:4px 8px; border-radius:6px; background:var(--bg-panel); color:var(--text-main); border:1px solid var(--border-color);">
                     <option value="off">Wyłączone</option>
                     <option value="guitar" selected>Gitara</option>
                     <option value="piano">Piano</option>
