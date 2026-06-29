@@ -1635,6 +1635,8 @@ document.addEventListener('keydown', function(e) {
     document.head.appendChild(onboardingStyleEl);
 
     // --- Step definitions ---
+    var ONBOARDING_DEMO_SONG = 'Zwrotka 1\n[Am] Jedyny Krol, ktory [G]przyjal postac slugi\n[F] Jedyny Krol, ktory [Dm]sam unizyl sie\n[Am] Potezny wladca, ktory [G]oddal swoje zycie\n[F] aby mogl, [Dm] zyc jego lud \n\nRefren\n[Am] Oddal zycie, by zycie [Dm]dac\nodziany w majestat zamiast [Am/C]szat\nwsrod pogardy, wywyzsz[Fmaj7]ony objal [Amadd11/E] Tron';
+
     const ONBOARDING_STEPS = [
         {
             target: '.plus-btn',
@@ -1649,21 +1651,46 @@ document.addEventListener('keydown', function(e) {
             position: 'bottom'
         },
         {
+            target: '#add-key-input',
+            title: 'Automatyczna detekcja tonacji',
+            text: 'Po wpisaniu tekstu z akordami program automatycznie wykrywa tonacje piosenki (algorytm Krumhansl-Schmuckler). Tutaj widac sugerowane "Am" — mozesz zaakceptowac lub wpisac recznie dowolna tonacje.',
+            position: 'bottom',
+            beforeShow: function() {
+                openAddModal();
+                var modal = document.getElementById('addModal');
+                if (modal) modal.style.zIndex = '99989';
+                setTimeout(function() {
+                    document.getElementById('add-title').value = 'Jedyny Krol';
+                    document.getElementById('add-content').value = ONBOARDING_DEMO_SONG;
+                    liveKeyCheck('add-content', 'add-key-input');
+                    validateChords('add-content', 'add-chord-status');
+                    document.getElementById('add-key-input').placeholder = 'Am';
+                }, 200);
+            },
+            afterHide: function() {
+                document.getElementById('add-title').value = '';
+                document.getElementById('add-content').value = '';
+                document.getElementById('add-key-input').value = '';
+                document.getElementById('add-key-input').placeholder = 'Key';
+                var bpmInput = document.getElementById('add-bpm-input');
+                if (bpmInput) bpmInput.value = '';
+                var status = document.getElementById('add-chord-status');
+                if (status) status.innerHTML = '';
+                var modal = document.getElementById('addModal');
+                if (modal) modal.style.zIndex = '';
+                closeAddModal();
+            }
+        },
+        {
             target: '#col-setlist',
             title: 'Setlista',
             text: 'Przeciagaj piosenki z biblioteki tutaj. Mozesz zmieniac kolejnosc przeciagajac elementy. Gdy dodasz dwie piosenki — system automatycznie wygeneruje inteligentne przejscie akordowe miedzy nimi.',
             position: 'right'
         },
         {
-            target: '.music-info-box',
-            title: 'Automatyczna detekcja tonacji',
-            text: 'Program automatycznie wykrywa tonacje piosenki na podstawie akordow (algorytm Krumhansl-Schmuckler). Mozesz tez wpisac tonacje recznie w edytorze piosenki.',
-            position: 'left'
-        },
-        {
             target: '#slides-container',
             title: 'Smart przejscia miedzy piosenkami',
-            text: 'Gdy w setliscie sa co najmniej 2 piosenki, tu pojawia sie kafelek "Transition" z inteligentnym przejsciem akordowym. Silnik AI analizuje ostatni akord jednej piosenki i pierwszy nastepnej, generujac plynne przejscie.',
+            text: 'Gdy dodasz co najmniej 2 piosenki do setlisty, tutaj pojawi sie kafelek "Transition" — inteligentne przejscie akordowe wygenerowane przez silnik AI. Analizuje ostatni akord jednej piosenki i pierwszy nastepnej, generujac plynne przejscie.',
             position: 'left'
         },
         {
@@ -1679,6 +1706,12 @@ document.addEventListener('keydown', function(e) {
             position: 'left'
         },
         {
+            target: '.music-info-box',
+            title: 'Tonacja, transpozycja i BPM',
+            text: 'Gdy piosenka jest aktywna, tutaj widzisz wykryta tonacje, mozesz transponowac akordy w gore/dol i widzisz tempo BPM. Wszystko aktualizuje sie na zywo na ekranach zespolu.',
+            position: 'left'
+        },
+        {
             target: '.settings-btn',
             title: 'Personalizacja i ustawienia',
             text: 'Tutaj znajdziesz ustawienia notacji akordow, trybu wyswietlania i inteligentnych funkcji. Kliknij aby je otworzyc.',
@@ -1689,24 +1722,16 @@ document.addEventListener('keydown', function(e) {
             title: 'Notacja akordow',
             text: 'Wybierz miedzy notacja miedzynarodowa (Bb, B, F#) a polska (B, H, Fis). Kazdy czlonek zespolu moze widziec akordy w swoim ulubionym formacie — niezaleznie od tego jak zostaly wpisane!',
             position: 'bottom',
-            beforeShow: function() { openSettingsModal(); },
-            afterHide: function() { closeSettingsModal(); }
-        },
-        {
-            target: '#trans-toggle',
-            title: 'Inteligentne przejscia AI',
-            text: 'Wlacz lub wylacz automatyczne generowanie przejsc akordowych miedzy piosenkami. Mozesz tez wybrac silnik: Advanced (wiecej mozliwosci) lub Moderate (prostsze akordy).',
-            position: 'bottom',
-            beforeShow: function() { openSettingsModal(); },
-            afterHide: function() { closeSettingsModal(); }
+            beforeShow: function() { openSettingsModal(); var m = document.getElementById('settingsModal'); if (m) m.style.zIndex = '99989'; },
+            afterHide: function() { var m = document.getElementById('settingsModal'); if (m) m.style.zIndex = ''; closeSettingsModal(); }
         },
         {
             target: '.qr-container',
             title: 'Polacz ekrany',
             text: 'Kazdy muzyk skanuje QR kod i widzi akordy na swoim telefonie. Widok "Czlonek Zespolu" oferuje: capo z sugestia progu dla latwych akordow, diagramy chwytow na gitare i piano, notacje Nashville — wszystko spersonalizowane per uzytkownik!',
             position: 'top',
-            beforeShow: function() { openQRModal(); },
-            afterHide: function() { closeQRModal(); }
+            beforeShow: function() { openQRModal(); var m = document.getElementById('qrModal'); if (m) m.style.zIndex = '99989'; },
+            afterHide: function() { var m = document.getElementById('qrModal'); if (m) m.style.zIndex = ''; closeQRModal(); }
         },
         {
             target: '.bottom-controls',
