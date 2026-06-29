@@ -1,0 +1,593 @@
+/* ============================================================
+   DESIGN SYSTEM - JafaStageCenter
+   Shared tokens, resets, and base components for all templates.
+   ============================================================ */
+
+/* 1. @font-face — Sen
+   ------------------------------------------------------------ */
+@font-face {
+    font-family: 'Sen';
+    src: url('../fonts/Sen-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Sen';
+    src: url('../fonts/Sen-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* 2. CSS Reset
+   ------------------------------------------------------------ */
+* {
+    box-sizing: border-box;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 3. :root — Design Tokens (Dark Theme Default)
+   ------------------------------------------------------------ */
+:root {
+    /* Dark Theme Colors */
+    --bg-app: #06060a;
+    --bg-panel: #0e0e14;
+    --bg-element: #161620;
+    --bg-element-hover: #1e1e2c;
+    --bg-preview: #030306;
+    --input-bg: #111118;
+    --pad-container: #111118;
+    --border-color: rgba(255, 255, 255, 0.06);
+    --text-main: rgba(255, 255, 255, 0.92);
+    --text-muted: rgba(255, 255, 255, 0.45);
+    --accent-primary: #3B82F6;
+    --accent-secondary: #00cec9;
+    --accent-success: #00b894;
+    --accent-danger: #ff6b6b;
+    --accent-warning: #fdcb6e;
+    --accent-active-bg: rgba(59, 130, 246, 0.12);
+    --shadow-color: rgba(0, 0, 0, 0.6);
+    --glass-bg: rgba(14, 14, 20, 0.92);
+    --glass-border: rgba(255, 255, 255, 0.04);
+    --glow-primary: rgba(59, 130, 246, 0.25);
+    --glow-success: rgba(0, 184, 148, 0.25);
+
+    /* Spacing (4px base) */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+
+    /* Typography */
+    --text-2xs: 0.64rem;
+    --text-xs: 0.8rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 2rem;
+
+    /* Radius */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
+    --radius-full: 9999px;
+
+    /* Transitions */
+    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 4. Light Theme
+   ------------------------------------------------------------ */
+[data-theme="light"] {
+    --bg-app: #f5f5fa;
+    --bg-panel: #ffffff;
+    --bg-element: #f0f0f8;
+    --bg-element-hover: #e8e8f2;
+    --bg-preview: #fafafe;
+    --input-bg: #f0f0f8;
+    --pad-container: #f0f0f8;
+    --border-color: rgba(0, 0, 0, 0.08);
+    --text-main: rgba(0, 0, 0, 0.87);
+    --text-muted: rgba(0, 0, 0, 0.5);
+    --accent-primary: #2563EB;
+    --accent-secondary: #00b5ad;
+    --accent-success: #059669;
+    --accent-danger: #dc2626;
+    --accent-warning: #d97706;
+    --accent-active-bg: rgba(37, 99, 235, 0.08);
+    --shadow-color: rgba(0, 0, 0, 0.08);
+    --glass-bg: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(0, 0, 0, 0.06);
+    --glow-primary: rgba(37, 99, 235, 0.12);
+    --glow-success: rgba(5, 150, 105, 0.12);
+}
+
+/* 5. Body Base
+   ------------------------------------------------------------ */
+body {
+    font-family: 'Sen', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    background: var(--bg-app);
+    color: var(--text-main);
+    transition: background var(--transition-smooth), color var(--transition-smooth);
+}
+
+/* 6. Scrollbar
+   ------------------------------------------------------------ */
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--accent-primary);
+    border-radius: var(--radius-full);
+}
+
+/* 7. Input / Textarea / Select Base
+   ------------------------------------------------------------ */
+input,
+textarea,
+select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-family: 'Sen', sans-serif;
+    background: var(--input-bg);
+    color: var(--text-main);
+    font-size: var(--text-sm);
+    transition: border var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--glow-primary);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+/* 8. Toggle Switch
+   ------------------------------------------------------------ */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-element-hover);
+    border-radius: var(--radius-full);
+    transition: var(--transition-smooth);
+}
+
+.slider:before {
+    content: "";
+    position: absolute;
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background: var(--bg-panel);
+    border-radius: 50%;
+    transition: var(--transition-smooth);
+}
+
+input:checked + .slider {
+    background: var(--accent-success);
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px);
+}
+
+/* 9. Button System
+   ------------------------------------------------------------ */
+.btn-primary,
+.btn-secondary,
+.btn-ghost,
+.btn-danger {
+    font-family: 'Sen', sans-serif;
+    font-weight: 700;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: var(--text-base);
+}
+
+.btn-primary:active,
+.btn-secondary:active,
+.btn-ghost:active,
+.btn-danger:active {
+    transform: scale(0.97);
+}
+
+/* Primary */
+.btn-primary {
+    background: var(--accent-primary);
+    color: #ffffff;
+    border: none;
+}
+
+.btn-primary:hover {
+    filter: brightness(1.1);
+}
+
+/* Secondary */
+.btn-secondary {
+    background: transparent;
+    border: 1px solid var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--accent-primary);
+    color: #ffffff;
+}
+
+/* Ghost */
+.btn-ghost {
+    background: var(--bg-element);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+}
+
+.btn-ghost:hover {
+    background: var(--bg-element-hover);
+}
+
+/* Danger */
+.btn-danger {
+    background: transparent;
+    border: 1px solid var(--accent-danger);
+    color: var(--accent-danger);
+}
+
+.btn-danger:hover {
+    background: var(--accent-danger);
+    color: #ffffff;
+}
+
+/* Button Sizes */
+.btn-sm {
+    padding: 6px 12px;
+    font-size: var(--text-sm);
+}
+
+.btn-lg {
+    padding: 14px 28px;
+    font-size: var(--text-lg);
+}
+
+/* 10. Modal
+   ------------------------------------------------------------ */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: var(--glass-bg);
+    padding: var(--space-6);
+    border-radius: var(--radius-lg);
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px var(--shadow-color), 0 0 20px var(--glow-primary);
+    animation: fadeInUp var(--transition-smooth) ease-out;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-5);
+    font-size: var(--text-xl);
+    font-weight: 700;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1.5rem;
+    transition: color var(--transition-fast);
+}
+
+.modal-close:hover {
+    color: var(--text-main);
+}
+
+/* 11. Card
+   ------------------------------------------------------------ */
+.card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+}
+
+.card-header {
+    display: flex;
+    gap: var(--space-2);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: var(--space-6);
+}
+
+/* 12. Settings
+   ------------------------------------------------------------ */
+.settings-section {
+    background: var(--bg-element);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--space-6);
+    margin-bottom: var(--space-6);
+    border-left: 2px solid var(--accent-primary);
+}
+
+.settings-section h4 {
+    margin: 0 0 var(--space-5);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: var(--space-3);
+}
+
+.settings-section:nth-child(2) {
+    border-left-color: var(--accent-secondary);
+}
+
+.settings-section:nth-child(3) {
+    border-left-color: var(--accent-success);
+}
+
+.settings-section:nth-child(4) {
+    border-left-color: var(--accent-warning);
+}
+
+.settings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+}
+
+/* 13. Toast
+   ------------------------------------------------------------ */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.toast {
+    background: var(--glass-bg);
+    color: var(--text-main);
+    padding: 14px 28px;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: var(--text-sm);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    animation: toastIn 0.4s ease-out, toastOut 0.4s ease-in 2.6s forwards;
+}
+
+/* 14. Keyframes
+   ------------------------------------------------------------ */
+@keyframes toastIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    60% {
+        transform: translateY(5px) scale(1.02);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes toastOut {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 8px var(--glow-primary);
+    }
+    50% {
+        box-shadow: 0 0 20px var(--glow-primary);
+    }
+}
+
+/* 15. File Upload
+   ------------------------------------------------------------ */
+.file-upload-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+}
+
+.custom-file-label {
+    flex-grow: 1;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.custom-file-label:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+/* 16. Instruction Box
+   ------------------------------------------------------------ */
+.instruction-box {
+    background: var(--bg-element);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--space-5);
+    margin-bottom: var(--space-6);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+.instruction-box pre {
+    background: var(--bg-app);
+    padding: var(--space-3);
+    border-radius: var(--radius-sm);
+    color: var(--accent-success);
+    border: 1px solid var(--border-color);
+    font-family: 'Courier New', Courier, monospace;
+    overflow-x: auto;
+}
+
+/* 17. Reset Button
+   ------------------------------------------------------------ */
+.reset-btn {
+    width: 100%;
+    background: var(--bg-element);
+    color: var(--accent-danger);
+    border: 1px solid var(--accent-danger);
+    padding: 12px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-weight: 700;
+    font-family: 'Sen', sans-serif;
+    transition: all var(--transition-fast);
+}
+
+.reset-btn:hover {
+    background: var(--accent-danger);
+    color: #ffffff;
+}
+
+/* 18. QR Styles
+   ------------------------------------------------------------ */
+.qr-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-top: var(--space-6);
+    gap: var(--space-6);
+}
+
+.qr-box img {
+    width: 140px;
+    height: 140px;
+    border: 3px solid var(--accent-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 16px var(--shadow-color);
+}
+
+.qr-box h3 {
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: var(--space-3);
+}
+
+/* 19. Reduced Motion
+   ------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
