@@ -2,19 +2,21 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Ładowanie Aplikacji</title>
+    <title data-t="loading_title">Ładowanie Aplikacji</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
     <style>
         body {
             margin: 0;
             padding: 0;
-            background: radial-gradient(circle at center, #0d0d1a 0%, #06060a 100%);
+            background: radial-gradient(circle at center, var(--bg-panel) 0%, var(--bg-app) 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
             overflow: hidden;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Sen', sans-serif;
             user-select: none;
         }
 
@@ -29,28 +31,16 @@
             opacity: 0.6;
         }
 
-        /* --- LOGO (NOWE) --- */
         /* --- LOGO (Z Maskowaniem) --- */
         .logo-container {
-            /* Ustawienia wielkości i pozycji */
-            width: 120px;  /* Dostosuj szerokość logo */
+            width: 120px;
             height: auto;
-            margin-bottom: 50px; /* Odstęp od paska ładowania */
+            margin-bottom: 50px;
             position: relative;
             z-index: 10;
-            
-            /* Styl "Ducha" */
             opacity: 0.5;
-            /* overflow: hidden; <--- TO USUWAJMY, bo maska załatwi sprawę */
-
-            /* --- KLUCZOWA ZMIANA: MASKOWANIE --- */
-            /* Używamy tego samego obrazka logo jako maski dla kontenera. */
-            /* Dzięki temu wszystko wewnątrz (w tym efekt połysku) będzie widoczne tylko tam, gdzie logo jest nieprzezroczyste. */
-            
-            /* WAŻNE: Podmień ścieżkę na swoje logo, np.: url('../static/logo.png'); */
             mask-image: url('../static/logo.png');
             -webkit-mask-image: url('../static/logo.png');
-            
             mask-size: contain;
             -webkit-mask-size: contain;
             mask-repeat: no-repeat;
@@ -59,19 +49,13 @@
             -webkit-mask-position: center;
         }
 
-        /* Sam obrazek logo w środku staje się "tłem" dla maski.
-        Możemy go ukryć lub zostawić, ale maska i tak przytnie wszystko do jego kształtu.
-        Dla pewności, że mamy jednolity kolor (np. biały duch), możemy go wypełnić. */
         .logo-img {
             width: 100%;
             height: auto;
             display: block;
-            /* Opcjonalnie: wypełnienie kolorem, jeśli logo jest np. czarne */
-            background-color: white; 
-            /* Alternatywnie, jeśli to PNG z przezroczystością, po prostu zostaw jak jest */
+            background-color: white;
         }
 
-        /* Efekt połysku (pseudoelement) pozostaje bez zmian, ale teraz jest przycinany przez maskę */
         .logo-container::after {
             content: '';
             position: absolute;
@@ -82,7 +66,7 @@
             background: linear-gradient(
                 120deg,
                 transparent 20%,
-                rgba(255, 255, 255, 0.8) 50%, /* Zwiększyłem jasność dla lepszego efektu */
+                rgba(255, 255, 255, 0.8) 50%,
                 transparent 80%
             );
             transform: skewX(-25deg);
@@ -97,7 +81,7 @@
         /* --- PASEK ŁADOWANIA --- */
         .loader-container {
             width: 300px;
-            margin-bottom: 60px; 
+            margin-bottom: 60px;
             position: relative;
             z-index: 10;
         }
@@ -105,19 +89,19 @@
         .loader-track {
             width: 100%;
             height: 4px;
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--border-color);
             border-radius: 2px;
             overflow: hidden;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 10px var(--shadow-color);
             backdrop-filter: blur(2px);
         }
 
         .loader-bar {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, #1E40AF 0%, #3B82F6 50%, #1E40AF 100%);
+            background: linear-gradient(90deg, var(--accent-primary) 0%, #3B82F6 50%, var(--accent-primary) 100%);
             background-size: 200% 100%;
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 20px var(--glow-primary);
             border-radius: 2px;
             transition: width 0.4s ease-out;
             animation: shimmer 2s linear infinite;
@@ -156,8 +140,27 @@
             width: 30px; height: 120px; background: rgba(5, 10, 15, 0.8); border: 1px solid rgba(255, 255, 255, 0.05); border-top: none; border-radius: 0 0 4px 4px; position: absolute; top: 0; z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: all 0.15s ease;
         }
         .key-white.active { background: rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 0 60px rgba(59, 130, 246, 0.6), inset 0 0 30px rgba(59, 130, 246, 0.3); transform: translateY(4px) scale(0.98); }
-        .key-black.active { background: #1E40AF; border-color: #3B82F6; box-shadow: 0 0 40px rgba(59, 130, 246, 0.5); transform: translateY(4px); }
+        .key-black.active { background: var(--accent-primary); border-color: #3B82F6; box-shadow: 0 0 40px rgba(59, 130, 246, 0.5); transform: translateY(4px); }
         .kb-1 { left: 40px; } .kb-2 { left: 96px; } .kb-3 { left: 206px; } .kb-4 { left: 260px; } .kb-5 { left: 316px; }
+
+        /* --- Light theme support --- */
+        [data-theme="light"] body {
+            background: radial-gradient(circle at center, var(--bg-panel) 0%, var(--bg-app) 100%);
+        }
+        [data-theme="light"] .logo-img {
+            background-color: #333;
+        }
+        [data-theme="light"] .key-white {
+            background: rgba(0, 0, 0, 0.03);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+        [data-theme="light"] .key-black {
+            background: rgba(0, 0, 0, 0.7);
+            border-color: rgba(0, 0, 0, 0.15);
+        }
+        [data-theme="light"] .loader-track {
+            background: rgba(0, 0, 0, 0.08);
+        }
 
     </style>
 </head>
@@ -167,8 +170,6 @@
 
     <!-- --- LOGO --- -->
     <div class="logo-container">
-        <!-- WAŻNE: Podmień 'src' na swoją ścieżkę: src="static/logo.png" -->
-        <!-- Dajemy id="app-logo" żeby łatwiej złapać w JS -->
         <img id="app-logo" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="logo-img" alt="">
     </div>
 
@@ -186,22 +187,18 @@
     <script>
         // --- KONFIGURACJA ---
         const SERVER_URL = 'http://127.0.0.1:5000';
-        
-        // --- USTAWIENIA CZASU (W MILISEKUNDACH) ---
-        // Tutaj ustawiasz, ile MINIMUM ma trwać ekran ładowania
-        // 3500 = 3.5 sekundy (idealnie, żeby zobaczyć pianino i cząsteczki)
-        const MIN_LOADING_TIME = 3500; 
 
-        // Zapisujemy moment startu skryptu
+        // --- USTAWIENIA CZASU (W MILISEKUNDACH) ---
+        const MIN_LOADING_TIME = 3500;
+
         const startTime = Date.now();
         let serverReady = false;
 
         // --- CZĄSTECZKI (PARTICLES) ---
-        // (Kod cząsteczek pozostaw bez zmian, tu go skracam dla czytelności...)
         const canvas = document.getElementById('particles-canvas');
         const ctx = canvas.getContext('2d');
         let particlesArray = [];
-        
+
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -213,7 +210,7 @@
             constructor() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 2 + 0.1; 
+                this.size = Math.random() * 2 + 0.1;
                 this.speedX = (Math.random() * 0.6) - 0.3;
                 this.speedY = (Math.random() * 0.6) - 0.3;
                 this.opacity = Math.random() * 0.5 + 0.1;
@@ -249,12 +246,12 @@
         animateParticles();
 
 
-        // --- PIANINO (Również bez zmian w logice) ---
+        // --- PIANINO ---
         const melody = [
             ['C4', 400, 400], ['E4', 400, 400], ['G4', 800, 800],
             ['A4', 600, 600], ['G4', 1000, 1000],
             ['F4', 400, 400], ['E4', 400, 400], ['D4', 800, 800],
-            [null, 0, 400], 
+            [null, 0, 400],
             ['E4', 500, 500], ['C4', 900, 900],
             ['D4', 500, 500], ['E4', 1000, 1200]
         ];
@@ -277,25 +274,18 @@
             setTimeout(startPianoLoop, timeOffset + 2000);
         }
 
-        // --- LOGIKA PROGRESS BAR I TIMERA (TO JEST NOWE) ---
+        // --- LOGIKA PROGRESS BAR I TIMERA ---
         let currentProgress = 0;
         const progressBar = document.getElementById('progress');
 
         function updateFakeProgress() {
-            // Jeśli serwer już odpowiedział, nie aktualizujemy "fake" progressu, 
-            // bo funkcja finishSequence zajmie się resztą.
-            if (serverReady) return; 
+            if (serverReady) return;
 
-            // Obliczamy ile czasu minęło
             const elapsed = Date.now() - startTime;
-            
-            // Postęp bazuje na czasie. 
-            // Jeśli minęło 50% wymaganego czasu, pasek ma 50%.
-            // Blokujemy na 90%, żeby czekał na faktyczne połączenie.
-            let percent = (elapsed / MIN_LOADING_TIME) * 95; 
-            
-            if (percent > 90) percent = 90; // Zatrzymaj na 90%
-            
+            let percent = (elapsed / MIN_LOADING_TIME) * 95;
+
+            if (percent > 90) percent = 90;
+
             currentProgress = percent;
             progressBar.style.width = currentProgress + '%';
 
@@ -305,41 +295,31 @@
         // --- SPRAWDZANIE SERWERA ---
         async function checkServer() {
             try {
-                // Pukamy do serwera
                 await fetch(SERVER_URL, { method: 'HEAD', mode: 'no-cors' });
-                
-                // SERWER ODPOWIEDZIAŁ!
+
                 serverReady = true;
-                
-                // Ale czy minął już minimalny czas?
+
                 const elapsed = Date.now() - startTime;
                 const remainingTime = MIN_LOADING_TIME - elapsed;
 
                 if (remainingTime > 0) {
-                    // Serwer jest za szybki! Czekamy resztę czasu.
-                    // Pasek jest np. na 30%, niech sobie spokojnie dojedzie
                     setTimeout(finishSequence, remainingTime);
                 } else {
-                    // Minęło już wystarczająco dużo czasu, kończymy od razu.
                     finishSequence();
                 }
 
             } catch (e) {
-                // Serwer jeszcze nie wstał, sprawdzamy znowu za 500ms
                 setTimeout(checkServer, 500);
             }
         }
 
         // --- SEKWENCJA KOŃCOWA (FADE OUT) ---
         function finishSequence() {
-            // 1. Dobijamy pasek do 100%
             progressBar.style.width = '100%';
 
-            // 2. Wygaszamy
-            document.body.style.transition = "opacity 0.8s ease-in-out"; // Trochę wolniejszy fade (0.8s) jest ładniejszy
+            document.body.style.transition = "opacity 0.8s ease-in-out";
             document.body.style.opacity = "0";
 
-            // 3. Przekierowanie po zakończeniu animacji wygaszania
             setTimeout(() => {
                 window.location.replace(SERVER_URL);
             }, 800);
@@ -347,17 +327,18 @@
 
         // --- START ---
         window.onload = () => {
-            // Obsługa loga (z poprzedniego kroku)
             const logoImg = document.getElementById('app-logo');
-            // logoImg.src = "../static/logo.png"; // Odkomentuj jeśli masz poprawne ścieżki
             logoImg.onerror = function() {
                  this.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
             };
 
             startPianoLoop();
-            updateFakeProgress(); // Startuje pętlę paska
-            checkServer();        // Startuje pętlę sprawdzania serwera
+            updateFakeProgress();
+            checkServer();
         };
+
+        // Initialize translations
+        initI18n();
     </script>
 </body>
 </html>

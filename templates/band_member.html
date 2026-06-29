@@ -131,7 +131,7 @@
 
         #bpm-display {
             font-size: 2.5vh;
-            color: #fdcb6e;
+            color: var(--accent-warning);
             font-weight: bold;
             font-family: monospace;
             letter-spacing: 1px;
@@ -140,7 +140,7 @@
 
         #next-label {
             font-size: 2vh;
-            color: #ff6b6b;
+            color: var(--accent-danger);
             font-weight: bold;
             margin-bottom: 5px;
             flex-shrink: 0;
@@ -148,7 +148,7 @@
 
         #next-content {
             flex-grow: 1;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--text-muted);
             font-size: 4vh;
             line-height: 2.0;
             text-align: left;
@@ -163,16 +163,16 @@
 
         /* AKORDY */
         .chord-wrapper { display: inline-block; position: relative; overflow: visible; vertical-align: baseline; }
-        .bass-slash { color: #ff6b6b; opacity: 0.8; }
-        .bass-note { color: #00cec9; font-weight: 800; font-size: 0.95em; }
+        .bass-slash { color: var(--accent-danger); opacity: 0.8; }
+        .bass-note { color: var(--accent-secondary); font-weight: 800; font-size: 0.95em; }
 
         #current-slide .chord {
             position: absolute; bottom: 0.7em; left: 0; transform: none;
-            color: #3B82F6; font-weight: 700; font-size: 0.65em;
+            color: var(--accent-primary); font-weight: 700; font-size: 0.65em;
             background: transparent; padding: 0; text-shadow: 1px 1px 2px #000;
         }
-        #current-slide .chord.nashville { color: #fdcb6e; }
-        #current-slide .chord.capo { color: #00b894; }
+        #current-slide .chord.nashville { color: var(--accent-warning); }
+        #current-slide .chord.capo { color: var(--accent-success); }
 
         #next-slide-container .chord-wrapper {
             display: inline-block !important;
@@ -184,16 +184,16 @@
             position: absolute !important;
             bottom: 0.6em;
             left: 0;
-            color: #00b894;
+            color: var(--accent-success);
             font-size: 0.6em;
             font-weight: bold;
             white-space: nowrap;
         }
-        #next-slide-container .chord.nashville { color: #fdcb6e99; }
-        #next-slide-container .chord.capo { color: rgba(0,184,148,0.6); }
+        #next-slide-container .chord.nashville { color: var(--accent-warning); opacity: 0.6; }
+        #next-slide-container .chord.capo { color: var(--accent-success); opacity: 0.6; }
 
         #current-slide .chord.hard-chord {
-            color: #fdcb6e;
+            color: var(--accent-warning);
             text-decoration: underline;
             text-decoration-style: dotted;
             text-underline-offset: 3px;
@@ -209,7 +209,7 @@
         /* --- WIDOK KONFERENCJI --- */
         #conference-view {
             display: none; height: 100%; width: 100%;
-            background: #06060a;
+            background: var(--bg-app);
             flex-direction: column; justify-content: center; align-items: center; text-align: center;
         }
         #conf-timer { font-size: 25vh; font-weight: bold; font-family: monospace; color: white; margin-bottom: 5vh; }
@@ -225,9 +225,9 @@
         #settings-panel {
             position: fixed; top: 0; right: -360px;
             width: 340px; height: 100%;
-            background: rgba(14,14,20,0.95);
+            background: var(--glass-bg);
             backdrop-filter: blur(20px);
-            border-left: 1px solid rgba(59,130,246,0.1);
+            border-left: 1px solid var(--border-color);
             border-radius: 16px 0 0 16px;
             z-index: 10001;
             transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
@@ -237,23 +237,23 @@
         }
         #settings-panel.open { right: 0; }
         #settings-panel h2 {
-            font-size: 18px; color: #fff;
-            padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 18px; color: var(--text-main);
+            padding-bottom: 10px; border-bottom: 1px solid var(--border-color);
             display: flex; justify-content: space-between; align-items: center;
         }
         .setting-group {
-            background: #0e0e14;
+            background: var(--bg-panel);
             border-radius: 10px;
             padding: 14px;
         }
         .setting-group .group-title {
-            font-size: 12px; color: #888;
+            font-size: 12px; color: var(--text-muted);
             text-transform: uppercase; letter-spacing: 1px;
             margin-bottom: 10px;
         }
         .setting-group label {
             display: flex; justify-content: space-between; align-items: center;
-            font-size: 14px; color: #ccc;
+            font-size: 14px; color: var(--text-main);
             margin-bottom: 10px;
         }
         .setting-group label:last-child { margin-bottom: 0; }
