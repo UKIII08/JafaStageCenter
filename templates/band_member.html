@@ -375,7 +375,7 @@
                 <div id="bpm-display"></div>
             </div>
 
-            <div id="next-label">NASTĘPNIE:</div>
+            <div id="next-label" data-t="bm_next_label">NASTĘPNIE:</div>
             <div id="next-content">
                 <div id="next-text-inner" class="text-wrapper"></div>
             </div>
@@ -416,56 +416,56 @@
         </div>
 
         <div class="setting-group">
-            <div class="group-title">Akordy</div>
+            <div class="group-title" data-t="bm_chords_group">Akordy</div>
             <label>
-                Pokaż akordy
+                <span data-t="bm_show_chords">Pokaż akordy</span>
                 <div class="toggle active" id="tog-chords" onclick="toggleOpt('show_chords')"></div>
             </label>
             <label>
-                Notacja
+                <span data-t="bm_notation">Notacja</span>
                 <select id="chord-notation" onchange="setNotation(this.value)" style="margin-left:auto; padding:4px 8px; border-radius:6px; background:var(--bg-panel); color:var(--text-main); border:1px solid var(--border-color);">
-                    <option value="international">Międzynarodowa (Bb, B)</option>
-                    <option value="polish">Polska (B, H)</option>
-                    <option value="nashville">Nashville (1-2-3)</option>
+                    <option value="international" data-t="bm_intl">Międzynarodowa (Bb, B)</option>
+                    <option value="polish" data-t="bm_polish">Polska (B, H)</option>
+                    <option value="nashville" data-t="bm_nashville">Nashville (1-2-3)</option>
                 </select>
             </label>
             <label>
-                Małe litery = mol
+                <span data-t="bm_lowercase_minor">Małe litery = mol</span>
                 <div class="toggle" id="tog-lowercase-minor" onclick="toggleOpt('lowercase_minor')"></div>
             </label>
             <label>
-                Tryb początkującego
+                <span data-t="bm_beginner">Tryb początkującego</span>
                 <div class="toggle" id="tog-beginner" onclick="toggleOpt('beginner_mode')"></div>
             </label>
             <label>
-                Diagramy chwytów
+                <span data-t="bm_diagrams">Diagramy chwytów</span>
                 <select id="diagram-instrument" onchange="setDiagramInstrument(this.value)" style="margin-left:auto; padding:4px 8px; border-radius:6px; background:var(--bg-panel); color:var(--text-main); border:1px solid var(--border-color);">
-                    <option value="off">Wyłączone</option>
-                    <option value="guitar" selected>Gitara</option>
-                    <option value="piano">Piano</option>
+                    <option value="off" data-t="bm_off">Wyłączone</option>
+                    <option value="guitar" selected data-t="bm_guitar">Gitara</option>
+                    <option value="piano" data-t="bm_piano">Piano</option>
                 </select>
             </label>
         </div>
 
         <div class="setting-group">
-            <div class="group-title">Kapodaster</div>
+            <div class="group-title" data-t="bm_capo_group">Kapodaster</div>
             <label>
-                Próg kapo
+                <span data-t="bm_capo_fret">Próg kapo</span>
                 <select id="capo-select" onchange="setCapo(+this.value)">
-                    <option value="0">Brak</option>
+                    <option value="0" data-t="bm_none">Brak</option>
                     {% for i in range(1, 13) %}
                     <option value="{{ i }}">{{ i }}</option>
                     {% endfor %}
                 </select>
             </label>
-            <div id="capo-suggestion" style="margin-top:10px; padding:10px; background:rgba(0,206,201,0.05); border:1px solid rgba(0,206,201,0.3); border-radius:8px; font-size:12px; color:#888; display:none;">
-                <div style="color:#00b894; font-weight:bold; margin-bottom:4px;" id="capo-suggest-title"></div>
+            <div id="capo-suggestion" style="margin-top:10px; padding:10px; background:rgba(0,206,201,0.05); border:1px solid rgba(0,206,201,0.3); border-radius:8px; font-size:12px; color:var(--text-muted); display:none;">
+                <div style="color:var(--accent-success); font-weight:bold; margin-bottom:4px;" id="capo-suggest-title"></div>
                 <div id="capo-suggest-details"></div>
             </div>
         </div>
 
         <div class="setting-group">
-            <div class="group-title">Rozmiar czcionki</div>
+            <div class="group-title" data-t="bm_font_size">Rozmiar czcionki</div>
             <label>
                 <span id="font-size-val">8</span> vh
             </label>
@@ -688,13 +688,13 @@
 
             if (bestCapo === 0 && bestScore >= 1) {
                 box.style.display = 'block';
-                document.getElementById('capo-suggest-title').textContent = '✓ Bez kapo — akordy są proste';
+                document.getElementById('capo-suggest-title').textContent = t('bm_capo_simple');
                 document.getElementById('capo-suggest-details').textContent = bestChords.join(', ');
             } else if (bestCapo > 0) {
                 box.style.display = 'block';
-                document.getElementById('capo-suggest-title').textContent = 'Sugerowany kapo: próg ' + bestCapo;
+                document.getElementById('capo-suggest-title').textContent = t('bm_capo_suggest') + ' ' + bestCapo;
                 document.getElementById('capo-suggest-details').innerHTML =
-                    'Akordy z capo ' + bestCapo + ': <span style="color:#ccc;">' + bestChords.join(', ') + '</span>';
+                    t('bm_capo_chords') + ' ' + bestCapo + ': <span style="color:var(--text-main);">' + bestChords.join(', ') + '</span>';
             } else {
                 box.style.display = 'none';
             }
@@ -761,7 +761,7 @@
             const capoBox = document.getElementById('capo-display');
             if (currentKey && currentKey !== 'N/A' && currentKey.trim() !== '-') {
                 const displayKey = convertNotation(currentKey);
-                keyBox.innerText = 'Tonacja: ' + displayKey;
+                keyBox.innerText = t('bm_key_prefix') + ' ' + displayKey;
                 keyBox.style.display = 'block';
                 if (currentSettings.capo_fret > 0) {
                     const capoKey = convertNotation(transposeChord(currentKey, -currentSettings.capo_fret));
@@ -926,10 +926,10 @@
             if (inst === 'guitar') {
                 const guitarName = chordName.includes('/') ? chordName.split('/')[0] : chordName;
                 const data = lookupChord(guitarName);
-                html = data ? renderChordSVG(label, data) : `<div class="no-diagram"><strong>${label}</strong><br>Brak diagramu</div>`;
+                html = data ? renderChordSVG(label, data) : `<div class="no-diagram"><strong>${label}</strong><br>${t('bm_no_diagram')}</div>`;
             } else {
                 const notes = lookupPianoChord(chordName);
-                html = notes ? renderPianoSVG(label, notes) : `<div class="no-diagram"><strong>${label}</strong><br>Brak diagramu</div>`;
+                html = notes ? renderPianoSVG(label, notes) : `<div class="no-diagram"><strong>${label}</strong><br>${t('bm_no_diagram')}</div>`;
             }
 
             content.innerHTML = html;
@@ -1003,7 +1003,7 @@
 
         function deleteCurrentPreset() {
             if (!activePresetId) return;
-            if (!confirm('Usunąć ten preset?')) return;
+            if (!confirm(t('bm_delete_preset'))) return;
             fetch('/api/presets/' + activePresetId, { method: 'DELETE' })
             .then(() => { activePresetId = null; refreshPresetList(); });
         }
@@ -1011,7 +1011,7 @@
         function refreshPresetList() {
             fetch('/api/presets').then(r => r.json()).then(presets => {
                 const sel = document.getElementById('preset-select');
-                sel.innerHTML = '<option value="">— Wybierz preset —</option>';
+                sel.innerHTML = '<option value="" data-t="bm_choose_preset">' + t('bm_choose_preset') + '</option>';
                 for (const p of presets) {
                     const opt = document.createElement('option');
                     opt.value = p.id; opt.textContent = p.name;
@@ -1022,7 +1022,12 @@
             });
         }
 
+        socket.on('apply_settings', function(data) {
+            if (data.lang) initI18n(data.lang);
+        });
+
         updateToggles();
+        initI18n();
     </script>
 </body>
 </html>
