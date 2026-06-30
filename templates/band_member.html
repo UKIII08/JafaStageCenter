@@ -459,7 +459,8 @@
     </div>
 
     <script>
-        var socket = io();
+        var socket;
+        try { socket = io(); } catch(e) { socket = { on: function(){}, emit: function(){} }; }
         const worshipView = document.getElementById('worship-view');
         const confView = document.getElementById('conference-view');
         const currentContent = document.getElementById('current-content');
