@@ -725,7 +725,7 @@
             if (currentContent.style.display === 'none') return;
             currentContent.innerHTML = transformServerHtml(currentBandHtml);
             currentContent.style.fontSize = currentSettings.font_size + 'vh';
-            setTimeout(() => fitText('current-slide', 'current-content', currentSettings.font_size, 3), 0);
+            setTimeout(() => { fitText('current-slide', 'current-content', currentSettings.font_size, 3); fixChordOverlap(currentContent); }, 0);
 
             // Next section (max 4 lines like stage view)
             if (currentBandNext && currentBandNext.trim()) {
@@ -735,7 +735,7 @@
                     : currentBandNext;
                 document.getElementById('next-text-inner').innerHTML = transformServerHtml(trimmed);
                 document.getElementById('next-label').style.display = 'block';
-                setTimeout(() => fitText('next-content', 'next-text-inner', 4.5, 2.5), 0);
+                setTimeout(() => { fitText('next-content', 'next-text-inner', 4.5, 2.5); fixChordOverlap(document.getElementById('next-text-inner')); }, 0);
             } else {
                 document.getElementById('next-text-inner').innerHTML = '';
                 document.getElementById('next-label').style.display = 'none';
@@ -769,6 +769,25 @@
             }
 
             suggestCapo();
+        }
+
+        function fixChordOverlap(container) {
+            if (!container) return;
+            var chords = container.querySelectorAll('.chord');
+            for (var i = 0; i < chords.length; i++) {
+                chords[i].style.left = '0';
+            }
+            for (var i = 0; i < chords.length - 1; i++) {
+                var curr = chords[i].getBoundingClientRect();
+                var next = chords[i + 1].getBoundingClientRect();
+                if (Math.abs(curr.top - next.top) > curr.height) continue;
+                var gap = 6;
+                if (curr.right + gap > next.left) {
+                    var overlap = curr.right + gap - next.left;
+                    var curLeft = parseFloat(chords[i].style.left) || 0;
+                    chords[i].style.left = (curLeft - overlap) + 'px';
+                }
+            }
         }
 
         // Auto-Scale (same as stage)

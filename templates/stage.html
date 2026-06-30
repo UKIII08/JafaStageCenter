@@ -355,6 +355,25 @@
         setInterval(updateClock, 1000);
         updateClock();
 
+        function fixChordOverlap(container) {
+            if (!container) return;
+            var chords = container.querySelectorAll('.chord');
+            for (var i = 0; i < chords.length; i++) {
+                chords[i].style.left = '0';
+            }
+            for (var i = 0; i < chords.length - 1; i++) {
+                var curr = chords[i].getBoundingClientRect();
+                var next = chords[i + 1].getBoundingClientRect();
+                if (Math.abs(curr.top - next.top) > curr.height) continue;
+                var gap = 6;
+                if (curr.right + gap > next.left) {
+                    var overlap = curr.right + gap - next.left;
+                    var curLeft = parseFloat(chords[i].style.left) || 0;
+                    chords[i].style.left = (curLeft - overlap) + 'px';
+                }
+            }
+        }
+
         // Auto-Scale
         function fitText(containerId, contentId, maxVh, minVh) {
             const container = document.getElementById(containerId);
@@ -546,7 +565,7 @@
                 // 4. Wyświetlanie treści
                 if(data.band !== undefined) {
                     currentContent.innerHTML = transformStageHtml(data.band);
-                    setTimeout(() => fitText('current-slide', 'current-content', 12, 4), 0);
+                    setTimeout(() => { fitText('current-slide', 'current-content', 12, 4); fixChordOverlap(currentContent); }, 0);
 
                     if (data.band_next && data.band_next.trim() !== "") {
                         let rawLines = data.band_next.split('<br>');
@@ -559,7 +578,7 @@
 
                         document.getElementById('next-text-inner').innerHTML = transformStageHtml(finalText);
                         document.getElementById('next-label').style.display = 'block';
-                        setTimeout(() => fitText('next-content', 'next-text-inner', 4.5, 2.5), 0);
+                        setTimeout(() => { fitText('next-content', 'next-text-inner', 4.5, 2.5); fixChordOverlap(document.getElementById('next-text-inner')); }, 0);
 
                     } else {
                         document.getElementById('next-text-inner').innerHTML = "";
