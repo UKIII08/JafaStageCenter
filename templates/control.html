@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#090909">
+    <meta name="theme-color" content="#080b14">
 
     <script src="{{ url_for('static', filename='socket.io.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -14,449 +14,567 @@
     <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 
     <style>
-        /* --- Control-specific styles (design tokens, fonts, reset, body base, toasts in design-system.css) --- */
         body {
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
-        /* --- PASEK GÓRNY --- */
+
+        /* ── Top Bar ── */
         .top-bar {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            padding: max(12px, env(safe-area-inset-top)) 24px 12px 24px;
-            height: auto;
-            min-height: 64px;
+            background: var(--bg-panel);
+            padding: max(10px, env(safe-area-inset-top)) var(--s6) 10px;
+            min-height: 56px;
             display: flex;
             align-items: center;
-            border-bottom: 1px solid var(--glass-border);
+            border-bottom: 1px solid var(--border-default);
             z-index: 20;
-            gap: 12px;
-            box-shadow: 0 4px 24px -10px var(--shadow-color), 0 1px 0 0 var(--glow-primary);
-            position: relative;
-        }
-        .top-bar::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
-            opacity: 0.4;
+            gap: var(--s3);
         }
 
-        .mode-btn {
+        .top-bar-spacer { flex: 1; }
+
+        .top-bar .segmented-control { margin-right: auto; }
+
+        .top-btn {
             background: transparent;
-            border: none;
-            padding: 8px 20px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: var(--text-muted);
+            border: 1px solid var(--border-default);
+            color: var(--text-secondary);
+            border-radius: var(--r-md);
+            padding: var(--s2) var(--s4);
+            font-size: var(--font-sm);
+            font-weight: 600;
             cursor: pointer;
-            border-radius: 50px;
-            transition: all var(--transition-smooth);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .mode-btn:hover { color: var(--text-main); background: var(--bg-element-hover); }
-        .mode-btn.active {
-            background: rgba(59,130,246,0.15);
-            color: var(--text-main);
-            box-shadow: 0 0 20px var(--glow-primary), inset 0 0 12px rgba(59,130,246,0.08);
-        }
-        
-        .action-btn {
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: white;
-            border-radius: var(--radius-sm);
-            padding: 8px 16px;
-            font-size: 0.85rem;
-            border: none;
-            cursor: pointer;
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--s2);
+            transition: all var(--duration-fast) var(--ease-in-out);
+            font-family: inherit;
             white-space: nowrap;
-            font-weight: 700;
-            transition: transform var(--transition-fast), box-shadow var(--transition-smooth), filter var(--transition-fast);
-            text-decoration: none;
-            box-shadow: 0 2px 8px rgba(59,130,246,0.25);
         }
-        .action-btn:hover { filter: brightness(1.12); box-shadow: 0 4px 16px rgba(59,130,246,0.35); }
-        .action-btn:active { transform: scale(0.97); }
-        
-        .settings-btn {
-            background: transparent;
-            color: var(--text-muted);
-            border: 1px solid var(--border-color);
-            box-shadow: none;
+        .top-btn:hover {
+            background: var(--bg-surface);
+            border-color: var(--accent);
+            color: var(--text-primary);
         }
-        .settings-btn:hover {
-            background: var(--bg-element);
-            color: var(--text-main);
-            border-color: rgba(59,130,246,0.3);
-            box-shadow: 0 0 12px var(--glow-primary);
+        .top-btn:active { transform: scale(0.97); }
+
+        .top-btn-accent {
+            background: var(--accent);
+            border: 1px solid var(--accent);
+            color: white;
+        }
+        .top-btn-accent:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+            color: white;
+            box-shadow: var(--shadow-glow);
         }
 
-        /* --- UKŁAD KOLUMN --- */
-        .mode-container { display: none; height: calc(100vh - 80px); }
-        .mode-container.active { display: grid; } 
+        /* ── Layout ── */
+        .mode-container { display: none; height: calc(100vh - 56px); }
+        .mode-container.active { display: grid; }
+
         #worship-mode {
-            grid-template-columns: 280px 320px 1fr;
-            width: 100%;
+            grid-template-columns: 260px 300px 1fr;
             background: var(--bg-app);
-            gap: 0;
+            gap: 1px;
         }
-
-        #conference-mode { display: none; flex-direction: column; align-items: center; padding: max(20px, env(safe-area-inset-top)) 30px 40px; background: var(--bg-app); overflow-y: auto; }
-        #conference-mode.active { display: flex; }
 
         .col {
             background: var(--bg-panel);
-            padding: 20px;
+            padding: var(--s5);
             display: flex;
             flex-direction: column;
             overflow-y: hidden;
             position: relative;
-            border-right: 1px solid var(--border-color);
-        }
-        .col:last-child { border-right: none; }
-        #col-library {
-            background: linear-gradient(180deg, var(--bg-panel) 0%, rgba(59,130,246,0.02) 100%);
-            box-shadow: inset 0 0 30px rgba(0,0,0,0.1);
-        }
-        #col-setlist {
-            background: linear-gradient(180deg, var(--bg-app) 0%, rgba(0,206,201,0.02) 100%);
-            box-shadow: inset 0 0 30px rgba(0,0,0,0.1);
         }
 
-        #col-live { background: var(--bg-panel); padding: 24px; display: flex; flex-direction: column; box-shadow: inset 0 0 30px rgba(0,0,0,0.08); }
+        #col-library { border-right: 1px solid var(--border-subtle); }
+        #col-setlist { border-right: 1px solid var(--border-subtle); }
+        #col-live { padding: var(--s6); }
 
-        .scrollable { overflow-y: auto; flex-grow: 1; padding-right: 5px;}
-        
-        h2 {
-            margin-top: 0;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 12px;
-            margin-bottom: 16px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
+        .scrollable { overflow-y: auto; flex-grow: 1; padding-right: 4px; }
+
+        /* ── Section Headers ── */
+        .col-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: var(--s3);
+            margin-bottom: var(--s4);
         }
-        .lib-header, .live-top-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; }
-        .lib-header h2, .live-top-header h2 { border: none; margin: 0; padding: 0; }
 
-        /* --- TYTUŁ AKTUALNEJ PIOSENKI --- */
-        #current-title {
-            margin: 0 0 16px 0; /* Odstęp od dołu, żeby oddzielić od ekranu */
+        .col-title {
+            font-size: var(--font-xs);
+            color: var(--text-tertiary);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin: 0;
+        }
+
+        /* ── Plus Menu ── */
+        .plus-container { position: relative; }
+        .plus-btn {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-default);
+            width: 28px; height: 28px;
+            border-radius: var(--r-sm);
             font-size: 1.2rem;
-            color: var(--text-main);
-            font-weight: 800;
-            padding-left: 2px;
-            letter-spacing: 0.5px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        .plus-btn:hover {
+            background: var(--accent-subtle);
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
-        /* --- UKŁAD LIVE (SPLIT SCREEN) --- */
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0; top: 36px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-default);
+            border-radius: var(--r-md);
+            box-shadow: var(--shadow-lg);
+            z-index: 100;
+            min-width: 180px;
+            padding: var(--s1);
+            overflow: hidden;
+        }
+        .dropdown-menu.show { display: block; animation: fadeIn var(--duration-fast) var(--ease-out); }
+        .dropdown-item {
+            padding: var(--s3) var(--s4);
+            cursor: pointer;
+            font-size: var(--font-sm);
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--s3);
+            border-radius: var(--r-sm);
+            transition: background var(--duration-fast) var(--ease-in-out);
+        }
+        .dropdown-item:hover { background: var(--accent); color: white; }
+
+        /* ── Search ── */
+        #searchBox { margin-bottom: var(--s4); }
+
+        /* ── Library Items ── */
+        .lib-item {
+            border-bottom: 1px solid var(--border-subtle);
+            transition: background var(--duration-fast) var(--ease-in-out);
+        }
+        .lib-item:last-child { border-bottom: none; }
+
+        .lib-summary {
+            padding: var(--s3) var(--s3);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            list-style: none;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: var(--font-sm);
+            border-radius: var(--r-sm);
+            transition: background var(--duration-fast) var(--ease-in-out);
+        }
+        .lib-summary:hover { background: var(--bg-surface); }
+        .lib-summary::-webkit-details-marker { display: none; }
+
+        .lib-content-preview {
+            padding: var(--s3);
+            margin: 0 var(--s2) var(--s3);
+            background: var(--bg-surface);
+            border-radius: var(--r-sm);
+            border: 1px solid var(--border-subtle);
+            font-size: var(--font-xs);
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        /* ── Branding ── */
+        .branding-area {
+            margin-top: auto;
+            padding: var(--s4) var(--s2) var(--s2);
+            border-top: 1px solid var(--border-subtle);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .branding-img {
+            max-width: 100px;
+            max-height: 50px;
+            object-fit: contain;
+            margin-bottom: var(--s1);
+            opacity: 0.3;
+            filter: grayscale(100%);
+            transition: opacity var(--duration-normal) var(--ease-out);
+        }
+        .branding-area:hover .branding-img { opacity: 0.7; }
+        .version-text {
+            font-size: var(--font-xs);
+            color: var(--text-tertiary);
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+        [data-theme="light"] .branding-img { opacity: 0.5; filter: none; }
+
+        /* ── Setlist ── */
+        .setlist-item {
+            background: var(--bg-surface);
+            margin-bottom: var(--s2);
+            padding: var(--s3) var(--s4);
+            border-radius: var(--r-md);
+            border: 1px solid transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: var(--s3);
+            transition: all var(--duration-fast) var(--ease-in-out);
+            font-size: var(--font-sm);
+        }
+        .setlist-item:hover { background: var(--bg-surface-hover); }
+        .setlist-item.active {
+            background: var(--accent-subtle);
+            border-color: var(--accent);
+        }
+        .setlist-item.active .setlist-content span {
+            color: var(--accent);
+            font-weight: 700;
+        }
+        .setlist-content { flex-grow: 1; font-weight: 500; }
+        .setlist-controls { display: flex; flex-direction: column; gap: 4px; }
+        .move-btn {
+            background: transparent;
+            border: 1px solid var(--border-default);
+            font-size: 0.6rem;
+            padding: 3px 6px;
+            cursor: pointer;
+            border-radius: var(--r-sm);
+            color: var(--text-tertiary);
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        .move-btn:hover { background: var(--bg-surface-hover); color: var(--text-primary); }
+
+        .drag-handle {
+            cursor: grab;
+            color: var(--text-tertiary);
+            font-size: 1.2rem;
+            padding: 0 var(--s2) 0 0;
+            touch-action: none;
+            user-select: none;
+        }
+        .drag-handle:active { cursor: grabbing; }
+        .sortable-ghost {
+            opacity: 0.4;
+            background: var(--accent-subtle) !important;
+            border: 1px dashed var(--accent) !important;
+        }
+
+        .empty-setlist {
+            text-align: center;
+            color: var(--text-tertiary);
+            margin-top: var(--s10);
+            font-size: var(--font-sm);
+        }
+
+        .setlist-actions {
+            display: flex;
+            gap: var(--s2);
+            margin-top: var(--s3);
+        }
+        .setlist-actions .top-btn { flex: 1; justify-content: center; font-size: var(--font-xs); }
+
+        /* ── Live Panel ── */
+        .live-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--s3);
+        }
+        .live-header h2 {
+            margin: 0; border: none; padding: 0;
+            font-size: var(--font-xs);
+            color: var(--text-tertiary);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .next-song-btn-landscape { display: none; }
+
+        #current-title {
+            margin: 0 0 var(--s4);
+            font-size: var(--font-lg);
+            color: var(--text-primary);
+            font-weight: 800;
+            letter-spacing: -0.01em;
+        }
+
+        /* ── Live Split ── */
         .live-split-wrapper {
             display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-            width: 100%;
-            /* KLUCZOWE: Stretch wymusza równą wysokość obu kolumn */
-            align-items: stretch; 
+            gap: var(--s5);
+            margin-bottom: var(--s5);
+            align-items: stretch;
         }
 
-        /* Podgląd Ekranu - 16:9, 45% szerokości */
         #live-preview-box {
-            background: var(--bg-preview); color: var(--text-main);
-
+            background: var(--bg-preview);
+            color: var(--text-primary);
             width: 45%;
             aspect-ratio: 16 / 9;
-
-            border-radius: var(--radius-md);
-            display: flex; align-items: center; justify-content: center;
+            border-radius: var(--r-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             text-align: center;
-
-            /* Skalowanie tekstu */
             font-size: clamp(0.7rem, 1.4vw, 1.2rem);
             line-height: 1.4;
-
             white-space: pre-wrap;
             flex-shrink: 0;
-            border: 1px solid rgba(59,130,246,0.2);
-            box-shadow: 0 10px 30px -10px var(--shadow-color), 0 0 0 1px rgba(59,130,246,0.1);
+            border: 1px solid var(--border-default);
+            box-shadow: var(--shadow-md);
             text-shadow: 0 2px 10px rgba(0,0,0,0.8);
-            transition: border-color var(--transition-smooth);
             overflow: hidden;
             position: relative;
+            transition: border-color var(--duration-normal) var(--ease-out);
         }
         #live-preview-box::before {
             content: '';
             position: absolute;
             inset: -2px;
-            border-radius: var(--radius-md);
+            border-radius: var(--r-lg);
             padding: 2px;
-            background: conic-gradient(from var(--preview-angle, 0deg), var(--accent-primary), var(--accent-secondary), var(--accent-success), var(--accent-primary));
+            background: conic-gradient(from var(--preview-angle, 0deg), var(--accent), var(--teal), var(--green), var(--accent));
             -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
             -webkit-mask-composite: xor;
             mask-composite: exclude;
-            opacity: 0.35;
-            animation: rotateBorder 6s linear infinite;
+            opacity: 0.25;
+            animation: rotateBorder 8s linear infinite;
             pointer-events: none;
         }
         #live-preview-box::after {
             content: '';
             position: absolute;
             inset: 0;
-            background: repeating-linear-gradient(
-                0deg,
-                transparent,
-                transparent 2px,
-                rgba(0,0,0,0.03) 2px,
-                rgba(0,0,0,0.03) 4px
-            );
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
             pointer-events: none;
-            border-radius: var(--radius-md);
+            border-radius: var(--r-lg);
         }
-        @keyframes rotateBorder {
-            to { --preview-angle: 360deg; }
-        }
-        @property --preview-angle {
-            syntax: '<angle>';
-            initial-value: 0deg;
-            inherits: false;
-        }
-        #live-preview-box:hover { border-color: rgba(59,130,246,0.5); }
+        #live-preview-box:hover { border-color: var(--accent); }
 
         .preview-info-label {
-            color: var(--text-muted);
-            font-weight: 800;
-            letter-spacing: 0.3px;
-            border: 1px dashed rgba(59,130,246,0.25);
-            padding: 8px 16px;
-            border-radius: var(--radius-sm);
-            font-size: 0.8rem;
-            background: rgba(59,130,246,0.05);
+            color: var(--text-tertiary);
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            border: 1px dashed var(--border-strong);
+            padding: var(--s2) var(--s4);
+            border-radius: var(--r-sm);
+            font-size: var(--font-sm);
             text-shadow: none;
         }
 
-        /* Panel boczny sterowania */
+        /* ── Side Controls ── */
         .live-side-controls {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            gap: 10px; /* Mniejszy gap, żeby elementy były bliżej siebie */
+            gap: var(--s3);
             min-width: 200px;
-            height: auto; 
         }
 
-        /* Kontener PADA i Music Info */
         .pad-panel-box, .music-info-box {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius-lg);
-            padding: 10px 16px; /* Nieco mniejszy padding */
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--r-lg);
+            padding: var(--s3) var(--s4);
             display: flex;
             flex-direction: column;
-            justify-content: center; /* Wyśrodkuj zawartość wertykalnie */
-
-            /* KLUCZOWE: Oba boxy dzielą się wysokością po równo */
+            justify-content: center;
             flex: 1;
         }
 
-        .pad-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .pad-volume-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+        .pad-row-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--s1);
+        }
+        .pad-label {
+            font-weight: 700;
+            color: var(--text-tertiary);
+            font-size: var(--font-xs);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .pad-status {
+            font-size: var(--font-xs);
+            font-weight: 700;
+            color: var(--green);
+            font-family: monospace;
+            letter-spacing: 0.05em;
+        }
 
-        /* Wnętrze Music Info Box */
-        .music-info-box { gap: 8px; }
-        .music-info-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 0;}
-        .music-info-row:last-child { border-bottom: none; padding-bottom: 0; }
-
-        .next-song-btn-landscape { display: none; }
-
-        /* --- Elementy sterowania --- */
+        .pad-center { display: flex; justify-content: center; }
         .pad-btn {
             background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            color: var(--text-muted);
-            border-radius: 50%; width: 42px; height: 42px;
-            cursor: pointer; font-size: 1.2rem;
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            flex-shrink: 0; margin: 0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border: 1px solid var(--border-default);
+            color: var(--text-secondary);
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--duration-normal) var(--ease-out);
         }
-        .pad-btn:hover { color: var(--text-main); border-color: rgba(59,130,246,0.3); }
+        .pad-btn:hover { color: var(--text-primary); border-color: var(--accent); }
         .pad-btn.active {
-            background: var(--accent-success);
-            color: #fff;
-            border-color: var(--accent-success);
-            box-shadow: 0 0 20px var(--glow-success);
+            background: var(--green);
+            color: white;
+            border-color: var(--green);
+            box-shadow: 0 0 16px var(--green-subtle);
             animation: pulse-glow 3s ease-in-out infinite;
         }
 
+        .pad-volume-row {
+            display: flex;
+            align-items: center;
+            gap: var(--s2);
+            margin-top: var(--s1);
+        }
+        .vol-label {
+            font-size: var(--font-xs);
+            color: var(--text-tertiary);
+            font-weight: 600;
+        }
+        .vol-value {
+            font-size: var(--font-xs);
+            color: var(--text-tertiary);
+            min-width: 28px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
         .pad-slider {
-            -webkit-appearance: none; appearance: none;
-            width: 100%; height: 24px; background: transparent; cursor: pointer; margin: 0; outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 24px;
+            background: transparent;
+            cursor: pointer;
+            margin: 0;
+            outline: none;
         }
         .pad-slider::-webkit-slider-runnable-track {
-            width: 100%; height: 6px; background: var(--bg-element-hover); border-radius: 3px; border: none;
+            width: 100%;
+            height: 4px;
+            background: var(--bg-surface-hover);
+            border-radius: var(--r-full);
         }
         .pad-slider::-webkit-slider-thumb {
-            -webkit-appearance: none; appearance: none;
-            height: 18px; width: 18px; border-radius: 50%;
-            background: var(--bg-panel); border: none;
-            margin-top: -6px; box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-            transition: transform 0.1s, background 0.2s;
+            -webkit-appearance: none;
+            height: 16px; width: 16px;
+            border-radius: 50%;
+            background: var(--text-primary);
+            border: none;
+            margin-top: -6px;
+            box-shadow: var(--shadow-sm);
+            transition: transform var(--duration-fast) var(--ease-in-out);
         }
         .pad-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
-        .pad-status { 
-            font-size: 0.7rem; font-weight: 800; color: var(--accent-success); 
-            text-align: right; font-family: monospace; letter-spacing: 1px;
+
+        /* ── Music Info ── */
+        .music-info-box { gap: var(--s2); }
+        .music-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: var(--s2);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .music-info-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .info-label {
+            color: var(--text-tertiary);
+            font-size: var(--font-xs);
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .info-value {
+            font-weight: 700;
+            font-size: var(--font-lg);
+        }
+        .info-value-accent { color: var(--accent); }
+        .info-value-red { color: var(--red); }
+
+        .trans-controls {
+            display: flex;
+            align-items: center;
+            gap: var(--s1);
+        }
+        .trans-btn {
+            background: var(--bg-surface-hover);
+            border: 1px solid var(--border-default);
+            color: var(--text-secondary);
+            padding: 2px var(--s2);
+            border-radius: var(--r-sm);
+            font-size: var(--font-sm);
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        .trans-btn:hover { background: var(--accent-subtle); color: var(--accent); border-color: var(--accent); }
+        .trans-value {
+            font-weight: 700;
+            min-width: 20px;
+            text-align: center;
+            font-size: var(--font-sm);
         }
 
-        /* --- INPUTY I FORMULARZE (base in design-system.css) --- */
-        input, textarea, select { margin-bottom: 12px; }
-
-        .plus-container { position: relative; }
-        .plus-btn { 
-            background: transparent; color: var(--text-main); border: 1px solid var(--border-color); 
-            width: 32px; height: 32px; border-radius: 8px; font-size: 1.5rem; 
-            line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; 
-            transition: all 0.2s; 
-        }
-        .plus-btn:hover { background: var(--bg-element-hover); border-color: var(--text-muted); }
-
-        .dropdown-menu {
-            display: none; position: absolute; right: 0; top: 40px;
-            background: var(--glass-bg); border: 1px solid var(--glass-border);
-            border-radius: var(--radius-md); box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 20px var(--glow-primary); z-index: 100;
-            min-width: 200px; overflow: hidden; padding: 5px;
-            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-        }
-        .dropdown-menu.show { display: block; animation: fadeIn 0.2s; }
-        .dropdown-item { 
-            padding: 10px 15px; cursor: pointer; font-size: 0.9rem; color: var(--text-main); 
-            display: flex; align-items: center; gap: 10px; border-radius: 8px; transition: background 0.1s;
-            border-bottom: none;
-        }
-        .dropdown-item:hover { background: var(--accent-primary); color: white; }
-
-        /* --- LISTA BIBLIOTEKI --- */
-        .lib-item {
-            border-bottom: 1px solid var(--border-color); background: transparent;
-            margin-bottom: 0; border-radius: 0;
-            border-left: 3px solid transparent;
-            transition: border-color var(--transition-smooth), transform var(--transition-smooth);
-        }
-        .lib-item:last-child { border-bottom: none; }
-        .lib-item:hover {
-            border-left-color: var(--accent-primary);
-            transform: translateX(4px);
+        /* ── Slides Grid ── */
+        .slides-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: var(--s3);
+            flex-grow: 1;
+            overflow-y: auto;
+            align-content: start;
+            margin-bottom: var(--s5);
+            padding-right: 4px;
         }
 
-        .lib-summary {
-            padding: 14px 12px; cursor: pointer; display: flex; justify-content: space-between;
-            align-items: center; list-style: none; color: var(--text-main); font-weight: 500;
-            transition: background var(--transition-smooth); border-radius: 6px; margin: 2px 0;
-        }
-        .lib-summary:hover { background: var(--bg-element); }
-        .lib-summary::-webkit-details-marker { display: none; }
-        
-        .lib-content-preview {
-            padding: 15px; margin: 5px 10px 15px 10px;
-            background: var(--bg-element);
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border-color);
-            font-size: 0.85rem; color: var(--text-muted);
-            white-space: pre-wrap; max-height: 200px; overflow-y: auto;
-        }
-
-        /* --- SETLISTA --- */
-        .setlist-item {
-            background: var(--bg-panel); margin-bottom: 8px; padding: 12px 16px;
-            border-radius: var(--radius-sm); border-left: 4px solid transparent;
-            cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all var(--transition-smooth);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .setlist-item:hover { background: var(--bg-element); transform: translateY(-1px); }
-        .setlist-item.active {
-            background: linear-gradient(90deg, rgba(59,130,246,0.05) 0%, transparent 100%);
-            border-left-color: var(--accent-primary);
-        }
-        .setlist-item.active .setlist-content span { color: var(--accent-primary); font-weight: bold; }
-        .setlist-content { flex-grow: 1; font-weight: 500;}
-        .setlist-controls { display: flex; flex-direction: column; gap: 6px; }
-        .move-btn { 
-            background: transparent; border: 1px solid var(--border-color); 
-            font-size: 0.6rem; padding: 4px 6px; cursor: pointer; border-radius: 4px; color: var(--text-muted); 
-        }
-        .move-btn:hover { background: var(--text-muted); color: var(--bg-panel); }
-        /* --- STYLE DLA PRZECIĄGANIA (DRAG & DROP) --- */
-        .drag-handle {
-            cursor: grab;
-            color: var(--text-muted);
-            font-size: 1.5rem;
-            padding: 0 10px 0 0;
-            touch-action: none; /* Zapobiega przewijaniu strony podczas łapania na telefonie */
-            user-select: none;
-        }
-        .drag-handle:active { cursor: grabbing; }
-        .sortable-ghost {
-            opacity: 0.4;
-            background: var(--accent-active-bg) !important;
-            border: 1px dashed var(--accent-primary) !important;
-        }
-
-        /* --- PRZYCISKI I PREVIEW --- */
-        button { font-family: 'Sen'; font-weight: 700; border: none; border-radius: var(--radius-sm); cursor: pointer; }
-        .btn-sm {
-            padding: 6px 12px; background: var(--bg-element); color: var(--text-main);
-            border-radius: 6px; font-size: 0.85rem; border: 1px solid var(--border-color);
-            transition: all var(--transition-smooth);
-        }
-        .btn-sm:hover { background: var(--bg-element-hover); border-color: rgba(59,130,246,0.3); }
-
-        button.danger {
-            background: rgba(255,107,107,0.08); border: 1px solid var(--accent-danger);
-            color: var(--accent-danger); padding: 15px; flex-grow: 1;
-            font-size: 0.9rem; letter-spacing: 1px;
-            transition: all var(--transition-smooth);
-        }
-        button.danger:hover { background: linear-gradient(135deg, var(--accent-danger), color-mix(in srgb, var(--accent-danger) 85%, white)); color: white; box-shadow: 0 0 20px rgba(255,107,107,0.35); }
-        button.danger:active { transform: scale(0.97); }
-
-        button.secondary {
-            background: rgba(59,130,246,0.08); border: 1px solid var(--accent-primary);
-            color: var(--accent-primary); padding: 15px; flex-grow: 1;
-            font-size: 0.9rem; letter-spacing: 1px;
-            transition: all var(--transition-smooth);
-        }
-        button.secondary:hover { background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); color: white; box-shadow: 0 0 20px var(--glow-primary); }
-        button.secondary:active { transform: scale(0.97); }
-        
-        .bottom-controls { margin-top: auto; display: flex; gap: 15px; flex-shrink: 0; } 
-
-        .slides-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); 
-            gap: 12px;
-            flex-grow: 1; overflow-y: auto; align-content: start; 
-            margin-bottom: 20px; padding-right: 5px; 
-        }
-        
         .slide-btn {
-            background: var(--bg-element); border: 1px solid transparent;
-            padding: 16px; border-radius: var(--radius-md); cursor: pointer; height: 100px;
-            overflow: hidden; display: flex; flex-direction: column; color: var(--text-muted);
-            transition: all var(--transition-smooth); position: relative;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            padding: var(--s4);
+            border-radius: var(--r-md);
+            cursor: pointer;
+            height: 90px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            color: var(--text-secondary);
+            transition: all var(--duration-fast) var(--ease-in-out);
+            position: relative;
+            font-size: var(--font-sm);
         }
-        .slide-btn:hover { background: var(--bg-element-hover); color: var(--text-main); }
-        /* Content preview text line clamp */
+        .slide-btn:hover { background: var(--bg-surface-hover); color: var(--text-primary); border-color: var(--border-default); }
         .slide-btn span:not(.slide-label) {
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -464,185 +582,819 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-
         .slide-btn.active {
-            background: var(--bg-element);
-            color: var(--text-main);
-            border: 2px solid var(--accent-primary);
-            box-shadow: 0 0 20px var(--glow-primary), 0 0 40px rgba(59,130,246,0.1);
-        }
-        .slide-btn.active::before {
-            content: '';
-            position: absolute;
-            inset: -1px;
-            border-radius: var(--radius-md);
-            padding: 2px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            pointer-events: none;
+            background: var(--accent-subtle);
+            color: var(--text-primary);
+            border-color: var(--accent);
+            box-shadow: var(--shadow-glow);
         }
         .slide-btn.active::after {
-            content: ''; position: absolute; left: 0; bottom: 0; width: 100%; height: 3px;
-            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            content: '';
+            position: absolute;
+            left: 0; bottom: 0;
+            width: 100%; height: 2px;
+            background: var(--accent);
         }
-
         .slide-label {
-            font-weight: 800; font-size: 0.65rem; color: var(--text-muted);
-            margin-bottom: 8px; display: block; letter-spacing: 0.3px; opacity: 0.7;
+            font-weight: 700;
+            font-size: var(--font-xs);
+            color: var(--text-tertiary);
+            margin-bottom: var(--s2);
+            display: block;
+            letter-spacing: 0.04em;
         }
-        .slide-btn.active .slide-label { color: var(--accent-secondary); opacity: 1; }
+        .slide-btn.active .slide-label { color: var(--accent); }
 
-        .transition-tile { border: 1px dashed rgba(59,130,246,0.35) !important; background: transparent; opacity: 0.5; transition: all var(--transition-smooth); }
-        .transition-tile:hover { opacity: 1; border-color: var(--accent-primary) !important; border-style: solid !important; box-shadow: 0 0 15px var(--glow-primary); }
-        .transition-tile.active { border-style: solid !important; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); opacity: 1; color: white; border: none !important; }
-
-        /* --- BRANDING --- */
-        .branding-area { margin-top: auto; padding: 20px 5px; background-color: transparent; border-top: 1px solid var(--border-color); text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .branding-img { max-width: 120px; max-height: 60px; object-fit: contain; margin-bottom: 8px; opacity: 0.5; filter: grayscale(100%); transition: opacity 0.3s; }
-        .branding-area:hover .branding-img { opacity: 0.9; }
-        .version-text { font-size: 0.6rem; color: var(--border-color); font-weight: bold; letter-spacing: 0.3px; }
-        
-        [data-theme="light"] .branding-img { opacity: 0.8; filter: none; }
-        [data-theme="light"] .version-text { color: var(--text-muted); }
-        /* --- MODALE --- */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); justify-content: center; align-items: center; }
-        .modal-content {
-            background-color: var(--glass-bg); color: var(--text-main); padding: 24px; border-radius: var(--radius-lg);
-            width: 50%; max-width: 550px; max-height: 90vh; overflow-y: auto;
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 24px 80px -12px rgba(0, 0, 0, 0.7), 0 0 40px var(--glow-primary);
-            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            animation: fadeInUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        .transition-tile {
+            border: 1px dashed var(--border-strong) !important;
+            background: transparent;
+            opacity: 0.5;
+            transition: all var(--duration-fast) var(--ease-in-out);
         }
-        
-        .form-row { display: flex; gap: 10px; margin-bottom: 12px; height: 48px; align-items: stretch; }
+        .transition-tile:hover {
+            opacity: 1;
+            border-color: var(--accent) !important;
+            border-style: solid !important;
+        }
+        .transition-tile.active {
+            border-style: solid !important;
+            background: var(--accent);
+            opacity: 1;
+            color: white;
+            border-color: var(--accent) !important;
+        }
+
+        /* ── Bottom Dock ── */
+        .bottom-controls {
+            margin-top: auto;
+            display: flex;
+            gap: var(--s3);
+            flex-shrink: 0;
+        }
+
+        button { font-family: 'Sen'; font-weight: 700; border: none; border-radius: var(--r-md); cursor: pointer; }
+
+        .action-btn {
+            background: var(--accent);
+            color: white;
+            border-radius: var(--r-md);
+            padding: var(--s2) var(--s4);
+            font-size: var(--font-sm);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--s2);
+            white-space: nowrap;
+            font-weight: 700;
+            font-family: inherit;
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        .action-btn:hover { filter: brightness(1.1); }
+        .action-btn:active { transform: scale(0.97); }
+
+        .btn-sm {
+            padding: var(--s1) var(--s3);
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            border-radius: var(--r-sm);
+            font-size: var(--font-sm);
+            border: 1px solid var(--border-default);
+            transition: all var(--duration-fast) var(--ease-in-out);
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 700;
+        }
+        .btn-sm:hover { background: var(--bg-surface-hover); }
+
+        button.danger {
+            background: var(--red-subtle);
+            border: 1px solid var(--red);
+            color: var(--red);
+            padding: var(--s4);
+            flex-grow: 1;
+            font-size: var(--font-sm);
+            letter-spacing: 0.04em;
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        button.danger:hover { background: var(--red); color: white; box-shadow: 0 0 16px var(--red-subtle); }
+        button.danger:active { transform: scale(0.97); }
+
+        button.secondary {
+            background: var(--accent-subtle);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: var(--s4);
+            flex-grow: 1;
+            font-size: var(--font-sm);
+            letter-spacing: 0.04em;
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        button.secondary:hover { background: var(--accent); color: white; box-shadow: var(--shadow-glow); }
+        button.secondary:active { transform: scale(0.97); }
+
+        /* ── Inputs ── */
+        input, textarea, select { margin-bottom: var(--s3); }
+
+        .form-row {
+            display: flex;
+            gap: var(--s3);
+            margin-bottom: var(--s3);
+            height: 48px;
+            align-items: stretch;
+        }
         .form-row input { margin-bottom: 0; height: 100%; }
-        .input-title { flex-grow: 1; font-weight: bold; }
-        .input-small { width: 80px !important; text-align: center; padding: 5px !important; }
-        
-        .tap-btn { 
-            background: var(--bg-element); color: var(--text-muted); width: 70px; border-radius: 8px; 
-            display: flex; align-items: center; justify-content: center; font-size: 0.75rem; 
-            font-weight: bold; cursor: pointer; user-select: none; transition: all 0.1s; 
-            border: 1px solid var(--border-color); 
-        }
-        .tap-btn:active { background: var(--accent-primary); color: white; transform: scale(0.95); }
+        .input-title { flex-grow: 1; font-weight: 700; }
+        .input-small { width: 80px !important; text-align: center; }
 
-        /* Toggle switch, settings-section, file-upload, QR styles in design-system.css */
-        
-        .conf-panel { width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
-        .conf-header { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; }
-        .conf-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 24px; flex: 1; }
-        .conf-card { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 28px; display: flex; flex-direction: column; }
-        .conf-card-header { display: flex; align-items: center; gap: 10px; color: var(--text-muted); font-size: 0.8rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); margin-bottom: 24px; margin-top: 0; }
-        .conf-card-header svg { opacity: 0.6; }
-        .conf-sub-card { background: var(--bg-app); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px; }
-        .conf-timer-display { font-size: 5rem; font-weight: 900; font-family: 'Courier New', monospace; letter-spacing: -2px; text-align: center; margin: 16px 0 24px; color: var(--text-main); text-shadow: 0 0 40px rgba(59,130,246,0.15); background: radial-gradient(ellipse at center, rgba(59,130,246,0.04) 0%, transparent 70%); padding: 20px 0; border-radius: var(--radius-xl); }
-        .conf-timer-input { width: 120px; height: 55px; text-align: center; font-size: 1.8rem; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); font-weight: bold; color: var(--text-main); transition: border-color var(--transition-fast); }
-        .conf-timer-input:focus { border-color: var(--accent-primary); box-shadow: 0 0 15px var(--glow-primary); outline: none; }
-        .conf-btn-row { display: flex; gap: 12px; }
-        .conf-btn-row .action-btn { flex: 1; justify-content: center; padding: 16px; font-size: 1rem; font-weight: 800; border: none; border-radius: var(--radius-md); }
-        .conf-msg-area { background: var(--input-bg); resize: none; border-radius: var(--radius-md); font-size: 1.05rem; padding: 18px; border: 1px solid var(--border-color); color: var(--text-main); transition: border-color var(--transition-fast); width: 100%; font-family: inherit; }
-        .conf-msg-area:focus { border-color: var(--accent-primary); box-shadow: 0 0 10px var(--glow-primary); outline: none; }
-        .conf-sub-label { font-weight: 800; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-        .conf-slide-btn { background: var(--bg-element); border: 1px solid var(--border-color); color: var(--text-main); font-size: 2rem; padding: 12px 40px; border-radius: var(--radius-lg); cursor: pointer; transition: all 0.2s; }
-        .conf-slide-btn:hover { background: var(--accent-primary); color: white; border-color: var(--accent-primary); }
-        .conf-presenter-btn { width: 100%; padding: 20px; font-size: 1rem; font-weight: 700; border-radius: var(--radius-lg); background: var(--bg-panel); border: 1px solid var(--border-color); color: var(--text-main); cursor: pointer; transition: all 0.25s; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .conf-presenter-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); box-shadow: 0 8px 24px rgba(59,130,246,0.12); transform: translateY(-2px); }
-        
-        .instruction-box { background: var(--bg-element); border: 1px solid var(--border-color); padding: 20px; border-radius: var(--radius-md); margin-bottom: 24px; font-size: 0.9rem; color: var(--text-muted); text-align: left; line-height: 1.5; }
-        .instruction-box pre { background: var(--bg-app); padding: 15px; border-radius: var(--radius-sm); color: var(--accent-success); border: 1px solid var(--border-color); font-family: monospace; font-size: 0.85rem;}
-        
-        .reset-btn { width: 100%; background: color-mix(in srgb, var(--accent-danger) 15%, var(--bg-main)); color: var(--accent-danger); border: 1px solid color-mix(in srgb, var(--accent-danger) 25%, transparent); padding: 12px; border-radius: var(--radius-md); cursor: pointer; font-weight: bold; transition: all 0.2s; }
-        .reset-btn:hover { background: var(--accent-danger); color: var(--text-main); }
-        
-        /* --- RWD: WIDOK MOBILNY --- */
-        .mobile-nav { display: none; } 
+        .tap-btn {
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            width: 64px;
+            border-radius: var(--r-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--font-xs);
+            font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+            transition: all var(--duration-fast) var(--ease-in-out);
+            border: 1px solid var(--border-default);
+        }
+        .tap-btn:active { background: var(--accent); color: white; transform: scale(0.95); }
+
+        /* ── Conference Mode ── */
+        #conference-mode {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: max(var(--s5), env(safe-area-inset-top)) var(--s8) var(--s10);
+            background: var(--bg-app);
+            overflow-y: auto;
+        }
+        #conference-mode.active { display: flex; }
+
+        .conf-panel { width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--s6); }
+        .conf-header {
+            font-size: var(--font-xl);
+            font-weight: 800;
+            margin: 0 0 var(--s2);
+            letter-spacing: -0.02em;
+        }
+        .conf-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: var(--s6); flex: 1; }
+
+        .conf-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-default);
+            border-radius: var(--r-xl);
+            padding: var(--s8);
+            display: flex;
+            flex-direction: column;
+        }
+        .conf-card-header {
+            display: flex;
+            align-items: center;
+            gap: var(--s3);
+            color: var(--text-tertiary);
+            font-size: var(--font-xs);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding-bottom: var(--s4);
+            border-bottom: 1px solid var(--border-subtle);
+            margin: 0 0 var(--s6);
+        }
+        .conf-card-header svg { opacity: 0.5; }
+
+        .conf-sub-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--r-lg);
+            padding: var(--s5);
+        }
+
+        .conf-timer-display {
+            font-size: 4.5rem;
+            font-weight: 900;
+            font-family: 'Courier New', monospace;
+            letter-spacing: -2px;
+            text-align: center;
+            margin: var(--s4) 0 var(--s6);
+            color: var(--text-primary);
+            padding: var(--s5) 0;
+        }
+
+        .conf-timer-input {
+            width: 120px;
+            height: 52px;
+            text-align: center;
+            font-size: 1.6rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border-default);
+            border-radius: var(--r-md);
+            font-weight: 700;
+            color: var(--text-primary);
+            transition: border-color var(--duration-fast) var(--ease-in-out);
+        }
+        .conf-timer-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-subtle); outline: none; }
+
+        .conf-btn-row { display: flex; gap: var(--s3); }
+        .conf-action-btn {
+            flex: 1;
+            justify-content: center;
+            padding: var(--s4);
+            font-size: var(--font-base);
+            font-weight: 800;
+            border: none;
+            border-radius: var(--r-md);
+            cursor: pointer;
+            font-family: inherit;
+            transition: all var(--duration-fast) var(--ease-in-out);
+            color: white;
+        }
+        .conf-action-btn:hover { filter: brightness(1.1); }
+        .conf-action-btn:active { transform: scale(0.97); }
+        .conf-action-btn.start { background: var(--green); }
+        .conf-action-btn.stop { background: var(--red); }
+        .conf-action-btn.reset { background: var(--amber); color: var(--text-inverse); }
+
+        .conf-msg-area {
+            background: var(--bg-input);
+            resize: none;
+            border-radius: var(--r-md);
+            font-size: var(--font-base);
+            padding: var(--s4);
+            border: 1px solid var(--border-default);
+            color: var(--text-primary);
+            width: 100%;
+            font-family: inherit;
+            transition: border-color var(--duration-fast) var(--ease-in-out);
+        }
+        .conf-msg-area:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-subtle); outline: none; }
+
+        .conf-sub-label {
+            font-weight: 800;
+            font-size: var(--font-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--s3);
+            margin-bottom: var(--s4);
+        }
+
+        .conf-slide-btn {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            color: var(--text-primary);
+            font-size: 1.8rem;
+            padding: var(--s3) var(--s10);
+            border-radius: var(--r-lg);
+            cursor: pointer;
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        .conf-slide-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+        .conf-presenter-btn {
+            width: 100%;
+            padding: var(--s5);
+            font-size: var(--font-base);
+            font-weight: 700;
+            border-radius: var(--r-lg);
+            background: var(--bg-panel);
+            border: 1px solid var(--border-default);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all var(--duration-fast) var(--ease-in-out);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--s3);
+            font-family: inherit;
+        }
+        .conf-presenter-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .conf-time-label {
+            display: block;
+            margin-bottom: var(--s3);
+            color: var(--text-secondary);
+            font-size: var(--font-sm);
+            font-weight: 700;
+        }
+        .conf-time-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: var(--s4);
+        }
+        .conf-set-btn {
+            height: 52px;
+            padding: 0 var(--s6);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            color: var(--text-primary);
+            border-radius: var(--r-md);
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: var(--font-sm);
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        .conf-set-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        .conf-msg-actions {
+            display: flex;
+            gap: var(--s3);
+            margin-top: var(--s3);
+        }
+        .conf-msg-label {
+            display: block;
+            margin-bottom: var(--s3);
+            color: var(--text-secondary);
+            font-size: var(--font-sm);
+            font-weight: 600;
+        }
+
+        .slide-counter-display {
+            font-weight: 900;
+            font-size: 1.8rem;
+            font-family: monospace;
+            color: var(--green);
+            font-variant-numeric: tabular-nums;
+        }
+        .slides-control-label {
+            font-size: var(--font-xs);
+            color: var(--text-tertiary);
+            margin-bottom: var(--s4);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            text-align: center;
+        }
+        .slides-nav-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--s5);
+        }
+
+        .conf-show-btn {
+            width: 100%;
+            justify-content: center;
+            margin-bottom: var(--s5);
+            background: var(--accent);
+            color: white;
+            padding: var(--s4);
+            font-size: var(--font-base);
+            border-radius: var(--r-md);
+            border: none;
+            font-weight: 800;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: var(--shadow-glow);
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        .conf-show-btn:hover { filter: brightness(1.1); }
+        .conf-show-btn:active { transform: scale(0.97); }
+
+        .conf-blackout-btn {
+            width: 100%;
+            padding: var(--s4);
+            font-size: var(--font-sm);
+            font-weight: 800;
+            border-radius: var(--r-md);
+            letter-spacing: 0.04em;
+        }
+
+        .conf-canva-input-row {
+            display: flex;
+            gap: var(--s3);
+            margin-bottom: var(--s4);
+        }
+        .conf-canva-input-row input {
+            margin-bottom: 0;
+            flex-grow: 1;
+        }
+        .conf-add-btn {
+            background: var(--accent);
+            border: none;
+            padding: 0 var(--s5);
+            font-size: var(--font-sm);
+            font-weight: 800;
+            border-radius: var(--r-md);
+            color: white;
+            cursor: pointer;
+            font-family: inherit;
+            white-space: nowrap;
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        .conf-add-btn:hover { background: var(--accent-hover); }
+
+        .conf-pdf-row {
+            display: flex;
+            gap: var(--s3);
+            margin-bottom: var(--s5);
+            align-items: center;
+            height: 48px;
+        }
+        .conf-pdf-label {
+            flex-grow: 1;
+            padding: 0 var(--s4);
+            margin: 0;
+            font-size: var(--font-sm);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            background: var(--bg-input);
+            border-radius: var(--r-md);
+            border: 1px dashed var(--border-strong);
+            color: var(--text-tertiary);
+            cursor: pointer;
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        .conf-pdf-label:hover { border-color: var(--accent); color: var(--accent); }
+        .conf-upload-btn {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            height: 100%;
+            padding: 0 var(--s6);
+            border: 1px solid var(--border-default);
+            font-weight: 800;
+            border-radius: var(--r-md);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: var(--font-sm);
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        .conf-upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ── Modals (override design-system base) ── */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: var(--bg-panel);
+            color: var(--text-primary);
+            padding: var(--s8);
+            border-radius: var(--r-xl);
+            width: 50%;
+            max-width: 550px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border-default);
+            box-shadow: var(--shadow-lg);
+            animation: modalIn var(--duration-normal) var(--ease-out);
+        }
+
+        .modal-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--s6);
+        }
+        .modal-title {
+            font-size: var(--font-lg);
+            font-weight: 800;
+        }
+        .modal-x {
+            background: var(--bg-surface);
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            width: 32px; height: 32px;
+            border-radius: var(--r-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        .modal-x:hover { background: var(--bg-surface-hover); color: var(--text-primary); }
+
+        /* ── Chord Hint Box ── */
+        .chord-hint-box {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--r-md);
+            padding: var(--s3) var(--s4);
+            margin-bottom: var(--s3);
+            font-size: var(--font-xs);
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        .chord-hint-box code { color: var(--accent); }
+
+        .notation-row {
+            display: flex;
+            align-items: center;
+            gap: var(--s3);
+            margin-bottom: var(--s3);
+        }
+        .notation-row label {
+            font-size: var(--font-xs);
+            white-space: nowrap;
+            color: var(--text-secondary);
+        }
+        .notation-row select { flex: 1; margin-bottom: 0; }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--s3);
+            margin-top: var(--s5);
+        }
+        .form-actions-between {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--s3);
+            margin-top: var(--s5);
+        }
+
+        /* ── Settings modal sections already covered by design-system.css ── */
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: var(--s3);
+            margin-top: var(--s4);
+        }
+        .color-item label {
+            font-size: var(--font-xs);
+            display: block;
+            margin-bottom: var(--s1);
+            color: var(--text-secondary);
+        }
+        .color-item input[type="color"] {
+            padding: 0;
+            height: 40px;
+            border: 1px solid var(--border-default);
+            cursor: pointer;
+            border-radius: var(--r-sm);
+        }
+
+        .system-section {
+            background: var(--red-subtle);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+        }
+        .system-section h4 {
+            color: var(--red);
+            border-color: rgba(248, 113, 113, 0.15);
+        }
+        .system-actions { display: flex; gap: var(--s3); }
+        .backup-btn {
+            flex: 1;
+            justify-content: center;
+            background: var(--bg-surface-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border-default);
+            padding: var(--s3);
+            border-radius: var(--r-md);
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: var(--font-sm);
+            display: flex;
+            align-items: center;
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        .backup-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ── QR Modal ── */
+        .qr-modal-content {
+            width: 800px;
+            max-width: 90%;
+        }
+        .qr-server-ip {
+            text-align: center;
+            color: var(--accent);
+            font-weight: 700;
+            font-size: var(--font-sm);
+            margin-bottom: var(--s5);
+        }
+        .qr-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            gap: var(--s6);
+            flex-wrap: wrap;
+        }
+        .qr-box { text-align: center; }
+        .qr-box img {
+            width: 130px; height: 130px;
+            border: 2px solid var(--border-strong);
+            border-radius: var(--r-lg);
+            box-shadow: var(--shadow-md);
+        }
+        .qr-box h3 {
+            color: var(--text-tertiary);
+            font-size: var(--font-xs);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin: 0 0 var(--s3);
+        }
+        .qr-open-btn {
+            margin-top: var(--s2);
+            width: 100%;
+            padding: var(--s2) var(--s3);
+            border-radius: var(--r-sm);
+            border: 1px solid var(--border-default);
+            font-size: var(--font-xs);
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all var(--duration-fast) var(--ease-in-out);
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+        }
+        .qr-open-btn:hover { background: var(--accent-subtle); color: var(--accent); border-color: var(--accent); }
+
+        /* ── Instruction Box ── */
+        .instruction-box {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            padding: var(--s5);
+            border-radius: var(--r-lg);
+            margin-bottom: var(--s5);
+            font-size: var(--font-sm);
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        .instruction-box pre {
+            background: var(--bg-app);
+            padding: var(--s3);
+            border-radius: var(--r-sm);
+            color: var(--green);
+            border: 1px solid var(--border-subtle);
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            font-size: var(--font-xs);
+        }
+
+        .inst-divider {
+            border: 0;
+            border-top: 1px dashed var(--border-default);
+            margin: var(--s4) 0;
+        }
+
+        /* ── File Upload Row (overrides design-system) ── */
+
+        /* ── iOS Install Prompt ── */
+        #ios-install-prompt {
+            display: none;
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 360px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-default);
+            border-radius: var(--r-lg);
+            padding: var(--s5);
+            box-shadow: var(--shadow-lg);
+            z-index: 10000;
+            text-align: center;
+            color: var(--text-primary);
+            font-size: var(--font-sm);
+        }
+        #ios-install-prompt p { margin: 0 0 var(--s3); line-height: 1.5; }
+        #ios-install-prompt .close-prompt {
+            position: absolute;
+            top: var(--s3); right: var(--s4);
+            font-size: 1.2rem;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            padding: var(--s1);
+        }
+        #ios-install-prompt .icon-share {
+            display: inline-block;
+            width: 20px; height: 20px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" fill="white"><path d="M30.3 13.7L25 8.4l-5.3 5.3-1.4-1.4L25 5.6l6.7 6.7z"/><path d="M24 7h2v21h-2z"/><path d="M35 40H15c-1.7 0-3-1.3-3-3V19c0-1.7 1.3-3 3-3h7v2h-7c-.6 0-1 .4-1 1v18c0 .6.4 1 1 1h20c.6 0 1-.4 1-1V19c0-.6-.4-1-1-1h-7v-2h7c1.7 0 3 1.3 3 3v18c0 1.7-1.3 3-3 3z"/></svg>') no-repeat center center;
+            background-size: contain;
+            vertical-align: text-bottom;
+            margin: 0 3px;
+        }
+
+        /* ── RWD: Mobile ── */
+        .mobile-nav { display: none; }
 
         @media (max-width: 1285px) {
             .top-bar { display: none !important; }
-
             .mode-container.active { display: block; }
             #worship-mode { display: block; height: 100vh; background: var(--bg-app); }
-            .conf-grid { grid-template-columns: 1fr; } 
-            
-            .col { 
-                display: none; 
-                width: 100%; height: 100%; border: none; 
-                padding-top: max(20px, env(safe-area-inset-top));
-                padding-left: max(20px, env(safe-area-inset-left));
-                padding-right: max(20px, env(safe-area-inset-right));
+            .conf-grid { grid-template-columns: 1fr; }
+
+            .col {
+                display: none;
+                width: 100%; height: 100%;
+                border: none;
+                padding-top: max(var(--s5), env(safe-area-inset-top));
+                padding-left: max(var(--s5), env(safe-area-inset-left));
+                padding-right: max(var(--s5), env(safe-area-inset-right));
                 padding-bottom: calc(90px + env(safe-area-inset-bottom));
-                box-sizing: border-box; background: var(--bg-app); 
+                background: var(--bg-app);
             }
 
-            #col-live { 
-                display: flex; 
+            #col-live {
+                display: flex;
                 padding-bottom: calc(80px + env(safe-area-inset-bottom));
-                padding-top: max(10px, env(safe-area-inset-top));
+                padding-top: max(var(--s3), env(safe-area-inset-top));
                 overflow-y: auto;
             }
-            /* --- Przeniesienie przycisków Blackout/Logo wyżej na telefonach --- */
-            .live-top-header { order: 1; }
+
+            .live-header { order: 1; }
             #current-title { order: 2; }
             .live-split-wrapper { order: 3; }
-            .bottom-controls { 
-                order: 4; 
-                margin-top: 5px; 
-                margin-bottom: 15px; 
+            .bottom-controls { order: 4; margin-top: var(--s2); margin-bottom: var(--s4); }
+            #slides-container { order: 5; overflow-y: visible; }
+
+            .live-split-wrapper {
+                flex-direction: column;
+                width: 100%;
+                margin-bottom: var(--s3);
+                gap: var(--s3);
+                align-items: center;
             }
-            #slides-container { 
-                order: 5; 
-                overflow-y: visible; /* Kafelki nie mają już własnego paska przewijania, przewija się cały ekran */
+            #live-preview-box {
+                width: 100%;
+                aspect-ratio: 16/9;
+                min-height: unset;
+                margin-bottom: var(--s2);
+                font-size: var(--font-base);
             }
-            /* Przywracanie układu pionowego na mobile */
-            .live-split-wrapper { flex-direction: column; width: 100%; margin-bottom: 10px; gap: 10px; align-items: center; }
-            #live-preview-box { width: 100%; aspect-ratio: 16/9; min-height: unset; margin-bottom: 5px; font-size: 1rem; }
-            .live-side-controls { width: 100%; min-width: unset; flex-direction: row; flex-wrap: wrap; }
-            .pad-panel-box, .music-info-box { flex: 1; min-width: 140px; padding: 10px; }
+            .live-side-controls {
+                width: 100%;
+                min-width: unset;
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            .pad-panel-box, .music-info-box { flex: 1; min-width: 140px; padding: var(--s3); }
 
             .mobile-nav {
                 display: flex;
-                min-height: 60px; height: auto;
+                min-height: 56px;
                 background: var(--glass-bg);
-                backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-                border-top: 1px solid var(--glass-border);
-                justify-content: space-around; align-items: center;
-                z-index: 100; position: fixed; bottom: 0; width: 100%;
-                padding-bottom: env(safe-area-inset-bottom); padding-top: 8px;
-                box-shadow: 0 -5px 30px rgba(0,0,0,0.4);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border-top: 1px solid var(--border-subtle);
+                justify-content: space-around;
+                align-items: center;
+                z-index: 100;
+                position: fixed;
+                bottom: 0;
+                width: 100%;
+                padding-bottom: env(safe-area-inset-bottom);
+                padding-top: var(--s2);
             }
             .mob-tab {
-                flex: 1 1 0px; width: 0;
-                text-align: center; background: none; border: none;
-                font-size: 0.7rem; font-weight: 600; color: var(--text-muted);
-                cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
-                padding-bottom: 5px; opacity: 0.7; transition: all var(--transition-smooth);
+                flex: 1 1 0px;
+                width: 0;
+                text-align: center;
+                background: none;
+                border: none;
+                font-size: var(--font-xs);
+                font-weight: 600;
+                color: var(--text-tertiary);
+                cursor: pointer;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 3px;
+                padding-bottom: var(--s1);
+                transition: all var(--duration-fast) var(--ease-in-out);
                 position: relative;
             }
-            .mob-tab.active { color: var(--accent-primary); opacity: 1; transform: scale(1.05); }
+            .mob-tab.active {
+                color: var(--accent);
+            }
             .mob-tab.active::after {
                 content: '';
                 position: absolute;
                 bottom: 0;
                 left: 50%;
                 transform: translateX(-50%);
-                width: 24px;
-                height: 3px;
-                border-radius: 3px;
-                background: var(--accent-primary);
-                box-shadow: 0 0 8px var(--glow-primary);
+                width: 20px; height: 2px;
+                border-radius: var(--r-full);
+                background: var(--accent);
             }
-            .mob-icon { font-size: 1.5rem; margin-bottom: 2px;}
-            
-            .modal-content { width: 90%; max-height: 85vh; padding: 20px; }
-            .action-btn span { display: none; } 
-            
-            h2 { font-size: 1rem; margin-bottom: 10px; }
-            .lib-item, .setlist-item { padding: 15px; }
-            input, textarea, select { padding: 15px; font-size: 1rem; } 
+            .mob-icon { font-size: 1.4rem; margin-bottom: 1px; }
+
+            .modal-content { width: 90%; max-height: 85vh; padding: var(--s5); }
+            .top-btn span, .action-btn span { display: none; }
+            .col-title { font-size: var(--font-sm); }
         }
 
         @media (max-width: 1285px) and (orientation: landscape) {
@@ -652,81 +1404,98 @@
             #col-live {
                 display: grid !important;
                 width: 100vw; height: 100vh;
-                padding: 10px;
-                padding-left: max(10px, env(safe-area-inset-left));
-                padding-right: max(10px, env(safe-area-inset-right));
-                padding-bottom: max(10px, env(safe-area-inset-bottom));
-                box-sizing: border-box;
-                /* --- POPRAWKA LAYOUTU: Podgląd zajmuje całą prawą stronę, przyciski lądują na dole po lewej --- */
-                grid-template-columns: 1fr 280px; 
-                grid-template-rows: auto auto 1fr auto; /* 4 rzędy, przyciski na dole */
-                grid-template-areas: 
-                    "header preview" 
-                    "controls preview" 
+                padding: var(--s3);
+                padding-left: max(var(--s3), env(safe-area-inset-left));
+                padding-right: max(var(--s3), env(safe-area-inset-right));
+                padding-bottom: max(var(--s3), env(safe-area-inset-bottom));
+                grid-template-columns: 1fr 280px;
+                grid-template-rows: auto auto 1fr auto;
+                grid-template-areas:
+                    "header preview"
+                    "controls preview"
                     "slides preview"
-                    "buttons preview"; /* Preview zajmuje całą prawą kolumnę */
-                gap: 15px; background: var(--bg-app);
+                    "buttons preview";
+                gap: var(--s3);
+                background: var(--bg-app);
             }
-            /* Reset stylów desktopowych dla tego widoku */
-            .live-split-wrapper { display: contents; }
-            .live-side-controls { display: contents; } 
-            /* Ukryj elementy strukturalne desktop */
-            .pad-panel-box { grid-area: controls; background: transparent; border: none; padding: 0; display: flex; flex-direction: row; align-items: center; justify-content: space-between;}
-            .music-info-box { display: none; } 
 
-            .live-top-header { grid-area: header; margin-bottom: 0; padding-bottom: 5px; border-bottom: none; }
+            .live-split-wrapper { display: contents; }
+            .live-side-controls { display: contents; }
+
+            .pad-panel-box {
+                grid-area: controls;
+                background: transparent;
+                border: none;
+                padding: 0;
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .music-info-box { display: none; }
+
+            .live-header { grid-area: header; margin-bottom: 0; padding-bottom: var(--s1); }
             .next-song-btn-landscape {
-                display: inline-block !important; background: var(--accent-success);
-                color: white; border: none; border-radius: 6px; padding: 8px 16px;
-                font-size: 0.85rem; font-weight: bold; font-family: 'Sen';
-                cursor: pointer; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+                display: inline-block !important;
+                background: var(--green);
+                color: white;
+                border: none;
+                border-radius: var(--r-sm);
+                padding: var(--s2) var(--s4);
+                font-size: var(--font-sm);
+                font-weight: 700;
+                font-family: 'Sen';
+                cursor: pointer;
+                white-space: nowrap;
             }
             .next-song-btn-landscape:active { transform: scale(0.98); }
 
-            #slides-container { grid-area: slides; margin-bottom: 0; flex-grow: 0; overflow-y: auto; padding-right: 5px; align-content: start; }
+            #slides-container {
+                grid-area: slides;
+                margin-bottom: 0;
+                flex-grow: 0;
+                overflow-y: auto;
+                padding-right: 4px;
+                align-content: start;
+            }
             #live-preview-box {
-                grid-area: preview; 
-                /* Usunięto grid-row, bo jest zdefiniowany w grid-template-areas */
-                width: 100%; aspect-ratio: unset; height: 100%; margin-bottom: 0; 
-                display: flex; align-items: center; justify-content: center;
-                overflow-y: auto; background: var(--bg-preview); border: 1px solid var(--border-color);
+                grid-area: preview;
+                width: 100%;
+                aspect-ratio: unset;
+                height: 100%;
+                margin-bottom: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow-y: auto;
             }
             .bottom-controls {
-                grid-area: buttons; 
-                /* POPRAWKA BŁĘDU SKŁADNIOWEGO: flexDirection -> flex-direction */
-                align-self: end; display: flex; flex-direction: row;
-                gap: 8px; margin-top: 0; height: 60px;
+                grid-area: buttons;
+                align-self: end;
+                display: flex;
+                flex-direction: row;
+                gap: var(--s2);
+                margin-top: 0;
+                height: 52px;
             }
-            .bottom-controls button { padding: 5px; font-size: 0.8rem; flex: 1; }
+            .bottom-controls button { padding: var(--s1); font-size: var(--font-sm); flex: 1; }
         }
 
-        #ios-install-prompt { display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 360px; background: var(--glass-bg); backdrop-filter: blur(10px); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); z-index: 10000; text-align: center; color: var(--text-main); font-size: var(--text-sm); }
-        #ios-install-prompt p { margin: 0 0 12px 0; line-height: 1.5; }
-        #ios-install-prompt .icon-share { display: inline-block; width: 22px; height: 22px; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" fill="white"><path d="M30.3 13.7L25 8.4l-5.3 5.3-1.4-1.4L25 5.6l6.7 6.7z"/><path d="M24 7h2v21h-2z"/><path d="M35 40H15c-1.7 0-3-1.3-3-3V19c0-1.7 1.3-3 3-3h7v2h-7c-.6 0-1 .4-1 1v18c0 .6.4 1 1 1h20c.6 0 1-.4 1-1V19c0-.6-.4-1-1-1h-7v-2h7c1.7 0 3 1.3 3 3v18c0 1.7-1.3 3-3 3z"/></svg>') no-repeat center center; background-size: contain; vertical-align: text-bottom; margin: 0 4px; }
-        #ios-install-prompt .close-prompt { position: absolute; top: 10px; right: 15px; font-size: 1.4rem; color: #888; cursor: pointer; padding: 5px;}
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px) scale(0.97); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+        /* ── Keyframes ── */
+        @keyframes rotateBorder {
+            to { --preview-angle: 360deg; }
         }
-
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 8px var(--glow-primary); }
-            50% { box-shadow: 0 0 20px var(--glow-primary), 0 0 40px rgba(59,130,246,0.1); }
+        @property --preview-angle {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
         }
     </style>
     <script>
         (function() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
+            var savedTheme = localStorage.getItem('theme') || 'dark';
             document.documentElement.setAttribute('data-theme', savedTheme);
-            const savedLang = localStorage.getItem('appLang') || 'pl';
+            var savedLang = localStorage.getItem('appLang') || 'pl';
             document.documentElement.setAttribute('data-lang', savedLang);
         })();
     </script>
@@ -739,24 +1508,40 @@
     <div id="toast-container"></div>
 
     <div id="ios-install-prompt">
-        <span class="close-prompt" onclick="document.getElementById('ios-install-prompt').style.display='none'">✕</span>
-        <p style="font-weight:bold; color:var(--accent-success);" data-t="ios_install">Zainstaluj jako aplikację</p>
+        <span class="close-prompt" onclick="document.getElementById('ios-install-prompt').style.display='none'">&#10005;</span>
+        <p style="font-weight:bold; color:var(--green);" data-t="ios_install">Zainstaluj jako aplikację</p>
         <p data-t="ios_desc">Aby uruchomić na pełnym ekranie, kliknij przycisk <span class="icon-share"></span> i wybierz <strong>"Do ekranu początkowego"</strong>.</p>
     </div>
 
+    <!-- ═══ Top Bar ═══ -->
     <div class="top-bar">
-        <button class="mode-btn active" onclick="switchMode('worship')" data-t="worship_mode">UWIELBIENIE</button>
-        <button class="mode-btn" onclick="switchMode('conference')" data-t="conf_mode">KONFERENCJA</button>
-        <div style="flex-grow: 1;"></div>
-        <button class="action-btn settings-btn desktop-only" onclick="openSettingsModal()" data-t="settings_btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Ustawienia</button>
-        <button id="fs-btn-desktop" class="action-btn settings-btn desktop-only" style="padding: 8px 12px;" onclick="toggleFullscreen()" title="Pełny ekran"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
-        <button class="action-btn desktop-only" onclick="openQRModal()" data-t="connect_btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Połącz ekrany</button>
+        <div class="segmented-control">
+            <button class="active" onclick="switchMode('worship')" data-t="worship_mode">UWIELBIENIE</button>
+            <button onclick="switchMode('conference')" data-t="conf_mode">KONFERENCJA</button>
+        </div>
+
+        <div class="top-bar-spacer"></div>
+
+        <button class="top-btn desktop-only" onclick="openSettingsModal()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span data-t="settings_btn">Ustawienia</span>
+        </button>
+        <button id="fs-btn-desktop" class="top-btn desktop-only" onclick="toggleFullscreen()" title="Pełny ekran">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        </button>
+        <button class="top-btn top-btn-accent desktop-only" onclick="openQRModal()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            <span data-t="connect_btn">Połącz ekrany</span>
+        </button>
     </div>
 
+    <!-- ═══ Worship Mode ═══ -->
     <div id="worship-mode" class="mode-container active">
+
+        <!-- ── Library Column ── -->
         <div id="col-library" class="col">
-            <div class="lib-header">
-                <h2 data-t="library_header">Biblioteka</h2>
+            <div class="col-header">
+                <h2 class="col-title" data-t="library_header">Biblioteka</h2>
                 <div class="plus-container">
                     <button class="plus-btn" onclick="toggleAddMenu()">+</button>
                     <div id="add-menu-dropdown" class="dropdown-menu">
@@ -778,71 +1563,74 @@
                 <div class="version-text">JafaStageCenter v1.0</div>
             </div>
         </div>
-        
+
+        <!-- ── Setlist Column ── -->
         <div id="col-setlist" class="col">
-            <h2 data-t="setlist_header">Setlista</h2>
-            <div class="scrollable" id="setlist-container"><div style="text-align: center; color: var(--text-muted); margin-top: 40px; font-size: 0.9rem;" data-t="empty_setlist">Brak piosenek w setliście.</div></div>
-            <div style="display:flex; gap:8px; margin-top:10px;">
-                <button class="action-btn" onclick="exportToPDF()" style="flex:1; justify-content: center; background: var(--bg-element); color: var(--text-muted); border: 1px solid var(--border-color);" data-t="download_pdf">PDF Z AKORDAMI</button>
-                <button class="action-btn" onclick="exportLyricsPDF()" style="flex:1; justify-content: center; background: var(--bg-element); color: var(--text-muted); border: 1px solid var(--border-color);" data-t="download_pdf_lyrics">PDF TEKSTY</button>
+            <div class="col-header">
+                <h2 class="col-title" data-t="setlist_header">Setlista</h2>
+            </div>
+            <div class="scrollable" id="setlist-container">
+                <div class="empty-setlist" data-t="empty_setlist">Brak piosenek w setliście.</div>
+            </div>
+            <div class="setlist-actions">
+                <button class="top-btn" onclick="exportToPDF()" data-t="download_pdf">PDF Z AKORDAMI</button>
+                <button class="top-btn" onclick="exportLyricsPDF()" data-t="download_pdf_lyrics">PDF TEKSTY</button>
             </div>
         </div>
-        
+
+        <!-- ── Live Panel ── -->
         <div id="col-live" class="col">
-            <div class="live-top-header">
-                <h2 style="margin:0; border:none; padding:0;" data-t="live_panel">Panel Live</h2>
-                <button class="next-song-btn-landscape" onclick="goToNextSong()" data-t="next_btn">NASTĘPNA ➔</button>
+            <div class="live-header live-top-header">
+                <h2 data-t="live_panel">Panel Live</h2>
+                <button class="next-song-btn-landscape" onclick="goToNextSong()" data-t="next_btn">NASTĘPNA &#10132;</button>
             </div>
 
             <h3 id="current-title"></h3>
 
             <div class="live-split-wrapper">
-                
                 <div id="live-preview-box" data-t="screen_off">EKRAN WYGASZONY</div>
-                
+
                 <div id="live-header" class="live-side-controls">
-                    
                     <div class="pad-panel-box">
                         <div class="pad-row-top">
-                            <span style="font-weight: 700; color: var(--text-muted); font-size: 0.8rem;">PAD ATMOSPHERE</span>
+                            <span class="pad-label">PAD ATMOSPHERE</span>
                             <span id="pad-status-text" class="pad-status">OFF</span>
                         </div>
-                        <div style="display:flex; justify-content:center;">
-                            <button id="pad-toggle-btn" class="pad-btn" onclick="togglePad()">♫</button>
+                        <div class="pad-center">
+                            <button id="pad-toggle-btn" class="pad-btn" onclick="togglePad()">&#9835;</button>
                         </div>
                         <div class="pad-volume-row">
-                            <span style="font-size:0.8rem; color:var(--text-muted);">VOL</span>
-                            <input type="range" id="pad-volume-slider" class="pad-slider" 
-                                   min="0" max="1" step="0.01" value="0.5" 
+                            <span class="vol-label">VOL</span>
+                            <input type="range" id="pad-volume-slider" class="pad-slider"
+                                   min="0" max="1" step="0.01" value="0.5"
                                    oninput="updatePadVolume(this)">
-                            <span id="pad-vol-text" style="font-size: 0.7rem; color: var(--text-muted); min-width: 25px; text-align: right;">50%</span>
+                            <span id="pad-vol-text" class="vol-value">50%</span>
                         </div>
                     </div>
 
                     <div class="music-info-box">
                         <div class="music-info-row">
-                            <span style="color:var(--text-muted); font-size: 0.8rem; font-weight:bold;">KEY</span>
-                            <span id="live-key" style="font-weight:bold; color:var(--accent-primary); font-size: 1.2rem;">-</span>
+                            <span class="info-label">KEY</span>
+                            <span id="live-key" class="info-value info-value-accent">-</span>
                         </div>
                         <div class="music-info-row">
-                            <span style="color:var(--text-muted); font-size: 0.8rem; font-weight:bold;">TRANSPOSE</span>
-                            <div style="display:flex; align-items:center; gap:5px;">
-                                <button class="btn-sm" style="padding:2px 8px;" onclick="adjustLiveTrans(-1)">-1</button>
-                                <span id="current-trans" style="font-weight:bold; min-width:20px; text-align:center;">0</span>
-                                <button class="btn-sm" style="padding:2px 8px;" onclick="adjustLiveTrans(1)">+1</button>
+                            <span class="info-label">TRANSPOSE</span>
+                            <div class="trans-controls">
+                                <button class="trans-btn" onclick="adjustLiveTrans(-1)">-1</button>
+                                <span id="current-trans" class="trans-value">0</span>
+                                <button class="trans-btn" onclick="adjustLiveTrans(1)">+1</button>
                             </div>
                         </div>
                         <div class="music-info-row">
-                            <span style="color:var(--text-muted); font-size: 0.8rem; font-weight:bold;">BPM</span>
-                            <span id="live-bpm" style="font-weight:bold; color:var(--accent-danger); font-size: 1.2rem;">-</span>
+                            <span class="info-label">BPM</span>
+                            <span id="live-bpm" class="info-value info-value-red">-</span>
                         </div>
                     </div>
-
                 </div>
             </div>
-            
+
             <div id="slides-container" class="slides-grid"></div>
-            
+
             <div class="bottom-controls">
                 <button class="danger" onclick="blackout()">BLACKOUT</button>
                 <button class="secondary" onclick="showLogo()">LOGO</button>
@@ -850,121 +1638,152 @@
         </div>
     </div>
 
+    <!-- ═══ Mobile Nav ═══ -->
     <div class="mobile-nav">
-        <button class="mob-tab" onclick="switchMobTab('library')"><span class="mob-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span><span data-t="mob_lib">Biblioteka</span></button>
-        <button class="mob-tab" onclick="switchMobTab('setlist')"><span class="mob-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span><span data-t="mob_set">Setlista</span></button>
-        <button class="mob-tab active" onclick="switchMobTab('live')"><span class="mob-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>Live</button>
+        <button class="mob-tab" onclick="switchMobTab('library')">
+            <span class="mob-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+            <span data-t="mob_lib">Biblioteka</span>
+        </button>
+        <button class="mob-tab" onclick="switchMobTab('setlist')">
+            <span class="mob-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
+            <span data-t="mob_set">Setlista</span>
+        </button>
+        <button class="mob-tab active" onclick="switchMobTab('live')">
+            <span class="mob-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+            Live
+        </button>
     </div>
 
+    <!-- ═══ Conference Mode ═══ -->
     <div id="conference-mode" class="mode-container">
         <div class="conf-panel">
             <h2 class="conf-header" data-t="speaker_panel">Panel Mowcy / Konferencja</h2>
 
             <div class="conf-grid">
+                <!-- Timer & Message Card -->
                 <div class="conf-card">
-                    <h3 class="conf-card-header" data-t="clock_msg_title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Zegar & Wiadomosc</h3>
+                    <h3 class="conf-card-header" data-t="clock_msg_title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Zegar & Wiadomosc
+                    </h3>
 
-                    <div style="text-align:center; margin-bottom:20px;">
-                        <label data-t="time_label" style="display:block; margin-bottom:12px; color:var(--text-muted); font-size:0.95rem; font-weight:800;">Czas (min):</label>
-                        <div style="display:flex; justify-content:center; align-items:center; gap:15px;">
+                    <div style="text-align:center; margin-bottom:var(--s5);">
+                        <label class="conf-time-label" data-t="time_label">Czas (min):</label>
+                        <div class="conf-time-row">
                             <input type="number" id="timer-input" value="45" class="conf-timer-input">
-                            <button class="action-btn" onclick="setTimer()" style="height:55px; padding:0 25px; background:var(--bg-element); border:1px solid var(--border-color); color:var(--text-main);" data-t="set_btn">USTAW</button>
+                            <button class="conf-set-btn" onclick="setTimer()" data-t="set_btn">USTAW</button>
                         </div>
                     </div>
 
                     <div class="conf-timer-display" id="timer-val">00:00</div>
 
-                    <div class="conf-btn-row" style="margin-bottom:32px;">
-                        <button class="action-btn" style="background:var(--accent-success); color:white; box-shadow:0 4px 20px rgba(0,184,148,0.25);" onclick="startTimer()">START</button>
-                        <button class="action-btn" style="background:var(--accent-danger); color:white; box-shadow:0 4px 20px rgba(255,107,107,0.25);" onclick="stopTimer()">STOP</button>
-                        <button class="action-btn" style="background:var(--accent-warning); color:#1a1a1a; box-shadow:0 4px 20px rgba(253,203,110,0.25);" onclick="resetTimer()">RESET</button>
+                    <div class="conf-btn-row" style="margin-bottom:var(--s8);">
+                        <button class="conf-action-btn start" onclick="startTimer()">START</button>
+                        <button class="conf-action-btn stop" onclick="stopTimer()">STOP</button>
+                        <button class="conf-action-btn reset" onclick="resetTimer()">RESET</button>
                     </div>
 
                     <div style="flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">
-                        <label style="display:block; margin-bottom:10px; color:var(--text-muted); font-size:0.85rem; font-weight:700;">Wiadomosc do wyswietlenia na ekranie prezentera:</label>
+                        <label class="conf-msg-label">Wiadomosc do wyswietlenia na ekranie prezentera:</label>
                         <textarea id="conf-msg" rows="3" placeholder="Wiadomosc do mowcy..." data-t-ph="msg_ph" class="conf-msg-area"></textarea>
-                        <div style="display:flex; gap:12px; margin-top:10px;">
-                            <button class="secondary" style="padding:16px; flex:2; font-weight:800; border-radius:var(--radius-md); font-size:0.95rem;" onclick="sendConfMessage()" data-t="send_btn">WYSLIJ</button>
-                            <button class="danger" style="padding:16px; flex:1; font-weight:800; border-radius:var(--radius-md); font-size:0.95rem;" onclick="clearConfMessage()" data-t="clear_btn">WYCZYSC</button>
+                        <div class="conf-msg-actions">
+                            <button class="secondary" style="flex:2;" onclick="sendConfMessage()" data-t="send_btn">WYSLIJ</button>
+                            <button class="danger" style="flex:1;" onclick="clearConfMessage()" data-t="clear_btn">WYCZYSC</button>
                         </div>
                     </div>
                 </div>
 
+                <!-- Multimedia Card -->
                 <div class="conf-card">
-                    <h3 class="conf-card-header" data-t="multimedia_pres_title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> Multimedia</h3>
+                    <h3 class="conf-card-header" data-t="multimedia_pres_title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        Multimedia
+                    </h3>
 
-                    <div style="display:flex; flex-direction:column; gap:20px; flex-grow:1;">
+                    <div style="display:flex; flex-direction:column; gap:var(--s5); flex-grow:1;">
+                        <!-- Canva Section -->
                         <div class="conf-sub-card">
-                            <label class="conf-sub-label" style="color:var(--accent-primary);" data-t="canva_title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> 1. Canva (Zapisane prezentacje)</label>
-
-                            <div style="display:flex; gap:12px; margin-bottom:16px;">
-                                <input type="text" id="new-canva-link" placeholder="Wklej link Canva..." data-t-ph="canva_link_ph" style="margin-bottom:0; font-size:0.95rem; flex-grow:1; padding:14px; border-radius:var(--radius-md);">
-                                <button class="action-btn" style="background:var(--accent-primary); border:none; padding:0 22px; font-size:0.9rem; font-weight:800; border-radius:var(--radius-md);" onclick="addCanvaLink()" data-t="add_link_btn">+ DODAJ</button>
+                            <label class="conf-sub-label" style="color:var(--accent);" data-t="canva_title">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                                1. Canva (Zapisane prezentacje)
+                            </label>
+                            <div class="conf-canva-input-row">
+                                <input type="text" id="new-canva-link" placeholder="Wklej link Canva..." data-t-ph="canva_link_ph">
+                                <button class="conf-add-btn" onclick="addCanvaLink()" data-t="add_link_btn">+ DODAJ</button>
                             </div>
-
-                            <div id="canva-links-list" style="display:flex; flex-direction:column; gap:10px; max-height:200px; overflow-y:auto;"></div>
+                            <div id="canva-links-list" style="display:flex; flex-direction:column; gap:var(--s3); max-height:200px; overflow-y:auto;"></div>
                         </div>
 
+                        <!-- PDF Section -->
                         <div class="conf-sub-card" style="flex-grow:1; display:flex; flex-direction:column;">
-                            <label class="conf-sub-label" style="color:var(--accent-success);" data-t="pdf_title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 2. Plik prezentacji (PDF / PPTX)</label>
+                            <label class="conf-sub-label" style="color:var(--green);" data-t="pdf_title">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                2. Plik prezentacji (PDF / PPTX)
+                            </label>
 
-                            <div style="display:flex; gap:12px; margin-bottom:20px; align-items:center; height:50px;">
-                                <label for="pdf-upload" class="custom-file-label" style="flex-grow:1; padding:0 18px; margin:0; text-align:left; font-size:0.9rem; height:100%; display:flex; align-items:center; background:var(--input-bg); border-radius:var(--radius-md); border:1px dashed var(--border-color);" id="pdf-file-label" data-t="pdf_ph">Wybierz plik PDF lub PPTX...</label>
+                            <div class="conf-pdf-row">
+                                <label for="pdf-upload" class="conf-pdf-label" id="pdf-file-label" data-t="pdf_ph">Wybierz plik PDF lub PPTX...</label>
                                 <input type="file" id="pdf-upload" accept=".pdf,.pptx,.ppt" style="display:none;" onchange="document.getElementById('pdf-file-label').innerText = this.files[0] ? this.files[0].name : translations[currentLang].pdf_ph">
-                                <button class="action-btn" style="background:var(--bg-element); color:var(--text-main); height:100%; padding:0 25px; border:1px solid var(--border-color); font-weight:800; border-radius:var(--radius-md);" onclick="uploadPdfPresentation()" data-t="upload_btn">WGRAJ</button>
+                                <button class="conf-upload-btn" onclick="uploadPdfPresentation()" data-t="upload_btn">WGRAJ</button>
                             </div>
 
                             <div class="conf-sub-card" style="text-align:center; margin-top:auto;">
-                                <div data-t="slides_control_title" style="font-size:0.8rem; color:var(--text-muted); margin-bottom:18px; text-transform:uppercase; letter-spacing:1.5px; font-weight:700;">Sterowanie Slajdami</div>
+                                <div class="slides-control-label" data-t="slides_control_title">Sterowanie Slajdami</div>
 
-                                <button class="action-btn" style="width:100%; justify-content:center; margin-bottom:20px; background:var(--accent-primary); padding:16px; font-size:1rem; border-radius:var(--radius-md); box-shadow:0 4px 16px rgba(59,130,246,0.25);" onclick="sendPresentationState()" data-t="show_pres_btn">Pokaz prezentacje na ekranach</button>
+                                <button class="conf-show-btn" onclick="sendPresentationState()" data-t="show_pres_btn">Pokaz prezentacje na ekranach</button>
 
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                                <div class="slides-nav-row">
                                     <button class="conf-slide-btn" onclick="changeSlide(-1)">&#9664;</button>
-                                    <span id="slide-counter" style="font-weight:900; font-size:2rem; font-family:monospace; color:var(--accent-success); text-shadow:0 2px 12px rgba(0,184,148,0.2);">0 / 0</span>
+                                    <span id="slide-counter" class="slide-counter-display">0 / 0</span>
                                     <button class="conf-slide-btn" onclick="changeSlide(1)">&#9654;</button>
                                 </div>
 
-                                <button class="danger blackout-toggle" style="width:100%; padding:16px; font-size:0.95rem; font-weight:800; border-radius:var(--radius-md); letter-spacing:1px;" onclick="blackout()" data-t="blackout_on_btn">WYGAS EKRAN RZUTNIKA</button>
+                                <button class="danger conf-blackout-btn blackout-toggle" onclick="blackout()" data-t="blackout_on_btn">WYGAS EKRAN RZUTNIKA</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div style="margin-top:24px;">
+            <div style="margin-top:var(--s6);">
                 <button class="conf-presenter-btn" onclick="window.open('/presenter', '_blank')" data-t="open_presenter_btn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                     Otworz widok prezentera
                 </button>
             </div>
         </div>
     </div>
 
+    <!-- ═══ Modals ═══ -->
+
+    <!-- Import Modal -->
     <div id="importModal" class="modal">
         <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-                <span style="font-size:1.2rem; font-weight:bold;" data-t="import_header">Import Piosenek (.txt)</span>
-                <span style="cursor:pointer;" onclick="closeImportModal()">✕</span>
+            <div class="modal-top">
+                <span class="modal-title" data-t="import_header">Import Piosenek (.txt)</span>
+                <button class="modal-x" onclick="closeImportModal()">&#10005;</button>
             </div>
             <div class="instruction-box">
-                <div class="instruction-step"><strong data-t="opt1">OPCJA 1: Pojedyncze pliki</strong><br><span data-t="opt1_desc">Wgraj pliki np. Barka (C).txt.</span></div>
-                <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 15px 0;">
-                <div class="instruction-step"><strong data-t="opt2">OPCJA 2: Plik zbiorczy</strong><br><span data-t="opt2_desc">Oddzielaj ---.</span><pre>Tytuł (Key)
+                <div><strong data-t="opt1">OPCJA 1: Pojedyncze pliki</strong><br><span data-t="opt1_desc">Wgraj pliki np. Barka (C).txt.</span></div>
+                <hr class="inst-divider">
+                <div><strong data-t="opt2">OPCJA 2: Plik zbiorczy</strong><br><span data-t="opt2_desc">Oddzielaj ---.</span><pre>Tytuł (Key)
 [C]Tekst...
 ---</pre></div>
             </div>
-            <form action="/import_songs" method="POST" enctype="multipart/form-data" id="importForm" style="text-align: center;">
+            <form action="/import_songs" method="POST" enctype="multipart/form-data" id="importForm" style="text-align:center;">
                 <input type="file" name="import_files" id="importInput" multiple accept=".txt" style="display:none;" onchange="document.getElementById('importForm').submit()">
-                <button type="button" class="action-btn" style="width: 100%; justify-content: center; padding: 15px; font-size: 1.1rem; background: var(--accent-primary);" onclick="document.getElementById('importInput').click()" data-t="choose_file">Wybierz plik</button>
+                <button type="button" class="btn-primary btn-lg" style="width:100%;" onclick="document.getElementById('importInput').click()" data-t="choose_file">Wybierz plik</button>
             </form>
         </div>
     </div>
 
+    <!-- Add Song Modal -->
     <div id="addModal" class="modal">
-         <div class="modal-content">
-            <span style="cursor:pointer; float:right;" onclick="closeAddModal()">✕</span>
-            <h3 data-t="add_header">Dodaj Nową Piosenkę</h3>
+        <div class="modal-content">
+            <div class="modal-top">
+                <span class="modal-title" data-t="add_header">Dodaj Nową Piosenkę</span>
+                <button class="modal-x" onclick="closeAddModal()">&#10005;</button>
+            </div>
             <form id="addForm" method="POST" action="/add_song" onsubmit="useSuggestedKey('add-key-input')">
                 <div class="form-row">
                     <input type="text" name="title" id="add-title" class="input-title" required placeholder="Tytuł" data-t-ph="title_ph">
@@ -972,32 +1791,35 @@
                     <input type="number" name="bpm" id="add-bpm-input" class="input-small" placeholder="BPM">
                     <div class="tap-btn" onclick="tapTempo('add-bpm-input')">TAP</div>
                 </div>
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                    <label data-t="input_notation_label" style="font-size:0.8rem; white-space:nowrap;">Notacja wejściowa:</label>
-                    <select name="input_notation" style="flex:1; padding:6px;">
+                <div class="notation-row">
+                    <label data-t="input_notation_label">Notacja wejściowa:</label>
+                    <select name="input_notation">
                         <option value="international" data-t="notation_international">Międzynarodowa (Bb, B)</option>
                         <option value="polish" data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
                     </select>
                 </div>
-                <div style="background: var(--bg-element); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.6;">
-                    <span data-t="chord_format_hint">Akordy wpisuj w nawiasach kwadratowych:</span> <code style="color:var(--accent-primary);">[Am]tekst [G]dalej</code><br>
+                <div class="chord-hint-box">
+                    <span data-t="chord_format_hint">Akordy wpisuj w nawiasach kwadratowych:</span> <code>[Am]tekst [G]dalej</code><br>
                     <span data-t="chord_format_hint2">Sekcje (Zwrotka, Refren) oddzielaj pustą linią. Obsługiwane formaty:</span>
-                    <code style="color:var(--accent-primary);">C, Am, F#m, Bb, Csus4, G/B, E7, Dmaj7, Asus2</code>
+                    <code>C, Am, F#m, Bb, Csus4, G/B, E7, Dmaj7, Asus2</code>
                 </div>
                 <textarea name="content" id="add-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('add-content', 'add-key-input'); validateChords('add-content', 'add-chord-status')" placeholder="Zwrotka 1&#10;[C]Tekst piosenki [Am]z akordami&#10;[F]Kolejna linia [G]tekstu&#10;&#10;Refren&#10;[F]Tekst refrenu [C]z akordami" data-t-ph="paste_ph"></textarea>
-                <div id="add-chord-status" style="font-size:0.75rem; margin-top:4px; min-height:1.2em;"></div>
-                <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
-                    <button type="submit" class="secondary" style="padding:10px 30px;" data-t="save_db_btn">ZAPISZ DO BAZY</button>
+                <div id="add-chord-status" style="font-size:var(--font-xs); margin-top:var(--s1); min-height:1.2em;"></div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary btn-lg" data-t="save_db_btn">ZAPISZ DO BAZY</button>
                 </div>
             </form>
             <form id="deleteFormAdd" method="POST" style="display:none;"></form>
         </div>
     </div>
 
+    <!-- Edit Song Modal -->
     <div id="editModal" class="modal">
         <div class="modal-content">
-            <span style="cursor:pointer; float:right;" onclick="closeEditModal()">✕</span>
-            <h3 data-t="edit_header">Edycja</h3>
+            <div class="modal-top">
+                <span class="modal-title" data-t="edit_header">Edycja</span>
+                <button class="modal-x" onclick="closeEditModal()">&#10005;</button>
+            </div>
             <form id="editForm" method="POST" onsubmit="useSuggestedKey('edit-key-input')">
                 <div class="form-row">
                     <input type="text" name="title" id="edit-title" class="input-title" required>
@@ -1005,44 +1827,44 @@
                     <input type="number" name="bpm" id="edit-bpm-input" class="input-small" placeholder="BPM">
                     <div class="tap-btn" onclick="tapTempo('edit-bpm-input')">TAP</div>
                 </div>
-                
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                    <label data-t="input_notation_label" style="font-size:0.8rem; white-space:nowrap;">Notacja wejściowa:</label>
-                    <select name="input_notation" style="flex:1; padding:6px;">
+                <div class="notation-row">
+                    <label data-t="input_notation_label">Notacja wejściowa:</label>
+                    <select name="input_notation">
                         <option value="international" data-t="notation_international">Międzynarodowa (Bb, B)</option>
                         <option value="polish" data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
                     </select>
                 </div>
-                <div style="background: var(--bg-element); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.6;">
-                    <span data-t="chord_format_hint">Akordy wpisuj w nawiasach kwadratowych:</span> <code style="color:var(--accent-primary);">[Am]tekst [G]dalej</code><br>
+                <div class="chord-hint-box">
+                    <span data-t="chord_format_hint">Akordy wpisuj w nawiasach kwadratowych:</span> <code>[Am]tekst [G]dalej</code><br>
                     <span data-t="chord_format_hint2">Sekcje (Zwrotka, Refren) oddzielaj pustą linią. Obsługiwane formaty:</span>
-                    <code style="color:var(--accent-primary);">C, Am, F#m, Bb, Csus4, G/B, E7, Dmaj7, Asus2</code>
+                    <code>C, Am, F#m, Bb, Csus4, G/B, E7, Dmaj7, Asus2</code>
                 </div>
                 <textarea name="content" id="edit-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('edit-content', 'edit-key-input'); validateChords('edit-content', 'edit-chord-status')"></textarea>
-                <div id="edit-chord-status" style="font-size:0.75rem; margin-top:4px; min-height:1.2em;"></div>
-                <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-                    <button type="button" onclick="deleteCurrentSong()" class="danger" style="padding:10px;" data-t="delete_btn">USUŃ</button>
-                    <button type="submit" class="secondary" style="padding:10px 30px;" data-t="save_btn">ZAPISZ</button>
+                <div id="edit-chord-status" style="font-size:var(--font-xs); margin-top:var(--s1); min-height:1.2em;"></div>
+                <div class="form-actions-between">
+                    <button type="button" onclick="deleteCurrentSong()" class="btn-danger" data-t="delete_btn">USUŃ</button>
+                    <button type="submit" class="btn-primary btn-lg" data-t="save_btn">ZAPISZ</button>
                 </div>
             </form>
             <form id="deleteForm" method="POST" style="display:none;"></form>
         </div>
     </div>
 
+    <!-- Settings Modal -->
     <div id="settingsModal" class="modal">
         <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-                <span style="font-size:1.2rem; font-weight:bold;" data-t="settings_header">Ustawienia</span>
-                <span style="cursor:pointer;" onclick="closeSettingsModal()">✕</span>
+            <div class="modal-top">
+                <span class="modal-title" data-t="settings_header">Ustawienia</span>
+                <button class="modal-x" onclick="closeSettingsModal()">&#10005;</button>
             </div>
-            
+
             <form action="/update_settings" method="POST" onsubmit="closeSettingsModal(); return true;">
-                
+
                 <div class="settings-section">
                     <h4 data-t="general_settings">Ogólne</h4>
                     <div class="settings-row">
                         <label>Język / Language:</label>
-                        <select id="lang-select" name="language" onchange="setLanguage(this.value)" style="width: 50%; padding: 8px;">
+                        <select id="lang-select" name="language" onchange="setLanguage(this.value)" style="width:50%;">
                             <option value="pl">Polski</option>
                             <option value="en">English</option>
                         </select>
@@ -1054,8 +1876,8 @@
                     <div class="settings-row">
                         <label data-t="dark_mode">Tryb ciemny:</label>
                         <label class="switch">
-                          <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
-                          <span class="slider round"></span>
+                            <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+                            <span class="slider round"></span>
                         </label>
                     </div>
                 </div>
@@ -1065,34 +1887,34 @@
                     <div class="settings-row">
                         <label data-t="auto_trans">Automatyczne przejścia:</label>
                         <label class="switch">
-                          <input type="checkbox" id="trans-toggle" onchange="toggleTransitions()" checked>
-                          <span class="slider round"></span>
+                            <input type="checkbox" id="trans-toggle" onchange="toggleTransitions()" checked>
+                            <span class="slider round"></span>
                         </label>
                     </div>
                     <div class="settings-row">
                         <label data-t="key_suggest">Sugerowanie tonacji:</label>
                         <label class="switch">
-                          <input type="checkbox" id="key-detect-toggle" onchange="toggleKeyDetection()" checked>
-                          <span class="slider round"></span>
+                            <input type="checkbox" id="key-detect-toggle" onchange="toggleKeyDetection()" checked>
+                            <span class="slider round"></span>
                         </label>
                     </div>
                     <div class="settings-row">
                         <label data-t="trans_engine">Styl przejść (Silnik AI):</label>
-                        <select name="transition_engine" style="width: 50%;">
-                            <option value="v2" {% if settings and settings.transition_engine == 'v2' %}selected{% endif %}>Advanced </option>
-                            <option value="v1" {% if settings and settings.transition_engine == 'v1' %}selected{% endif %}>Moderate(Easier) </option>
+                        <select name="transition_engine" style="width:50%;">
+                            <option value="v2" {% if settings and settings.transition_engine == 'v2' %}selected{% endif %}>Advanced</option>
+                            <option value="v1" {% if settings and settings.transition_engine == 'v1' %}selected{% endif %}>Moderate (Easier)</option>
                         </select>
                     </div>
                     <div class="settings-row">
                         <label data-t="chord_notation_label">Notacja akordów:</label>
-                        <select name="chord_notation" style="width: 50%;">
+                        <select name="chord_notation" style="width:50%;">
                             <option value="international" {% if settings and settings.chord_notation == 'international' %}selected{% endif %} data-t="notation_international">Międzynarodowa (Bb, B)</option>
                             <option value="polish" {% if settings and settings.chord_notation == 'polish' %}selected{% endif %} data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
                         </select>
                     </div>
                     <div class="settings-row">
                         <label data-t="minor_display_label">Akordy molowe:</label>
-                        <select name="minor_display" style="width: 50%;">
+                        <select name="minor_display" style="width:50%;">
                             <option value="uppercase" {% if settings and settings.minor_display == 'uppercase' %}selected{% endif %} data-t="minor_uppercase">Wielkie litery (Am, Em)</option>
                             <option value="lowercase" {% if settings and settings.minor_display == 'lowercase' %}selected{% endif %} data-t="minor_lowercase">Małe litery (am, em)</option>
                         </select>
@@ -1103,98 +1925,109 @@
                     <h4 data-t="projector_screen">Rzutnik (Ekran Zewnętrzny)</h4>
                     <div class="settings-row">
                         <label data-t="font_label">Czcionka:</label>
-                        <select name="font_family" style="width: 50%;">
+                        <select name="font_family" style="width:50%;">
                             <option value="Sen" {% if settings and settings.font_family == 'Sen' %}selected{% endif %}>Sen</option>
                             <option value="Arial" {% if settings and settings.font_family == 'Arial' %}selected{% endif %}>Arial</option>
                             <option value="Times New Roman" {% if settings and settings.font_family == 'Times New Roman' %}selected{% endif %}>Times New Roman</option>
                         </select>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top:15px;">
-                        <div class="color-item"><label style="font-size:0.8rem; display:block; margin-bottom:5px;" data-t="bg_color">Tło</label><input type="color" name="bg_color" value="{{ settings.bg_color if settings else '#000000' }}" style="padding:0; height:40px; border:none; cursor:pointer;"></div>
-                        <div class="color-item"><label style="font-size:0.8rem; display:block; margin-bottom:5px;" data-t="text_color">Tekst</label><input type="color" name="text_color" value="{{ settings.text_color if settings else '#ffffff' }}" style="padding:0; height:40px; border:none; cursor:pointer;"></div>
-                        <div class="color-item"><label style="font-size:0.8rem; display:block; margin-bottom:5px;" data-t="chord_color">Akordy</label><input type="color" name="chord_color" value="{{ settings.chord_color if settings else '#00e5ff' }}" style="padding:0; height:40px; border:none; cursor:pointer;"></div>
+                    <div class="color-grid">
+                        <div class="color-item">
+                            <label data-t="bg_color">Tło</label>
+                            <input type="color" name="bg_color" value="{{ settings.bg_color if settings else '#000000' }}">
+                        </div>
+                        <div class="color-item">
+                            <label data-t="text_color">Tekst</label>
+                            <input type="color" name="text_color" value="{{ settings.text_color if settings else '#ffffff' }}">
+                        </div>
+                        <div class="color-item">
+                            <label data-t="chord_color">Akordy</label>
+                            <input type="color" name="chord_color" value="{{ settings.chord_color if settings else '#00e5ff' }}">
+                        </div>
                     </div>
                 </div>
-                
-                <button type="submit" class="action-btn" style="width:100%; justify-content:center; margin-top:10px; margin-bottom:20px; background:var(--accent-success); font-size:1rem; padding:12px;" data-t="save_settings">ZAPISZ USTAWIENIA</button>
+
+                <button type="submit" class="btn-primary btn-lg" style="width:100%; margin-top:var(--s3); margin-bottom:var(--s5);" data-t="save_settings">ZAPISZ USTAWIENIA</button>
             </form>
 
             <div class="settings-section">
                 <h4 data-t="media_header">Multimedia</h4>
-                <div style="margin-bottom:15px;">
-                    <label style="font-weight:bold; font-size:0.8rem;" data-t="bg_proj_label">Tło Rzutnika:</label>
+                <div style="margin-bottom:var(--s4);">
+                    <label style="font-weight:700; font-size:var(--font-xs);" data-t="bg_proj_label">Tło Rzutnika:</label>
                     <form action="/upload_background" method="POST" enctype="multipart/form-data" class="file-upload-row">
-                          <label for="bg-file-input" class="custom-file-label" data-t="choose_file_label">Wybierz plik...</label>
-                          <input type="file" id="bg-file-input" name="bg_file" accept=".jpg,.png" required style="display:none;" onchange="updateFileName(this)">
-                          <button type="submit" class="btn-sm" style="background:var(--accent-primary); color:white; height:35px; border:none;" data-t="upload_btn">WGRAJ</button>
+                        <label for="bg-file-input" class="custom-file-label" data-t="choose_file_label">Wybierz plik...</label>
+                        <input type="file" id="bg-file-input" name="bg_file" accept=".jpg,.png" required style="display:none;" onchange="updateFileName(this)">
+                        <button type="submit" class="btn-primary btn-sm" data-t="upload_btn">WGRAJ</button>
                     </form>
                     {% if has_bg %}
-                    <form action="/delete_background" method="POST" style="margin-top:5px; text-align:right;">
-                        <button type="submit" class="btn-sm" style="background:var(--accent-danger); color:white; font-size:0.7rem; border:none;" data-t="delete_current">USUŃ OBECNE</button>
+                    <form action="/delete_background" method="POST" style="margin-top:var(--s1); text-align:right;">
+                        <button type="submit" class="btn-danger btn-sm" data-t="delete_current">USUŃ OBECNE</button>
                     </form>
                     {% endif %}
                 </div>
-                
+
                 <div>
-                    <label style="font-weight:bold; font-size:0.8rem;">Logo:</label>
+                    <label style="font-weight:700; font-size:var(--font-xs);">Logo:</label>
                     <form action="/upload_logo" method="POST" enctype="multipart/form-data" class="file-upload-row">
                         <label for="logo-file-input" class="custom-file-label" data-t="choose_file_label">Wybierz plik...</label>
                         <input type="file" id="logo-file-input" name="logo_file" accept=".png" required style="display:none;" onchange="updateFileName(this)">
-                        <button type="submit" class="btn-sm" style="background:var(--accent-primary); color:white; height:35px; border:none;" data-t="upload_btn">WGRAJ</button>
+                        <button type="submit" class="btn-primary btn-sm" data-t="upload_btn">WGRAJ</button>
                     </form>
                 </div>
             </div>
 
-            <div class="settings-section" style="background: rgba(85, 34, 34, 0.2); border: 1px solid rgba(85, 34, 34, 0.5);">
-                <h4 style="color:var(--accent-danger); border-color: color-mix(in srgb, var(--accent-danger) 25%, transparent);" data-t="system_section">System</h4>
-                <div style="display:flex; gap:10px;">
-                    <button type="button" class="action-btn" style="flex:1; justify-content:center; background:#444; color:white; display:flex; align-items:center;" onclick="saveBackupDesktop()" data-t="backup_btn">
-                        Kopia bazy
-                    </button>
-                    
+            <div class="settings-section system-section">
+                <h4 data-t="system_section">System</h4>
+                <div class="system-actions">
+                    <button type="button" class="backup-btn" onclick="saveBackupDesktop()" data-t="backup_btn">Kopia bazy</button>
                     <form action="/reset_settings" method="POST" style="flex:1;" onsubmit="return confirm('Przywrócić domyślne?');">
-                        <button type="submit" class="reset-btn">↻ RESET</button>
+                        <button type="submit" class="reset-btn" style="width:100%;">&#8635; RESET</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- QR Modal -->
     <div id="qrModal" class="modal">
-        <div class="modal-content" style="width: 800px; max-width: 90%;">
-            <span style="cursor:pointer; float:right; font-size:1.5rem;" onclick="closeQRModal()">✕</span>
-            <div style="text-align: center; color: var(--accent-primary); font-weight: bold; margin-bottom: 20px;">IP SERWERA: {{ server_ip }}</div>
+        <div class="modal-content qr-modal-content">
+            <div class="modal-top">
+                <span class="modal-title">Połącz ekrany</span>
+                <button class="modal-x" onclick="closeQRModal()">&#10005;</button>
+            </div>
+            <div class="qr-server-ip">IP SERWERA: {{ server_ip }}</div>
             <div class="qr-container">
                 <div class="qr-box">
                     <h3 data-t="control_qr">STEROWANIE</h3>
                     <img src="/qr_code/control">
-                    <button class="open-window-btn" style="background:var(--accent-primary); color: white; border:none; padding:10px; border-radius:4px; margin-top:5px; width:100%;" onclick="window.open('/control', '_blank')" data-t="open_win">OTWÓRZ OKNO ↗</button>
+                    <button class="qr-open-btn" onclick="window.open('/control', '_blank')" data-t="open_win">OTWÓRZ OKNO &#8599;</button>
                 </div>
                 <div class="qr-box">
                     <h3 data-t="band_qr">ZESPÓŁ</h3>
                     <img src="/qr_code/stage">
-                    <button class="open-window-btn" style="background:var(--bg-element-hover); color: white; border:none; padding:10px; border-radius:4px; margin-top:5px; width:100%;" onclick="window.open('/stage', '_blank')" data-t="open_win">OTWÓRZ OKNO ↗</button>
+                    <button class="qr-open-btn" onclick="window.open('/stage', '_blank')" data-t="open_win">OTWÓRZ OKNO &#8599;</button>
                 </div>
                 <div class="qr-box">
                     <h3 data-t="proj_qr">RZUTNIK</h3>
                     <img src="/qr_code/projector">
-                    <button class="open-window-btn" style="background:black; color: white; border:none; padding:10px; border-radius:4px; margin-top:5px; width:100%; border:1px solid #444;" onclick="window.open('/projector', '_blank')" data-t="open_win">OTWÓRZ OKNO ↗</button>
+                    <button class="qr-open-btn" onclick="window.open('/projector', '_blank')" data-t="open_win">OTWÓRZ OKNO &#8599;</button>
                 </div>
                 <div class="qr-box">
                     <h3 data-t="member_qr">CZŁONEK ZESPOŁU</h3>
                     <img src="/qr_code/band_member">
-                    <button class="open-window-btn" style="background:#1a1a28; color: #00e5ff; border:1px solid #00e5ff44; padding:10px; border-radius:4px; margin-top:5px; width:100%;" onclick="window.open('/band_member', '_blank')" data-t="open_win">OTWÓRZ OKNO ↗</button>
+                    <button class="qr-open-btn" onclick="window.open('/band_member', '_blank')" data-t="open_win">OTWÓRZ OKNO &#8599;</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- ═══ Scripts ═══ -->
     <script>
         window.SERVER_DATA = {
-            songs: [ 
-                {% for song in songs %} 
-                { id: {{song.id}}, title: {{song.title|tojson}}, content: {{song.content|tojson}}, key: {{song.key|tojson}}, bpm: {{song.bpm or 0}} }, 
-                {% endfor %} 
+            songs: [
+                {% for song in songs %}
+                { id: {{song.id}}, title: {{song.title|tojson}}, content: {{song.content|tojson}}, key: {{song.key|tojson}}, bpm: {{song.bpm or 0}} },
+                {% endfor %}
             ],
             settings: {
                 bg_color: "{{ settings.bg_color if settings else '#000000' }}",
@@ -1209,19 +2042,17 @@
             serverIp: "{{ server_ip }}"
         };
 
-        // Helper preview function
         window.updateLocalPreview = function(text, label) {
-            const previewBox = document.getElementById('live-preview-box');
+            var previewBox = document.getElementById('live-preview-box');
             if (!text || text.trim() === '') {
-                let displayLabel = label ? label : '...';
-                previewBox.innerHTML = `<span class="preview-info-label">${displayLabel}</span>`;
+                var displayLabel = label ? label : '...';
+                previewBox.innerHTML = '<span class="preview-info-label">' + displayLabel + '</span>';
             } else {
                 previewBox.innerText = text;
             }
         };
-
     </script>
-    
+
     <script src="{{ url_for('static', filename='js/control_logic.js') }}"></script>
     <script>initI18n();</script>
 </body>

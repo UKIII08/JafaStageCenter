@@ -1,10 +1,9 @@
 /* ============================================================
-   DESIGN SYSTEM - JafaStageCenter
-   Shared tokens, resets, and base components for all templates.
+   DESIGN SYSTEM — JafaStageCenter
+   Premium design tokens, components, and utilities.
    ============================================================ */
 
-/* 1. @font-face — Sen
-   ------------------------------------------------------------ */
+/* ── Fonts ── */
 @font-face {
     font-family: 'Sen';
     src: url('../fonts/Sen-Regular.ttf') format('truetype');
@@ -21,572 +20,623 @@
     font-display: swap;
 }
 
-/* 2. CSS Reset
-   ------------------------------------------------------------ */
-* {
+/* ── Reset ── */
+*, *::before, *::after {
     box-sizing: border-box;
-    outline: none;
     -webkit-tap-highlight-color: transparent;
 }
 
-/* 3. :root — Design Tokens (Dark Theme Default)
-   ------------------------------------------------------------ */
+*:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* ── Design Tokens — Dark (default) ── */
 :root {
-    /* Dark Theme Colors */
-    --bg-app: #06060a;
-    --bg-panel: #0e0e14;
-    --bg-element: #161620;
-    --bg-element-hover: #1e1e2c;
-    --bg-preview: #030306;
-    --input-bg: #111118;
-    --pad-container: #111118;
-    --border-color: rgba(255, 255, 255, 0.06);
-    --text-main: rgba(255, 255, 255, 0.92);
-    --text-muted: rgba(255, 255, 255, 0.45);
-    --accent-primary: #3B82F6;
-    --accent-secondary: #00cec9;
-    --accent-success: #00b894;
-    --accent-danger: #ff6b6b;
-    --accent-warning: #fdcb6e;
-    --accent-active-bg: rgba(59, 130, 246, 0.12);
-    --shadow-color: rgba(0, 0, 0, 0.6);
-    --glass-bg: rgba(14, 14, 20, 0.92);
-    --glass-border: rgba(255, 255, 255, 0.04);
-    --glow-primary: rgba(59, 130, 246, 0.25);
-    --glow-success: rgba(0, 184, 148, 0.25);
+    /* Surfaces — deep navy, not pure black */
+    --bg-app: #080b14;
+    --bg-panel: #0d1117;
+    --bg-surface: #131820;
+    --bg-surface-hover: #1a2030;
+    --bg-elevated: #1e2536;
+    --bg-input: #111827;
+    --bg-preview: #060810;
 
-    /* Spacing (4px base) */
-    --space-1: 4px;
-    --space-2: 8px;
-    --space-3: 12px;
-    --space-4: 16px;
-    --space-5: 20px;
-    --space-6: 24px;
-    --space-8: 32px;
-    --space-10: 40px;
+    /* Borders & dividers */
+    --border-subtle: rgba(255, 255, 255, 0.04);
+    --border-default: rgba(255, 255, 255, 0.07);
+    --border-strong: rgba(255, 255, 255, 0.12);
 
-    /* Typography */
-    --text-2xs: 0.64rem;
-    --text-xs: 0.8rem;
-    --text-sm: 0.875rem;
-    --text-base: 1rem;
-    --text-lg: 1.125rem;
-    --text-xl: 1.25rem;
-    --text-2xl: 1.5rem;
-    --text-3xl: 2rem;
+    /* Text */
+    --text-primary: #f0f2f5;
+    --text-secondary: #8b95a8;
+    --text-tertiary: #556070;
+    --text-inverse: #080b14;
+
+    /* Accent palette */
+    --accent: #4f7fff;
+    --accent-hover: #6690ff;
+    --accent-subtle: rgba(79, 127, 255, 0.10);
+    --accent-glow: rgba(79, 127, 255, 0.20);
+    --teal: #2dd4bf;
+    --teal-subtle: rgba(45, 212, 191, 0.10);
+    --green: #34d399;
+    --green-subtle: rgba(52, 211, 153, 0.10);
+    --red: #f87171;
+    --red-subtle: rgba(248, 113, 113, 0.10);
+    --amber: #fbbf24;
+    --amber-subtle: rgba(251, 191, 36, 0.10);
+
+    /* Elevation */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+    --shadow-glow: 0 0 24px var(--accent-glow);
+
+    /* Glass */
+    --glass-bg: rgba(13, 17, 23, 0.92);
+    --glass-border: rgba(255, 255, 255, 0.06);
+
+    /* Spacing — 4px base */
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px;
+    --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px;
+    --s12: 48px; --s16: 64px;
+
+    /* Typography scale */
+    --font-xs: 0.6875rem;   /* 11px */
+    --font-sm: 0.8125rem;   /* 13px */
+    --font-base: 0.9375rem; /* 15px */
+    --font-lg: 1.125rem;    /* 18px */
+    --font-xl: 1.5rem;      /* 24px */
+    --font-2xl: 2rem;       /* 32px */
+    --font-3xl: 2.5rem;     /* 40px */
 
     /* Radius */
-    --radius-sm: 6px;
-    --radius-md: 10px;
-    --radius-lg: 14px;
-    --radius-xl: 20px;
-    --radius-full: 9999px;
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-xl: 20px;
+    --r-full: 9999px;
 
-    /* Transitions */
-    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Motion */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --duration-fast: 0.15s;
+    --duration-normal: 0.25s;
+    --duration-slow: 0.4s;
+
+    /* Legacy compat — templates still reference these */
+    --bg-element: var(--bg-surface);
+    --bg-element-hover: var(--bg-surface-hover);
+    --input-bg: var(--bg-input);
+    --pad-container: var(--bg-input);
+    --border-color: var(--border-default);
+    --text-main: var(--text-primary);
+    --text-muted: var(--text-secondary);
+    --accent-primary: var(--accent);
+    --accent-secondary: var(--teal);
+    --accent-success: var(--green);
+    --accent-danger: var(--red);
+    --accent-warning: var(--amber);
+    --accent-active-bg: var(--accent-subtle);
+    --shadow-color: rgba(0, 0, 0, 0.5);
+    --glow-primary: var(--accent-glow);
+    --glow-success: var(--green-subtle);
+    --radius-sm: var(--r-sm);
+    --radius-md: var(--r-md);
+    --radius-lg: var(--r-lg);
+    --radius-xl: var(--r-xl);
+    --radius-full: var(--r-full);
+    --transition-fast: var(--duration-fast) var(--ease-in-out);
+    --transition-smooth: var(--duration-normal) var(--ease-out);
 }
 
-/* 4. Light Theme
-   ------------------------------------------------------------ */
+/* ── Light Theme ── */
 [data-theme="light"] {
-    --bg-app: #f5f5fa;
+    --bg-app: #f4f5f7;
     --bg-panel: #ffffff;
-    --bg-element: #f0f0f8;
-    --bg-element-hover: #e8e8f2;
-    --bg-preview: #fafafe;
-    --input-bg: #f0f0f8;
-    --pad-container: #f0f0f8;
-    --border-color: rgba(0, 0, 0, 0.08);
-    --text-main: rgba(0, 0, 0, 0.87);
-    --text-muted: rgba(0, 0, 0, 0.5);
-    --accent-primary: #2563EB;
-    --accent-secondary: #00b5ad;
-    --accent-success: #059669;
-    --accent-danger: #dc2626;
-    --accent-warning: #d97706;
-    --accent-active-bg: rgba(37, 99, 235, 0.08);
-    --shadow-color: rgba(0, 0, 0, 0.08);
+    --bg-surface: #f0f1f4;
+    --bg-surface-hover: #e6e8ec;
+    --bg-elevated: #ffffff;
+    --bg-input: #f0f1f4;
+    --bg-preview: #fafbfc;
+
+    --border-subtle: rgba(0, 0, 0, 0.04);
+    --border-default: rgba(0, 0, 0, 0.08);
+    --border-strong: rgba(0, 0, 0, 0.14);
+
+    --text-primary: #1a1d24;
+    --text-secondary: #5c6370;
+    --text-tertiary: #8c929e;
+    --text-inverse: #f0f2f5;
+
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-subtle: rgba(37, 99, 235, 0.08);
+    --accent-glow: rgba(37, 99, 235, 0.12);
+    --teal: #0d9488;
+    --teal-subtle: rgba(13, 148, 136, 0.08);
+    --green: #059669;
+    --green-subtle: rgba(5, 150, 105, 0.08);
+    --red: #dc2626;
+    --red-subtle: rgba(220, 38, 38, 0.08);
+    --amber: #d97706;
+    --amber-subtle: rgba(217, 119, 6, 0.08);
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
+    --shadow-glow: 0 0 24px var(--accent-glow);
+
     --glass-bg: rgba(255, 255, 255, 0.95);
     --glass-border: rgba(0, 0, 0, 0.06);
-    --glow-primary: rgba(37, 99, 235, 0.12);
-    --glow-success: rgba(5, 150, 105, 0.12);
 }
 
-/* 5. Body Base
-   ------------------------------------------------------------ */
+/* ── Base ── */
 body {
-    font-family: 'Sen', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Sen', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     margin: 0;
     background: var(--bg-app);
-    color: var(--text-main);
-    transition: background var(--transition-smooth), color var(--transition-smooth);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background var(--duration-normal) var(--ease-out),
+                color var(--duration-normal) var(--ease-out);
 }
 
-/* 6. Scrollbar
-   ------------------------------------------------------------ */
-::-webkit-scrollbar {
-    width: 4px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-    background: var(--accent-primary);
-    border-radius: var(--radius-full);
+    background: var(--text-tertiary);
+    border-radius: var(--r-full);
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
 }
 
-/* 7. Input / Textarea / Select Base
-   ------------------------------------------------------------ */
-input,
-textarea,
-select {
+/* ── Form Controls ── */
+input, textarea, select {
     width: 100%;
-    padding: 12px 16px;
-    border: 1px solid transparent;
-    border-radius: var(--radius-md);
-    font-family: 'Sen', sans-serif;
-    background: var(--input-bg);
-    color: var(--text-main);
-    font-size: var(--text-sm);
-    transition: border var(--transition-fast), box-shadow var(--transition-fast);
+    padding: var(--s3) var(--s4);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    font-family: inherit;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: var(--font-sm);
+    transition: border-color var(--duration-fast) var(--ease-in-out),
+                box-shadow var(--duration-fast) var(--ease-in-out);
 }
 
-input:focus,
-textarea:focus,
-select:focus {
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px var(--glow-primary);
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
-input::placeholder,
-textarea::placeholder {
-    color: var(--text-muted);
-    opacity: 0.6;
+input::placeholder, textarea::placeholder {
+    color: var(--text-tertiary);
 }
 
-/* 8. Toggle Switch
-   ------------------------------------------------------------ */
+/* ── Toggle Switch ── */
 .switch {
     position: relative;
     display: inline-block;
-    width: 50px;
-    height: 28px;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
 }
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
+.switch input { opacity: 0; width: 0; height: 0; }
 
 .slider {
     position: absolute;
     cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--bg-element-hover);
-    border-radius: var(--radius-full);
-    transition: var(--transition-smooth);
+    inset: 0;
+    background: var(--bg-surface-hover);
+    border-radius: var(--r-full);
+    transition: background var(--duration-normal) var(--ease-out);
 }
-
-.slider:before {
+.slider::before {
     content: "";
     position: absolute;
-    height: 20px;
-    width: 20px;
-    left: 4px;
-    bottom: 4px;
-    background: var(--bg-panel);
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: var(--text-primary);
     border-radius: 50%;
-    transition: var(--transition-smooth);
+    transition: transform var(--duration-normal) var(--ease-out);
 }
-
 input:checked + .slider {
-    background: var(--accent-success);
+    background: var(--green);
+}
+input:checked + .slider::before {
+    transform: translateX(20px);
+    background: white;
 }
 
-input:checked + .slider:before {
-    transform: translateX(22px);
-}
-
-/* 9. Button System
-   ------------------------------------------------------------ */
-.btn-primary,
-.btn-secondary,
-.btn-ghost,
-.btn-danger {
-    font-family: 'Sen', sans-serif;
+/* ── Button System ── */
+.btn, [class*="btn-"] {
+    font-family: inherit;
     font-weight: 700;
-    border-radius: var(--radius-md);
+    border-radius: var(--r-md);
     cursor: pointer;
-    transition: all var(--transition-fast);
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    font-size: var(--text-base);
+    justify-content: center;
+    gap: var(--s2);
+    padding: var(--s3) var(--s5);
+    font-size: var(--font-sm);
+    line-height: 1;
+    transition: all var(--duration-fast) var(--ease-in-out);
+    white-space: nowrap;
+    text-decoration: none;
 }
 
-.btn-primary:active,
-.btn-secondary:active,
-.btn-ghost:active,
-.btn-danger:active {
+.btn:active, [class*="btn-"]:active {
     transform: scale(0.97);
 }
 
-/* Primary */
 .btn-primary {
-    background: var(--accent-primary);
-    color: #ffffff;
+    background: var(--accent);
+    color: white;
     border: none;
+    box-shadow: var(--shadow-sm);
 }
-
 .btn-primary:hover {
-    filter: brightness(1.1);
+    background: var(--accent-hover);
+    box-shadow: var(--shadow-md), var(--shadow-glow);
 }
 
-/* Secondary */
 .btn-secondary {
     background: transparent;
-    border: 1px solid var(--accent-primary);
-    color: var(--accent-primary);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
 }
-
 .btn-secondary:hover {
-    background: var(--accent-primary);
-    color: #ffffff;
+    background: var(--bg-surface);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
-/* Ghost */
 .btn-ghost {
-    background: var(--bg-element);
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    color: var(--text-secondary);
 }
-
 .btn-ghost:hover {
-    background: var(--bg-element-hover);
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
 }
 
-/* Danger */
 .btn-danger {
     background: transparent;
-    border: 1px solid var(--accent-danger);
-    color: var(--accent-danger);
+    border: 1px solid var(--red);
+    color: var(--red);
 }
-
 .btn-danger:hover {
-    background: var(--accent-danger);
-    color: #ffffff;
+    background: var(--red);
+    color: white;
 }
 
-/* Button Sizes */
-.btn-sm {
-    padding: 6px 12px;
-    font-size: var(--text-sm);
+.btn-sm { padding: var(--s1) var(--s3); font-size: var(--font-xs); }
+.btn-lg { padding: var(--s4) var(--s8); font-size: var(--font-base); }
+
+/* ── Segmented Control (pill switch) ── */
+.segmented-control {
+    display: inline-flex;
+    background: var(--bg-surface);
+    border-radius: var(--r-full);
+    padding: 3px;
+    gap: 2px;
+}
+.segmented-control button {
+    background: transparent;
+    border: none;
+    padding: var(--s2) var(--s5);
+    font-family: inherit;
+    font-size: var(--font-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-radius: var(--r-full);
+    cursor: pointer;
+    transition: all var(--duration-normal) var(--ease-out);
+    letter-spacing: 0.02em;
+}
+.segmented-control button:hover {
+    color: var(--text-primary);
+}
+.segmented-control button.active {
+    background: var(--accent);
+    color: white;
+    box-shadow: var(--shadow-sm);
 }
 
-.btn-lg {
-    padding: 14px 28px;
-    font-size: var(--text-lg);
-}
-
-/* 10. Modal
-   ------------------------------------------------------------ */
+/* ── Modal ── */
 .modal {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    inset: 0;
     z-index: 1000;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(20px);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: center;
+    animation: fadeIn var(--duration-fast) var(--ease-out);
 }
-
 .modal-content {
-    background: var(--glass-bg);
-    padding: var(--space-6);
-    border-radius: var(--radius-lg);
+    background: var(--bg-panel);
+    padding: var(--s8);
+    border-radius: var(--r-xl);
     max-height: 90vh;
     overflow-y: auto;
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 8px 32px var(--shadow-color), 0 0 20px var(--glow-primary);
-    animation: fadeInUp var(--transition-smooth) ease-out;
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-lg);
+    animation: modalIn var(--duration-normal) var(--ease-out);
 }
-
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-5);
-    font-size: var(--text-xl);
+    margin-bottom: var(--s6);
+}
+.modal-header h3, .modal-header span:first-child {
+    font-size: var(--font-lg);
     font-weight: 700;
 }
-
 .modal-close {
-    background: none;
+    background: var(--bg-surface);
     border: none;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     cursor: pointer;
-    font-size: 1.5rem;
-    transition: color var(--transition-fast);
+    width: 32px;
+    height: 32px;
+    border-radius: var(--r-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: all var(--duration-fast) var(--ease-in-out);
 }
-
 .modal-close:hover {
-    color: var(--text-main);
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
 }
 
-/* 11. Card
-   ------------------------------------------------------------ */
+/* ── Card ── */
 .card {
     background: var(--bg-panel);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-xl);
-    padding: var(--space-6);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-lg);
+    padding: var(--s6);
 }
-
 .card-header {
     display: flex;
-    gap: var(--space-2);
-    color: var(--text-muted);
-    font-size: var(--text-xs);
+    gap: var(--s2);
+    color: var(--text-tertiary);
+    font-size: var(--font-xs);
     font-weight: 700;
-    letter-spacing: 1.5px;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding-bottom: var(--space-4);
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: var(--space-6);
+    padding-bottom: var(--s4);
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: var(--s5);
 }
 
-/* 12. Settings
-   ------------------------------------------------------------ */
+/* ── Section Header (settings, groups) ── */
 .settings-section {
-    background: var(--bg-element);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: var(--space-6);
-    margin-bottom: var(--space-6);
-    border-left: 2px solid var(--accent-primary);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-lg);
+    padding: var(--s6);
+    margin-bottom: var(--s5);
 }
-
 .settings-section h4 {
-    margin: 0 0 var(--space-5);
-    color: var(--text-muted);
-    font-size: var(--text-xs);
+    margin: 0 0 var(--s5);
+    color: var(--text-tertiary);
+    font-size: var(--font-xs);
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: var(--space-3);
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: var(--s3);
 }
-
-.settings-section:nth-child(2) {
-    border-left-color: var(--accent-secondary);
-}
-
-.settings-section:nth-child(3) {
-    border-left-color: var(--accent-success);
-}
-
-.settings-section:nth-child(4) {
-    border-left-color: var(--accent-warning);
-}
-
 .settings-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--s4);
+    font-size: var(--font-sm);
+}
+.settings-row:last-child { margin-bottom: 0; }
+.settings-row label {
+    color: var(--text-secondary);
 }
 
-/* 13. Toast
-   ------------------------------------------------------------ */
+/* ── Toast ── */
 #toast-container {
     position: fixed;
-    top: 20px;
+    top: var(--s5);
     left: 50%;
     transform: translateX(-50%);
     z-index: 99999;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--s3);
     pointer-events: none;
 }
-
 .toast {
-    background: var(--glass-bg);
-    color: var(--text-main);
-    padding: 14px 28px;
-    border-radius: var(--radius-md);
-    font-weight: 700;
-    font-size: var(--text-sm);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    animation: toastIn 0.4s ease-out, toastOut 0.4s ease-in 2.6s forwards;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    padding: var(--s3) var(--s6);
+    border-radius: var(--r-full);
+    font-weight: 600;
+    font-size: var(--font-sm);
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-lg);
+    animation: toastIn var(--duration-slow) var(--ease-out),
+               toastOut var(--duration-normal) var(--ease-in-out) 2.6s forwards;
 }
 
-/* 14. Keyframes
-   ------------------------------------------------------------ */
-@keyframes toastIn {
-    0% {
-        opacity: 0;
-        transform: translateY(-30px) scale(0.95);
-    }
-    60% {
-        transform: translateY(5px) scale(1.02);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-@keyframes toastOut {
-    0% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    100% {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes pulse-glow {
-    0%, 100% {
-        box-shadow: 0 0 8px var(--glow-primary);
-    }
-    50% {
-        box-shadow: 0 0 20px var(--glow-primary);
-    }
-}
-
-/* 15. File Upload
-   ------------------------------------------------------------ */
+/* ── File Upload ── */
 .file-upload-row {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
-    margin-top: var(--space-3);
+    gap: var(--s3);
+    margin-top: var(--s3);
 }
-
 .custom-file-label {
     flex-grow: 1;
-    border: 1px dashed var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 12px 16px;
-    color: var(--text-muted);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--r-md);
+    padding: var(--s3) var(--s4);
+    color: var(--text-tertiary);
     cursor: pointer;
-    transition: border-color var(--transition-fast), color var(--transition-fast);
+    font-size: var(--font-sm);
+    transition: all var(--duration-fast) var(--ease-in-out);
 }
-
 .custom-file-label:hover {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
-/* 16. Instruction Box
-   ------------------------------------------------------------ */
+/* ── Instruction Box ── */
 .instruction-box {
-    background: var(--bg-element);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: var(--space-5);
-    margin-bottom: var(--space-6);
-    font-size: var(--text-sm);
-    color: var(--text-muted);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-lg);
+    padding: var(--s5);
+    margin-bottom: var(--s6);
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
 }
-
 .instruction-box pre {
     background: var(--bg-app);
-    padding: var(--space-3);
-    border-radius: var(--radius-sm);
-    color: var(--accent-success);
-    border: 1px solid var(--border-color);
-    font-family: 'Courier New', Courier, monospace;
+    padding: var(--s3);
+    border-radius: var(--r-sm);
+    color: var(--green);
+    border: 1px solid var(--border-default);
+    font-family: 'Courier New', monospace;
     overflow-x: auto;
+    font-size: var(--font-xs);
 }
 
-/* 17. Reset Button
-   ------------------------------------------------------------ */
+/* ── Reset Button ── */
 .reset-btn {
     width: 100%;
-    background: var(--bg-element);
-    color: var(--accent-danger);
-    border: 1px solid var(--accent-danger);
-    padding: 12px;
-    border-radius: var(--radius-md);
+    background: var(--red-subtle);
+    color: var(--red);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+    padding: var(--s3);
+    border-radius: var(--r-md);
     cursor: pointer;
     font-weight: 700;
-    font-family: 'Sen', sans-serif;
-    transition: all var(--transition-fast);
+    font-family: inherit;
+    font-size: var(--font-sm);
+    transition: all var(--duration-fast) var(--ease-in-out);
 }
-
 .reset-btn:hover {
-    background: var(--accent-danger);
-    color: #ffffff;
+    background: var(--red);
+    color: white;
 }
 
-/* 18. QR Styles
-   ------------------------------------------------------------ */
+/* ── QR Styles ── */
 .qr-container {
     display: flex;
     justify-content: space-around;
-    align-items: center;
-    margin-top: var(--space-6);
-    gap: var(--space-6);
+    align-items: flex-start;
+    gap: var(--s6);
+    flex-wrap: wrap;
 }
-
+.qr-box {
+    text-align: center;
+}
 .qr-box img {
     width: 140px;
     height: 140px;
-    border: 3px solid var(--accent-primary);
-    border-radius: var(--radius-lg);
-    box-shadow: 0 4px 16px var(--shadow-color);
+    border: 2px solid var(--border-strong);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-md);
 }
-
 .qr-box h3 {
-    color: var(--text-muted);
-    font-size: var(--text-xs);
-    letter-spacing: 1.5px;
+    color: var(--text-tertiary);
+    font-size: var(--font-xs);
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    margin-bottom: var(--space-3);
+    margin: 0 0 var(--s3);
 }
 
-/* 19. Reduced Motion
-   ------------------------------------------------------------ */
+/* ── Badge / Chip ── */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px var(--s2);
+    border-radius: var(--r-full);
+    font-size: var(--font-xs);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+.badge-accent {
+    background: var(--accent-subtle);
+    color: var(--accent);
+}
+.badge-green {
+    background: var(--green-subtle);
+    color: var(--green);
+}
+.badge-red {
+    background: var(--red-subtle);
+    color: var(--red);
+}
+.badge-amber {
+    background: var(--amber-subtle);
+    color: var(--amber);
+}
+
+/* ── Keyframes ── */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastIn {
+    0% { opacity: 0; transform: translateY(-20px) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-12px); }
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 8px var(--accent-glow); }
+    50% { box-shadow: 0 0 24px var(--accent-glow); }
+}
+
+@keyframes rotateBorder {
+    to { --preview-angle: 360deg; }
+}
+
+@property --preview-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
+/* ── Reduced Motion ── */
 @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
+    *, *::before, *::after {
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
     }

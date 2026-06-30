@@ -18,7 +18,7 @@
 
         body {
             background-color: var(--bg-app);
-            color: var(--text-main);
+            color: var(--text-primary);
             font-family: 'Sen', sans-serif;
             margin: 0; padding: 0;
             height: 100vh; width: 100vw;
@@ -29,22 +29,22 @@
         /* PRZYCISKI GÓRNE */
         #fs-btn, #settings-btn {
             position: absolute;
-            top: 10px;
+            top: var(--s3);
             background: var(--glass-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
+            border: 1px solid var(--border-default);
+            color: var(--text-primary);
             font-size: 2vh;
-            padding: 8px 12px;
+            padding: var(--s2) var(--s3);
             cursor: pointer;
             z-index: 9999;
-            border-radius: 10px;
+            border-radius: var(--r-md);
             opacity: 0.5;
-            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+            transition: all var(--duration-normal) var(--ease-out);
             user-select: none;
             -webkit-tap-highlight-color: transparent;
             backdrop-filter: blur(8px);
         }
-        #fs-btn { right: 10px; }
+        #fs-btn { right: var(--s3); }
         #settings-btn { right: 60px; }
         #fs-btn:hover, #settings-btn:hover { opacity: 1; filter: brightness(1.15); }
         #fs-btn:active, #settings-btn:active { transform: scale(0.97); }
@@ -61,7 +61,7 @@
             height: 70vh;
             width: 100%;
             padding: 0 20px; box-sizing: border-box;
-            border-bottom: 2px solid var(--border-color);
+            border-bottom: 1px solid var(--border-default);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -90,7 +90,7 @@
             width: 100%;
             background-color: var(--bg-app);
             padding: 10px 40px; box-sizing: border-box;
-            border-top: 1px solid var(--border-color);
+            border-top: 1px solid var(--border-default);
             display: flex;
             flex-direction: column;
             position: relative;
@@ -110,28 +110,28 @@
 
         #realtime-clock {
             font-size: 3.5vh;
-            color: var(--text-muted);
+            color: var(--text-tertiary);
             font-family: monospace;
             font-weight: bold;
         }
 
         #key-display {
             font-size: 3.5vh;
-            color: var(--accent-secondary);
+            color: var(--teal);
             font-weight: bold;
             display: none;
         }
 
         #capo-display {
             font-size: 2.5vh;
-            color: var(--accent-success);
+            color: var(--green);
             font-weight: bold;
             display: none;
         }
 
         #bpm-display {
             font-size: 2.5vh;
-            color: var(--accent-warning);
+            color: var(--amber);
             font-weight: bold;
             font-family: monospace;
             letter-spacing: 1px;
@@ -139,16 +139,18 @@
         }
 
         #next-label {
-            font-size: 2vh;
-            color: var(--accent-danger);
-            font-weight: bold;
-            margin-bottom: 5px;
+            font-size: var(--font-xs);
+            color: var(--red);
+            font-weight: 700;
+            margin-bottom: var(--s1);
             flex-shrink: 0;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
         }
 
         #next-content {
             flex-grow: 1;
-            color: var(--text-muted);
+            color: var(--text-secondary);
             font-size: 4vh;
             line-height: 2.0;
             text-align: left;
@@ -163,16 +165,16 @@
 
         /* AKORDY */
         .chord-wrapper { display: inline-block; position: relative; overflow: visible; vertical-align: baseline; }
-        .bass-slash { color: var(--accent-danger); opacity: 0.8; }
-        .bass-note { color: var(--accent-secondary); font-weight: 800; font-size: 0.95em; }
+        .bass-slash { color: var(--red); opacity: 0.8; }
+        .bass-note { color: var(--teal); font-weight: 800; font-size: 0.95em; }
 
         #current-slide .chord {
             position: absolute; bottom: 0.7em; left: 0; transform: none;
-            color: var(--accent-primary); font-weight: 700; font-size: 0.65em;
-            background: transparent; padding: 0; text-shadow: 1px 1px 2px #000;
+            color: var(--accent); font-weight: 700; font-size: 0.65em;
+            background: transparent; padding: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
-        #current-slide .chord.nashville { color: var(--accent-warning); }
-        #current-slide .chord.capo { color: var(--accent-success); }
+        #current-slide .chord.nashville { color: var(--amber); }
+        #current-slide .chord.capo { color: var(--green); }
 
         #next-slide-container .chord-wrapper {
             display: inline-block !important;
@@ -184,16 +186,16 @@
             position: absolute !important;
             bottom: 0.6em;
             left: 0;
-            color: var(--accent-success);
+            color: var(--green);
             font-size: 0.6em;
             font-weight: bold;
             white-space: nowrap;
         }
-        #next-slide-container .chord.nashville { color: var(--accent-warning); opacity: 0.6; }
-        #next-slide-container .chord.capo { color: var(--accent-success); opacity: 0.6; }
+        #next-slide-container .chord.nashville { color: var(--amber); opacity: 0.6; }
+        #next-slide-container .chord.capo { color: var(--green); opacity: 0.6; }
 
         #current-slide .chord.hard-chord {
-            color: var(--accent-warning);
+            color: var(--amber);
             text-decoration: underline;
             text-decoration-style: dotted;
             text-underline-offset: 3px;
@@ -219,75 +221,78 @@
         #settings-overlay {
             display: none;
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.6);
             z-index: 10000;
         }
         #settings-panel {
             position: fixed; top: 0; right: -360px;
             width: 340px; height: 100%;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border-left: 1px solid var(--border-color);
-            border-radius: 16px 0 0 16px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(24px);
+            border-left: 1px solid var(--border-default);
+            border-radius: var(--r-xl) 0 0 var(--r-xl);
             z-index: 10001;
-            transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
+            transition: right var(--duration-normal) var(--ease-out);
             overflow-y: auto;
-            padding: 20px;
-            display: flex; flex-direction: column; gap: 16px;
+            padding: var(--s5);
+            display: flex; flex-direction: column; gap: var(--s4);
         }
         #settings-panel.open { right: 0; }
         #settings-panel h2 {
-            font-size: 18px; color: var(--text-main);
-            padding-bottom: 10px; border-bottom: 1px solid var(--border-color);
+            font-size: var(--font-lg); color: var(--text-primary);
+            padding-bottom: var(--s3); border-bottom: 1px solid var(--border-default);
             display: flex; justify-content: space-between; align-items: center;
+            margin: 0;
         }
         .setting-group {
-            background: var(--bg-panel);
-            border-radius: 10px;
-            padding: 14px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--r-lg);
+            padding: var(--s4);
         }
         .setting-group .group-title {
-            font-size: 12px; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: 1px;
-            margin-bottom: 10px;
+            font-size: var(--font-xs); color: var(--text-tertiary);
+            text-transform: uppercase; letter-spacing: 0.06em;
+            margin-bottom: var(--s3); font-weight: 600;
         }
         .setting-group label {
             display: flex; justify-content: space-between; align-items: center;
-            font-size: 14px; color: var(--text-main);
-            margin-bottom: 10px;
+            font-size: var(--font-sm); color: var(--text-primary);
+            margin-bottom: var(--s3);
         }
         .setting-group label:last-child { margin-bottom: 0; }
 
         .toggle {
             position: relative; width: 44px; height: 24px;
-            background: var(--bg-element); border-radius: 12px; cursor: pointer;
-            transition: background 0.3s cubic-bezier(0.4,0,0.2,1); flex-shrink: 0;
+            background: var(--bg-elevated); border-radius: var(--r-full); cursor: pointer;
+            transition: background var(--duration-normal) var(--ease-out); flex-shrink: 0;
         }
-        .toggle.active { background: var(--accent-primary); }
+        .toggle.active { background: var(--accent); }
         .toggle::after {
             content: '';
             position: absolute; top: 2px; left: 2px;
             width: 20px; height: 20px;
             background: #fff; border-radius: 50%;
-            transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+            transition: transform var(--duration-normal) var(--ease-out);
         }
         .toggle.active::after { transform: translateX(20px); }
 
-        input[type="range"] { width: 100%; accent-color: var(--accent-primary); }
+        input[type="range"] { width: 100%; accent-color: var(--accent); }
         #settings-panel select {
-            width: 100%; padding: 8px 10px;
-            background: var(--bg-panel); border: 1px solid var(--border-color);
-            color: var(--text-main); border-radius: 6px; font-size: 14px;
+            width: 100%; padding: var(--s2) var(--s3);
+            background: var(--bg-surface); border: 1px solid var(--border-default);
+            color: var(--text-primary); border-radius: var(--r-md); font-size: var(--font-sm);
         }
         .btn {
-            padding: 10px 16px; border: none; border-radius: 10px;
-            font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+            padding: var(--s3) var(--s4); border: none; border-radius: var(--r-md);
+            font-size: var(--font-sm); font-weight: 600; cursor: pointer;
+            transition: all var(--duration-normal) var(--ease-out);
         }
         .btn:hover { filter: brightness(1.15); }
         .btn:active { transform: scale(0.97); }
-        .btn-primary { background: var(--accent-primary); color: #fff; }
+        .btn-primary { background: var(--accent); color: #fff; }
         .btn-primary:hover { filter: brightness(1.15); }
-        .btn-danger { background: var(--accent-danger); color: #fff; border: none; }
+        .btn-danger { background: var(--red); color: #fff; border: none; }
         .btn-danger:hover { filter: brightness(1.15); }
 
         /* CHORD POPUP */
@@ -295,22 +300,26 @@
             display: none;
             position: fixed;
             z-index: 20000;
-            background: var(--glass-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 8px;
-            box-shadow: 0 8px 32px var(--glow-primary), 0 4px 16px var(--shadow-color);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-default);
+            border-radius: var(--r-xl);
+            padding: var(--s2);
+            box-shadow: var(--shadow-lg);
             pointer-events: auto;
         }
-        #chord-popup .popup-close {
-            position: absolute; top: 4px; right: 8px;
-            background: none; border: none; color: var(--text-muted);
-            font-size: 14px; cursor: pointer;
+        .popup-close {
+            background: none; border: none; color: var(--text-tertiary);
+            font-size: var(--font-lg); cursor: pointer;
+            transition: color var(--duration-fast) ease;
         }
-        #chord-popup .popup-close:hover { color: var(--text-main); }
+        .popup-close:hover { color: var(--text-primary); }
+        #chord-popup .popup-close {
+            position: absolute; top: var(--s1); right: var(--s2);
+            font-size: var(--font-sm);
+        }
         #chord-popup .no-diagram {
-            padding: 20px 16px;
-            color: var(--text-muted); font-size: 13px; text-align: center;
+            padding: var(--s5) var(--s4);
+            color: var(--text-tertiary); font-size: var(--font-xs); text-align: center;
         }
 
         .chord.clickable { cursor: pointer; }
@@ -321,38 +330,14 @@
         }
 
         /* Light theme overrides */
-        [data-theme="light"] #current-slide {
-            border-bottom-color: var(--border-color);
-        }
-        [data-theme="light"] #next-slide-container {
-            background-color: var(--bg-app);
-            border-top-color: var(--border-color);
-        }
-        [data-theme="light"] #settings-panel {
-            background: var(--glass-bg);
-            border-left-color: var(--border-color);
-        }
-        [data-theme="light"] .setting-group {
-            background: var(--bg-element);
-        }
-        [data-theme="light"] .toggle {
-            background: var(--bg-element-hover);
-        }
-        [data-theme="light"] .toggle.active {
-            background: var(--accent-primary);
-        }
-        [data-theme="light"] #chord-popup {
-            background: var(--glass-bg);
-            border-color: var(--border-color);
-        }
-        [data-theme="light"] #conf-timer {
-            color: var(--text-main);
-        }
-        [data-theme="light"] #conf-message {
-            color: var(--accent-warning);
-        }
         [data-theme="light"] #current-slide .chord {
             text-shadow: none;
+        }
+        [data-theme="light"] #conf-timer {
+            color: var(--text-primary);
+        }
+        [data-theme="light"] #conf-message {
+            color: var(--amber);
         }
     </style>
 </head>
@@ -398,7 +383,7 @@
     <div id="settings-panel">
         <h2>
             <span data-t="bm_settings">Ustawienia</span>
-            <button style="background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;" onclick="toggleSettings()">✕</button>
+            <button class="popup-close" onclick="toggleSettings()">✕</button>
         </h2>
 
         <div class="setting-group">
@@ -409,7 +394,7 @@
                 <option value="{{ p.id }}" data-cfg='{{ {"show_chords": p.show_chords, "chord_notation": p.chord_notation or "international", "lowercase_minor": p.lowercase_minor or false, "capo_fret": p.capo_fret, "beginner_mode": p.beginner_mode, "diagram_instrument": p.diagram_instrument, "font_size": p.font_size}|tojson }}'>{{ p.name }}</option>
                 {% endfor %}
             </select>
-            <div style="display:flex; gap:8px; margin-top:10px;">
+            <div style="display:flex; gap:var(--s2); margin-top:var(--s3);">
                 <button class="btn btn-primary" style="flex:1;" onclick="savePresetDialog()" data-t="bm_save">Zapisz</button>
                 <button class="btn btn-danger" onclick="deleteCurrentPreset()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
             </div>
@@ -423,7 +408,7 @@
             </label>
             <label>
                 <span data-t="bm_notation">Notacja</span>
-                <select id="chord-notation" onchange="setNotation(this.value)" style="margin-left:auto; padding:4px 8px; border-radius:6px; background:var(--bg-panel); color:var(--text-main); border:1px solid var(--border-color);">
+                <select id="chord-notation" onchange="setNotation(this.value)" style="margin-left:auto; padding:var(--s1) var(--s2); border-radius:var(--r-md); background:var(--bg-surface); color:var(--text-primary); border:1px solid var(--border-default);">
                     <option value="international" data-t="bm_intl">Międzynarodowa (Bb, B)</option>
                     <option value="polish" data-t="bm_polish">Polska (B, H)</option>
                     <option value="nashville" data-t="bm_nashville">Nashville (1-2-3)</option>
@@ -439,7 +424,7 @@
             </label>
             <label>
                 <span data-t="bm_diagrams">Diagramy chwytów</span>
-                <select id="diagram-instrument" onchange="setDiagramInstrument(this.value)" style="margin-left:auto; padding:4px 8px; border-radius:6px; background:var(--bg-panel); color:var(--text-main); border:1px solid var(--border-color);">
+                <select id="diagram-instrument" onchange="setDiagramInstrument(this.value)" style="margin-left:auto; padding:var(--s1) var(--s2); border-radius:var(--r-md); background:var(--bg-surface); color:var(--text-primary); border:1px solid var(--border-default);">
                     <option value="off" data-t="bm_off">Wyłączone</option>
                     <option value="guitar" selected data-t="bm_guitar">Gitara</option>
                     <option value="piano" data-t="bm_piano">Piano</option>
@@ -458,8 +443,8 @@
                     {% endfor %}
                 </select>
             </label>
-            <div id="capo-suggestion" style="margin-top:10px; padding:10px; background:rgba(0,206,201,0.05); border:1px solid rgba(0,206,201,0.3); border-radius:8px; font-size:12px; color:var(--text-muted); display:none;">
-                <div style="color:var(--accent-success); font-weight:bold; margin-bottom:4px;" id="capo-suggest-title"></div>
+            <div id="capo-suggestion" style="margin-top:var(--s3); padding:var(--s3); background:rgba(45,212,191,0.05); border:1px solid rgba(45,212,191,0.2); border-radius:var(--r-md); font-size:var(--font-xs); color:var(--text-tertiary); display:none;">
+                <div style="color:var(--teal); font-weight:bold; margin-bottom:var(--s1);" id="capo-suggest-title"></div>
                 <div id="capo-suggest-details"></div>
             </div>
         </div>
@@ -694,7 +679,7 @@
                 box.style.display = 'block';
                 document.getElementById('capo-suggest-title').textContent = t('bm_capo_suggest') + ' ' + bestCapo;
                 document.getElementById('capo-suggest-details').innerHTML =
-                    t('bm_capo_chords') + ' ' + bestCapo + ': <span style="color:var(--text-main);">' + bestChords.join(', ') + '</span>';
+                    t('bm_capo_chords') + ' ' + bestCapo + ': <span style="color:var(--text-primary);">' + bestChords.join(', ') + '</span>';
             } else {
                 box.style.display = 'none';
             }

@@ -6,35 +6,95 @@
     <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
-        body { margin: 0; background: var(--bg-app); color: var(--text-main); font-family: 'Sen', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        body {
+            margin: 0;
+            background: var(--bg-app);
+            color: var(--text-primary);
+            font-family: 'Sen', sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-        /* Główny slajd - lewa strona */
-        .main-view { width: 70%; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
-        .current-slide-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; background: var(--bg-element); border: 2px solid var(--border-color); border-radius: 10px; overflow: hidden; }
+        .main-view {
+            width: 70%;
+            display: flex;
+            flex-direction: column;
+            padding: var(--s5);
+            box-sizing: border-box;
+        }
+        .current-slide-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--r-lg);
+            overflow: hidden;
+        }
         #current-slide-img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
-        /* Prawy pasek - zegar, następny slajd, wiadomości */
-        .sidebar { width: 30%; background: var(--bg-element); border-left: 2px solid var(--border-color); display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        .sidebar {
+            width: 30%;
+            background: var(--bg-panel);
+            border-left: 1px solid var(--border-default);
+            display: flex;
+            flex-direction: column;
+            padding: var(--s5);
+            box-sizing: border-box;
+        }
 
-        .timer-box { text-align: center; margin-bottom: 20px; }
-        #clock { font-size: 3vh; color: var(--text-muted); margin-bottom: 10px; }
-        #conf-timer { font-size: 8vh; font-weight: bold; font-family: monospace; }
+        .timer-box { text-align: center; margin-bottom: var(--s5); }
+        #clock { font-size: 3vh; color: var(--text-secondary); margin-bottom: var(--s3); }
+        #conf-timer { font-size: 8vh; font-weight: 900; font-family: monospace; }
 
         .next-slide-container { flex-grow: 1; display: flex; flex-direction: column; }
-        .next-label { color: var(--accent-danger); font-weight: bold; font-size: 2vh; margin-bottom: 10px; }
-        .next-preview { flex-grow: 1; background: var(--bg-app); border: 2px solid var(--border-color); border-radius: 5px; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        .next-label {
+            color: var(--red);
+            font-weight: 700;
+            font-size: var(--font-sm);
+            margin-bottom: var(--s3);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .next-preview {
+            flex-grow: 1;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--r-md);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
         #next-slide-img { max-width: 100%; max-height: 100%; object-fit: contain; opacity: 0.7; }
 
-        #conf-message { background: var(--accent-warning); color: var(--bg-app); padding: 15px; border-radius: 5px; font-weight: bold; font-size: 3vh; text-align: center; margin-top: 20px; display: none; }
+        #conf-message {
+            background: var(--amber);
+            color: var(--text-inverse);
+            padding: var(--s4);
+            border-radius: var(--r-md);
+            font-weight: 700;
+            font-size: 3vh;
+            text-align: center;
+            margin-top: var(--s5);
+            display: none;
+        }
 
-        /* Light theme adjustments */
-        [data-theme="light"] #conf-message { color: #000; }
-        [data-theme="light"] #conf-timer { color: #333; }
+        .pres-header {
+            margin: 0 0 var(--s3);
+            color: var(--text-tertiary);
+            font-size: var(--font-xs);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
     <div class="main-view">
-        <h2 style="margin:0 0 10px 0; color:var(--text-muted); font-size:2vh;" data-t="pres_current">AKTUALNY SLAJD</h2>
+        <h2 class="pres-header" data-t="pres_current">AKTUALNY SLAJD</h2>
         <div class="current-slide-container">
             <img id="current-slide-img" src="" style="display:none;">
             <h1 id="placeholder-text" style="color:var(--text-muted);" data-t="pres_waiting">Oczekiwanie na prezentację...</h1>

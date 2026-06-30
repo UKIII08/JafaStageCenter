@@ -499,7 +499,7 @@ function updateServerState() {
     });
 }
 
-function switchMode(m){document.querySelectorAll('.mode-container').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));if(m==='worship'){document.getElementById('worship-mode').classList.add('active');document.querySelector('button[onclick="switchMode(\'worship\')"]').classList.add('active');}else{document.getElementById('conference-mode').classList.add('active');document.querySelector('button[onclick="switchMode(\'conference\')"]').classList.add('active');sendConferenceData();}}
+function switchMode(m){document.querySelectorAll('.mode-container').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.segmented-control button, .mode-btn').forEach(b=>b.classList.remove('active'));if(m==='worship'){document.getElementById('worship-mode').classList.add('active');document.querySelector('button[onclick="switchMode(\'worship\')"]').classList.add('active');}else{document.getElementById('conference-mode').classList.add('active');document.querySelector('button[onclick="switchMode(\'conference\')"]').classList.add('active');sendConferenceData();}}
 function openQRModal(){document.getElementById('qrModal').style.display='flex';}
 function closeQRModal(){document.getElementById('qrModal').style.display='none';}
 
