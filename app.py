@@ -660,15 +660,15 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
 
             if not has_text_anywhere_on_line(i, tokens):
                 text_smart += f'<span class="chord-wrapper" style="width:auto; display:inline-block; margin-right:0.5em;"><span class="chord" style="position:static; font-size:1em;">{chord_content}</span>&nbsp;</span>'
-            elif is_chord_mid_word(i, tokens):
-                text_smart += f'<span class="chord-wrapper"><span class="chord">{chord_content}</span></span>'
             else:
                 clean_chord = re.sub(r"<[^>]+>", "", chord_content)
                 ch_width = len(clean_chord) + 0.5
-
                 text_len, has_next_chord = get_text_info_until_next_chord(i, tokens)
+                mid_word = is_chord_mid_word(i, tokens)
 
-                if text_len < ch_width:
+                if mid_word and (not has_next_chord or text_len >= ch_width):
+                    text_smart += f'<span class="chord-wrapper"><span class="chord">{chord_content}</span></span>'
+                elif text_len < ch_width:
                     missing_width = ch_width - text_len if text_len > 0 else ch_width
                     missing_width = min(missing_width, len(clean_chord) + 0.5)
                     text_smart += f'<span class="chord-wrapper" style="display:inline-block; width:{missing_width}ch; position:relative;"><span class="chord">{chord_content}</span></span>'
