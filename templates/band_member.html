@@ -27,7 +27,7 @@
         }
 
         /* PRZYCISKI GÓRNE */
-        #fs-btn, #settings-btn {
+        #fs-btn, #settings-btn, #setlist-btn {
             position: absolute;
             top: var(--s3);
             background: var(--glass-bg);
@@ -46,8 +46,82 @@
         }
         #fs-btn { right: var(--s3); }
         #settings-btn { right: 60px; }
-        #fs-btn:hover, #settings-btn:hover { opacity: 1; filter: brightness(1.15); }
-        #fs-btn:active, #settings-btn:active { transform: scale(0.97); }
+        #setlist-btn { left: var(--s3); }
+        #fs-btn:hover, #settings-btn:hover, #setlist-btn:hover { opacity: 1; filter: brightness(1.15); }
+        #fs-btn:active, #settings-btn:active, #setlist-btn:active { transform: scale(0.97); }
+
+        /* SETLIST DRAWER */
+        #setlist-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 9999;
+        }
+        #setlist-drawer {
+            position: fixed; top: 0; left: -320px; bottom: 0; width: 300px;
+            background: var(--bg-elevated); border-right: 1px solid var(--border-default);
+            z-index: 10000; transition: left 0.3s var(--ease-out);
+            display: flex; flex-direction: column; padding: 0;
+        }
+        #setlist-drawer.open { left: 0; }
+        #setlist-drawer-header {
+            padding: var(--s4) var(--s5);
+            border-bottom: 1px solid var(--border-default);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        #setlist-drawer-header h3 { margin: 0; font-size: var(--text-lg); color: var(--text-primary); }
+        #setlist-drawer-close {
+            background: none; border: none; color: var(--text-secondary);
+            font-size: 1.4rem; cursor: pointer; padding: 4px 8px;
+        }
+        #setlist-song-list {
+            flex: 1; overflow-y: auto; padding: var(--s2) 0;
+        }
+        .setlist-song-item {
+            padding: var(--s3) var(--s5); cursor: pointer;
+            border-bottom: 1px solid var(--border-subtle);
+            transition: background 0.15s;
+            display: flex; align-items: center; gap: var(--s3);
+        }
+        .setlist-song-item:hover { background: var(--bg-hover); }
+        .setlist-song-item.active { background: var(--accent-primary); color: #fff; }
+        .setlist-song-item.live-now::before {
+            content: ''; width: 8px; height: 8px; border-radius: 50%;
+            background: var(--accent-success); flex-shrink: 0;
+            animation: livePulse 1.5s ease-in-out infinite;
+        }
+        .setlist-song-item-title { flex: 1; font-size: var(--text-sm); font-weight: 500; }
+        .setlist-song-item-key { font-size: var(--text-xs); color: var(--text-tertiary); opacity: 0.7; }
+
+        /* BROWSE MODE NAV */
+        #browse-nav {
+            display: none; position: fixed; bottom: 0; left: 0; right: 0;
+            background: var(--glass-bg); backdrop-filter: blur(12px);
+            border-top: 1px solid var(--border-default);
+            padding: var(--s2) var(--s4); z-index: 9998;
+            align-items: center; justify-content: space-between; gap: var(--s3);
+        }
+        #browse-nav.visible { display: flex; }
+        #browse-section-info {
+            font-size: var(--text-xs); color: var(--text-secondary); white-space: nowrap;
+        }
+        .browse-nav-btn {
+            background: var(--bg-element); border: 1px solid var(--border-default);
+            color: var(--text-primary); padding: var(--s2) var(--s4);
+            border-radius: var(--r-md); cursor: pointer; font-size: var(--text-sm);
+            font-family: 'Sen', sans-serif;
+        }
+        .browse-nav-btn:hover { background: var(--bg-hover); }
+        #browse-live-btn {
+            background: var(--accent-success); color: #fff; border: none;
+            padding: var(--s2) var(--s5); border-radius: var(--r-full);
+            cursor: pointer; font-size: var(--text-sm); font-weight: 700;
+            font-family: 'Sen', sans-serif;
+            animation: livePulse 2s ease-in-out infinite;
+        }
+        @keyframes livePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(16,185,129,0); }
+        }
+        #browse-live-btn:hover { filter: brightness(1.1); }
 
         /* --- WIDOK UWIELBIENIA --- */
         #worship-view {
@@ -343,6 +417,7 @@
 </head>
 <body>
 
+    <button id="setlist-btn" onclick="toggleSetlistDrawer()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
     <button id="fs-btn" onclick="toggleFullscreen()">⛶</button>
     <button id="settings-btn" onclick="toggleSettings()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
 
@@ -376,6 +451,24 @@
     <div id="chord-popup">
         <button class="popup-close" onclick="hideChordPopup()">✕</button>
         <div id="chord-popup-content"></div>
+    </div>
+
+    <!-- SETLIST DRAWER -->
+    <div id="setlist-overlay" onclick="toggleSetlistDrawer()"></div>
+    <div id="setlist-drawer">
+        <div id="setlist-drawer-header">
+            <h3 data-t="bm_setlist">Setlista</h3>
+            <button id="setlist-drawer-close" onclick="toggleSetlistDrawer()">✕</button>
+        </div>
+        <div id="setlist-song-list"></div>
+    </div>
+
+    <!-- BROWSE NAV BAR -->
+    <div id="browse-nav">
+        <button class="browse-nav-btn" onclick="browsePrev()">◀</button>
+        <span id="browse-section-info"></span>
+        <button class="browse-nav-btn" onclick="browseNext()">▶</button>
+        <button id="browse-live-btn" onclick="returnToLive()">● LIVE</button>
     </div>
 
     <!-- PANEL USTAWIEŃ -->
@@ -825,8 +918,104 @@
             }
         }
 
-        // ===== SOCKET EVENTS =====
-        socket.on('update_slide', function(data) {
+        // ===== BROWSE MODE =====
+        let browseMode = false;
+        let browseData = null;  // { id, title, key, bpm, sections: [{band_html, raw_text}] }
+        let browseSectionIdx = 0;
+        let cachedSetlist = [];
+        let liveCurrentIndex = -1;
+        let pendingLiveData = null;
+
+        function toggleSetlistDrawer() {
+            const drawer = document.getElementById('setlist-drawer');
+            const overlay = document.getElementById('setlist-overlay');
+            const opening = !drawer.classList.contains('open');
+            drawer.classList.toggle('open');
+            overlay.style.display = opening ? 'block' : 'none';
+            if (opening) refreshSetlist();
+        }
+
+        function refreshSetlist() {
+            fetch('/api/setlist').then(r => r.json()).then(function(data) {
+                cachedSetlist = data.setlist || [];
+                liveCurrentIndex = data.current_index;
+                renderSetlistDrawer();
+            }).catch(function() {});
+        }
+
+        function renderSetlistDrawer() {
+            const list = document.getElementById('setlist-song-list');
+            if (!cachedSetlist.length) {
+                list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-tertiary);font-size:var(--text-sm);">' +
+                    (currentLang === 'en' ? 'No songs in setlist yet' : 'Brak piosenek na setliście') + '</div>';
+                return;
+            }
+            list.innerHTML = cachedSetlist.map(function(song, i) {
+                var isLive = (i === liveCurrentIndex);
+                var isActive = browseMode && browseData && browseData.id === song.id;
+                var cls = 'setlist-song-item' + (isLive ? ' live-now' : '') + (isActive ? ' active' : '');
+                return '<div class="' + cls + '" onclick="browseSong(' + song.id + ')">' +
+                    '<span class="setlist-song-item-title">' + (song.title || 'Untitled') + '</span>' +
+                    (song.key ? '<span class="setlist-song-item-key">' + song.key + '</span>' : '') +
+                    '</div>';
+            }).join('');
+        }
+
+        function browseSong(songId) {
+            fetch('/api/song/' + songId + '/band').then(r => r.json()).then(function(data) {
+                if (data.error) return;
+                browseData = data;
+                browseSectionIdx = 0;
+                browseMode = true;
+                renderBrowseSection();
+                toggleSetlistDrawer();
+                renderSetlistDrawer();
+            });
+        }
+
+        function renderBrowseSection() {
+            if (!browseData || !browseData.sections.length) return;
+            var section = browseData.sections[browseSectionIdx];
+            var nextSection = browseData.sections[browseSectionIdx + 1] || null;
+
+            currentRawText = section.raw_text;
+            currentBandHtml = section.band_html;
+            currentRawNext = nextSection ? nextSection.raw_text : '';
+            currentBandNext = nextSection ? nextSection.band_html : '';
+            currentKey = browseData.key || 'C';
+            currentBpm = browseData.bpm || 0;
+
+            worshipView.style.display = 'flex';
+            confView.style.display = 'none';
+            stageLogo.style.display = 'none';
+            currentContent.style.display = 'block';
+            rerender();
+
+            var info = document.getElementById('browse-section-info');
+            info.textContent = browseData.title + '  (' + (browseSectionIdx + 1) + '/' + browseData.sections.length + ')';
+            document.getElementById('browse-nav').classList.add('visible');
+        }
+
+        function browsePrev() {
+            if (!browseData) return;
+            if (browseSectionIdx > 0) { browseSectionIdx--; renderBrowseSection(); }
+        }
+        function browseNext() {
+            if (!browseData) return;
+            if (browseSectionIdx < browseData.sections.length - 1) { browseSectionIdx++; renderBrowseSection(); }
+        }
+
+        function returnToLive() {
+            browseMode = false;
+            browseData = null;
+            document.getElementById('browse-nav').classList.remove('visible');
+            if (pendingLiveData) {
+                applyLiveUpdate(pendingLiveData);
+                pendingLiveData = null;
+            }
+        }
+
+        function applyLiveUpdate(data) {
             if (data.mode === 'logo') {
                 worshipView.style.display = 'flex';
                 confView.style.display = 'none';
@@ -834,50 +1023,48 @@
                 stageLogo.style.display = 'block';
                 document.getElementById('next-text-inner').innerHTML = '';
                 document.getElementById('next-label').style.display = 'none';
-                currentRawText = '';
-                currentRawNext = '';
-                currentBandHtml = '';
-                currentBandNext = '';
-            }
-            else if (data.mode === 'blackout') {
+                currentRawText = ''; currentRawNext = '';
+                currentBandHtml = ''; currentBandNext = '';
+            } else if (data.mode === 'blackout') {
                 worshipView.style.display = 'flex';
                 confView.style.display = 'none';
                 document.getElementById('next-text-inner').innerHTML = '';
                 document.getElementById('next-label').style.display = 'none';
-                currentRawNext = '';
-                currentBandNext = '';
-            }
-            else if (data.mode === 'conference') {
+                currentRawNext = ''; currentBandNext = '';
+            } else if (data.mode === 'conference') {
                 worshipView.style.display = 'none';
                 confView.style.display = 'flex';
                 document.getElementById('conf-timer').innerText = data.timer;
                 document.getElementById('conf-timer').style.color = data.timer_color;
                 document.getElementById('conf-message').innerText = data.message;
-            }
-            else {
+            } else {
                 worshipView.style.display = 'flex';
                 confView.style.display = 'none';
                 stageLogo.style.display = 'none';
                 currentContent.style.display = 'block';
-
                 if (data.raw_text !== undefined) currentRawText = data.raw_text;
                 if (data.raw_next !== undefined) currentRawNext = data.raw_next;
                 if (data.band !== undefined) currentBandHtml = data.band;
                 if (data.band_next !== undefined) currentBandNext = data.band_next;
-
-                if (data.current_key && data.current_key !== 'N/A') {
-                    currentKey = data.current_key;
-                }
-                if (data.current_bpm && data.current_bpm > 0) {
-                    currentBpm = data.current_bpm;
-                }
-
+                if (data.current_key && data.current_key !== 'N/A') currentKey = data.current_key;
+                if (data.current_bpm && data.current_bpm > 0) currentBpm = data.current_bpm;
                 rerender();
             }
+        }
+
+        // ===== SOCKET EVENTS =====
+        socket.on('update_slide', function(data) {
+            if (browseMode) {
+                pendingLiveData = data;
+                return;
+            }
+            applyLiveUpdate(data);
         });
 
         socket.on('sync_state_to_client', function(state) {
-            if (state.is_blackout) {
+            if (state.setlist) cachedSetlist = state.setlist;
+            if (state.current_index !== undefined) liveCurrentIndex = state.current_index;
+            if (state.is_blackout && !browseMode) {
                 document.getElementById('next-text-inner').innerHTML = '';
                 document.getElementById('next-label').style.display = 'none';
             }
@@ -1040,6 +1227,12 @@
 
             var BM_STEPS = [
                 {
+                    target: '#setlist-btn',
+                    get title() { return currentLang === 'en' ? 'Browse setlist' : 'Przeglądaj setlistę'; },
+                    get text() { return currentLang === 'en' ? 'Open the setlist to browse songs before they\'re played live. Set up your capo, check chord diagrams, and prepare — then hit LIVE to follow the worship leader!' : 'Otwórz setlistę aby przeglądać piosenki zanim zostaną zagrane na żywo. Ustaw kapo, sprawdź diagramy akordów i przygotuj się — potem kliknij LIVE aby podążać za liderem!'; },
+                    position: 'bottom'
+                },
+                {
                     target: '#settings-btn',
                     get title() { return currentLang === 'en' ? 'Your settings' : 'Twoje ustawienia'; },
                     get text() { return currentLang === 'en' ? 'Open settings to personalize your view — chord display, notation, capo, font size and more!' : 'Otwórz ustawienia aby spersonalizować swój widok — akordy, notacja, kapo, rozmiar czcionki i więcej!'; },
@@ -1088,16 +1281,35 @@
 
             function bmEnd() {
                 bmCleanInteract();
-                if (bmOverlay) bmOverlay.classList.remove('active');
-                if (bmTip) bmTip.classList.remove('visible');
                 if (bmSpot) bmSpot.style.display = 'none';
-                setTimeout(function() {
-                    [bmOverlay, bmSpot, bmTip].forEach(function(el) { if (el && el.parentNode) el.parentNode.removeChild(el); });
-                    bmOverlay = bmSpot = bmTip = null;
-                }, 400);
-                var url = new URL(window.location);
-                url.searchParams.delete('tour');
-                history.replaceState(null, '', url.toString());
+
+                var doneTitle = currentLang === 'en' ? 'All set!' : 'Gotowe!';
+                var doneText = currentLang === 'en'
+                    ? 'You know the band member view now. Switch back to the control panel to continue the tour.'
+                    : 'Znasz już widok muzyka. Przełącz się na panel sterowania aby kontynuować samouczek.';
+                var backLabel = currentLang === 'en' ? 'Back to control panel' : 'Wróć do panelu';
+                var stayLabel = currentLang === 'en' ? 'Stay here' : 'Zostań tutaj';
+
+                bmTip.innerHTML = '<h3>' + doneTitle + '</h3><p>' + doneText + '</p>' +
+                    '<div class="onboarding-btn-row">' +
+                    '<button class="onboarding-btn-primary" data-a="back">' + backLabel + '</button>' +
+                    '<button class="onboarding-btn-ghost" data-a="stay">' + stayLabel + '</button></div>';
+                bmTip.style.top = '50%'; bmTip.style.left = '50%';
+                bmTip.style.transform = 'translate(-50%, -50%)';
+                bmTip.classList.add('visible');
+
+                bmTip.querySelector('[data-a="back"]').onclick = function() { window.close(); };
+                bmTip.querySelector('[data-a="stay"]').onclick = function() {
+                    if (bmOverlay) bmOverlay.classList.remove('active');
+                    if (bmTip) bmTip.classList.remove('visible');
+                    setTimeout(function() {
+                        [bmOverlay, bmSpot, bmTip].forEach(function(el) { if (el && el.parentNode) el.parentNode.removeChild(el); });
+                        bmOverlay = bmSpot = bmTip = null;
+                    }, 400);
+                    var url = new URL(window.location);
+                    url.searchParams.delete('tour');
+                    history.replaceState(null, '', url.toString());
+                };
             }
 
             function bmShow(idx) {

@@ -152,6 +152,9 @@ var translations = {
         bm_capo_simple: "✓ Bez kapo — akordy są proste",
         bm_capo_suggest: "Sugerowany kapo: próg",
         bm_capo_chords: "Akordy z capo",
+        bm_setlist: "Setlista",
+        bm_no_setlist: "Brak piosenek na setliście",
+        bm_browse_live: "● LIVE",
 
         // ── Stage ──
         stage_next: "NASTĘPNIE:",
@@ -368,6 +371,9 @@ var translations = {
         bm_capo_simple: "✓ No capo — chords are easy",
         bm_capo_suggest: "Suggested capo: fret",
         bm_capo_chords: "Chords with capo",
+        bm_setlist: "Setlist",
+        bm_no_setlist: "No songs in setlist yet",
+        bm_browse_live: "● LIVE",
 
         // ── Stage ──
         stage_next: "NEXT:",

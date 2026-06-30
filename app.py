@@ -760,6 +760,34 @@ def delete_preset(pid):
         db.session.commit()
     return {'status': 'ok'}
 
+@app.route('/api/song/<int:song_id>/band')
+def get_song_for_band(song_id):
+    song = Song.query.get(song_id)
+    if not song:
+        return {'error': 'not found'}, 404
+    sections = song.content.split('\n---\n')
+    rendered = []
+    for section_text in sections:
+        _, band_html, _ = process_song(section_text)
+        rendered.append({
+            'band_html': band_html,
+            'raw_text': section_text
+        })
+    key = song.key or ''
+    if not key:
+        key = detect_key(song.content)
+    return {
+        'id': song.id,
+        'title': song.title,
+        'key': key,
+        'bpm': song.bpm or 0,
+        'sections': rendered
+    }
+
+@app.route('/api/setlist')
+def get_setlist():
+    return {'setlist': SERVER_STATE['setlist'], 'current_index': SERVER_STATE['current_index']}
+
 @app.route('/detect_key', methods=['POST'])
 def route_detect_key():
     data = request.json
