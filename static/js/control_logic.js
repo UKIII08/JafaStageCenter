@@ -1554,7 +1554,12 @@ document.addEventListener('keydown', function(e) {
             target: 'button[onclick="openQRModal()"]',
             get title() { return t('onb_step9_title'); },
             get text() { return t('onb_step9_text'); },
-            position: 'bottom'
+            position: 'bottom',
+            interactive: true,
+            interactiveTarget: 'button[onclick="openQRModal()"]',
+            afterInteract: function() {
+                window.open('/band_member?tour=1', '_blank');
+            }
         },
         // ── Phase 4: Conference Mode ──
         {
