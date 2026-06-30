@@ -1430,6 +1430,39 @@ document.addEventListener('keydown', function(e) {
     // --- Step definitions ---
     var ONBOARDING_DEMO_SONG = 'Zwrotka 1\n[Am] Jedyny Krol, ktory [G]przyjal postac slugi\n[F] Jedyny Krol, ktory [Dm]sam unizyl sie\n[Am] Potezny wladca, ktory [G]oddal swoje zycie\n[F] aby mogl, [Dm] zyc jego lud \n\nRefren\n[Am] Oddal zycie, by zycie [Dm]dac\nodziany w majestat zamiast [Am/C]szat\nwsrod pogardy, wywyzsz[Fmaj7]ony objal [Amadd11/E] Tron';
 
+    var onboardingDemoSongAdded = false;
+
+    function onboardingAddDemoSong() {
+        if (onboardingDemoSongAdded) return;
+        onboardingDemoSongAdded = true;
+
+        var existing = library.find(function(s) { return s.title === 'Jedyny Krol'; });
+        if (existing) {
+            setlist.push({ ...existing, transpose: 0 });
+            renderSetlist();
+            selectForLive(0);
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('title', 'Jedyny Krol');
+        formData.append('content', ONBOARDING_DEMO_SONG);
+        formData.append('key', 'Am');
+        formData.append('bpm', '70');
+        formData.append('input_notation', 'international');
+
+        fetch('/add_song', { method: 'POST', body: formData, redirect: 'manual' })
+            .then(function() {
+                var maxId = library.reduce(function(m, s) { return Math.max(m, s.id); }, 0);
+                var demo = { id: maxId + 1, title: 'Jedyny Krol', content: ONBOARDING_DEMO_SONG, key: 'Am', bpm: 70 };
+                library.push(demo);
+                renderLibrary();
+                setlist.push({ ...demo, transpose: 0 });
+                renderSetlist();
+                selectForLive(0);
+            });
+    }
+
     const ONBOARDING_STEPS = [
         {
             target: '.plus-btn',
@@ -1472,6 +1505,7 @@ document.addEventListener('keydown', function(e) {
                 var modal = document.getElementById('addModal');
                 if (modal) modal.style.zIndex = '';
                 closeAddModal();
+                onboardingAddDemoSong();
             }
         },
         {
@@ -1484,7 +1518,10 @@ document.addEventListener('keydown', function(e) {
             target: '#slides-container',
             get title() { return t('onb_step5_title'); },
             get text() { return t('onb_step5_text'); },
-            position: 'left'
+            position: 'left',
+            beforeShow: function() {
+                if (setlist.length > 0 && currentSetIndex < 0) selectForLive(0);
+            }
         },
         {
             target: '#live-preview-box',
