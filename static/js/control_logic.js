@@ -1464,6 +1464,7 @@ document.addEventListener('keydown', function(e) {
     }
 
     const ONBOARDING_STEPS = [
+        // ── Phase 1: Library & Setlist ──
         {
             target: '.plus-btn',
             get title() { return t('onb_step1_title'); },
@@ -1514,6 +1515,7 @@ document.addEventListener('keydown', function(e) {
             get text() { return t('onb_step4_text'); },
             position: 'right'
         },
+        // ── Phase 2: Live Panel ──
         {
             target: '#slides-container',
             get title() { return t('onb_step5_title'); },
@@ -1521,6 +1523,12 @@ document.addEventListener('keydown', function(e) {
             position: 'left',
             beforeShow: function() {
                 if (setlist.length > 0 && currentSetIndex < 0) selectForLive(0);
+            },
+            interactive: true,
+            interactiveTarget: '.slide-btn',
+            afterInteract: function() {
+                var firstSlide = document.querySelector('.slide-btn');
+                if (firstSlide) firstSlide.click();
             }
         },
         {
@@ -1541,32 +1549,72 @@ document.addEventListener('keydown', function(e) {
             get text() { return t('onb_step8_text'); },
             position: 'left'
         },
+        // ── Phase 3: Band Member View ──
         {
-            target: '.settings-btn',
+            target: 'button[onclick="openQRModal()"]',
             get title() { return t('onb_step9_title'); },
             get text() { return t('onb_step9_text'); },
             position: 'bottom'
         },
+        // ── Phase 4: Conference Mode ──
         {
-            target: 'select[name="chord_notation"]',
+            target: 'button[onclick="switchMode(\'conference\')"]',
             get title() { return t('onb_step10_title'); },
             get text() { return t('onb_step10_text'); },
+            position: 'bottom',
+            interactive: true,
+            interactiveTarget: 'button[onclick="switchMode(\'conference\')"]',
+            afterInteract: function() { switchMode('conference'); }
+        },
+        {
+            target: '#timer-val',
+            get title() { return t('onb_step11_title'); },
+            get text() { return t('onb_step11_text'); },
+            position: 'right',
+            beforeShow: function() {
+                if (!document.getElementById('conference-mode').classList.contains('active')) {
+                    switchMode('conference');
+                }
+            }
+        },
+        {
+            target: '.conf-grid > .conf-card:nth-child(2)',
+            get title() { return t('onb_step12_title'); },
+            get text() { return t('onb_step12_text'); },
+            position: 'left'
+        },
+        // ── Phase 5: Settings & Finish ──
+        {
+            target: '.settings-btn',
+            get title() { return t('onb_step13_title'); },
+            get text() { return t('onb_step13_text'); },
+            position: 'bottom',
+            beforeShow: function() {
+                if (document.getElementById('conference-mode').classList.contains('active')) {
+                    switchMode('worship');
+                }
+            }
+        },
+        {
+            target: 'select[name="chord_notation"]',
+            get title() { return t('onb_step14_title'); },
+            get text() { return t('onb_step14_text'); },
             position: 'bottom',
             beforeShow: function() { openSettingsModal(); var m = document.getElementById('settingsModal'); if (m) m.style.zIndex = '99989'; },
             afterHide: function() { var m = document.getElementById('settingsModal'); if (m) m.style.zIndex = ''; closeSettingsModal(); }
         },
         {
             target: '.qr-container',
-            get title() { return t('onb_step11_title'); },
-            get text() { return t('onb_step11_text'); },
+            get title() { return t('onb_step15_title'); },
+            get text() { return t('onb_step15_text'); },
             position: 'top',
             beforeShow: function() { openQRModal(); var m = document.getElementById('qrModal'); if (m) m.style.zIndex = '99989'; },
             afterHide: function() { var m = document.getElementById('qrModal'); if (m) m.style.zIndex = ''; closeQRModal(); }
         },
         {
             target: '.bottom-controls',
-            get title() { return t('onb_step12_title'); },
-            get text() { return t('onb_step12_text'); },
+            get title() { return t('onb_step16_title'); },
+            get text() { return t('onb_step16_text'); },
             position: 'top'
         }
     ];
@@ -1577,6 +1625,7 @@ document.addEventListener('keydown', function(e) {
     let onboardingSpotlight = null;
     let onboardingTooltip = null;
     let onboardingResizeHandler = null;
+    let onboardingInteractHandler = null;
 
     function onboardingCreateElements() {
         // Overlay (click to advance)
@@ -1600,8 +1649,19 @@ document.addEventListener('keydown', function(e) {
         document.body.appendChild(onboardingTooltip);
     }
 
+    function onboardingCleanupInteract() {
+        if (onboardingInteractHandler) {
+            onboardingInteractHandler.el.removeEventListener('click', onboardingInteractHandler.fn);
+            onboardingInteractHandler.el.style.position = '';
+            onboardingInteractHandler.el.style.zIndex = '';
+            onboardingInteractHandler = null;
+        }
+    }
+
     function onboardingPositionTooltip(targetRect, position, step, totalSteps) {
         const GAP = 16;
+        const stepDef = ONBOARDING_STEPS[step];
+        const isInteractive = !!stepDef.interactive;
 
         // Build tooltip content
         const arrowClass = {
@@ -1613,15 +1673,16 @@ document.addEventListener('keydown', function(e) {
 
         const isFirst = (step === 0);
         const isLast = (step === totalSteps - 1);
+        var nextLabel = isLast ? t('onb_finish') : t('onb_next');
 
         onboardingTooltip.innerHTML = `
             <div class="onboarding-tooltip-arrow ${arrowClass}"></div>
             <div class="onboarding-step-counter">${step + 1} / ${totalSteps}</div>
-            <h3>${ONBOARDING_STEPS[step].title}</h3>
-            <p>${ONBOARDING_STEPS[step].text}</p>
+            <h3>${stepDef.title}</h3>
+            <p>${stepDef.text}</p>
             <div class="onboarding-btn-row">
                 ${!isFirst ? '<button class="onboarding-btn-ghost" data-onboarding="back">' + t('onb_back') + '</button>' : ''}
-                <button class="onboarding-btn-primary" data-onboarding="next">${isLast ? t('onb_finish') : t('onb_next')}</button>
+                <button class="onboarding-btn-primary" data-onboarding="next">${nextLabel}</button>
                 <button class="onboarding-btn-skip" data-onboarding="skip">${t('onb_skip')}</button>
             </div>
         `;
@@ -1629,6 +1690,7 @@ document.addEventListener('keydown', function(e) {
         // Attach button listeners
         onboardingTooltip.querySelector('[data-onboarding="next"]').addEventListener('click', function(e) {
             e.stopPropagation();
+            if (isInteractive && stepDef.afterInteract) stepDef.afterInteract();
             onboardingNext();
         });
         const backBtn = onboardingTooltip.querySelector('[data-onboarding="back"]');
@@ -1642,6 +1704,22 @@ document.addEventListener('keydown', function(e) {
             e.stopPropagation();
             onboardingEnd();
         });
+
+        // Set up interactive target
+        onboardingCleanupInteract();
+        if (isInteractive && stepDef.interactiveTarget) {
+            var iTarget = document.querySelector(stepDef.interactiveTarget);
+            if (iTarget) {
+                iTarget.style.position = 'relative';
+                iTarget.style.zIndex = '100001';
+                var handler = function() {
+                    if (stepDef.afterInteract) stepDef.afterInteract();
+                    setTimeout(function() { onboardingNext(); }, 300);
+                };
+                iTarget.addEventListener('click', handler);
+                onboardingInteractHandler = { el: iTarget, fn: handler };
+            }
+        }
 
         // Make tooltip visible to measure it
         onboardingTooltip.classList.remove('visible');
@@ -1754,6 +1832,7 @@ document.addEventListener('keydown', function(e) {
     }
 
     function onboardingLeaveStep() {
+        onboardingCleanupInteract();
         var stepDef = ONBOARDING_STEPS[onboardingCurrentStep];
         if (stepDef && stepDef.afterHide) {
             stepDef.afterHide();
@@ -1778,7 +1857,12 @@ document.addEventListener('keydown', function(e) {
 
     function onboardingEnd() {
         onboardingLeaveStep();
+        onboardingCleanupInteract();
         localStorage.setItem('jafa_onboarding_done', '1');
+
+        if (document.getElementById('conference-mode').classList.contains('active')) {
+            switchMode('worship');
+        }
 
         if (onboardingOverlay) {
             onboardingOverlay.classList.remove('active');
