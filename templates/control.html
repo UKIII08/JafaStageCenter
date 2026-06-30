@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#080b14">
+    <meta name="theme-color" content="#0B0F17">
 
     <script src="{{ url_for('static', filename='socket.io.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -14,6 +14,13 @@
     <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 
     <style>
+        /* ══════════════════════════════════════════
+           CONTROL PANEL — 3-Panel Architecture
+           Left: Library + Setlist (tabbed)
+           Center: Song Preview + Slides
+           Right: Controls + PAD + Music Info
+           ══════════════════════════════════════════ */
+
         body {
             height: 100vh;
             display: flex;
@@ -21,23 +28,23 @@
             overflow: hidden;
         }
 
-        /* ── Top Bar ── */
-        .top-bar {
+        /* ── Command Bar (Top) ── */
+        .command-bar {
             background: var(--bg-panel);
-            padding: max(10px, env(safe-area-inset-top)) var(--s6) 10px;
-            min-height: 56px;
+            height: 52px;
             display: flex;
             align-items: center;
+            padding: 0 var(--s5);
             border-bottom: 1px solid var(--border-default);
             z-index: 20;
             gap: var(--s3);
+            flex-shrink: 0;
         }
 
-        .top-bar-spacer { flex: 1; }
+        .command-bar .segmented-control { margin-right: var(--s4); }
+        .command-spacer { flex: 1; }
 
-        .top-bar .segmented-control { margin-right: auto; }
-
-        .top-btn {
+        .cmd-btn {
             background: transparent;
             border: 1px solid var(--border-default);
             color: var(--text-secondary);
@@ -53,66 +60,186 @@
             font-family: inherit;
             white-space: nowrap;
         }
-        .top-btn:hover {
+        .cmd-btn:hover {
             background: var(--bg-surface);
             border-color: var(--accent);
             color: var(--text-primary);
         }
-        .top-btn:active { transform: scale(0.97); }
+        .cmd-btn:active { transform: scale(0.97); }
 
-        .top-btn-accent {
+        .cmd-btn-accent {
             background: var(--accent);
-            border: 1px solid var(--accent);
+            border-color: var(--accent);
             color: white;
         }
-        .top-btn-accent:hover {
+        .cmd-btn-accent:hover {
             background: var(--accent-hover);
             border-color: var(--accent-hover);
             color: white;
             box-shadow: var(--shadow-glow);
         }
 
-        /* ── Layout ── */
-        .mode-container { display: none; height: calc(100vh - 56px); }
+        .cmd-icon {
+            width: 15px;
+            height: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* ── Layout Shell ── */
+        .mode-container { display: none; height: calc(100vh - 52px); }
         .mode-container.active { display: grid; }
 
         #worship-mode {
-            grid-template-columns: 260px 300px 1fr;
+            grid-template-columns: 300px 1fr 320px;
+            grid-template-rows: 1fr;
             background: var(--bg-app);
-            gap: 1px;
         }
 
-        .col {
+        .panel {
             background: var(--bg-panel);
-            padding: var(--s5);
             display: flex;
             flex-direction: column;
-            overflow-y: hidden;
+            overflow: hidden;
             position: relative;
         }
 
-        #col-library { border-right: 1px solid var(--border-subtle); }
-        #col-setlist { border-right: 1px solid var(--border-subtle); }
-        #col-live { padding: var(--s6); }
+        .panel-left {
+            border-right: 1px solid var(--border-default);
+        }
 
-        .scrollable { overflow-y: auto; flex-grow: 1; padding-right: 4px; }
+        .panel-right {
+            border-left: 1px solid var(--border-default);
+        }
 
-        /* ── Section Headers ── */
-        .col-header {
+        .panel-center {
+            background: var(--bg-app);
+            padding: var(--s6);
+        }
+
+        /* ── Panel Internal Tabs (Library / Setlist) ── */
+        .panel-tabs {
+            display: flex;
+            padding: var(--s3) var(--s4) 0;
+            gap: 2px;
+            flex-shrink: 0;
+        }
+
+        .panel-tab {
+            flex: 1;
+            padding: var(--s3) var(--s4);
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-tertiary);
+            font-family: inherit;
+            font-size: var(--font-xs);
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all var(--duration-fast) var(--ease-in-out);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--s2);
+        }
+        .panel-tab:hover { color: var(--text-secondary); }
+        .panel-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .panel-tab-count {
+            background: var(--bg-surface);
+            color: var(--text-tertiary);
+            font-size: 0.625rem;
+            padding: 1px 6px;
+            border-radius: var(--r-full);
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+        .panel-tab.active .panel-tab-count {
+            background: var(--accent-subtle);
+            color: var(--accent);
+        }
+
+        .tab-pane {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+            padding: var(--s4);
+        }
+        .tab-pane.active {
+            display: flex;
+        }
+
+        /* ── Search ── */
+        .search-wrap {
+            position: relative;
+            margin-bottom: var(--s3);
+            flex-shrink: 0;
+        }
+        .search-wrap svg {
+            position: absolute;
+            left: var(--s3);
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            pointer-events: none;
+        }
+        .search-wrap input {
+            padding-left: 36px;
+            margin: 0;
+        }
+
+        /* ── Library List ── */
+        .scrollable {
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 2px;
+        }
+
+        .lib-item {
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .lib-item:last-child { border-bottom: none; }
+
+        .lib-summary {
+            padding: var(--s3);
+            cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: var(--s3);
-            margin-bottom: var(--s4);
+            list-style: none;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: var(--font-sm);
+            border-radius: var(--r-sm);
+            transition: background var(--duration-fast) var(--ease-in-out);
+            gap: var(--s2);
+        }
+        .lib-summary:hover { background: var(--bg-surface); }
+        .lib-summary::-webkit-details-marker { display: none; }
+
+        .lib-meta {
+            display: flex;
+            gap: var(--s1);
+            flex-shrink: 0;
         }
 
-        .col-title {
+        .lib-content-preview {
+            padding: var(--s3);
+            margin: 0 var(--s2) var(--s3);
+            background: var(--bg-surface);
+            border-radius: var(--r-sm);
+            border: 1px solid var(--border-subtle);
             font-size: var(--font-xs);
-            color: var(--text-tertiary);
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            margin: 0;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            max-height: 180px;
+            overflow-y: auto;
         }
 
         /* ── Plus Menu ── */
@@ -164,74 +291,7 @@
         }
         .dropdown-item:hover { background: var(--accent); color: white; }
 
-        /* ── Search ── */
-        #searchBox { margin-bottom: var(--s4); }
-
-        /* ── Library Items ── */
-        .lib-item {
-            border-bottom: 1px solid var(--border-subtle);
-            transition: background var(--duration-fast) var(--ease-in-out);
-        }
-        .lib-item:last-child { border-bottom: none; }
-
-        .lib-summary {
-            padding: var(--s3) var(--s3);
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            list-style: none;
-            color: var(--text-primary);
-            font-weight: 500;
-            font-size: var(--font-sm);
-            border-radius: var(--r-sm);
-            transition: background var(--duration-fast) var(--ease-in-out);
-        }
-        .lib-summary:hover { background: var(--bg-surface); }
-        .lib-summary::-webkit-details-marker { display: none; }
-
-        .lib-content-preview {
-            padding: var(--s3);
-            margin: 0 var(--s2) var(--s3);
-            background: var(--bg-surface);
-            border-radius: var(--r-sm);
-            border: 1px solid var(--border-subtle);
-            font-size: var(--font-xs);
-            color: var(--text-secondary);
-            white-space: pre-wrap;
-            max-height: 180px;
-            overflow-y: auto;
-        }
-
-        /* ── Branding ── */
-        .branding-area {
-            margin-top: auto;
-            padding: var(--s4) var(--s2) var(--s2);
-            border-top: 1px solid var(--border-subtle);
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .branding-img {
-            max-width: 100px;
-            max-height: 50px;
-            object-fit: contain;
-            margin-bottom: var(--s1);
-            opacity: 0.3;
-            filter: grayscale(100%);
-            transition: opacity var(--duration-normal) var(--ease-out);
-        }
-        .branding-area:hover .branding-img { opacity: 0.7; }
-        .version-text {
-            font-size: var(--font-xs);
-            color: var(--text-tertiary);
-            font-weight: 600;
-            letter-spacing: 0.03em;
-        }
-        [data-theme="light"] .branding-img { opacity: 0.5; filter: none; }
-
-        /* ── Setlist ── */
+        /* ── Setlist Items ── */
         .setlist-item {
             background: var(--bg-surface);
             margin-bottom: var(--s2);
@@ -294,65 +354,84 @@
             display: flex;
             gap: var(--s2);
             margin-top: var(--s3);
+            flex-shrink: 0;
         }
-        .setlist-actions .top-btn { flex: 1; justify-content: center; font-size: var(--font-xs); }
+        .setlist-actions .cmd-btn { flex: 1; justify-content: center; font-size: var(--font-xs); }
 
-        /* ── Live Panel ── */
-        .live-header {
+        /* ── Branding ── */
+        .branding-area {
+            padding: var(--s3) var(--s2) var(--s2);
+            border-top: 1px solid var(--border-subtle);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .branding-img {
+            max-width: 80px;
+            max-height: 40px;
+            object-fit: contain;
+            margin-bottom: 2px;
+            opacity: 0.2;
+            filter: grayscale(100%);
+            transition: opacity var(--duration-normal) var(--ease-out);
+        }
+        .branding-area:hover .branding-img { opacity: 0.5; }
+        .version-text {
+            font-size: var(--font-xs);
+            color: var(--text-tertiary);
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+        [data-theme="light"] .branding-img { opacity: 0.4; filter: none; }
+
+        /* ══════════════════════════════════════════
+           CENTER PANEL — Preview + Slides Grid
+           ══════════════════════════════════════════ */
+
+        .center-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: var(--s3);
+            margin-bottom: var(--s4);
+            flex-shrink: 0;
         }
-        .live-header h2 {
-            margin: 0; border: none; padding: 0;
-            font-size: var(--font-xs);
-            color: var(--text-tertiary);
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
+
+        #current-title {
+            margin: 0;
+            font-size: var(--font-xl);
+            color: var(--text-primary);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            flex: 1;
         }
 
         .next-song-btn-landscape { display: none; }
 
-        #current-title {
-            margin: 0 0 var(--s4);
-            font-size: var(--font-lg);
-            color: var(--text-primary);
-            font-weight: 800;
-            letter-spacing: -0.01em;
-        }
-
-        /* ── Live Split ── */
-        .live-split-wrapper {
-            display: flex;
-            gap: var(--s5);
-            margin-bottom: var(--s5);
-            align-items: stretch;
-        }
-
-        #live-preview-box {
+        /* ── Preview Monitor ── */
+        .preview-stage {
             background: var(--bg-preview);
-            color: var(--text-primary);
-            width: 45%;
-            aspect-ratio: 16 / 9;
             border-radius: var(--r-lg);
+            border: 1px solid var(--border-default);
+            box-shadow: var(--shadow-md);
+            aspect-ratio: 16 / 9;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
-            font-size: clamp(0.7rem, 1.4vw, 1.2rem);
-            line-height: 1.4;
+            font-size: clamp(0.8rem, 1.5vw, 1.3rem);
+            line-height: 1.45;
             white-space: pre-wrap;
-            flex-shrink: 0;
-            border: 1px solid var(--border-default);
-            box-shadow: var(--shadow-md);
-            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
             overflow: hidden;
             position: relative;
+            flex-shrink: 0;
+            margin-bottom: var(--s5);
+            color: var(--text-primary);
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
             transition: border-color var(--duration-normal) var(--ease-out);
         }
-        #live-preview-box::before {
+        .preview-stage::before {
             content: '';
             position: absolute;
             inset: -2px;
@@ -362,19 +441,19 @@
             -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
             -webkit-mask-composite: xor;
             mask-composite: exclude;
-            opacity: 0.25;
+            opacity: 0.2;
             animation: rotateBorder 8s linear infinite;
             pointer-events: none;
         }
-        #live-preview-box::after {
+        .preview-stage::after {
             content: '';
             position: absolute;
             inset: 0;
-            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.015) 2px, rgba(0,0,0,0.015) 4px);
             pointer-events: none;
             border-radius: var(--r-lg);
         }
-        #live-preview-box:hover { border-color: var(--accent); }
+        .preview-stage:hover { border-color: var(--accent); }
 
         .preview-info-label {
             color: var(--text-tertiary);
@@ -387,175 +466,14 @@
             text-shadow: none;
         }
 
-        /* ── Side Controls ── */
-        .live-side-controls {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            gap: var(--s3);
-            min-width: 200px;
-        }
-
-        .pad-panel-box, .music-info-box {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-default);
-            border-radius: var(--r-lg);
-            padding: var(--s3) var(--s4);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            flex: 1;
-        }
-
-        .pad-row-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--s1);
-        }
-        .pad-label {
-            font-weight: 700;
-            color: var(--text-tertiary);
-            font-size: var(--font-xs);
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-        }
-        .pad-status {
-            font-size: var(--font-xs);
-            font-weight: 700;
-            color: var(--green);
-            font-family: monospace;
-            letter-spacing: 0.05em;
-        }
-
-        .pad-center { display: flex; justify-content: center; }
-        .pad-btn {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-default);
-            color: var(--text-secondary);
-            border-radius: 50%;
-            width: 40px; height: 40px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all var(--duration-normal) var(--ease-out);
-        }
-        .pad-btn:hover { color: var(--text-primary); border-color: var(--accent); }
-        .pad-btn.active {
-            background: var(--green);
-            color: white;
-            border-color: var(--green);
-            box-shadow: 0 0 16px var(--green-subtle);
-            animation: pulse-glow 3s ease-in-out infinite;
-        }
-
-        .pad-volume-row {
-            display: flex;
-            align-items: center;
-            gap: var(--s2);
-            margin-top: var(--s1);
-        }
-        .vol-label {
-            font-size: var(--font-xs);
-            color: var(--text-tertiary);
-            font-weight: 600;
-        }
-        .vol-value {
-            font-size: var(--font-xs);
-            color: var(--text-tertiary);
-            min-width: 28px;
-            text-align: right;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .pad-slider {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 100%;
-            height: 24px;
-            background: transparent;
-            cursor: pointer;
-            margin: 0;
-            outline: none;
-        }
-        .pad-slider::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 4px;
-            background: var(--bg-surface-hover);
-            border-radius: var(--r-full);
-        }
-        .pad-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 16px; width: 16px;
-            border-radius: 50%;
-            background: var(--text-primary);
-            border: none;
-            margin-top: -6px;
-            box-shadow: var(--shadow-sm);
-            transition: transform var(--duration-fast) var(--ease-in-out);
-        }
-        .pad-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
-
-        /* ── Music Info ── */
-        .music-info-box { gap: var(--s2); }
-        .music-info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: var(--s2);
-            border-bottom: 1px solid var(--border-subtle);
-        }
-        .music-info-row:last-child { border-bottom: none; padding-bottom: 0; }
-        .info-label {
-            color: var(--text-tertiary);
-            font-size: var(--font-xs);
-            font-weight: 700;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-        }
-        .info-value {
-            font-weight: 700;
-            font-size: var(--font-lg);
-        }
-        .info-value-accent { color: var(--accent); }
-        .info-value-red { color: var(--red); }
-
-        .trans-controls {
-            display: flex;
-            align-items: center;
-            gap: var(--s1);
-        }
-        .trans-btn {
-            background: var(--bg-surface-hover);
-            border: 1px solid var(--border-default);
-            color: var(--text-secondary);
-            padding: 2px var(--s2);
-            border-radius: var(--r-sm);
-            font-size: var(--font-sm);
-            font-weight: 700;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all var(--duration-fast) var(--ease-in-out);
-        }
-        .trans-btn:hover { background: var(--accent-subtle); color: var(--accent); border-color: var(--accent); }
-        .trans-value {
-            font-weight: 700;
-            min-width: 20px;
-            text-align: center;
-            font-size: var(--font-sm);
-        }
-
         /* ── Slides Grid ── */
         .slides-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: var(--s3);
-            flex-grow: 1;
+            flex: 1;
             overflow-y: auto;
             align-content: start;
-            margin-bottom: var(--s5);
             padding-right: 4px;
         }
 
@@ -574,7 +492,11 @@
             position: relative;
             font-size: var(--font-sm);
         }
-        .slide-btn:hover { background: var(--bg-surface-hover); color: var(--text-primary); border-color: var(--border-default); }
+        .slide-btn:hover {
+            background: var(--bg-surface-hover);
+            color: var(--text-primary);
+            border-color: var(--border-default);
+        }
         .slide-btn span:not(.slide-label) {
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -625,106 +547,284 @@
         }
 
         /* ── Bottom Dock ── */
-        .bottom-controls {
-            margin-top: auto;
+        .dock-bar {
             display: flex;
             gap: var(--s3);
             flex-shrink: 0;
+            margin-top: var(--s4);
         }
 
-        button { font-family: 'Sen'; font-weight: 700; border: none; border-radius: var(--r-md); cursor: pointer; }
-
-        .action-btn {
-            background: var(--accent);
-            color: white;
+        .dock-btn-blackout {
+            flex: 1;
+            position: relative;
+            padding: var(--s4);
+            font-size: var(--font-sm);
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
             border-radius: var(--r-md);
-            padding: var(--s2) var(--s4);
-            font-size: var(--font-sm);
-            border: none;
             cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: var(--s2);
-            white-space: nowrap;
-            font-weight: 700;
             font-family: inherit;
             transition: all var(--duration-fast) var(--ease-in-out);
-        }
-        .action-btn:hover { filter: brightness(1.1); }
-        .action-btn:active { transform: scale(0.97); }
-
-        .btn-sm {
-            padding: var(--s1) var(--s3);
             background: var(--bg-surface);
-            color: var(--text-primary);
-            border-radius: var(--r-sm);
-            font-size: var(--font-sm);
-            border: 1px solid var(--border-default);
-            transition: all var(--duration-fast) var(--ease-in-out);
-            cursor: pointer;
-            font-family: inherit;
-            font-weight: 700;
-        }
-        .btn-sm:hover { background: var(--bg-surface-hover); }
-
-        button.danger {
-            background: var(--red-subtle);
-            border: 1px solid var(--red);
+            border: 2px solid var(--red);
             color: var(--red);
-            padding: var(--s4);
-            flex-grow: 1;
-            font-size: var(--font-sm);
-            letter-spacing: 0.04em;
-            transition: all var(--duration-fast) var(--ease-in-out);
-        }
-        button.danger:hover { background: var(--red); color: white; box-shadow: 0 0 16px var(--red-subtle); }
-        button.danger:active { transform: scale(0.97); }
-
-        button.secondary {
-            background: var(--accent-subtle);
-            border: 1px solid var(--accent);
-            color: var(--accent);
-            padding: var(--s4);
-            flex-grow: 1;
-            font-size: var(--font-sm);
-            letter-spacing: 0.04em;
-            transition: all var(--duration-fast) var(--ease-in-out);
-        }
-        button.secondary:hover { background: var(--accent); color: white; box-shadow: var(--shadow-glow); }
-        button.secondary:active { transform: scale(0.97); }
-
-        /* ── Inputs ── */
-        input, textarea, select { margin-bottom: var(--s3); }
-
-        .form-row {
-            display: flex;
-            gap: var(--s3);
-            margin-bottom: var(--s3);
-            height: 48px;
-            align-items: stretch;
-        }
-        .form-row input { margin-bottom: 0; height: 100%; }
-        .input-title { flex-grow: 1; font-weight: 700; }
-        .input-small { width: 80px !important; text-align: center; }
-
-        .tap-btn {
-            background: var(--bg-surface);
-            color: var(--text-secondary);
-            width: 64px;
-            border-radius: var(--r-md);
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: var(--s3);
+        }
+        .dock-btn-blackout::before {
+            content: '';
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--red);
+            box-shadow: 0 0 8px var(--red);
+            animation: led-pulse 2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        .dock-btn-blackout:hover {
+            background: var(--red);
+            color: white;
+            box-shadow: 0 0 24px rgba(248, 113, 113, 0.3);
+        }
+        .dock-btn-blackout:active { transform: scale(0.97); }
+
+        .dock-btn-logo {
+            padding: var(--s4);
+            font-size: var(--font-sm);
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            border-radius: var(--r-md);
+            cursor: pointer;
+            font-family: inherit;
+            transition: all var(--duration-fast) var(--ease-in-out);
+            background: var(--accent-subtle);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
+        .dock-btn-logo:hover {
+            background: var(--accent);
+            color: white;
+            box-shadow: var(--shadow-glow);
+        }
+        .dock-btn-logo:active { transform: scale(0.97); }
+
+        /* ══════════════════════════════════════════
+           RIGHT PANEL — Controls
+           ══════════════════════════════════════════ */
+
+        .panel-right {
+            padding: var(--s5);
+            gap: var(--s4);
+        }
+
+        .panel-section-title {
+            font-size: var(--font-xs);
+            color: var(--text-tertiary);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin: 0 0 var(--s3);
+        }
+
+        /* ── PAD ── */
+        .pad-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--r-lg);
+            padding: var(--s4);
+        }
+
+        .pad-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--s3);
+        }
+        .pad-label {
+            font-weight: 700;
+            color: var(--text-tertiary);
+            font-size: var(--font-xs);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .pad-status {
             font-size: var(--font-xs);
             font-weight: 700;
-            cursor: pointer;
-            user-select: none;
-            transition: all var(--duration-fast) var(--ease-in-out);
-            border: 1px solid var(--border-default);
+            color: var(--green);
+            font-family: monospace;
+            letter-spacing: 0.05em;
         }
-        .tap-btn:active { background: var(--accent); color: white; transform: scale(0.95); }
 
-        /* ── Conference Mode ── */
+        .pad-toggle-row {
+            display: flex;
+            align-items: center;
+            gap: var(--s4);
+        }
+
+        .pad-btn {
+            background: var(--bg-panel);
+            border: 2px solid var(--border-default);
+            color: var(--text-secondary);
+            border-radius: 50%;
+            width: 44px; height: 44px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--duration-normal) var(--ease-out);
+            flex-shrink: 0;
+        }
+        .pad-btn:hover { color: var(--text-primary); border-color: var(--accent); }
+        .pad-btn.active {
+            background: var(--green);
+            color: white;
+            border-color: var(--green);
+            box-shadow: 0 0 16px var(--green-subtle);
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+
+        .pad-volume-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: var(--s2);
+        }
+        .vol-label {
+            font-size: var(--font-xs);
+            color: var(--text-tertiary);
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .vol-value {
+            font-size: var(--font-xs);
+            color: var(--text-tertiary);
+            min-width: 28px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            flex-shrink: 0;
+        }
+
+        .pad-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 24px;
+            background: transparent;
+            cursor: pointer;
+            margin: 0;
+            outline: none;
+        }
+        .pad-slider::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-surface-hover);
+            border-radius: var(--r-full);
+        }
+        .pad-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px; width: 16px;
+            border-radius: 50%;
+            background: var(--text-primary);
+            border: none;
+            margin-top: -6px;
+            box-shadow: var(--shadow-sm);
+            transition: transform var(--duration-fast) var(--ease-in-out);
+        }
+        .pad-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        /* ── Music Info Card ── */
+        .music-info-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--r-lg);
+            padding: var(--s4);
+            display: flex;
+            flex-direction: column;
+            gap: var(--s3);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: var(--s3);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .info-label {
+            color: var(--text-tertiary);
+            font-size: var(--font-xs);
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .info-value {
+            font-weight: 700;
+            font-size: var(--font-lg);
+        }
+        .info-value-accent { color: var(--accent); }
+        .info-value-red { color: var(--red); }
+
+        .trans-controls {
+            display: flex;
+            align-items: center;
+            gap: var(--s1);
+        }
+        .trans-btn {
+            background: var(--bg-surface-hover);
+            border: 1px solid var(--border-default);
+            color: var(--text-secondary);
+            padding: 2px var(--s2);
+            border-radius: var(--r-sm);
+            font-size: var(--font-sm);
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        .trans-btn:hover { background: var(--accent-subtle); color: var(--accent); border-color: var(--accent); }
+        .trans-value {
+            font-weight: 700;
+            min-width: 20px;
+            text-align: center;
+            font-size: var(--font-sm);
+        }
+
+        /* ── Quick Actions Card ── */
+        .quick-actions {
+            display: flex;
+            flex-direction: column;
+            gap: var(--s2);
+        }
+        .quick-action-btn {
+            width: 100%;
+            padding: var(--s3) var(--s4);
+            font-size: var(--font-sm);
+            font-weight: 600;
+            border-radius: var(--r-md);
+            cursor: pointer;
+            font-family: inherit;
+            transition: all var(--duration-fast) var(--ease-in-out);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: var(--s3);
+        }
+        .quick-action-btn:hover {
+            background: var(--bg-surface-hover);
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+        .quick-action-btn svg { opacity: 0.5; }
+
+        /* ══════════════════════════════════════════
+           CONFERENCE MODE
+           ══════════════════════════════════════════ */
         #conference-mode {
             display: none;
             flex-direction: column;
@@ -1032,7 +1132,9 @@
         }
         .conf-upload-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-        /* ── Modals (override design-system base) ── */
+        /* ══════════════════════════════════════════
+           MODALS
+           ══════════════════════════════════════════ */
         .modal {
             display: none;
             position: fixed;
@@ -1084,7 +1186,6 @@
         }
         .modal-x:hover { background: var(--bg-surface-hover); color: var(--text-primary); }
 
-        /* ── Chord Hint Box ── */
         .chord-hint-box {
             background: var(--bg-surface);
             border: 1px solid var(--border-subtle);
@@ -1110,6 +1211,34 @@
         }
         .notation-row select { flex: 1; margin-bottom: 0; }
 
+        .form-row {
+            display: flex;
+            gap: var(--s3);
+            margin-bottom: var(--s3);
+            height: 48px;
+            align-items: stretch;
+        }
+        .form-row input { margin-bottom: 0; height: 100%; }
+        .input-title { flex-grow: 1; font-weight: 700; }
+        .input-small { width: 80px !important; text-align: center; }
+
+        .tap-btn {
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            width: 64px;
+            border-radius: var(--r-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--font-xs);
+            font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+            transition: all var(--duration-fast) var(--ease-in-out);
+            border: 1px solid var(--border-default);
+        }
+        .tap-btn:active { background: var(--accent); color: white; transform: scale(0.95); }
+
         .form-actions {
             display: flex;
             justify-content: flex-end;
@@ -1123,7 +1252,7 @@
             margin-top: var(--s5);
         }
 
-        /* ── Settings modal sections already covered by design-system.css ── */
+        input, textarea, select { margin-bottom: var(--s3); }
 
         .color-grid {
             display: grid;
@@ -1172,7 +1301,6 @@
         }
         .backup-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-        /* ── QR Modal ── */
         .qr-modal-content {
             width: 800px;
             max-width: 90%;
@@ -1183,27 +1311,6 @@
             font-weight: 700;
             font-size: var(--font-sm);
             margin-bottom: var(--s5);
-        }
-        .qr-container {
-            display: flex;
-            justify-content: space-around;
-            align-items: flex-start;
-            gap: var(--s6);
-            flex-wrap: wrap;
-        }
-        .qr-box { text-align: center; }
-        .qr-box img {
-            width: 130px; height: 130px;
-            border: 2px solid var(--border-strong);
-            border-radius: var(--r-lg);
-            box-shadow: var(--shadow-md);
-        }
-        .qr-box h3 {
-            color: var(--text-tertiary);
-            font-size: var(--font-xs);
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            margin: 0 0 var(--s3);
         }
         .qr-open-btn {
             margin-top: var(--s2);
@@ -1220,36 +1327,6 @@
             color: var(--text-secondary);
         }
         .qr-open-btn:hover { background: var(--accent-subtle); color: var(--accent); border-color: var(--accent); }
-
-        /* ── Instruction Box ── */
-        .instruction-box {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            padding: var(--s5);
-            border-radius: var(--r-lg);
-            margin-bottom: var(--s5);
-            font-size: var(--font-sm);
-            color: var(--text-secondary);
-            line-height: 1.6;
-        }
-        .instruction-box pre {
-            background: var(--bg-app);
-            padding: var(--s3);
-            border-radius: var(--r-sm);
-            color: var(--green);
-            border: 1px solid var(--border-subtle);
-            font-family: 'Courier New', monospace;
-            overflow-x: auto;
-            font-size: var(--font-xs);
-        }
-
-        .inst-divider {
-            border: 0;
-            border-top: 1px dashed var(--border-default);
-            margin: var(--s4) 0;
-        }
-
-        /* ── File Upload Row (overrides design-system) ── */
 
         /* ── iOS Install Prompt ── */
         #ios-install-prompt {
@@ -1288,16 +1365,18 @@
             margin: 0 3px;
         }
 
-        /* ── RWD: Mobile ── */
+        /* ══════════════════════════════════════════
+           RESPONSIVE — Mobile
+           ══════════════════════════════════════════ */
         .mobile-nav { display: none; }
 
         @media (max-width: 1285px) {
-            .top-bar { display: none !important; }
+            .command-bar { display: none !important; }
             .mode-container.active { display: block; }
             #worship-mode { display: block; height: 100vh; background: var(--bg-app); }
             .conf-grid { grid-template-columns: 1fr; }
 
-            .col {
+            .panel {
                 display: none;
                 width: 100%; height: 100%;
                 border: none;
@@ -1308,6 +1387,7 @@
                 background: var(--bg-app);
             }
 
+            /* On mobile, center panel (live) is shown by default */
             #col-live {
                 display: flex;
                 padding-bottom: calc(80px + env(safe-area-inset-bottom));
@@ -1315,33 +1395,30 @@
                 overflow-y: auto;
             }
 
-            .live-header { order: 1; }
-            #current-title { order: 2; }
-            .live-split-wrapper { order: 3; }
-            .bottom-controls { order: 4; margin-top: var(--s2); margin-bottom: var(--s4); }
-            #slides-container { order: 5; overflow-y: visible; }
+            /* Hide right panel on mobile — controls inline with center */
+            .panel-right { display: none !important; }
 
-            .live-split-wrapper {
-                flex-direction: column;
+            .center-header { order: 1; }
+            #current-title { order: 2; }
+            .live-mobile-controls { order: 3; display: flex !important; }
+            .preview-stage { order: 4; }
+            .dock-bar { order: 5; margin-top: var(--s2); margin-bottom: var(--s4); }
+            #slides-container { order: 6; overflow-y: visible; }
+
+            .preview-stage {
                 width: 100%;
                 margin-bottom: var(--s3);
-                gap: var(--s3);
-                align-items: center;
             }
-            #live-preview-box {
-                width: 100%;
-                aspect-ratio: 16/9;
-                min-height: unset;
-                margin-bottom: var(--s2);
-                font-size: var(--font-base);
-            }
-            .live-side-controls {
-                width: 100%;
-                min-width: unset;
+
+            /* Mobile inline controls (shown only on mobile) */
+            .live-mobile-controls {
                 flex-direction: row;
                 flex-wrap: wrap;
+                gap: var(--s3);
+                margin-bottom: var(--s3);
             }
-            .pad-panel-box, .music-info-box { flex: 1; min-width: 140px; padding: var(--s3); }
+            .live-mobile-controls .pad-card,
+            .live-mobile-controls .music-info-card { flex: 1; min-width: 140px; padding: var(--s3); }
 
             .mobile-nav {
                 display: flex;
@@ -1377,9 +1454,7 @@
                 transition: all var(--duration-fast) var(--ease-in-out);
                 position: relative;
             }
-            .mob-tab.active {
-                color: var(--accent);
-            }
+            .mob-tab.active { color: var(--accent); }
             .mob-tab.active::after {
                 content: '';
                 position: absolute;
@@ -1393,13 +1468,11 @@
             .mob-icon { font-size: 1.4rem; margin-bottom: 1px; }
 
             .modal-content { width: 90%; max-height: 85vh; padding: var(--s5); }
-            .top-btn span, .action-btn span { display: none; }
-            .col-title { font-size: var(--font-sm); }
+            .cmd-btn span { display: none; }
         }
 
         @media (max-width: 1285px) and (orientation: landscape) {
             .mobile-nav { display: none !important; }
-            .top-bar { display: none !important; }
 
             #col-live {
                 display: grid !important;
@@ -1419,10 +1492,9 @@
                 background: var(--bg-app);
             }
 
-            .live-split-wrapper { display: contents; }
-            .live-side-controls { display: contents; }
+            .live-mobile-controls { display: contents !important; }
 
-            .pad-panel-box {
+            .pad-card {
                 grid-area: controls;
                 background: transparent;
                 border: none;
@@ -1432,9 +1504,9 @@
                 align-items: center;
                 justify-content: space-between;
             }
-            .music-info-box { display: none; }
+            .music-info-card { display: none; }
 
-            .live-header { grid-area: header; margin-bottom: 0; padding-bottom: var(--s1); }
+            .center-header { grid-area: header; margin-bottom: 0; }
             .next-song-btn-landscape {
                 display: inline-block !important;
                 background: var(--green);
@@ -1458,27 +1530,22 @@
                 padding-right: 4px;
                 align-content: start;
             }
-            #live-preview-box {
+            .preview-stage {
                 grid-area: preview;
                 width: 100%;
                 aspect-ratio: unset;
                 height: 100%;
                 margin-bottom: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                overflow-y: auto;
             }
-            .bottom-controls {
+            .dock-bar {
                 grid-area: buttons;
                 align-self: end;
-                display: flex;
                 flex-direction: row;
                 gap: var(--s2);
                 margin-top: 0;
                 height: 52px;
             }
-            .bottom-controls button { padding: var(--s1); font-size: var(--font-sm); flex: 1; }
+            .dock-bar button { padding: var(--s1); font-size: var(--font-sm); flex: 1; }
         }
 
         /* ── Keyframes ── */
@@ -1489,6 +1556,81 @@
             syntax: '<angle>';
             initial-value: 0deg;
             inherits: false;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 8px var(--green-subtle); }
+            50% { box-shadow: 0 0 20px var(--green-subtle), 0 0 40px rgba(52,211,153,0.1); }
+        }
+        @keyframes led-pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--red); }
+            50% { opacity: 0.5; box-shadow: 0 0 3px var(--red); }
+        }
+
+        button { font-family: 'Sen'; font-weight: 700; border: none; border-radius: var(--r-md); cursor: pointer; }
+
+        /* Compat aliases for JS references */
+        .action-btn {
+            background: var(--accent);
+            color: white;
+            border-radius: var(--r-md);
+            padding: var(--s2) var(--s4);
+            font-size: var(--font-sm);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--s2);
+            white-space: nowrap;
+            font-weight: 700;
+            font-family: inherit;
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        .action-btn:hover { filter: brightness(1.1); }
+        .action-btn:active { transform: scale(0.97); }
+
+        .btn-sm {
+            padding: var(--s1) var(--s3);
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            border-radius: var(--r-sm);
+            font-size: var(--font-sm);
+            border: 1px solid var(--border-default);
+            transition: all var(--duration-fast) var(--ease-in-out);
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 700;
+        }
+        .btn-sm:hover { background: var(--bg-surface-hover); }
+
+        button.danger {
+            background: var(--red-subtle);
+            border: 1px solid var(--red);
+            color: var(--red);
+            padding: var(--s4);
+            flex-grow: 1;
+            font-size: var(--font-sm);
+            letter-spacing: 0.04em;
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        button.danger:hover { background: var(--red); color: white; box-shadow: 0 0 16px var(--red-subtle); }
+        button.danger:active { transform: scale(0.97); }
+
+        button.secondary {
+            background: var(--accent-subtle);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: var(--s4);
+            flex-grow: 1;
+            font-size: var(--font-sm);
+            letter-spacing: 0.04em;
+            transition: all var(--duration-fast) var(--ease-in-out);
+        }
+        button.secondary:hover { background: var(--accent); color: white; box-shadow: var(--shadow-glow); }
+        button.secondary:active { transform: scale(0.97); }
+
+        /* Desktop-only helper */
+        @media (max-width: 1285px) {
+            .desktop-only { display: none !important; }
         }
     </style>
     <script>
@@ -1513,50 +1655,77 @@
         <p data-t="ios_desc">Aby uruchomić na pełnym ekranie, kliknij przycisk <span class="icon-share"></span> i wybierz <strong>"Do ekranu początkowego"</strong>.</p>
     </div>
 
-    <!-- ═══ Top Bar ═══ -->
-    <div class="top-bar">
+    <!-- ═══════════════════════════════════════════
+         COMMAND BAR (replaces old top-bar)
+         ═══════════════════════════════════════════ -->
+    <div class="command-bar">
         <div class="segmented-control">
             <button class="active" onclick="switchMode('worship')" data-t="worship_mode">UWIELBIENIE</button>
             <button onclick="switchMode('conference')" data-t="conf_mode">KONFERENCJA</button>
         </div>
 
-        <div class="top-bar-spacer"></div>
+        <div class="command-spacer"></div>
 
-        <button class="top-btn desktop-only" onclick="openSettingsModal()">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <button class="cmd-btn desktop-only" onclick="openSettingsModal()">
+            <span class="cmd-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
             <span data-t="settings_btn">Ustawienia</span>
         </button>
-        <button id="fs-btn-desktop" class="top-btn desktop-only" onclick="toggleFullscreen()" title="Pełny ekran">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        <button id="fs-btn-desktop" class="cmd-btn desktop-only" onclick="toggleFullscreen()" title="Pełny ekran">
+            <span class="cmd-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></span>
         </button>
-        <button class="top-btn top-btn-accent desktop-only" onclick="openQRModal()">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        <button class="cmd-btn cmd-btn-accent desktop-only" onclick="openQRModal()">
+            <span class="cmd-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></span>
             <span data-t="connect_btn">Połącz ekrany</span>
         </button>
     </div>
 
-    <!-- ═══ Worship Mode ═══ -->
+    <!-- ═══════════════════════════════════════════
+         WORSHIP MODE — 3-Panel Layout
+         ═══════════════════════════════════════════ -->
     <div id="worship-mode" class="mode-container active">
 
-        <!-- ── Library Column ── -->
-        <div id="col-library" class="col">
-            <div class="col-header">
-                <h2 class="col-title" data-t="library_header">Biblioteka</h2>
-                <div class="plus-container">
-                    <button class="plus-btn" onclick="toggleAddMenu()">+</button>
-                    <div id="add-menu-dropdown" class="dropdown-menu">
-                        <div class="dropdown-item" onclick="openAddModal()">
-                            <span data-t="add_manual">Dodaj ręcznie</span>
-                        </div>
-                        <div class="dropdown-item" onclick="openImportModal()">
-                            <span data-t="import_file">Importuj z pliku</span>
-                        </div>
+        <!-- ── LEFT PANEL: Library + Setlist (tabbed) ── -->
+        <div id="col-library" class="panel panel-left">
+            <div class="panel-tabs">
+                <button class="panel-tab active" onclick="switchLeftTab('library', this)" data-t="library_header">
+                    Biblioteka
+                    <span class="panel-tab-count" id="lib-count">0</span>
+                </button>
+                <button class="panel-tab" onclick="switchLeftTab('setlist', this)" data-t="setlist_header">
+                    Setlista
+                    <span class="panel-tab-count" id="set-count">0</span>
+                </button>
+            </div>
+
+            <!-- Library Tab -->
+            <div id="left-tab-library" class="tab-pane active">
+                <div class="search-wrap">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="searchBox" placeholder="Szukaj piosenki..." data-t-ph="search_ph" onkeyup="filterLibrary()">
+                </div>
+                <div class="scrollable" id="library-list"></div>
+                <div style="display:flex; gap:var(--s2); margin-top:var(--s3); flex-shrink:0;">
+                    <div class="plus-container" style="flex:1;">
+                        <button class="cmd-btn" style="width:100%; justify-content:center;" onclick="openAddModal()">
+                            <span data-t="add_manual">+ Dodaj ręcznie</span>
+                        </button>
                     </div>
+                    <button class="cmd-btn" onclick="openImportModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </button>
                 </div>
             </div>
 
-            <input type="text" id="searchBox" placeholder="Szukaj piosenki..." data-t-ph="search_ph" onkeyup="filterLibrary()">
-            <div class="scrollable" id="library-list"></div>
+            <!-- Setlist Tab -->
+            <div id="left-tab-setlist" class="tab-pane" id="col-setlist">
+                <div class="scrollable" id="setlist-container">
+                    <div class="empty-setlist" data-t="empty_setlist">Brak piosenek w setliście.</div>
+                </div>
+                <div class="setlist-actions">
+                    <button class="cmd-btn" onclick="exportToPDF()" data-t="download_pdf">PDF Z AKORDAMI</button>
+                    <button class="cmd-btn" onclick="exportLyricsPDF()" data-t="download_pdf_lyrics">PDF TEKSTY</button>
+                </div>
+            </div>
 
             <div class="branding-area">
                 <img id="control-logo" src="{{ url_for('static', filename='logo.png') }}?v=1" class="branding-img" alt="Logo">
@@ -1564,76 +1733,111 @@
             </div>
         </div>
 
-        <!-- ── Setlist Column ── -->
-        <div id="col-setlist" class="col">
-            <div class="col-header">
-                <h2 class="col-title" data-t="setlist_header">Setlista</h2>
-            </div>
-            <div class="scrollable" id="setlist-container">
-                <div class="empty-setlist" data-t="empty_setlist">Brak piosenek w setliście.</div>
-            </div>
-            <div class="setlist-actions">
-                <button class="top-btn" onclick="exportToPDF()" data-t="download_pdf">PDF Z AKORDAMI</button>
-                <button class="top-btn" onclick="exportLyricsPDF()" data-t="download_pdf_lyrics">PDF TEKSTY</button>
-            </div>
-        </div>
-
-        <!-- ── Live Panel ── -->
-        <div id="col-live" class="col">
-            <div class="live-header live-top-header">
-                <h2 data-t="live_panel">Panel Live</h2>
+        <!-- ── CENTER PANEL: Preview + Slides ── -->
+        <div id="col-live" class="panel panel-center">
+            <div class="center-header">
+                <h3 id="current-title"></h3>
                 <button class="next-song-btn-landscape" onclick="goToNextSong()" data-t="next_btn">NASTĘPNA &#10132;</button>
             </div>
 
-            <h3 id="current-title"></h3>
+            <div id="live-preview-box" class="preview-stage" data-t="screen_off">EKRAN WYGASZONY</div>
 
-            <div class="live-split-wrapper">
-                <div id="live-preview-box" data-t="screen_off">EKRAN WYGASZONY</div>
-
-                <div id="live-header" class="live-side-controls">
-                    <div class="pad-panel-box">
-                        <div class="pad-row-top">
-                            <span class="pad-label">PAD ATMOSPHERE</span>
-                            <span id="pad-status-text" class="pad-status">OFF</span>
-                        </div>
-                        <div class="pad-center">
-                            <button id="pad-toggle-btn" class="pad-btn" onclick="togglePad()">&#9835;</button>
-                        </div>
-                        <div class="pad-volume-row">
+            <!-- Mobile-only inline controls (hidden on desktop) -->
+            <div class="live-mobile-controls" style="display:none;">
+                <div class="pad-card">
+                    <div class="pad-header">
+                        <span class="pad-label">PAD</span>
+                        <span id="pad-status-text-mob" class="pad-status">OFF</span>
+                    </div>
+                    <div class="pad-toggle-row">
+                        <button id="pad-toggle-btn-mob" class="pad-btn" onclick="togglePad()">&#9835;</button>
+                        <div class="pad-volume-wrap">
                             <span class="vol-label">VOL</span>
-                            <input type="range" id="pad-volume-slider" class="pad-slider"
+                            <input type="range" id="pad-volume-slider-mob" class="pad-slider"
                                    min="0" max="1" step="0.01" value="0.5"
                                    oninput="updatePadVolume(this)">
-                            <span id="pad-vol-text" class="vol-value">50%</span>
+                            <span id="pad-vol-text-mob" class="vol-value">50%</span>
                         </div>
                     </div>
-
-                    <div class="music-info-box">
-                        <div class="music-info-row">
-                            <span class="info-label">KEY</span>
-                            <span id="live-key" class="info-value info-value-accent">-</span>
-                        </div>
-                        <div class="music-info-row">
-                            <span class="info-label">TRANSPOSE</span>
-                            <div class="trans-controls">
-                                <button class="trans-btn" onclick="adjustLiveTrans(-1)">-1</button>
-                                <span id="current-trans" class="trans-value">0</span>
-                                <button class="trans-btn" onclick="adjustLiveTrans(1)">+1</button>
-                            </div>
-                        </div>
-                        <div class="music-info-row">
-                            <span class="info-label">BPM</span>
-                            <span id="live-bpm" class="info-value info-value-red">-</span>
-                        </div>
+                </div>
+                <div class="music-info-card">
+                    <div class="info-row">
+                        <span class="info-label">KEY</span>
+                        <span class="info-value info-value-accent" id="live-key-mob">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">BPM</span>
+                        <span class="info-value info-value-red" id="live-bpm-mob">-</span>
                     </div>
                 </div>
             </div>
 
             <div id="slides-container" class="slides-grid"></div>
 
-            <div class="bottom-controls">
-                <button class="danger" onclick="blackout()">BLACKOUT</button>
-                <button class="secondary" onclick="showLogo()">LOGO</button>
+            <div class="dock-bar">
+                <button class="dock-btn-blackout" onclick="blackout()">BLACKOUT</button>
+                <button class="dock-btn-logo" onclick="showLogo()">LOGO</button>
+            </div>
+        </div>
+
+        <!-- ── RIGHT PANEL: Controls ── -->
+        <div id="col-controls" class="panel panel-right desktop-only">
+            <h4 class="panel-section-title" data-t="live_panel">Panel Live</h4>
+
+            <!-- PAD Atmosphere -->
+            <div class="pad-card">
+                <div class="pad-header">
+                    <span class="pad-label">PAD ATMOSPHERE</span>
+                    <span id="pad-status-text" class="pad-status">OFF</span>
+                </div>
+                <div class="pad-toggle-row">
+                    <button id="pad-toggle-btn" class="pad-btn" onclick="togglePad()">&#9835;</button>
+                    <div class="pad-volume-wrap">
+                        <span class="vol-label">VOL</span>
+                        <input type="range" id="pad-volume-slider" class="pad-slider"
+                               min="0" max="1" step="0.01" value="0.5"
+                               oninput="updatePadVolume(this)">
+                        <span id="pad-vol-text" class="vol-value">50%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Music Info -->
+            <div class="music-info-card">
+                <div class="info-row">
+                    <span class="info-label">KEY</span>
+                    <span id="live-key" class="info-value info-value-accent">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">TRANSPOSE</span>
+                    <div class="trans-controls">
+                        <button class="trans-btn" onclick="adjustLiveTrans(-1)">-1</button>
+                        <span id="current-trans" class="trans-value">0</span>
+                        <button class="trans-btn" onclick="adjustLiveTrans(1)">+1</button>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">BPM</span>
+                    <span id="live-bpm" class="info-value info-value-red">-</span>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div style="flex:1;"></div>
+            <h4 class="panel-section-title">QUICK ACTIONS</h4>
+            <div class="quick-actions">
+                <button class="quick-action-btn" onclick="openSettingsModal()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <span data-t="settings_btn">Ustawienia</span>
+                </button>
+                <button class="quick-action-btn" onclick="openQRModal()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                    <span data-t="connect_btn">Połącz ekrany</span>
+                </button>
+                <button class="quick-action-btn" onclick="goToNextSong()" data-t="next_btn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 4 15 12 5 20"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                    NASTĘPNA
+                </button>
             </div>
         </div>
     </div>
@@ -1654,7 +1858,9 @@
         </button>
     </div>
 
-    <!-- ═══ Conference Mode ═══ -->
+    <!-- ═══════════════════════════════════════════
+         CONFERENCE MODE
+         ═══════════════════════════════════════════ -->
     <div id="conference-mode" class="mode-container">
         <div class="conf-panel">
             <h2 class="conf-header" data-t="speaker_panel">Panel Mowcy / Konferencja</h2>
@@ -1754,7 +1960,9 @@
         </div>
     </div>
 
-    <!-- ═══ Modals ═══ -->
+    <!-- ═══════════════════════════════════════════
+         MODALS
+         ═══════════════════════════════════════════ -->
 
     <!-- Import Modal -->
     <div id="importModal" class="modal">
@@ -1765,7 +1973,7 @@
             </div>
             <div class="instruction-box">
                 <div><strong data-t="opt1">OPCJA 1: Pojedyncze pliki</strong><br><span data-t="opt1_desc">Wgraj pliki np. Barka (C).txt.</span></div>
-                <hr class="inst-divider">
+                <hr class="inst-divider" style="border:0; border-top:1px dashed var(--border-default); margin:var(--s4) 0;">
                 <div><strong data-t="opt2">OPCJA 2: Plik zbiorczy</strong><br><span data-t="opt2_desc">Oddzielaj ---.</span><pre>Tytuł (Key)
 [C]Tekst...
 ---</pre></div>
@@ -2021,7 +2229,9 @@
         </div>
     </div>
 
-    <!-- ═══ Scripts ═══ -->
+    <!-- ═══════════════════════════════════════════
+         SCRIPTS
+         ═══════════════════════════════════════════ -->
     <script>
         window.SERVER_DATA = {
             songs: [
@@ -2051,6 +2261,13 @@
                 previewBox.innerText = text;
             }
         };
+
+        function switchLeftTab(tabName, clickedBtn) {
+            document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('active'); });
+            document.querySelectorAll('.panel-tab').forEach(function(b) { b.classList.remove('active'); });
+            document.getElementById('left-tab-' + tabName).classList.add('active');
+            if (clickedBtn) clickedBtn.classList.add('active');
+        }
     </script>
 
     <script src="{{ url_for('static', filename='js/control_logic.js') }}"></script>

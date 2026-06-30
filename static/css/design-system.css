@@ -1,6 +1,7 @@
 /* ============================================================
    DESIGN SYSTEM — JafaStageCenter
    Premium design tokens, components, and utilities.
+   Inspired by Linear / Raycast / Ableton aesthetic.
    ============================================================ */
 
 /* ── Fonts ── */
@@ -27,55 +28,64 @@
 }
 
 *:focus-visible {
-    outline: 2px solid var(--accent-primary);
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
 
 /* ── Design Tokens — Dark (default) ── */
 :root {
-    /* Surfaces — deep navy, not pure black */
-    --bg-app: #080b14;
-    --bg-panel: #0d1117;
-    --bg-surface: #131820;
-    --bg-surface-hover: #1a2030;
-    --bg-elevated: #1e2536;
-    --bg-input: #111827;
-    --bg-preview: #060810;
+    /* Surfaces — Layered Dark Mode (Linear-style depth) */
+    --bg-app: #0B0F17;
+    --bg-panel: #111620;
+    --bg-surface: #161B26;
+    --bg-surface-hover: #1C2333;
+    --bg-elevated: #212A3A;
+    --bg-input: #0F1219;
+    --bg-preview: #080A10;
+    --bg-inset: #0A0D14;
 
-    /* Borders & dividers */
-    --border-subtle: rgba(255, 255, 255, 0.04);
-    --border-default: rgba(255, 255, 255, 0.07);
-    --border-strong: rgba(255, 255, 255, 0.12);
+    /* Borders & dividers — ultra-subtle glass edges */
+    --border-subtle: rgba(255, 255, 255, 0.03);
+    --border-default: rgba(255, 255, 255, 0.06);
+    --border-strong: rgba(255, 255, 255, 0.10);
+    --border-focus: rgba(99, 155, 255, 0.5);
 
-    /* Text */
-    --text-primary: #f0f2f5;
-    --text-secondary: #8b95a8;
-    --text-tertiary: #556070;
-    --text-inverse: #080b14;
+    /* Text — never pure white */
+    --text-primary: #E6EDF3;
+    --text-secondary: #8B95A8;
+    --text-tertiary: #4F5B6E;
+    --text-inverse: #0B0F17;
+    --text-accent: #7EB0FF;
 
-    /* Accent palette */
-    --accent: #4f7fff;
-    --accent-hover: #6690ff;
-    --accent-subtle: rgba(79, 127, 255, 0.10);
-    --accent-glow: rgba(79, 127, 255, 0.20);
-    --teal: #2dd4bf;
-    --teal-subtle: rgba(45, 212, 191, 0.10);
-    --green: #34d399;
-    --green-subtle: rgba(52, 211, 153, 0.10);
-    --red: #f87171;
-    --red-subtle: rgba(248, 113, 113, 0.10);
-    --amber: #fbbf24;
-    --amber-subtle: rgba(251, 191, 36, 0.10);
+    /* Accent palette — refined for premium feel */
+    --accent: #4F7FFF;
+    --accent-hover: #6690FF;
+    --accent-subtle: rgba(79, 127, 255, 0.08);
+    --accent-glow: rgba(79, 127, 255, 0.18);
 
-    /* Elevation */
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-    --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+    --teal: #2DD4BF;
+    --teal-subtle: rgba(45, 212, 191, 0.08);
+    --green: #34D399;
+    --green-subtle: rgba(52, 211, 153, 0.08);
+    --red: #F87171;
+    --red-subtle: rgba(248, 113, 113, 0.08);
+    --amber: #FBBF24;
+    --amber-subtle: rgba(251, 191, 36, 0.08);
+
+    /* Chord / Worship accent — high contrast neon */
+    --chord-color: #00E5FF;
+    --chord-glow: rgba(0, 229, 255, 0.15);
+
+    /* Elevation — deep shadows for layered feel */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.45);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,0.55);
     --shadow-glow: 0 0 24px var(--accent-glow);
+    --shadow-inset: inset 0 1px 3px rgba(0,0,0,0.4);
 
-    /* Glass */
-    --glass-bg: rgba(13, 17, 23, 0.92);
-    --glass-border: rgba(255, 255, 255, 0.06);
+    /* Glass surfaces */
+    --glass-bg: rgba(17, 22, 32, 0.92);
+    --glass-border: rgba(255, 255, 255, 0.04);
 
     /* Spacing — 4px base */
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px;
@@ -105,7 +115,7 @@
     --duration-normal: 0.25s;
     --duration-slow: 0.4s;
 
-    /* Legacy compat — templates still reference these */
+    /* Legacy compat — other templates still reference these */
     --bg-element: var(--bg-surface);
     --bg-element-hover: var(--bg-surface-hover);
     --input-bg: var(--bg-input);
@@ -133,43 +143,50 @@
 
 /* ── Light Theme ── */
 [data-theme="light"] {
-    --bg-app: #f4f5f7;
-    --bg-panel: #ffffff;
-    --bg-surface: #f0f1f4;
-    --bg-surface-hover: #e6e8ec;
-    --bg-elevated: #ffffff;
-    --bg-input: #f0f1f4;
-    --bg-preview: #fafbfc;
+    --bg-app: #F5F6F8;
+    --bg-panel: #FFFFFF;
+    --bg-surface: #F0F1F4;
+    --bg-surface-hover: #E6E8EC;
+    --bg-elevated: #FFFFFF;
+    --bg-input: #F0F1F4;
+    --bg-preview: #FAFBFC;
+    --bg-inset: #ECEDF0;
 
     --border-subtle: rgba(0, 0, 0, 0.04);
     --border-default: rgba(0, 0, 0, 0.08);
     --border-strong: rgba(0, 0, 0, 0.14);
+    --border-focus: rgba(37, 99, 235, 0.4);
 
-    --text-primary: #1a1d24;
-    --text-secondary: #5c6370;
-    --text-tertiary: #8c929e;
-    --text-inverse: #f0f2f5;
+    --text-primary: #1A1D24;
+    --text-secondary: #5C6370;
+    --text-tertiary: #8C929E;
+    --text-inverse: #F0F2F5;
+    --text-accent: #2563EB;
 
-    --accent: #2563eb;
-    --accent-hover: #1d4ed8;
-    --accent-subtle: rgba(37, 99, 235, 0.08);
-    --accent-glow: rgba(37, 99, 235, 0.12);
-    --teal: #0d9488;
-    --teal-subtle: rgba(13, 148, 136, 0.08);
+    --accent: #2563EB;
+    --accent-hover: #1D4ED8;
+    --accent-subtle: rgba(37, 99, 235, 0.06);
+    --accent-glow: rgba(37, 99, 235, 0.10);
+    --teal: #0D9488;
+    --teal-subtle: rgba(13, 148, 136, 0.06);
     --green: #059669;
-    --green-subtle: rgba(5, 150, 105, 0.08);
-    --red: #dc2626;
-    --red-subtle: rgba(220, 38, 38, 0.08);
-    --amber: #d97706;
-    --amber-subtle: rgba(217, 119, 6, 0.08);
+    --green-subtle: rgba(5, 150, 105, 0.06);
+    --red: #DC2626;
+    --red-subtle: rgba(220, 38, 38, 0.06);
+    --amber: #D97706;
+    --amber-subtle: rgba(217, 119, 6, 0.06);
 
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
-    --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
+    --chord-color: #0891B2;
+    --chord-glow: rgba(8, 145, 178, 0.1);
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
     --shadow-glow: 0 0 24px var(--accent-glow);
+    --shadow-inset: inset 0 1px 2px rgba(0,0,0,0.06);
 
     --glass-bg: rgba(255, 255, 255, 0.95);
-    --glass-border: rgba(0, 0, 0, 0.06);
+    --glass-border: rgba(0, 0, 0, 0.05);
 }
 
 /* ── Base ── */
@@ -184,18 +201,24 @@ body {
                 color var(--duration-normal) var(--ease-out);
 }
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
+/* ── Scrollbar — thin, minimal ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-    background: var(--text-tertiary);
+    background: rgba(255,255,255,0.08);
     border-radius: var(--r-full);
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-secondary);
+    background: rgba(255,255,255,0.14);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.1);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0,0,0,0.18);
 }
 
-/* ── Form Controls ── */
+/* ── Form Controls — Raycast-style glowing inputs ── */
 input, textarea, select {
     width: 100%;
     padding: var(--s3) var(--s4);
@@ -205,6 +228,7 @@ input, textarea, select {
     background: var(--bg-input);
     color: var(--text-primary);
     font-size: var(--font-sm);
+    box-shadow: var(--shadow-inset);
     transition: border-color var(--duration-fast) var(--ease-in-out),
                 box-shadow var(--duration-fast) var(--ease-in-out);
 }
@@ -212,7 +236,7 @@ input, textarea, select {
 input:focus, textarea:focus, select:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-subtle);
+    box-shadow: 0 0 0 3px var(--accent-subtle), 0 0 20px var(--accent-glow);
 }
 
 input::placeholder, textarea::placeholder {
@@ -275,7 +299,7 @@ input:checked + .slider::before {
 }
 
 .btn:active, [class*="btn-"]:active {
-    transform: scale(0.97);
+    transform: scale(0.98);
 }
 
 .btn-primary {
@@ -330,6 +354,7 @@ input:checked + .slider::before {
     border-radius: var(--r-full);
     padding: 3px;
     gap: 2px;
+    border: 1px solid var(--border-default);
 }
 .segmented-control button {
     background: transparent;
@@ -350,7 +375,7 @@ input:checked + .slider::before {
 .segmented-control button.active {
     background: var(--accent);
     color: white;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-sm), 0 0 12px var(--accent-glow);
 }
 
 /* ── Modal ── */
@@ -359,7 +384,7 @@ input:checked + .slider::before {
     inset: 0;
     z-index: 1000;
     background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -509,6 +534,7 @@ input:checked + .slider::before {
     margin-bottom: var(--s6);
     font-size: var(--font-sm);
     color: var(--text-secondary);
+    line-height: 1.6;
 }
 .instruction-box pre {
     background: var(--bg-app);
@@ -632,6 +658,11 @@ input:checked + .slider::before {
     syntax: '<angle>';
     initial-value: 0deg;
     inherits: false;
+}
+
+@keyframes led-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 /* ── Reduced Motion ── */
