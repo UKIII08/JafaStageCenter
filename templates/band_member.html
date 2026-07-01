@@ -1473,6 +1473,11 @@
             if (pendingLiveData) {
                 applyLiveUpdate(pendingLiveData);
                 pendingLiveData = null;
+            } else {
+                socket.emit('request_current_slide');
+                fetch('/api/current-slide').then(r => r.json()).then(function(data) {
+                    if (data.mode && data.mode !== 'none') applyLiveUpdate(data);
+                }).catch(function() {});
             }
         }
 
@@ -1699,6 +1704,16 @@
         updateToggles();
         initI18n();
         initProfile();
+
+        fetch('/api/current-slide').then(r => r.json()).then(function(data) {
+            if (data.mode && data.mode !== 'none') applyLiveUpdate(data);
+        }).catch(function() {});
+        fetch('/api/setlist').then(r => r.json()).then(function(data) {
+            cachedSetlist = data.setlist || [];
+            liveCurrentIndex = data.current_index;
+            var songId = getCurrentSongId();
+            if (songId && currentProfile) loadSongSettings(songId);
+        }).catch(function() {});
 
         // ── Band Member Onboarding Tour ──
         (function() {

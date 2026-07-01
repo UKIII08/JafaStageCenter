@@ -85,10 +85,18 @@ SERVER_STATE = {
     'current_index': -1,
     'is_blackout': False
 }
+LAST_SLIDE_DATA = {}
 
 @socketio.on('connect')
 def handle_connect():
     emit('sync_state_to_client', SERVER_STATE)
+    if LAST_SLIDE_DATA:
+        emit('update_slide', LAST_SLIDE_DATA)
+
+@socketio.on('request_current_slide')
+def handle_request_slide():
+    if LAST_SLIDE_DATA:
+        emit('update_slide', LAST_SLIDE_DATA)
 
 @socketio.on('client_update_state')
 def handle_client_update(data):
@@ -841,6 +849,10 @@ def get_song_for_band(song_id):
 def get_setlist():
     return {'setlist': SERVER_STATE['setlist'], 'current_index': SERVER_STATE['current_index']}
 
+@app.route('/api/current-slide')
+def get_current_slide():
+    return LAST_SLIDE_DATA if LAST_SLIDE_DATA else {'mode': 'none'}
+
 # --- MUSICIAN PROFILES ---
 @app.route('/api/profiles', methods=['GET'])
 def get_profiles():
@@ -1251,11 +1263,14 @@ def send_text():
         state_updated = True
     if state_updated: socketio.emit('sync_state_to_client', SERVER_STATE)
 
+    global LAST_SLIDE_DATA
     if data.get('logo') is True:
         SERVER_STATE['is_blackout'] = False
-        socketio.emit('update_slide', {'mode': 'logo'})
+        LAST_SLIDE_DATA = {'mode': 'logo'}
+        socketio.emit('update_slide', LAST_SLIDE_DATA)
         return {'status': 'ok'}
     if data.get('mode') in ['conference', 'canva', 'presentation']:
+        LAST_SLIDE_DATA = data
         socketio.emit('update_slide', data)
         return {'status': 'ok'}
     raw_text = data.get('text', '')
@@ -1275,7 +1290,7 @@ def send_text():
     people_html, band_html, _ = process_song(raw_text, shift)
     _, band_next_html, _ = process_song(data.get('next_text', ''), next_shift)
 
-    socketio.emit('update_slide', {
+    LAST_SLIDE_DATA = {
         'mode': 'worship',
         'people': people_html,
         'band': band_html,
@@ -1289,7 +1304,8 @@ def send_text():
         'lang': lang,
         'notation': notation,
         'minor_display': minor_display
-    })
+    }
+    socketio.emit('update_slide', LAST_SLIDE_DATA)
     return {'status': 'ok'}
 
 @app.route('/export_songs', methods=['GET'])
