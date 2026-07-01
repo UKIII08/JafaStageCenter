@@ -148,6 +148,9 @@ var translations = {
         bm_key_prefix: "Tonacja:",
         bm_next_label: "NASTĘPNIE:",
         bm_delete_preset: "Usunąć ten preset?",
+        bm_delete_profile: "Usunąć ten profil? Wszystkie ustawienia zostaną utracone.",
+        bm_profile_section: "Profil",
+        bm_switch_profile: "Zmień",
         bm_no_diagram: "Brak diagramu dla tego akordu",
         bm_capo_simple: "✓ Bez kapo — akordy są proste",
         bm_capo_suggest: "Sugerowany kapo: próg",
@@ -157,7 +160,7 @@ var translations = {
         bm_browse_live: "● LIVE",
 
         // ── Profiles ──
-        profile_who: "Kto grasz?",
+        profile_who: "Kto gra?",
         profile_new: "+ Nowy profil",
         profile_name_ph: "Imię",
         profile_guitar: "Gitara",
@@ -400,6 +403,9 @@ var translations = {
         bm_key_prefix: "Key:",
         bm_next_label: "NEXT:",
         bm_delete_preset: "Delete this preset?",
+        bm_delete_profile: "Delete this profile? All settings will be lost.",
+        bm_profile_section: "Profile",
+        bm_switch_profile: "Switch",
         bm_no_diagram: "No diagram for this chord",
         bm_capo_simple: "✓ No capo — chords are easy",
         bm_capo_suggest: "Suggested capo: fret",

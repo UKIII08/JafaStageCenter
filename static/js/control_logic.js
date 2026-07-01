@@ -1106,8 +1106,10 @@ function showLogo(){fetch('/send_text',{method:'POST',headers:{'Content-Type':'a
 
 function saveSetlistHistory() {
     if (!setlist.length) { showToast(t('alert_empty_setlist'), 'error'); return; }
-    var name = prompt(t('setlist_history_name') || 'Nazwa setlisty:', new Date().toLocaleDateString('pl-PL') + ' nabożeństwo');
-    if (!name) return;
+    var dateStr = new Date().toLocaleDateString('pl-PL');
+    var name = prompt(t('setlist_history_name') || 'Nazwa setlisty:', dateStr);
+    if (name === null) return;
+    if (!name.trim()) name = dateStr;
     var songs = setlist.map(function(s) {
         return { id: s.id, title: s.title, key: s.key || '', bpm: s.bpm || 0, transpose: s.transpose || 0 };
     });
@@ -1116,6 +1118,8 @@ function saveSetlistHistory() {
         body: JSON.stringify({ name: name, date: new Date().toISOString().split('T')[0], songs: songs })
     }).then(function(r) { return r.json(); }).then(function() {
         showToast(t('setlist_saved') || 'Setlista zapisana!', 'success');
+    }).catch(function() {
+        showToast(t('alert_error') || 'Błąd', 'error');
     });
 }
 

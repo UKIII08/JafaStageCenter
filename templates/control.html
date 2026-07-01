@@ -292,10 +292,11 @@
 
         .setlist-actions {
             display: flex;
+            flex-wrap: wrap;
             gap: var(--s2);
             margin-top: var(--s3);
         }
-        .setlist-actions .top-btn { flex: 1; justify-content: center; font-size: var(--font-xs); }
+        .setlist-actions .top-btn { flex: 1 1 45%; min-width: 0; justify-content: center; font-size: var(--font-xs); }
 
         /* ── Live Panel ── */
         .live-header {

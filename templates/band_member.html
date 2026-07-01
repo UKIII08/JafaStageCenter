@@ -692,16 +692,12 @@
         </h2>
 
         <div class="setting-group">
-            <div class="group-title">Preset</div>
-            <select id="preset-select" onchange="loadPreset(this.value)">
-                <option value="" data-t="bm_choose_preset">— Wybierz preset —</option>
-                {% for p in presets %}
-                <option value="{{ p.id }}" data-cfg='{{ {"show_chords": p.show_chords, "chord_notation": p.chord_notation or "international", "lowercase_minor": p.lowercase_minor or false, "capo_fret": p.capo_fret, "beginner_mode": p.beginner_mode, "diagram_instrument": p.diagram_instrument, "font_size": p.font_size}|tojson }}'>{{ p.name }}</option>
-                {% endfor %}
-            </select>
-            <div style="display:flex; gap:var(--s2); margin-top:var(--s3);">
-                <button class="btn btn-primary" style="flex:1;" onclick="savePresetDialog()" data-t="bm_save">Zapisz</button>
-                <button class="btn btn-danger" onclick="deleteCurrentPreset()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+            <div class="group-title" data-t="bm_profile_section">Profil</div>
+            <div id="profile-manage-area" style="display:flex; align-items:center; gap:var(--s3);">
+                <div id="manage-avatar" class="profile-avatar" style="width:36px; height:36px; font-size:1rem; flex-shrink:0;"></div>
+                <span id="manage-profile-name" style="flex:1; font-weight:600; color:var(--text-primary);"></span>
+                <button class="btn btn-ghost" onclick="switchProfile()" data-t="bm_switch_profile" style="font-size:var(--text-xs);">Zmień</button>
+                <button class="btn btn-danger" onclick="deleteProfile()" style="padding:var(--s1) var(--s2);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
             </div>
         </div>
 
@@ -879,6 +875,28 @@
             avatar.textContent = (p.name || '?')[0].toUpperCase();
             nameEl.textContent = p.name;
             badge.style.display = 'flex';
+            var mAvatar = document.getElementById('manage-avatar');
+            var mName = document.getElementById('manage-profile-name');
+            if (mAvatar) { mAvatar.style.background = p.color || '#6366f1'; mAvatar.textContent = (p.name || '?')[0].toUpperCase(); }
+            if (mName) mName.textContent = p.name;
+        }
+
+        function switchProfile() {
+            toggleSettings();
+            showProfileScreen();
+        }
+
+        function deleteProfile() {
+            if (!currentProfile) return;
+            if (!confirm(t('bm_delete_profile'))) return;
+            fetch('/api/profiles/' + currentProfile.id, { method: 'DELETE' })
+            .then(function() {
+                localStorage.removeItem('jafa_profile_id');
+                currentProfile = null;
+                document.getElementById('profile-badge').style.display = 'none';
+                toggleSettings();
+                showProfileScreen();
+            });
         }
 
         function saveProfileSettings() {
@@ -1642,60 +1660,7 @@
             saveProfileSettings();
         }
 
-        // ===== PRESETS =====
-        function loadPreset(id) {
-            if (!id) { activePresetId = null; return; }
-            const opt = document.querySelector(`#preset-select option[value="${id}"]`);
-            if (!opt) return;
-            const cfg = JSON.parse(opt.dataset.cfg);
-            if ('show_diagrams' in cfg && !('diagram_instrument' in cfg)) {
-                cfg.diagram_instrument = cfg.show_diagrams ? 'guitar' : 'off';
-                delete cfg.show_diagrams;
-            }
-            if ('nashville_mode' in cfg && !('chord_notation' in cfg)) {
-                cfg.chord_notation = cfg.nashville_mode ? 'nashville' : 'international';
-            }
-            delete cfg.nashville_mode;
-            currentSettings = { ...currentSettings, ...cfg };
-            activePresetId = +id;
-            document.getElementById('capo-select').value = currentSettings.capo_fret;
-            document.getElementById('font-size-range').value = currentSettings.font_size;
-            document.getElementById('font-size-val').textContent = currentSettings.font_size;
-            updateToggles();
-            rerender();
-        }
-
-        function savePresetDialog() {
-            const name = prompt('Nazwa presetu:', activePresetId ? document.querySelector(`#preset-select option[value="${activePresetId}"]`)?.textContent : '');
-            if (!name) return;
-            const payload = { ...currentSettings, name };
-            if (activePresetId) payload.id = activePresetId;
-            fetch('/api/presets', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).then(r => r.json()).then(data => { activePresetId = data.id; refreshPresetList(); });
-        }
-
-        function deleteCurrentPreset() {
-            if (!activePresetId) return;
-            if (!confirm(t('bm_delete_preset'))) return;
-            fetch('/api/presets/' + activePresetId, { method: 'DELETE' })
-            .then(() => { activePresetId = null; refreshPresetList(); });
-        }
-
-        function refreshPresetList() {
-            fetch('/api/presets').then(r => r.json()).then(presets => {
-                const sel = document.getElementById('preset-select');
-                sel.innerHTML = '<option value="" data-t="bm_choose_preset">' + t('bm_choose_preset') + '</option>';
-                for (const p of presets) {
-                    const opt = document.createElement('option');
-                    opt.value = p.id; opt.textContent = p.name;
-                    opt.dataset.cfg = JSON.stringify({ show_chords: p.show_chords, chord_notation: p.chord_notation || 'international', lowercase_minor: p.lowercase_minor || false, capo_fret: p.capo_fret, beginner_mode: p.beginner_mode, diagram_instrument: p.diagram_instrument || 'guitar', font_size: p.font_size });
-                    sel.appendChild(opt);
-                }
-                if (activePresetId) sel.value = activePresetId;
-            });
-        }
+        // Preset functions removed — profiles auto-save settings
 
         socket.on('apply_settings', function(data) {
             if (data.lang) initI18n(data.lang);
@@ -1735,9 +1700,9 @@
                     afterInteract: function() { if (!document.getElementById('settings-panel').classList.contains('open')) toggleSettings(); }
                 },
                 {
-                    target: '#preset-select',
-                    get title() { return currentLang === 'en' ? 'Presets' : 'Presety'; },
-                    get text() { return currentLang === 'en' ? 'Save your settings as a preset and switch between them. Each musician can have their own setup!' : 'Zapisz swoje ustawienia jako preset i przełączaj się między nimi. Każdy muzyk może mieć swoją konfigurację!'; },
+                    target: '#profile-manage-area',
+                    get title() { return currentLang === 'en' ? 'Your profile' : 'Twój profil'; },
+                    get text() { return currentLang === 'en' ? 'Your settings are saved automatically to your profile. You can switch profiles or delete the current one here.' : 'Twoje ustawienia zapisują się automatycznie na profilu. Możesz tutaj zmienić profil lub usunąć obecny.'; },
                     position: 'left',
                     beforeShow: function() { if (!document.getElementById('settings-panel').classList.contains('open')) toggleSettings(); }
                 },
