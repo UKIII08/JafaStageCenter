@@ -912,6 +912,7 @@
         let currentBandNext = '';
         let currentKey = 'C';
         let currentBpm = 0;
+        let currentTranspose = 0;
         let activePresetId = null;
 
         // ===== MUSICIAN PROFILE =====
@@ -1291,8 +1292,12 @@
 
         function suggestCapo() {
             const box = document.getElementById('capo-suggestion');
-            const chords = extractChords(currentRawText);
-            if (chords.length === 0) { box.style.display = 'none'; return; }
+            const rawChords = extractChords(currentRawText);
+            if (rawChords.length === 0) { box.style.display = 'none'; return; }
+            // Apply current transposition so capo suggestions match what's actually displayed
+            const chords = currentTranspose !== 0
+                ? rawChords.map(ch => transposeChord(ch, currentTranspose))
+                : rawChords;
 
             let bestCapo = 0;
             let bestScore = -1;
@@ -1681,6 +1686,7 @@
                 if (data.band_next !== undefined) currentBandNext = data.band_next;
                 if (data.current_key && data.current_key !== 'N/A') currentKey = data.current_key;
                 if (data.current_bpm && data.current_bpm > 0) currentBpm = data.current_bpm;
+                if (data.transpose !== undefined) currentTranspose = parseInt(data.transpose) || 0;
                 rerender();
             }
         }

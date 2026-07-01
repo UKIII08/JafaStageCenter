@@ -1333,7 +1333,8 @@ def send_text():
         'is_blackout': is_blackout,
         'lang': lang,
         'notation': notation,
-        'minor_display': minor_display
+        'minor_display': minor_display,
+        'transpose': shift
     }
     socketio.emit('update_slide', LAST_SLIDE_DATA)
     return {'status': 'ok'}

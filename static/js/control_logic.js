@@ -692,6 +692,8 @@ function showToast(message) {
 // UŻYWAMY DANYCH PRZEKAZANYCH Z HTML
 const library = (window.SERVER_DATA && window.SERVER_DATA.songs) ? window.SERVER_DATA.songs : [];
 let setlist = []; let currentSetIndex = -1;
+let currentSections = [];
+let sectionsSortable = null;
 
 let tapTimes = [];
 function tapTempo(inputId) {
@@ -922,35 +924,57 @@ function selectForLive(i, broadcast = true){
        triggerDebouncedPad(finalKey);
     }
 
-    const sc=document.getElementById('slides-container');sc.innerHTML="";
-    const secs=parseSongSections(item.content);
-    secs.forEach((sec,idx)=>{
-        const b=document.createElement('div'); b.className='slide-btn';
-        b.innerHTML=`<span class="slide-label">${sec.label}</span><span>${sec.content.replace(/\[.*?\]/g,"").substring(0,40)}...</span>`;
-        b.onclick=()=>{
-            document.querySelectorAll('.slide-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active');
-            
-            let nextContent = "";
-            let nextTrans = item.transpose; 
+    currentSections = parseSongSections(item.content);
+    renderSectionTiles(i);
+}
 
-            if (idx + 1 < secs.length) {
-                nextContent = secs[idx + 1].content;
-            } else if (i + 1 < setlist.length) {
-                // To ostatni slajd w piosence, pobieramy pierwszy z następnej:
-                const nextSongSecs = parseSongSections(setlist[i + 1].content);
+function duplicateSection(idx) {
+    if (idx < 0 || idx >= currentSections.length) return;
+    var copy = { label: currentSections[idx].label, content: currentSections[idx].content };
+    currentSections.splice(idx + 1, 0, copy);
+    renderSectionTiles(currentSetIndex);
+}
+
+function removeDuplicatedSection(idx) {
+    if (currentSections.length <= 1) return;
+    currentSections.splice(idx, 1);
+    renderSectionTiles(currentSetIndex);
+}
+
+function renderSectionTiles(songIdx) {
+    const item = setlist[songIdx];
+    const sc = document.getElementById('slides-container');
+    sc.innerHTML = "";
+
+    currentSections.forEach((sec, idx) => {
+        const b = document.createElement('div');
+        b.className = 'slide-btn';
+        b.setAttribute('data-sec-idx', idx);
+        b.innerHTML = `<span class="slide-label">${sec.label}</span><span>${sec.content.replace(/\[.*?\]/g,"").substring(0,40)}...</span><span class="slide-actions"><button class="slide-dup-btn" title="Duplikuj" onclick="event.stopPropagation(); duplicateSection(${idx});">+</button><button class="slide-del-btn" title="Usuń" onclick="event.stopPropagation(); removeDuplicatedSection(${idx});">×</button></span>`;
+        b.onclick = () => {
+            document.querySelectorAll('.slide-btn').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+
+            var nextContent = "";
+            var nextTrans = item.transpose;
+
+            if (idx + 1 < currentSections.length) {
+                nextContent = currentSections[idx + 1].content;
+            } else if (songIdx + 1 < setlist.length) {
+                var nextSongSecs = parseSongSections(setlist[songIdx + 1].content);
                 if (nextSongSecs.length > 0) {
                     nextContent = nextSongSecs[0].content;
-                    nextTrans = setlist[i + 1].transpose; // Bierzemy nową transpozycję!
+                    nextTrans = setlist[songIdx + 1].transpose;
                 }
             }
 
-            goLiveSection(sec.content, nextContent, null, nextTrans); 
+            goLiveSection(sec.content, nextContent, null, nextTrans);
         };
         sc.appendChild(b);
     });
-    
-    if (i < setlist.length - 1 && transitionsEnabled) { 
-        const nextItem = setlist[i + 1];
+
+    if (songIdx < setlist.length - 1 && transitionsEnabled) {
+        const nextItem = setlist[songIdx + 1];
         const chordRegex = /\[(.*?)\]/g;
         const currentMatches = item.content.match(chordRegex);
         const nextMatches = nextItem.content.match(chordRegex);
@@ -959,54 +983,65 @@ function selectForLive(i, broadcast = true){
         if (lastChordRaw && firstChordRaw) {
             const btn = document.createElement('div'); btn.className = 'slide-btn transition-tile';
             btn.innerHTML = `<span class="slide-label">Transition</span><span id="trans-preview" style="font-size:0.7rem;color:var(--text-muted);">Ładowanie...</span>`;
-            
+
             const fetchTransition = () => {
-                fetch('/generate_transition', { 
-                    method: 'POST', 
+                fetch('/generate_transition', {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        id_start: item.id,        
-                        id_end: nextItem.id,     
-                        start_chord: lastChordRaw, 
-                        end_chord: firstChordRaw, 
-                        transpose_start: item.transpose, 
-                        transpose_end: nextItem.transpose 
+                    body: JSON.stringify({
+                        id_start: item.id,
+                        id_end: nextItem.id,
+                        start_chord: lastChordRaw,
+                        end_chord: firstChordRaw,
+                        transpose_start: item.transpose,
+                        transpose_end: nextItem.transpose
                     })
                 }).then(r => r.json()).then(data => {
-                        if (data.status === 'ok') {
-                            const previewBox = btn.querySelector('#trans-preview');
-                            if(previewBox) previewBox.innerText = `${data.debug_start} → ${data.debug_end}`;
-                            btn.dataset.transitionHtml = data.transition;
-                        } else { if(btn.querySelector('#trans-preview')) btn.querySelector('#trans-preview').innerText = "Błąd"; }
+                    if (data.status === 'ok') {
+                        var previewBox = btn.querySelector('#trans-preview');
+                        if (previewBox) previewBox.innerText = `${data.debug_start} → ${data.debug_end}`;
+                        btn.dataset.transitionHtml = data.transition;
+                    } else { if (btn.querySelector('#trans-preview')) btn.querySelector('#trans-preview').innerText = "Błąd"; }
                 });
             };
             fetchTransition();
             btn.onclick = () => {
-                document.querySelectorAll('.slide-btn').forEach(x=>x.classList.remove('active')); btn.classList.add('active');
-                
-                if(isPadPlaying && i < setlist.length - 1) {
-                    let nextSong = setlist[i+1];
-                    let nextKey = calculateTransposedKey(nextSong.key, nextSong.transpose);
-                    console.log(`[TRANSITION] Kliknięto przejście. Pad zmieni się na ${nextKey} za 5s.`);
-                    
-                    setTimeout(() => {
-                        playPad(nextKey, 5);
-                    }, 8000);
+                document.querySelectorAll('.slide-btn').forEach(x => x.classList.remove('active')); btn.classList.add('active');
+
+                if (isPadPlaying && songIdx < setlist.length - 1) {
+                    var nextSong = setlist[songIdx + 1];
+                    var nextKey = calculateTransposedKey(nextSong.key, nextSong.transpose);
+                    setTimeout(() => { playPad(nextKey, 5); }, 8000);
                 }
 
-                let nextContent = "";
-            let nextTrans = nextItem.transpose;
-            const nextSongSecs = parseSongSections(nextItem.content);
-            if (nextSongSecs.length > 0) {
-                nextContent = nextSongSecs[0].content;
-            }
+                var nextContent = "";
+                var nextTrans = nextItem.transpose;
+                var nextSongSecs = parseSongSections(nextItem.content);
+                if (nextSongSecs.length > 0) {
+                    nextContent = nextSongSecs[0].content;
+                }
 
-            if (btn.dataset.transitionHtml) { 
-                goLiveSection(btn.dataset.transitionHtml, nextContent, 0, nextTrans); 
-            }
+                if (btn.dataset.transitionHtml) {
+                    goLiveSection(btn.dataset.transitionHtml, nextContent, 0, nextTrans);
+                }
             };
             sc.appendChild(btn);
         }
+    }
+
+    if (sectionsSortable) sectionsSortable.destroy();
+    if (typeof Sortable !== 'undefined') {
+        sectionsSortable = new Sortable(sc, {
+            animation: 150,
+            handle: '.slide-label',
+            filter: '.transition-tile',
+            ghostClass: 'slide-ghost',
+            onEnd: function(evt) {
+                var el = currentSections.splice(evt.oldIndex, 1)[0];
+                currentSections.splice(evt.newIndex, 0, el);
+                renderSectionTiles(currentSetIndex);
+            }
+        });
     }
 }
 
