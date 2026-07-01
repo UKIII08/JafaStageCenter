@@ -1129,11 +1129,14 @@ function showSetlistHistory() {
         if (!items.length) { showToast(t('no_history') || 'Brak zapisanych setlist', 'info'); return; }
         var html = '<div style="max-height:60vh;overflow-y:auto;">';
         items.forEach(function(h) {
-            html += '<div style="padding:12px;border-bottom:1px solid var(--border-default);cursor:pointer;" onclick="loadSetlistHistory(' + h.id + ')">' +
+            html += '<div style="padding:12px;border-bottom:1px solid var(--border-default);display:flex;align-items:center;gap:8px;">' +
+                '<div style="flex:1;cursor:pointer;" onclick="loadSetlistHistory(' + h.id + ')">' +
                 '<div style="font-weight:600;">' + (h.name || h.date) + '</div>' +
                 '<div style="font-size:0.8em;color:var(--text-tertiary);">' + h.date + ' — ' + h.song_count + ' ' + (t('songs_count') || 'piosenek') + '</div>' +
                 '<div style="font-size:0.75em;color:var(--text-muted);margin-top:4px;">' +
-                h.songs.map(function(s) { return s.title; }).join(', ') + '</div></div>';
+                h.songs.map(function(s) { return s.title; }).join(', ') + '</div></div>' +
+                '<button onclick="deleteSetlistHistory(' + h.id + ',this)" style="flex-shrink:0;padding:6px 8px;border-radius:8px;background:transparent;color:var(--accent-danger);border:1px solid var(--accent-danger);cursor:pointer;font-size:0.75em;">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>';
         });
         html += '</div>';
         var modal = document.createElement('div');
@@ -1142,6 +1145,19 @@ function showSetlistHistory() {
             '<h3 style="margin:0 0 16px;">' + (t('setlist_history_title') || 'Historia setlist') + '</h3>' + html +
             '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="margin-top:12px;padding:8px 20px;border-radius:8px;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border-default);cursor:pointer;">Zamknij</button></div>';
         document.body.appendChild(modal);
+    });
+}
+
+function deleteSetlistHistory(id, btn) {
+    event.stopPropagation();
+    fetch('/api/setlist-history/' + id, { method: 'DELETE' }).then(function() {
+        var row = btn.closest('div[style*="border-bottom"]');
+        row.remove();
+        var container = document.querySelector('div[style*="fixed"][style*="z-index:99999"] div[style*="max-height"]');
+        if (container && !container.children.length) {
+            document.querySelector('div[style*="fixed"][style*="z-index:99999"]').remove();
+            showToast(t('no_history') || 'Brak zapisanych setlist', 'info');
+        }
     });
 }
 
