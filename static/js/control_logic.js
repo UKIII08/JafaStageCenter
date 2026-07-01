@@ -941,8 +941,24 @@ function selectForLive(i, broadcast = true){
        triggerDebouncedPad(finalKey);
     }
 
-    if (item.customSections) {
-        currentSections = item.customSections.map(function(s) { return { label: s.label, content: s.content }; });
+    if (item.customSections && Array.isArray(item.customSections)) {
+        var allSections = parseSongSections(item.content);
+        var sectionMap = {};
+        allSections.forEach(function(s) {
+            if (!sectionMap[s.label]) sectionMap[s.label] = [];
+            sectionMap[s.label].push(s);
+        });
+        var usedCount = {};
+        currentSections = item.customSections.map(function(label) {
+            if (!usedCount[label]) usedCount[label] = 0;
+            var pool = sectionMap[label];
+            if (pool && usedCount[label] < pool.length) {
+                return pool[usedCount[label]++];
+            } else if (pool && pool.length > 0) {
+                return { label: label, content: pool[0].content };
+            }
+            return { label: label, content: '' };
+        });
     } else {
         currentSections = parseSongSections(item.content);
     }
@@ -951,9 +967,15 @@ function selectForLive(i, broadcast = true){
 
 function saveSectionsToSetlist() {
     if (currentSetIndex >= 0 && currentSetIndex < setlist.length) {
-        setlist[currentSetIndex].customSections = currentSections.map(function(s) {
-            return { label: s.label, content: s.content };
-        });
+        var defaultSections = parseSongSections(setlist[currentSetIndex].content);
+        var defaultLabels = defaultSections.map(function(s) { return s.label; });
+        var currentLabels = currentSections.map(function(s) { return s.label; });
+        var isDefault = currentLabels.length === defaultLabels.length && currentLabels.every(function(l, i) { return l === defaultLabels[i]; });
+        if (isDefault) {
+            delete setlist[currentSetIndex].customSections;
+        } else {
+            setlist[currentSetIndex].customSections = currentLabels;
+        }
     }
 }
 
@@ -1259,50 +1281,95 @@ function loadSetlistHistory(id) {
     });
 }
 
-function shareSetlist() {
-    if (!setlist.length) { showToast(t('alert_empty_setlist'), 'error'); return; }
-    var songs = setlist.map(function(s) {
-        var item = { id: s.id, title: s.title, key: s.key || '', bpm: s.bpm || 0, transpose: s.transpose || 0 };
-        if (s.customSections) item.customSections = s.customSections;
+function encodeSetlistData() {
+    return setlist.map(function(s) {
+        var item = { t: s.title, k: s.key || '', b: s.bpm || 0, tr: s.transpose || 0 };
+        if (s.customSections) item.s = s.customSections;
         return item;
     });
-    var dateStr = new Date().toISOString().split('T')[0];
-    fetch('/api/setlist-share', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ name: dateStr, date: dateStr, songs: songs })
-    }).then(function(r) { return r.json(); }).then(function(data) {
-        var modal = document.createElement('div');
-        modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;';
-        modal.innerHTML = '<div style="background:var(--bg-elevated);border-radius:14px;padding:24px;max-width:400px;width:90%;border:1px solid var(--border-default);text-align:center;">' +
-            '<h3 style="margin:0 0 8px;">' + (t('share_code_title') || 'Kod setlisty') + '</h3>' +
-            '<p style="margin:0 0 16px;color:var(--text-tertiary);font-size:0.9em;">' + (t('share_code_msg') || 'Podaj ten kod na innym urzadzeniu:') + '</p>' +
-            '<div style="font-size:2.5rem;font-weight:700;letter-spacing:0.3em;padding:16px;background:var(--bg-surface);border-radius:10px;font-family:monospace;">' + data.code + '</div>' +
-            '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="margin-top:16px;padding:8px 24px;border-radius:8px;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border-default);cursor:pointer;">OK</button></div>';
-        document.body.appendChild(modal);
-    }).catch(function() { showToast(t('alert_error') || 'Blad', 'error'); });
+}
+
+function decodeSetlistData(songs) {
+    var result = [];
+    var missing = [];
+    songs.forEach(function(s) {
+        var title = s.t || s.title;
+        var libSong = library.find(function(ls) { return ls.title === title; });
+        if (libSong) {
+            var entry = Object.assign({}, libSong, { transpose: s.tr !== undefined ? s.tr : (s.transpose || 0) });
+            var sections = s.s || s.customSections;
+            if (sections && Array.isArray(sections)) {
+                if (typeof sections[0] === 'string') {
+                    entry.customSections = sections;
+                } else if (sections[0] && sections[0].label) {
+                    entry.customSections = sections.map(function(sec) { return sec.label; });
+                }
+            }
+            result.push(entry);
+        } else {
+            missing.push(title);
+        }
+    });
+    return { songs: result, missing: missing };
+}
+
+function shareSetlist() {
+    if (!setlist.length) { showToast(t('alert_empty_setlist'), 'error'); return; }
+    var data = encodeSetlistData();
+    var json = JSON.stringify(data);
+    var encoded = 'JAFA:' + btoa(unescape(encodeURIComponent(json)));
+
+    var modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML = '<div style="background:var(--bg-elevated);border-radius:14px;padding:24px;max-width:500px;width:90%;border:1px solid var(--border-default);text-align:center;">' +
+        '<h3 style="margin:0 0 8px;">' + (t('share_code_title') || 'Udostępnij setlistę') + '</h3>' +
+        '<p style="margin:0 0 12px;color:var(--text-tertiary);font-size:0.85em;">' + (t('share_code_msg') || 'Skopiuj kod i wyślij drugiej osobie, lub niech zeskanuje QR:') + '</p>' +
+        '<div style="display:flex;justify-content:center;margin-bottom:12px;"><img id="share-qr-img" src="/qr_setlist?data=' + encodeURIComponent(encoded) + '" style="width:200px;height:200px;border-radius:10px;background:white;padding:4px;" onerror="this.style.display=\'none\'"></div>' +
+        '<textarea id="share-code-text" readonly style="width:100%;height:60px;font-size:0.75rem;font-family:monospace;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border-default);border-radius:8px;padding:8px;resize:none;word-break:break-all;">' + encoded + '</textarea>' +
+        '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">' +
+        '<button onclick="var ta=document.getElementById(\'share-code-text\');ta.select();document.execCommand(\'copy\');showToast(t(\'copied\')||\'Skopiowano!\',\'success\')" style="padding:8px 20px;border-radius:8px;background:var(--accent-primary);color:white;border:none;cursor:pointer;font-weight:600;">' + (t('copy_btn') || 'Kopiuj kod') + '</button>' +
+        '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="padding:8px 20px;border-radius:8px;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border-default);cursor:pointer;">OK</button></div></div>';
+    document.body.appendChild(modal);
 }
 
 function importSetlistCode() {
-    var code = window.prompt(t('import_code_prompt') || 'Wpisz kod setlisty:');
+    var code = window.prompt(t('import_code_prompt') || 'Wklej kod setlisty (JAFA:...):');
     if (!code) return;
-    fetch('/api/setlist-share/' + code.trim().toUpperCase()).then(function(r) {
+    code = code.trim();
+
+    if (code.startsWith('JAFA:')) {
+        try {
+            var json = decodeURIComponent(escape(atob(code.substring(5))));
+            var songs = JSON.parse(json);
+            var result = decodeSetlistData(songs);
+            setlist = result.songs;
+            renderSetlist();
+            if (setlist.length) selectForLive(0);
+            updateServerState();
+            var msg = (t('setlist_loaded') || 'Setlista wczytana!') + ' (' + setlist.length + ' ' + (t('songs_count') || 'piosenek') + ')';
+            if (result.missing.length) {
+                msg += '\n' + (t('songs_not_found') || 'Nie znaleziono:') + ' ' + result.missing.join(', ');
+            }
+            showToast(msg, result.missing.length ? 'warning' : 'success');
+        } catch(e) {
+            showToast(t('import_code_invalid') || 'Nieprawidłowy kod setlisty', 'error');
+        }
+        return;
+    }
+
+    fetch('/api/setlist-share/' + code.toUpperCase()).then(function(r) {
         if (!r.ok) throw new Error('not found');
         return r.json();
     }).then(function(data) {
         if (data.error) { showToast(t('import_code_not_found') || 'Nie znaleziono', 'error'); return; }
-        setlist = [];
-        data.songs.forEach(function(s) {
-            var libSong = library.find(function(ls) { return ls.title === s.title; }) || library.find(function(ls) { return ls.id === s.id; });
-            if (libSong) {
-                var entry = Object.assign({}, libSong, { transpose: s.transpose || 0 });
-                if (s.customSections) entry.customSections = s.customSections;
-                setlist.push(entry);
-            }
-        });
+        var result = decodeSetlistData(data.songs);
+        setlist = result.songs;
         renderSetlist();
         if (setlist.length) selectForLive(0);
         updateServerState();
-        showToast((t('setlist_loaded') || 'Setlista wczytana!') + ' (' + setlist.length + ' ' + (t('songs_count') || 'piosenek') + ')', 'success');
+        var msg = (t('setlist_loaded') || 'Setlista wczytana!') + ' (' + setlist.length + ' ' + (t('songs_count') || 'piosenek') + ')';
+        if (result.missing.length) msg += '\n' + (t('songs_not_found') || 'Nie znaleziono:') + ' ' + result.missing.join(', ');
+        showToast(msg, result.missing.length ? 'warning' : 'success');
     }).catch(function() { showToast(t('import_code_not_found') || 'Nie znaleziono setlisty', 'error'); });
 }
 

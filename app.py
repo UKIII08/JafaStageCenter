@@ -1260,6 +1260,26 @@ def print_lyrics():
         songs_to_print.append({'title': item['title'], 'html': ''.join(html_blocks)})
     return render_template('print_lyrics.html', songs=songs_to_print, static_root='/static')
 
+@app.route('/qr_setlist')
+def qr_setlist():
+    data = request.args.get('data', '')
+    if not data:
+        return 'No data', 400
+    qr = qrcode.QRCode(version=None, box_size=6, border=3, error_correction=qrcode.constants.ERROR_CORRECT_L)
+    qr.add_data(data); qr.make(fit=True)
+    img_io = BytesIO()
+    try:
+        qr.make_image(fill_color="black", back_color="white").save(img_io, 'PNG')
+        img_io.seek(0)
+        return send_file(img_io, mimetype='image/png')
+    except Exception:
+        from qrcode.image.svg import SvgPathImage
+        svg_img = qr.make_image(image_factory=SvgPathImage)
+        svg_io = BytesIO()
+        svg_img.save(svg_io)
+        svg_io.seek(0)
+        return send_file(svg_io, mimetype='image/svg+xml')
+
 @app.route('/qr_code/<path:subpath>')
 def qr_code(subpath):
     ip = get_local_ip()
