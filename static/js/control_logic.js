@@ -1150,7 +1150,7 @@ function loadSetlistHistory(id) {
         if (data.error) return;
         setlist = [];
         data.songs.forEach(function(s) {
-            var libSong = library.find(function(ls) { return ls.id === s.id; });
+            var libSong = library.find(function(ls) { return ls.title === s.title; }) || library.find(function(ls) { return ls.id === s.id; });
             if (libSong) {
                 setlist.push(Object.assign({}, libSong, { transpose: s.transpose || 0 }));
             }
@@ -1194,7 +1194,7 @@ function importSetlistCode() {
         if (data.error) { showToast(t('import_code_not_found') || 'Nie znaleziono', 'error'); return; }
         setlist = [];
         data.songs.forEach(function(s) {
-            var libSong = library.find(function(ls) { return ls.id === s.id; });
+            var libSong = library.find(function(ls) { return ls.title === s.title; }) || library.find(function(ls) { return ls.id === s.id; });
             if (libSong) {
                 setlist.push(Object.assign({}, libSong, { transpose: s.transpose || 0 }));
             }
