@@ -286,7 +286,7 @@ socket.on('sync_state_to_client', function(data) {
         renderSetlist();
     }
 
-    if (data.current_index !== undefined && data.current_index !== -1 && setlist[data.current_index]) {
+    if (data.current_index !== undefined && data.current_index !== -1 && setlist[data.current_index] && needsRender) {
         selectForLive(data.current_index, false);
     } else if (data.current_index === -1) {
         document.getElementById('live-header').style.display = 'none';
@@ -320,18 +320,7 @@ socket.on('update_slide', function(data) {
             previewBox.innerText = textContent;
         }
 
-        const slides = document.querySelectorAll('.slide-btn');
-        slides.forEach(btn => {
-            btn.classList.remove('active');
-            const spans = btn.querySelectorAll('span');
-            if (spans.length > 1) {
-                const btnText = spans[1].innerText.replace(/\s/g, '').substring(0, 20);
-                const currentText = textContent.replace(/\s/g, '').substring(0, 20);
-                if (btnText && currentText && (btnText === currentText || currentText.includes(btnText))) {
-                    btn.classList.add('active');
-                }
-            }
-        });
+        // Tile active state is managed by click handlers directly — no socket sync needed
     } else if (data.mode === 'blackout') {
         const txt = (currentLang === 'en') ? "SCREEN BLACKED OUT" : "EKRAN WYGASZONY";
         previewBox.innerText = txt;
@@ -602,17 +591,17 @@ document.addEventListener('keydown', (e) => {
 });
 
 function navigateSlides(direction) {
-    const slides = Array.from(document.querySelectorAll('.slide-btn'));
+    const slides = Array.from(document.querySelectorAll('.slide-btn:not(.transition-tile)'));
     if (slides.length === 0) return;
     const activeIndex = slides.findIndex(s => s.classList.contains('active'));
     if (activeIndex === -1) { slides[0].click(); return; }
     const nextIndex = activeIndex + direction;
-    if (nextIndex >= 0 && nextIndex < slides.length) { slides[nextIndex].click(); } 
+    if (nextIndex >= 0 && nextIndex < slides.length) { slides[nextIndex].click(); }
     else if (nextIndex >= slides.length) {
         if (currentSetIndex < setlist.length - 1) {
             selectForLive(currentSetIndex + 1);
             setTimeout(() => {
-                  const newSlides = document.querySelectorAll('.slide-btn');
+                  const newSlides = document.querySelectorAll('.slide-btn:not(.transition-tile)');
                   if(newSlides.length > 0) newSlides[0].click();
             }, 50);
         }
@@ -621,7 +610,7 @@ function navigateSlides(direction) {
         if (currentSetIndex > 0) {
             selectForLive(currentSetIndex - 1);
             setTimeout(() => {
-                const newSlides = document.querySelectorAll('.slide-btn');
+                const newSlides = document.querySelectorAll('.slide-btn:not(.transition-tile)');
                 if(newSlides.length > 0) newSlides[newSlides.length - 1].click();
             }, 50);
         }
@@ -694,6 +683,7 @@ const library = (window.SERVER_DATA && window.SERVER_DATA.songs) ? window.SERVER
 let setlist = []; let currentSetIndex = -1;
 let currentSections = [];
 let sectionsSortable = null;
+let activeSectionIdx = -1;
 
 let tapTimes = [];
 function tapTempo(inputId) {
@@ -930,6 +920,7 @@ function parseSongSections(raw) {
 function selectForLive(i, broadcast = true){
     if (i < 0 || i >= setlist.length) return;
     currentSetIndex=i;
+    activeSectionIdx = -1;
     renderSetlist();
     
     if (broadcast) {
@@ -994,6 +985,7 @@ function renderSectionTiles(songIdx) {
         b.onclick = () => {
             document.querySelectorAll('.slide-btn').forEach(x => x.classList.remove('active'));
             b.classList.add('active');
+            activeSectionIdx = idx;
 
             var nextContent = "";
             var nextTrans = item.transpose;
@@ -1047,6 +1039,7 @@ function renderSectionTiles(songIdx) {
             fetchTransition();
             btn.onclick = () => {
                 document.querySelectorAll('.slide-btn').forEach(x => x.classList.remove('active')); btn.classList.add('active');
+                activeSectionIdx = -1;
 
                 if (isPadPlaying && songIdx < setlist.length - 1) {
                     var nextSong = setlist[songIdx + 1];
