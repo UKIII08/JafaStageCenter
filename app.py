@@ -805,13 +805,26 @@ def get_song_for_band(song_id):
     song = Song.query.get(song_id)
     if not song:
         return {'error': 'not found'}, 404
-    sections = song.content.split('\n---\n')
+    import re
+    raw = song.content or ''
+    raw = re.sub(r'(\n\s*){2,}\n', '\n\n', raw)
+    parts = re.split(r'\n\s*\n', raw)
     rendered = []
-    for section_text in sections:
-        _, band_html, _ = process_song(section_text)
+    for i, block in enumerate(parts):
+        block = block.strip()
+        if not block:
+            continue
+        lines = block.split('\n')
+        label = f'Sekcja {i + 1}'
+        content = block
+        if lines and '[' not in lines[0] and len(lines[0]) < 30:
+            label = lines[0].strip()
+            content = '\n'.join(lines[1:]).strip()
+        _, band_html, _ = process_song(content)
         rendered.append({
             'band_html': band_html,
-            'raw_text': section_text
+            'raw_text': content,
+            'label': label
         })
     key = song.key or ''
     if not key:
