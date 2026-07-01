@@ -289,8 +289,10 @@ socket.on('sync_state_to_client', function(data) {
     if (data.current_index !== undefined && data.current_index !== -1 && setlist[data.current_index] && needsRender) {
         selectForLive(data.current_index, false);
     } else if (data.current_index === -1) {
-        document.getElementById('live-header').style.display = 'none';
-        document.getElementById('slides-container').innerHTML = '';
+        var lh = document.getElementById('live-header');
+        if (lh) lh.style.display = 'none';
+        var sc = document.getElementById('slides-container');
+        if (sc) sc.innerHTML = '';
     }
 });
 
@@ -488,7 +490,7 @@ function updateServerState() {
     });
 }
 
-function switchMode(m){document.querySelectorAll('.mode-container').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.segmented-control button, .mode-btn').forEach(b=>b.classList.remove('active'));if(m==='worship'){document.getElementById('worship-mode').classList.add('active');document.querySelector('button[onclick="switchMode(\'worship\')"]').classList.add('active');resendCurrentSlide();}else{document.getElementById('conference-mode').classList.add('active');document.querySelector('button[onclick="switchMode(\'conference\')"]').classList.add('active');sendConferenceData();}}
+function switchMode(m){document.querySelectorAll('.mode-container').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.segmented-control button, .mode-btn').forEach(b=>b.classList.remove('active'));if(m==='worship'){var wm=document.getElementById('worship-mode');if(wm)wm.classList.add('active');var wb=document.querySelector('button[onclick="switchMode(\'worship\')"]');if(wb)wb.classList.add('active');resendCurrentSlide();}else{var cm=document.getElementById('conference-mode');if(cm)cm.classList.add('active');var cb=document.querySelector('button[onclick="switchMode(\'conference\')"]');if(cb)cb.classList.add('active');sendConferenceData();}}
 function resendCurrentSlide(){var active=document.querySelector('.slide-btn.active');if(active){active.click();}else if(currentLiveState){goLiveSection(currentLiveState.c,currentLiveState.n,currentLiveState.forceTrans,currentLiveState.nextTrans);}else{fetch('/send_text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({logo:true})});}}
 function openQRModal(){document.getElementById('qrModal').style.display='flex';}
 function closeQRModal(){document.getElementById('qrModal').style.display='none';}
@@ -569,7 +571,8 @@ document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     
     // Sprawdzamy, który tryb jest obecnie włączony na ekranie
-    const isConferenceActive = document.getElementById('conference-mode').classList.contains('active');
+    var confEl = document.getElementById('conference-mode');
+    const isConferenceActive = confEl ? confEl.classList.contains('active') : false;
 
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { 
         e.preventDefault(); 
@@ -809,8 +812,8 @@ function addToSetlist(id, btnElement) {
 function removeFromSetlist(i){
     setlist.splice(i,1);
     if(currentSetIndex===i){
-        document.getElementById('live-header').style.display='none';
-        document.getElementById('slides-container').innerHTML='';
+        var lh2 = document.getElementById('live-header'); if (lh2) lh2.style.display='none';
+        var sc2 = document.getElementById('slides-container'); if (sc2) sc2.innerHTML='';
         currentSetIndex=-1;
         fadeOutAllPads(); 
     }
@@ -1846,7 +1849,8 @@ document.addEventListener('keydown', function(e) {
             get text() { return t('onb_step11_text'); },
             position: 'right',
             beforeShow: function() {
-                if (!document.getElementById('conference-mode').classList.contains('active')) {
+                var confEl = document.getElementById('conference-mode');
+                if (!confEl || !confEl.classList.contains('active')) {
                     switchMode('conference');
                 }
             }
@@ -1864,7 +1868,8 @@ document.addEventListener('keydown', function(e) {
             get text() { return t('onb_step13_text'); },
             position: 'bottom',
             beforeShow: function() {
-                if (document.getElementById('conference-mode').classList.contains('active')) {
+                var confEl = document.getElementById('conference-mode');
+                if (confEl && confEl.classList.contains('active')) {
                     switchMode('worship');
                 }
             }
@@ -2134,7 +2139,8 @@ document.addEventListener('keydown', function(e) {
         onboardingCleanupInteract();
         localStorage.setItem('jafa_onboarding_done', '1');
 
-        if (document.getElementById('conference-mode').classList.contains('active')) {
+        var confEl = document.getElementById('conference-mode');
+        if (confEl && confEl.classList.contains('active')) {
             switchMode('worship');
         }
 

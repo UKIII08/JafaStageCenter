@@ -4,7 +4,7 @@
     <title>Rzutnik</title>
     <link href="https://fonts.googleapis.com/css2?family=Sen:wght@700&family=Roboto:wght@700&display=swap" rel="stylesheet">
     <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='socket.io.js') }}"></script>
     <style>
         :root {
             --bg-color: {{ settings.bg_color }};
