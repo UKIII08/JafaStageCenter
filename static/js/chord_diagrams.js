@@ -120,17 +120,162 @@ const CHORD_DB = {
     'G5':   { fret: 3, fingers: [1,3,3,-1,-1,-1], barres: [] },
     'A5':   { fret: 0, fingers: [-1,0,2,2,-1,-1], barres: [] },
     'B5':   { fret: 2, fingers: [-1,1,3,3,-1,-1], barres: [] },
+
+    // ===== 9th =====
+    'C9':   { fret: 0, fingers: [-1,3,2,3,3,3], barres: [] },
+    'D9':   { fret: 0, fingers: [-1,-1,0,2,1,0], barres: [] },
+    'E9':   { fret: 0, fingers: [0,2,0,1,0,2], barres: [] },
+    'G9':   { fret: 0, fingers: [3,0,0,0,0,1], barres: [] },
+    'A9':   { fret: 0, fingers: [-1,0,2,4,2,3], barres: [] },
+
+    // ===== Minor 9th =====
+    'Am9':  { fret: 0, fingers: [-1,0,2,4,1,3], barres: [] },
+    'Dm9':  { fret: 0, fingers: [-1,-1,0,2,1,0], barres: [] },
+    'Em9':  { fret: 0, fingers: [0,2,0,0,0,2], barres: [] },
+
+    // ===== 7sus4 =====
+    'A7sus4': { fret: 0, fingers: [-1,0,2,0,3,0], barres: [] },
+    'D7sus4': { fret: 0, fingers: [-1,-1,0,2,1,3], barres: [] },
+    'E7sus4': { fret: 0, fingers: [0,2,0,2,0,0], barres: [] },
+    'G7sus4': { fret: 0, fingers: [3,2,0,0,1,1], barres: [] },
+    'B7sus4': { fret: 2, fingers: [-1,1,1,1,4,1], barres: [[2,5,1]] },
+
+    // ===== 6th =====
+    'C6':   { fret: 0, fingers: [-1,3,2,2,1,0], barres: [] },
+    'D6':   { fret: 0, fingers: [-1,-1,0,2,0,2], barres: [] },
+    'E6':   { fret: 0, fingers: [0,2,2,1,2,0], barres: [] },
+    'G6':   { fret: 0, fingers: [3,2,0,0,0,0], barres: [] },
+    'A6':   { fret: 0, fingers: [-1,0,2,2,2,2], barres: [] },
+
+    // ===== Minor 6th =====
+    'Am6':  { fret: 0, fingers: [-1,0,2,2,1,2], barres: [] },
+    'Dm6':  { fret: 0, fingers: [-1,-1,0,2,0,1], barres: [] },
+    'Em6':  { fret: 0, fingers: [0,2,2,0,2,0], barres: [] },
+
+    // ===== dim7 =====
+    'Bdim7': { fret: 0, fingers: [-1,2,3,1,3,-1], barres: [] },
+    'Cdim7': { fret: 0, fingers: [-1,3,4,2,4,-1], barres: [] },
+    'Ddim7': { fret: 0, fingers: [-1,-1,0,1,0,1], barres: [] },
+    'Edim7': { fret: 0, fingers: [0,1,2,0,2,0], barres: [] },
+    'F#dim7':{ fret: 0, fingers: [-1,-1,4,2,1,2], barres: [] },
+    'Gdim7': { fret: 0, fingers: [-1,-1,5,3,2,3], barres: [] },
+    'Adim7': { fret: 0, fingers: [-1,0,1,2,1,2], barres: [] },
+
+    // ===== Common slash chords =====
+    'C/G':   { fret: 0, fingers: [3,3,2,0,1,0], barres: [] },
+    'C/E':   { fret: 0, fingers: [0,3,2,0,1,0], barres: [] },
+    'D/F#':  { fret: 0, fingers: [2,0,0,2,3,2], barres: [] },
+    'G/B':   { fret: 0, fingers: [-1,2,0,0,0,3], barres: [] },
+    'G/D':   { fret: 0, fingers: [-1,-1,0,0,0,3], barres: [] },
+    'Am/E':  { fret: 0, fingers: [0,0,2,2,1,0], barres: [] },
+    'Am/G':  { fret: 0, fingers: [3,0,2,2,1,0], barres: [] },
+    'Am/C':  { fret: 0, fingers: [-1,3,2,2,1,0], barres: [] },
+    'Em/D':  { fret: 0, fingers: [-1,-1,0,0,0,0], barres: [] },
+    'Em/B':  { fret: 0, fingers: [-1,2,2,0,0,0], barres: [] },
+    'F/C':   { fret: 1, fingers: [-1,3,2,3,1,1], barres: [[5,6,1]] },
+    'F/A':   { fret: 0, fingers: [-1,0,3,2,1,1], barres: [[5,6,1]] },
+    'A/C#':  { fret: 0, fingers: [-1,4,2,2,2,0], barres: [] },
+    'A/E':   { fret: 0, fingers: [0,0,2,2,2,0], barres: [] },
+    'Dm/A':  { fret: 0, fingers: [-1,0,0,2,3,1], barres: [] },
+    'Dm/F':  { fret: 0, fingers: [1,0,0,2,3,1], barres: [] },
+    'E/G#':  { fret: 0, fingers: [4,2,2,1,0,0], barres: [] },
+    'Bm/D':  { fret: 0, fingers: [-1,-1,0,4,3,2], barres: [] },
+    'Em/G':  { fret: 0, fingers: [3,2,2,0,0,0], barres: [] },
 };
 
+const GUITAR_NOTE_VALUES = {'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11,'H':11};
+
+const BARRE_TEMPLATES = {
+    'E': {
+        '':     { fingers: [1,1,2,3,3,1], barres: [[1,6,1]] },
+        'm':    { fingers: [1,1,2,3,3,1], barres: [[1,6,1]] },
+        '7':    { fingers: [1,1,2,1,3,1], barres: [[1,6,1]] },
+        'm7':   { fingers: [1,1,2,1,3,1], barres: [[1,6,1]] },
+        'maj7': { fingers: [1,1,2,3,3,1], barres: [[1,6,1]] },
+        'sus4': { fingers: [1,1,2,3,4,1], barres: [[1,6,1]] },
+        'sus2': { fingers: [1,1,3,4,1,1], barres: [[1,6,1]] },
+        'add9': { fingers: [1,1,2,1,1,3], barres: [[1,6,1]] },
+        '5':    { fingers: [1,3,3,-1,-1,-1], barres: [] },
+        '9':    { fingers: [1,1,2,1,3,3], barres: [[1,6,1]] },
+        '6':    { fingers: [1,1,2,1,3,1], barres: [[1,6,1]] },
+        'm6':   { fingers: [1,1,2,1,3,1], barres: [[1,6,1]] },
+        '7sus4':{ fingers: [1,1,2,3,3,1], barres: [[1,6,1]] },
+        'm9':   { fingers: [1,1,2,1,3,3], barres: [[1,6,1]] },
+    },
+    'A': {
+        '':     { fingers: [-1,1,1,2,3,4], barres: [[2,5,1]] },
+        'm':    { fingers: [-1,1,1,2,3,2], barres: [[2,5,1]] },
+        '7':    { fingers: [-1,1,1,1,3,1], barres: [[2,5,1]] },
+        'm7':   { fingers: [-1,1,1,1,2,1], barres: [[2,5,1]] },
+        'maj7': { fingers: [-1,1,1,2,3,3], barres: [[2,5,1]] },
+        'sus4': { fingers: [-1,1,1,3,4,4], barres: [[2,5,1]] },
+        'sus2': { fingers: [-1,1,1,3,4,1], barres: [[2,5,1]] },
+        'add9': { fingers: [-1,1,1,2,1,4], barres: [[2,5,1]] },
+        '5':    { fingers: [-1,1,3,3,-1,-1], barres: [] },
+        'dim':  { fingers: [-1,1,2,3,2,-1], barres: [] },
+        'aug':  { fingers: [-1,1,3,2,2,1], barres: [[5,6,1]] },
+        'dim7': { fingers: [-1,1,2,3,2,-1], barres: [] },
+    },
+};
+
+function generateGuitarChord(chordName) {
+    const m = chordName.match(/^([A-Ha-h][#b]?)(.*)$/);
+    if (!m) return null;
+    let root = m[1].charAt(0).toUpperCase() + m[1].slice(1);
+    if (root === 'H') root = 'B';
+    const suffix = m[2];
+
+    const rootVal = GUITAR_NOTE_VALUES[root];
+    if (rootVal === undefined) return null;
+
+    var eFret = (rootVal - 4 + 12) % 12;
+    if (eFret === 0) eFret = 12;
+    var aFret = (rootVal - 9 + 12) % 12;
+    if (aFret === 0) aFret = 12;
+
+    if (BARRE_TEMPLATES['E'][suffix] && eFret <= 7) {
+        var t = BARRE_TEMPLATES['E'][suffix];
+        return { fret: eFret, fingers: t.fingers.slice(), barres: t.barres.map(function(b) { return b.slice(); }) };
+    }
+
+    if (BARRE_TEMPLATES['A'][suffix] && aFret <= 7) {
+        var t = BARRE_TEMPLATES['A'][suffix];
+        return { fret: aFret, fingers: t.fingers.slice(), barres: t.barres.map(function(b) { return b.slice(); }) };
+    }
+
+    if (BARRE_TEMPLATES['E'][suffix]) {
+        var t = BARRE_TEMPLATES['E'][suffix];
+        return { fret: eFret, fingers: t.fingers.slice(), barres: t.barres.map(function(b) { return b.slice(); }) };
+    }
+
+    if (BARRE_TEMPLATES['A'][suffix]) {
+        var t = BARRE_TEMPLATES['A'][suffix];
+        return { fret: aFret, fingers: t.fingers.slice(), barres: t.barres.map(function(b) { return b.slice(); }) };
+    }
+
+    return null;
+}
+
 function lookupChord(chordName) {
+    if (!chordName) return null;
+
+    if (chordName.includes('/')) {
+        const mainPart = chordName.split('/')[0];
+        if (CHORD_DB[chordName]) return CHORD_DB[chordName];
+        return lookupChord(mainPart);
+    }
+
     if (CHORD_DB[chordName]) return CHORD_DB[chordName];
-    // Try common aliases
+
     const aliases = {
         'H': 'B', 'Hm': 'Bm', 'H7': 'B7', 'Hm7': 'Bm7', 'Hmaj7': 'Bmaj7',
         'Hsus4': 'Bsus4', 'Hsus2': 'Bsus2', 'Hadd9': 'Badd9',
+        'Hdim': 'Bdim', 'Haug': 'Baug', 'H9': 'B9', 'Hdim7': 'Bdim7',
+        'Hm9': 'Bm9', 'H6': 'B6', 'Hm6': 'Bm6', 'H7sus4': 'B7sus4',
     };
     if (aliases[chordName] && CHORD_DB[aliases[chordName]]) return CHORD_DB[aliases[chordName]];
-    return null;
+
+    return generateGuitarChord(chordName);
 }
 
 function renderChordSVG(chordName, data) {
