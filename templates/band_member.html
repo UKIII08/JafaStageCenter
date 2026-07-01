@@ -1682,53 +1682,55 @@
 
         // ── Band Member Onboarding Tour ──
         (function() {
-            if (!new URLSearchParams(window.location.search).has('tour')) return;
+            var isTourParam = new URLSearchParams(window.location.search).has('tour');
+            var onboardingDone = localStorage.getItem('jafa_bm_onboarding_done');
+            if (!isTourParam && onboardingDone) return;
 
             var BM_STEPS = [
                 {
+                    target: '#profile-screen',
+                    get title() { return currentLang === 'en' ? 'Create your profile' : 'Stwórz swój profil'; },
+                    get text() { return currentLang === 'en' ? 'First, create your musician profile. Your personal settings (chords, notation, capo, font size) will be saved automatically.' : 'Na poczatek stwórz swój profil muzyka. Twoje ustawienia (akordy, notacja, kapo, czcionka) beda zapisywane automatycznie.'; },
+                    position: 'bottom',
+                    showIf: function() { return !currentProfile; },
+                    beforeShow: function() {
+                        var ps = document.getElementById('profile-screen');
+                        if (ps) ps.style.zIndex = '99992';
+                    },
+                    waitFor: function(cb) {
+                        var check = setInterval(function() {
+                            if (currentProfile) {
+                                clearInterval(check);
+                                var ps = document.getElementById('profile-screen');
+                                if (ps) ps.style.zIndex = '';
+                                cb();
+                            }
+                        }, 300);
+                    }
+                },
+                {
+                    target: '#current-slide',
+                    get title() { return currentLang === 'en' ? 'Live view' : 'Widok na zywo'; },
+                    get text() { return currentLang === 'en' ? 'This is your main screen. Here you see the lyrics and chords sent live by the worship leader. Everything updates in real time.' : 'To jest Twój glówny ekran. Tutaj widzisz tekst i akordy wysylane na zywo przez lidera. Wszystko aktualizuje sie w czasie rzeczywistym.'; },
+                    position: 'bottom'
+                },
+                {
+                    target: '#next-slide-container',
+                    get title() { return currentLang === 'en' ? 'Info panel' : 'Panel informacji'; },
+                    get text() { return currentLang === 'en' ? 'Key, BPM, capo and your notes for the current song are shown here, along with a preview of the next section.' : 'Tonacja, BPM, kapo i Twoje notatki do piosenki sa tutaj widoczne, razem z podgladem nastepnej sekcji.'; },
+                    position: 'top'
+                },
+                {
                     target: '#setlist-btn',
-                    get title() { return currentLang === 'en' ? 'Browse setlist' : 'Przeglądaj setlistę'; },
-                    get text() { return currentLang === 'en' ? 'Open the setlist to browse songs before they\'re played live. Set up your capo, check chord diagrams, and prepare — then hit LIVE to follow the worship leader!' : 'Otwórz setlistę aby przeglądać piosenki zanim zostaną zagrane na żywo. Ustaw kapo, sprawdź diagramy akordów i przygotuj się — potem kliknij LIVE aby podążać za liderem!'; },
+                    get title() { return currentLang === 'en' ? 'Browse setlist' : 'Setlista'; },
+                    get text() { return currentLang === 'en' ? 'Open the setlist to browse songs before they\'re played live. Set up your capo, check chords and prepare — then hit LIVE to follow the worship leader!' : 'Otworz setliste aby przegladac piosenki zanim zostana zagrane na zywo. Ustaw kapo, sprawdz akordy i przygotuj sie — potem kliknij LIVE aby podazac za liderem!'; },
                     position: 'bottom'
                 },
                 {
                     target: '#settings-btn',
                     get title() { return currentLang === 'en' ? 'Your settings' : 'Twoje ustawienia'; },
-                    get text() { return currentLang === 'en' ? 'Open settings to personalize your view — chord display, notation, capo, font size and more!' : 'Otwórz ustawienia aby spersonalizować swój widok — akordy, notacja, kapo, rozmiar czcionki i więcej!'; },
-                    position: 'bottom',
-                    interactive: true,
-                    afterInteract: function() { if (!document.getElementById('settings-panel').classList.contains('open')) toggleSettings(); }
-                },
-                {
-                    target: '#profile-manage-area',
-                    get title() { return currentLang === 'en' ? 'Your profile' : 'Twój profil'; },
-                    get text() { return currentLang === 'en' ? 'Your settings are saved automatically to your profile. You can switch profiles or delete the current one here.' : 'Twoje ustawienia zapisują się automatycznie na profilu. Możesz tutaj zmienić profil lub usunąć obecny.'; },
-                    position: 'left',
-                    beforeShow: function() { if (!document.getElementById('settings-panel').classList.contains('open')) toggleSettings(); }
-                },
-                {
-                    target: '#chord-notation',
-                    get title() { return currentLang === 'en' ? 'Notation & chords' : 'Notacja i akordy'; },
-                    get text() { return currentLang === 'en' ? 'Pick your chord notation (International/Polish/Nashville), enable beginner mode for hard chord highlights, and toggle chord visibility.' : 'Wybierz notację akordów (Międzynarodowa/Polska/Nashville), włącz tryb początkującego z podświetleniem trudnych chwytów, i przełączaj widoczność akordów.'; },
-                    position: 'left'
-                },
-                {
-                    target: '#diagram-instrument',
-                    get title() { return currentLang === 'en' ? 'Chord diagrams' : 'Diagramy chwytów'; },
-                    get text() { return currentLang === 'en' ? 'Choose Guitar or Piano — then tap any chord in the lyrics to see how to play it! Diagrams show fingering, frets, and bass notes.' : 'Wybierz Gitarę lub Piano — potem kliknij dowolny akord w tekście aby zobaczyć jak go zagrać! Diagramy pokazują palcowanie, progi i nuty basowe.'; },
-                    position: 'left'
-                },
-                {
-                    target: '#capo-select',
-                    get title() { return currentLang === 'en' ? 'Capo function' : 'Kapodaster'; },
-                    get text() { return currentLang === 'en' ? 'Set your capo fret — chords auto-transpose to show what you actually play. The app even suggests optimal capo positions for simpler chords!' : 'Ustaw próg kapo — akordy automatycznie się transponują pokazując co faktycznie grasz. Aplikacja nawet sugeruje optymalną pozycję kapo dla prostszych chwytów!'; },
-                    position: 'left'
-                },
-                {
-                    target: '#font-size-range',
-                    get title() { return currentLang === 'en' ? 'Font size' : 'Rozmiar czcionki'; },
-                    get text() { return currentLang === 'en' ? 'Adjust text size for your screen. Perfect for reading from a music stand or phone.' : 'Dostosuj rozmiar tekstu do swojego ekranu. Idealny do czytania z pulpitu nutowego lub telefonu.'; },
-                    position: 'left'
+                    get text() { return currentLang === 'en' ? 'Open settings to personalize your view — chord display, notation, capo, font size and more. Everything saves to your profile automatically.' : 'Otworz ustawienia aby spersonalizowac widok — akordy, notacja, kapo, czcionka i wiecej. Wszystko zapisuje sie automatycznie na Twoim profilu.'; },
+                    position: 'bottom'
                 }
             ];
 
@@ -1741,46 +1743,60 @@
             function bmEnd() {
                 bmCleanInteract();
                 if (bmSpot) bmSpot.style.display = 'none';
+                localStorage.setItem('jafa_bm_onboarding_done', 'true');
 
-                var doneTitle = currentLang === 'en' ? 'All set!' : 'Gotowe!';
-                var doneText = currentLang === 'en'
-                    ? 'You know the band member view now. Switch back to the control panel to continue the tour.'
-                    : 'Znasz już widok muzyka. Przełącz się na panel sterowania aby kontynuować samouczek.';
-                var backLabel = currentLang === 'en' ? 'Back to control panel' : 'Wróć do panelu';
-                var stayLabel = currentLang === 'en' ? 'Stay here' : 'Zostań tutaj';
-
-                bmTip.innerHTML = '<h3>' + doneTitle + '</h3><p>' + doneText + '</p>' +
-                    '<div class="onboarding-btn-row">' +
-                    '<button class="onboarding-btn-primary" data-a="back">' + backLabel + '</button>' +
-                    '<button class="onboarding-btn-ghost" data-a="stay">' + stayLabel + '</button></div>';
-                bmTip.style.top = '50%'; bmTip.style.left = '50%';
-                bmTip.style.transform = 'translate(-50%, -50%)';
-                bmTip.classList.add('visible');
-
-                bmTip.querySelector('[data-a="back"]').onclick = function() { window.close(); };
-                bmTip.querySelector('[data-a="stay"]').onclick = function() {
-                    if (bmOverlay) bmOverlay.classList.remove('active');
-                    if (bmTip) bmTip.classList.remove('visible');
-                    setTimeout(function() {
-                        [bmOverlay, bmSpot, bmTip].forEach(function(el) { if (el && el.parentNode) el.parentNode.removeChild(el); });
-                        bmOverlay = bmSpot = bmTip = null;
-                    }, 400);
-                    var url = new URL(window.location);
-                    url.searchParams.delete('tour');
-                    history.replaceState(null, '', url.toString());
-                };
+                if (bmOverlay) bmOverlay.classList.remove('active');
+                if (bmTip) bmTip.classList.remove('visible');
+                setTimeout(function() {
+                    [bmOverlay, bmSpot, bmTip].forEach(function(el) { if (el && el.parentNode) el.parentNode.removeChild(el); });
+                    bmOverlay = bmSpot = bmTip = null;
+                }, 400);
+                var url = new URL(window.location);
+                url.searchParams.delete('tour');
+                history.replaceState(null, '', url.toString());
             }
 
             function bmShow(idx) {
+                while (idx < BM_STEPS.length && BM_STEPS[idx].showIf && !BM_STEPS[idx].showIf()) {
+                    idx++;
+                }
                 if (idx >= BM_STEPS.length) { bmEnd(); return; }
                 bmStep = idx;
                 bmCleanInteract();
                 var s = BM_STEPS[idx];
                 if (s.beforeShow) s.beforeShow();
 
+                if (s.waitFor) {
+                    bmSpot.style.display = 'none';
+                    var el = document.querySelector(s.target);
+                    if (el) {
+                        var r = el.getBoundingClientRect();
+                        bmSpot.style.cssText = 'display:block;top:' + (r.top - 8) + 'px;left:' + (r.left - 8) + 'px;width:' + (r.width + 16) + 'px;height:' + (r.height + 16) + 'px;';
+                    }
+                    var arrowMap = { bottom: 'top', top: 'bottom', left: 'right', right: 'left' };
+                    var skipLabel = currentLang === 'en' ? 'Skip' : 'Pomin';
+                    bmTip.innerHTML = '<div class="onboarding-tooltip-arrow arrow-' + (arrowMap[s.position] || 'top') + '"></div>' +
+                        '<div class="onboarding-step-counter">1 / ' + BM_STEPS.length + '</div>' +
+                        '<h3>' + s.title + '</h3><p>' + s.text + '</p>' +
+                        '<div class="onboarding-btn-row">' +
+                        '<button class="onboarding-btn-skip" data-a="skip">' + skipLabel + '</button></div>';
+                    bmTip.querySelector('[data-a="skip"]').onclick = function(e) { e.stopPropagation(); bmEnd(); };
+                    var tw = 320, G = 16;
+                    if (el) {
+                        var rr = el.getBoundingClientRect();
+                        bmTip.style.top = (rr.bottom + G) + 'px';
+                        bmTip.style.left = Math.max(10, rr.left + rr.width / 2 - tw / 2) + 'px';
+                    } else {
+                        bmTip.style.top = '30%'; bmTip.style.left = '50%'; bmTip.style.transform = 'translateX(-50%)';
+                    }
+                    bmTip.classList.add('visible');
+                    s.waitFor(function() { bmShow(idx + 1); });
+                    return;
+                }
+
                 setTimeout(function() {
                     var el = document.querySelector(s.target);
-                    if (!el) { bmShow(idx + 1); return; }
+                    if (!el || el.offsetParent === null) { bmShow(idx + 1); return; }
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
                     setTimeout(function() {
@@ -1789,7 +1805,7 @@
 
                         var isLast = (idx === BM_STEPS.length - 1);
                         var nextLabel = currentLang === 'en' ? (isLast ? 'Done!' : 'Next') : (isLast ? 'Gotowe!' : 'Dalej');
-                        var skipLabel = currentLang === 'en' ? 'Skip' : 'Pomiń';
+                        var skipLabel = currentLang === 'en' ? 'Skip' : 'Pomin';
                         var backLabel = currentLang === 'en' ? 'Back' : 'Wstecz';
                         var arrowMap = { bottom: 'top', top: 'bottom', left: 'right', right: 'left' };
 
@@ -1820,7 +1836,7 @@
                         var vw = window.innerWidth, vh = window.innerHeight;
                         if (left < 10) left = 10; if (left + tw > vw - 10) left = vw - tw - 10;
                         if (top < 10) top = 10; if (top + th > vh - 10) top = vh - th - 10;
-                        bmTip.style.top = top + 'px'; bmTip.style.left = left + 'px'; bmTip.style.visibility = '';
+                        bmTip.style.top = top + 'px'; bmTip.style.left = left + 'px'; bmTip.style.transform = ''; bmTip.style.visibility = '';
                         requestAnimationFrame(function() { bmTip.classList.add('visible'); });
 
                         if (s.interactive) {
@@ -1836,7 +1852,6 @@
                 }, 100);
             }
 
-            // Inject styles (reuse control panel onboarding CSS)
             var style = document.createElement('style');
             style.textContent = '.onboarding-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99990;opacity:0;transition:opacity .3s;pointer-events:all}.onboarding-overlay.active{opacity:1}.onboarding-spotlight{position:fixed;z-index:99995;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.65);pointer-events:none;transition:all .35s cubic-bezier(.4,0,.2,1);display:none}.onboarding-spotlight::after{content:"";position:absolute;inset:-4px;border-radius:14px;border:2px solid var(--accent-primary,#6366f1);animation:onboarding-pulse 2s ease-in-out infinite}@keyframes onboarding-pulse{0%,100%{opacity:.6}50%{opacity:1}}.onboarding-tooltip{position:fixed;z-index:100000;background:var(--bg-elevated,#1e293b);border:1px solid var(--border-default,#334155);border-radius:14px;padding:20px 24px;max-width:340px;min-width:260px;box-shadow:0 20px 60px rgba(0,0,0,.4);opacity:0;transform:translateY(8px);transition:all .25s}.onboarding-tooltip.visible{opacity:1;transform:translateY(0)}.onboarding-tooltip-arrow{position:absolute;width:12px;height:12px;background:var(--bg-elevated,#1e293b);border:1px solid var(--border-default,#334155);transform:rotate(45deg)}.arrow-top{top:-7px;left:50%;margin-left:-6px;border-right:none;border-bottom:none}.arrow-bottom{bottom:-7px;left:50%;margin-left:-6px;border-left:none;border-top:none}.arrow-left{left:-7px;top:50%;margin-top:-6px;border-top:none;border-right:none}.arrow-right{right:-7px;top:50%;margin-top:-6px;border-bottom:none;border-left:none}.onboarding-step-counter{font-size:.7rem;color:var(--text-tertiary,#64748b);margin-bottom:8px;letter-spacing:1px;font-weight:600}.onboarding-tooltip h3{margin:0 0 6px;font-size:1rem;color:var(--text-primary,#f1f5f9)}.onboarding-tooltip p{margin:0 0 16px;font-size:.85rem;line-height:1.5;color:var(--text-secondary,#94a3b8)}.onboarding-btn-row{display:flex;gap:8px;align-items:center}.onboarding-btn-primary{padding:8px 20px;background:var(--accent-primary,#6366f1);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:600}.onboarding-btn-primary:hover{filter:brightness(1.1)}.onboarding-btn-ghost{padding:8px 14px;background:transparent;color:var(--text-secondary,#94a3b8);border:1px solid var(--border-default,#334155);border-radius:8px;cursor:pointer;font-size:.8rem}.onboarding-btn-ghost:hover{background:rgba(255,255,255,.05)}.onboarding-btn-skip{padding:4px 10px;background:transparent;color:var(--text-tertiary,#64748b);border:none;cursor:pointer;font-size:.7rem;margin-left:auto}.onboarding-btn-skip:hover{color:var(--text-secondary,#94a3b8)}';
             document.head.appendChild(style);
