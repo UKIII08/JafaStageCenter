@@ -861,11 +861,13 @@
             currentSettings.show_chords = p.show_chords;
             currentSettings.chord_notation = p.chord_notation;
             currentSettings.lowercase_minor = p.lowercase_minor;
-            currentSettings.capo_fret = p.capo_fret;
+            currentSettings.capo_fret = 0;
             currentSettings.beginner_mode = p.beginner_mode;
             currentSettings.diagram_instrument = p.diagram_instrument;
             currentSettings.font_size = p.font_size;
             updateToggles();
+            var songId = getCurrentSongId();
+            if (songId) loadSongSettings(songId);
             rerender();
         }
 
@@ -881,9 +883,11 @@
 
         function saveProfileSettings() {
             if (!currentProfile) return;
+            var data = Object.assign({}, currentSettings);
+            delete data.capo_fret;
             fetch('/api/profiles/' + currentProfile.id, {
                 method: 'PUT', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify(currentSettings)
+                body: JSON.stringify(data)
             });
         }
 
@@ -902,11 +906,10 @@
         }
 
         function applySongSettings(songId, data) {
-            if (data.capo_fret !== null && data.capo_fret !== undefined) {
-                currentSettings.capo_fret = data.capo_fret;
-                document.getElementById('capo-select').value = data.capo_fret;
-                rerender();
-            }
+            var capo = (data.capo_fret !== null && data.capo_fret !== undefined) ? data.capo_fret : 0;
+            currentSettings.capo_fret = capo;
+            document.getElementById('capo-select').value = capo;
+            rerender();
         }
 
         function saveSongCapo(songId, capoFret) {
@@ -1625,7 +1628,6 @@
             rerender();
             var songId = getCurrentSongId();
             if (songId && currentProfile) saveSongCapo(songId, val);
-            saveProfileSettings();
         }
 
         function setFontSize(val) {
