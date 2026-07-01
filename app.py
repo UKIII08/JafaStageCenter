@@ -130,6 +130,34 @@ class BandPreset(db.Model):
     diagram_instrument = db.Column(db.String(10), default='guitar')
     font_size = db.Column(db.Integer, default=6)
 
+class MusicianProfile(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    instrument = db.Column(db.String(50), default='')
+    color = db.Column(db.String(20), default='#6366f1')
+    show_chords = db.Column(db.Boolean, default=True)
+    chord_notation = db.Column(db.String(15), default='international')
+    lowercase_minor = db.Column(db.Boolean, default=False)
+    capo_fret = db.Column(db.Integer, default=0)
+    beginner_mode = db.Column(db.Boolean, default=False)
+    diagram_instrument = db.Column(db.String(10), default='guitar')
+    font_size = db.Column(db.Integer, default=8)
+    instrument_transpose = db.Column(db.Integer, default=0)
+    theme = db.Column(db.String(10), default='dark')
+
+class ProfileSongSettings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    profile_id = db.Column(db.Integer, db.ForeignKey('musician_profile.id'), nullable=False)
+    song_id = db.Column(db.Integer, nullable=False)
+    capo_fret = db.Column(db.Integer, default=None, nullable=True)
+    notes = db.Column(db.Text, default='{}')  # JSON: {"0": "note for section 0", "2": "bridge: palm mute"}
+
+class SetlistHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), default='')
+    date = db.Column(db.String(30), nullable=False)
+    songs = db.Column(db.Text, nullable=False)  # JSON array of {id, title, key, bpm, transpose}
+
 def get_notation():
     s = Settings.query.first()
     notation = s.chord_notation if s and s.chord_notation else 'international'
@@ -206,6 +234,18 @@ def check_db_schema():
                     conn.execute(text("ALTER TABLE settings ADD COLUMN chords_standardized BOOLEAN DEFAULT 0"))
                     conn.commit()
                 _migrate_songs_to_international()
+
+            # Check MusicianProfile table
+            if 'musician_profile' not in inspector.get_table_names():
+                MusicianProfile.__table__.create(db.engine)
+
+            # Check ProfileSongSettings table
+            if 'profile_song_settings' not in inspector.get_table_names():
+                ProfileSongSettings.__table__.create(db.engine)
+
+            # Check SetlistHistory table
+            if 'setlist_history' not in inspector.get_table_names():
+                SetlistHistory.__table__.create(db.engine)
 
         except Exception as e:
             # Silent fail for exe log
@@ -787,6 +827,120 @@ def get_song_for_band(song_id):
 @app.route('/api/setlist')
 def get_setlist():
     return {'setlist': SERVER_STATE['setlist'], 'current_index': SERVER_STATE['current_index']}
+
+# --- MUSICIAN PROFILES ---
+@app.route('/api/profiles', methods=['GET'])
+def get_profiles():
+    profiles = MusicianProfile.query.all()
+    return [{'id': p.id, 'name': p.name, 'instrument': p.instrument, 'color': p.color,
+             'show_chords': p.show_chords, 'chord_notation': p.chord_notation,
+             'lowercase_minor': p.lowercase_minor, 'capo_fret': p.capo_fret,
+             'beginner_mode': p.beginner_mode, 'diagram_instrument': p.diagram_instrument,
+             'font_size': p.font_size, 'instrument_transpose': p.instrument_transpose,
+             'theme': p.theme} for p in profiles]
+
+@app.route('/api/profiles', methods=['POST'])
+def create_profile():
+    data = request.json
+    p = MusicianProfile()
+    p.name = data.get('name', 'Muzyk')
+    p.instrument = data.get('instrument', '')
+    p.color = data.get('color', '#6366f1')
+    db.session.add(p)
+    db.session.commit()
+    return {'id': p.id, 'name': p.name}
+
+@app.route('/api/profiles/<int:pid>', methods=['GET'])
+def get_profile(pid):
+    p = MusicianProfile.query.get(pid)
+    if not p:
+        return {'error': 'not found'}, 404
+    return {'id': p.id, 'name': p.name, 'instrument': p.instrument, 'color': p.color,
+            'show_chords': p.show_chords, 'chord_notation': p.chord_notation,
+            'lowercase_minor': p.lowercase_minor, 'capo_fret': p.capo_fret,
+            'beginner_mode': p.beginner_mode, 'diagram_instrument': p.diagram_instrument,
+            'font_size': p.font_size, 'instrument_transpose': p.instrument_transpose,
+            'theme': p.theme}
+
+@app.route('/api/profiles/<int:pid>', methods=['PUT'])
+def update_profile(pid):
+    p = MusicianProfile.query.get(pid)
+    if not p:
+        return {'error': 'not found'}, 404
+    data = request.json
+    for field in ['name', 'instrument', 'color', 'show_chords', 'chord_notation',
+                  'lowercase_minor', 'beginner_mode', 'diagram_instrument', 'theme']:
+        if field in data:
+            setattr(p, field, data[field])
+    for field in ['capo_fret', 'font_size', 'instrument_transpose']:
+        if field in data:
+            setattr(p, field, int(data[field]))
+    db.session.commit()
+    return {'status': 'ok', 'id': p.id}
+
+@app.route('/api/profiles/<int:pid>', methods=['DELETE'])
+def delete_profile(pid):
+    p = MusicianProfile.query.get(pid)
+    if p:
+        ProfileSongSettings.query.filter_by(profile_id=pid).delete()
+        db.session.delete(p)
+        db.session.commit()
+    return {'status': 'ok'}
+
+# --- PER-SONG SETTINGS (capo + notes) ---
+@app.route('/api/profiles/<int:pid>/song/<int:sid>', methods=['GET'])
+def get_song_settings(pid, sid):
+    s = ProfileSongSettings.query.filter_by(profile_id=pid, song_id=sid).first()
+    if not s:
+        return {'capo_fret': None, 'notes': {}}
+    return {'capo_fret': s.capo_fret, 'notes': json.loads(s.notes or '{}')}
+
+@app.route('/api/profiles/<int:pid>/song/<int:sid>', methods=['PUT'])
+def update_song_settings(pid, sid):
+    data = request.json
+    s = ProfileSongSettings.query.filter_by(profile_id=pid, song_id=sid).first()
+    if not s:
+        s = ProfileSongSettings(profile_id=pid, song_id=sid)
+        db.session.add(s)
+    if 'capo_fret' in data:
+        s.capo_fret = data['capo_fret']  # can be None to clear
+    if 'notes' in data:
+        s.notes = json.dumps(data['notes'])
+    db.session.commit()
+    return {'status': 'ok'}
+
+# --- SETLIST HISTORY ---
+@app.route('/api/setlist-history', methods=['GET'])
+def get_setlist_history():
+    items = SetlistHistory.query.order_by(SetlistHistory.id.desc()).all()
+    return [{'id': h.id, 'name': h.name, 'date': h.date,
+             'songs': json.loads(h.songs), 'song_count': len(json.loads(h.songs))} for h in items]
+
+@app.route('/api/setlist-history', methods=['POST'])
+def save_setlist_history():
+    data = request.json
+    h = SetlistHistory()
+    h.name = data.get('name', '')
+    h.date = data.get('date', '')
+    h.songs = json.dumps(data.get('songs', []))
+    db.session.add(h)
+    db.session.commit()
+    return {'id': h.id, 'status': 'ok'}
+
+@app.route('/api/setlist-history/<int:hid>', methods=['GET'])
+def get_setlist_history_item(hid):
+    h = SetlistHistory.query.get(hid)
+    if not h:
+        return {'error': 'not found'}, 404
+    return {'id': h.id, 'name': h.name, 'date': h.date, 'songs': json.loads(h.songs)}
+
+@app.route('/api/setlist-history/<int:hid>', methods=['DELETE'])
+def delete_setlist_history(hid):
+    h = SetlistHistory.query.get(hid)
+    if h:
+        db.session.delete(h)
+        db.session.commit()
+    return {'status': 'ok'}
 
 @app.route('/detect_key', methods=['POST'])
 def route_detect_key():

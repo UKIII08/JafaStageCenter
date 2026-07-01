@@ -156,6 +156,39 @@ var translations = {
         bm_no_setlist: "Brak piosenek na setliście",
         bm_browse_live: "● LIVE",
 
+        // ── Profiles ──
+        profile_who: "Kto grasz?",
+        profile_new: "+ Nowy profil",
+        profile_name_ph: "Imię",
+        profile_guitar: "Gitara",
+        profile_bass: "Bas",
+        profile_keys: "Klawisze",
+        profile_drums: "Perkusja",
+        profile_vocal: "Wokal",
+        profile_other: "Inne",
+        profile_switch: "Zmień profil",
+
+        // ── Notes ──
+        note_title: "Notatka",
+        note_delete: "Usuń",
+        note_cancel: "Anuluj",
+        note_save: "Zapisz",
+        note_ph: "np. intro: arpeggio, bridge: palm mute...",
+        note_add: "+ notatka",
+
+        // ── Song capo ──
+        song_capo_badge: "Capo dla tej piosenki",
+
+        // ── Setlist History ──
+        save_setlist: "💾 Zapisz setlistę",
+        setlist_history: "📋 Historia",
+        setlist_history_title: "Historia setlist",
+        setlist_history_name: "Nazwa setlisty (opcjonalnie):",
+        setlist_saved: "Setlista zapisana!",
+        setlist_loaded: "Setlista wczytana!",
+        no_history: "Brak zapisanych setlist.",
+        songs_count: "piosenek",
+
         // ── Stage ──
         stage_next: "NASTĘPNIE:",
         stage_key: "Tonacja:",
@@ -374,6 +407,39 @@ var translations = {
         bm_setlist: "Setlist",
         bm_no_setlist: "No songs in setlist yet",
         bm_browse_live: "● LIVE",
+
+        // ── Profiles ──
+        profile_who: "Who's playing?",
+        profile_new: "+ New profile",
+        profile_name_ph: "Name",
+        profile_guitar: "Guitar",
+        profile_bass: "Bass",
+        profile_keys: "Keys",
+        profile_drums: "Drums",
+        profile_vocal: "Vocals",
+        profile_other: "Other",
+        profile_switch: "Switch profile",
+
+        // ── Notes ──
+        note_title: "Note",
+        note_delete: "Delete",
+        note_cancel: "Cancel",
+        note_save: "Save",
+        note_ph: "e.g. intro: arpeggio, bridge: palm mute...",
+        note_add: "+ note",
+
+        // ── Song capo ──
+        song_capo_badge: "Capo for this song",
+
+        // ── Setlist History ──
+        save_setlist: "💾 Save setlist",
+        setlist_history: "📋 History",
+        setlist_history_title: "Setlist history",
+        setlist_history_name: "Setlist name (optional):",
+        setlist_saved: "Setlist saved!",
+        setlist_loaded: "Setlist loaded!",
+        no_history: "No saved setlists.",
+        songs_count: "songs",
 
         // ── Stage ──
         stage_next: "NEXT:",

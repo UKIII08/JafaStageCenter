@@ -1104,6 +1104,60 @@ function goLiveSection(c, n, forceTrans = null, nextTrans = null) {
 }
 function showLogo(){fetch('/send_text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({logo:true})});document.getElementById('live-preview-box').innerText="LOGO";}
 
+function saveSetlistHistory() {
+    if (!setlist.length) { showToast(t('alert_empty_setlist'), 'error'); return; }
+    var name = prompt(t('setlist_history_name') || 'Nazwa setlisty:', new Date().toLocaleDateString('pl-PL') + ' nabożeństwo');
+    if (!name) return;
+    var songs = setlist.map(function(s) {
+        return { id: s.id, title: s.title, key: s.key || '', bpm: s.bpm || 0, transpose: s.transpose || 0 };
+    });
+    fetch('/api/setlist-history', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ name: name, date: new Date().toISOString().split('T')[0], songs: songs })
+    }).then(function(r) { return r.json(); }).then(function() {
+        showToast(t('setlist_saved') || 'Setlista zapisana!', 'success');
+    });
+}
+
+function showSetlistHistory() {
+    fetch('/api/setlist-history').then(function(r) { return r.json(); }).then(function(items) {
+        if (!items.length) { showToast(t('no_history') || 'Brak zapisanych setlist', 'info'); return; }
+        var html = '<div style="max-height:60vh;overflow-y:auto;">';
+        items.forEach(function(h) {
+            html += '<div style="padding:12px;border-bottom:1px solid var(--border-default);cursor:pointer;" onclick="loadSetlistHistory(' + h.id + ')">' +
+                '<div style="font-weight:600;">' + (h.name || h.date) + '</div>' +
+                '<div style="font-size:0.8em;color:var(--text-tertiary);">' + h.date + ' — ' + h.song_count + ' ' + (t('songs_count') || 'piosenek') + '</div>' +
+                '<div style="font-size:0.75em;color:var(--text-muted);margin-top:4px;">' +
+                h.songs.map(function(s) { return s.title; }).join(', ') + '</div></div>';
+        });
+        html += '</div>';
+        var modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;';
+        modal.innerHTML = '<div style="background:var(--bg-elevated);border-radius:14px;padding:24px;max-width:500px;width:90%;border:1px solid var(--border-default);">' +
+            '<h3 style="margin:0 0 16px;">' + (t('setlist_history_title') || 'Historia setlist') + '</h3>' + html +
+            '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="margin-top:12px;padding:8px 20px;border-radius:8px;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border-default);cursor:pointer;">Zamknij</button></div>';
+        document.body.appendChild(modal);
+    });
+}
+
+function loadSetlistHistory(id) {
+    fetch('/api/setlist-history/' + id).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.error) return;
+        setlist = [];
+        data.songs.forEach(function(s) {
+            var libSong = library.find(function(ls) { return ls.id === s.id; });
+            if (libSong) {
+                setlist.push(Object.assign({}, libSong, { transpose: s.transpose || 0 }));
+            }
+        });
+        renderSetlist();
+        if (setlist.length) selectForLive(0);
+        updateServerState();
+        document.querySelectorAll('div[style*="fixed"][style*="z-index:99999"]').forEach(function(el) { el.remove(); });
+        showToast((t('setlist_loaded') || 'Setlista wczytana!') + ' (' + setlist.length + ' ' + (t('songs_count') || 'piosenek') + ')', 'success');
+    });
+}
+
 function openEditModal(id){
     const s=library.find(x=>x.id===id);
     if(s){
