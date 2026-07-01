@@ -924,20 +924,34 @@ function selectForLive(i, broadcast = true){
        triggerDebouncedPad(finalKey);
     }
 
-    currentSections = parseSongSections(item.content);
+    if (item.customSections) {
+        currentSections = item.customSections.map(function(s) { return { label: s.label, content: s.content }; });
+    } else {
+        currentSections = parseSongSections(item.content);
+    }
     renderSectionTiles(i);
+}
+
+function saveSectionsToSetlist() {
+    if (currentSetIndex >= 0 && currentSetIndex < setlist.length) {
+        setlist[currentSetIndex].customSections = currentSections.map(function(s) {
+            return { label: s.label, content: s.content };
+        });
+    }
 }
 
 function duplicateSection(idx) {
     if (idx < 0 || idx >= currentSections.length) return;
     var copy = { label: currentSections[idx].label, content: currentSections[idx].content };
     currentSections.splice(idx + 1, 0, copy);
+    saveSectionsToSetlist();
     renderSectionTiles(currentSetIndex);
 }
 
 function removeDuplicatedSection(idx) {
     if (currentSections.length <= 1) return;
     currentSections.splice(idx, 1);
+    saveSectionsToSetlist();
     renderSectionTiles(currentSetIndex);
 }
 
@@ -1039,6 +1053,7 @@ function renderSectionTiles(songIdx) {
             onEnd: function(evt) {
                 var el = currentSections.splice(evt.oldIndex, 1)[0];
                 currentSections.splice(evt.newIndex, 0, el);
+                saveSectionsToSetlist();
                 renderSectionTiles(currentSetIndex);
             }
         });
@@ -1053,12 +1068,18 @@ function adjustLiveTrans(a){
         document.getElementById('current-trans').innerText = (setlist[currentSetIndex].transpose>0?"+":"")+setlist[currentSetIndex].transpose;
         let finalKey = calculateTransposedKey(setlist[currentSetIndex].key, setlist[currentSetIndex].transpose);
         document.getElementById('live-key').innerText = finalKey;
-        
+
         if (isPadPlaying) {
             triggerDebouncedPad(finalKey);
         }
-        
-        selectForLive(currentSetIndex); 
+
+        // Re-send the currently active slide with the new transposition
+        var activeBtn = document.querySelector('.slide-btn.active');
+        if (activeBtn) {
+            activeBtn.click();
+        } else {
+            resendCurrentSlide();
+        }
     }
 }
 
@@ -1147,7 +1168,9 @@ function saveSetlistHistory() {
     if (name === null) return;
     if (!name.trim()) name = dateStr;
     var songs = setlist.map(function(s) {
-        return { id: s.id, title: s.title, key: s.key || '', bpm: s.bpm || 0, transpose: s.transpose || 0 };
+        var item = { id: s.id, title: s.title, key: s.key || '', bpm: s.bpm || 0, transpose: s.transpose || 0 };
+        if (s.customSections) item.customSections = s.customSections;
+        return item;
     });
     fetch('/api/setlist-history', {
         method: 'POST', headers: {'Content-Type':'application/json'},
@@ -1203,7 +1226,9 @@ function loadSetlistHistory(id) {
         data.songs.forEach(function(s) {
             var libSong = library.find(function(ls) { return ls.title === s.title; }) || library.find(function(ls) { return ls.id === s.id; });
             if (libSong) {
-                setlist.push(Object.assign({}, libSong, { transpose: s.transpose || 0 }));
+                var entry = Object.assign({}, libSong, { transpose: s.transpose || 0 });
+                if (s.customSections) entry.customSections = s.customSections;
+                setlist.push(entry);
             }
         });
         renderSetlist();
@@ -1217,7 +1242,9 @@ function loadSetlistHistory(id) {
 function shareSetlist() {
     if (!setlist.length) { showToast(t('alert_empty_setlist'), 'error'); return; }
     var songs = setlist.map(function(s) {
-        return { id: s.id, title: s.title, key: s.key || '', bpm: s.bpm || 0, transpose: s.transpose || 0 };
+        var item = { id: s.id, title: s.title, key: s.key || '', bpm: s.bpm || 0, transpose: s.transpose || 0 };
+        if (s.customSections) item.customSections = s.customSections;
+        return item;
     });
     var dateStr = new Date().toISOString().split('T')[0];
     fetch('/api/setlist-share', {
@@ -1247,7 +1274,9 @@ function importSetlistCode() {
         data.songs.forEach(function(s) {
             var libSong = library.find(function(ls) { return ls.title === s.title; }) || library.find(function(ls) { return ls.id === s.id; });
             if (libSong) {
-                setlist.push(Object.assign({}, libSong, { transpose: s.transpose || 0 }));
+                var entry = Object.assign({}, libSong, { transpose: s.transpose || 0 });
+                if (s.customSections) entry.customSections = s.customSections;
+                setlist.push(entry);
             }
         });
         renderSetlist();
