@@ -875,6 +875,31 @@ function calculateTransposedKey(originalKey, shift) {
     return newRoot + suffix;
 }
 
+function getParallelKey(key) {
+    if (!key || key === '-' || key === 'N/A') return '';
+    var match = key.match(/^([A-G][#b]?)(m|min)?$/i);
+    if (!match) return '';
+    var root = match[1].toUpperCase();
+    var isMinor = !!(match[2]);
+    var noteMap = {'C':0,'C#':1,'DB':1,'D':2,'D#':3,'EB':3,'E':4,'F':5,'F#':6,'GB':6,'G':7,'G#':8,'AB':8,'A':9,'A#':10,'BB':10,'B':11};
+    var reverseMap = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    var val = noteMap[root];
+    if (val === undefined) return '';
+    if (isMinor) {
+        return reverseMap[(val + 3) % 12];
+    } else {
+        return reverseMap[(val + 9) % 12] + 'm';
+    }
+}
+
+function updateParallelKey() {
+    var el = document.getElementById('parallel-key');
+    if (!el) return;
+    var key = document.getElementById('live-key')?.innerText;
+    var parallel = getParallelKey(key);
+    el.textContent = parallel ? '(' + parallel + ')' : '';
+}
+
 function parseSongSections(raw) {
     if (!raw) return [];
     
@@ -918,6 +943,7 @@ function selectForLive(i, broadcast = true){
     
     let finalKey = calculateTransposedKey(item.key, item.transpose);
     document.getElementById('live-key').innerText = finalKey;
+    updateParallelKey();
     document.getElementById('live-bpm').innerText = item.bpm ? item.bpm : "-";
     
     if(isPadPlaying) {
@@ -1068,6 +1094,7 @@ function adjustLiveTrans(a){
         document.getElementById('current-trans').innerText = (setlist[currentSetIndex].transpose>0?"+":"")+setlist[currentSetIndex].transpose;
         let finalKey = calculateTransposedKey(setlist[currentSetIndex].key, setlist[currentSetIndex].transpose);
         document.getElementById('live-key').innerText = finalKey;
+        updateParallelKey();
 
         if (isPadPlaying) {
             triggerDebouncedPad(finalKey);

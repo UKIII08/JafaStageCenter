@@ -572,6 +572,49 @@
         .chord.clickable { cursor: pointer; }
         .chord.clickable:hover { text-decoration: underline; }
 
+        /* --- MOBILE TIP BANNER --- */
+        #mobile-tip {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: linear-gradient(135deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95));
+            color: #fff;
+            padding: 14px 16px;
+            z-index: 9999;
+            backdrop-filter: blur(12px);
+            font-size: 0.82rem;
+            line-height: 1.4;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+        }
+        #mobile-tip .tip-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        #mobile-tip .tip-icon {
+            font-size: 1.8rem;
+            flex-shrink: 0;
+            animation: rotateHint 2.5s ease-in-out infinite;
+        }
+        @keyframes rotateHint {
+            0%, 100% { transform: rotate(0deg); }
+            30% { transform: rotate(90deg); }
+            60% { transform: rotate(90deg); }
+            80% { transform: rotate(0deg); }
+        }
+        #mobile-tip .tip-close {
+            position: absolute;
+            top: 6px; right: 10px;
+            background: none; border: none;
+            color: rgba(255,255,255,0.7);
+            font-size: 1.2rem; cursor: pointer;
+            padding: 4px;
+        }
+        #mobile-tip .tip-close:hover { color: #fff; }
+        #mobile-tip b { display: block; margin-bottom: 2px; font-size: 0.88rem; }
+
         @media (max-width: 600px) {
             #settings-panel { width: 100%; right: -100%; }
         }
@@ -704,6 +747,18 @@
     </style>
 </head>
 <body>
+
+    <!-- MOBILE TIP BANNER -->
+    <div id="mobile-tip">
+        <button class="tip-close" onclick="dismissMobileTip()">&times;</button>
+        <div class="tip-content">
+            <span class="tip-icon">📱</span>
+            <div>
+                <b data-t="bm_tip_title">Dodaj na ekran startowy</b>
+                <span data-t="bm_tip_desc">iPhone: udostepnij &gt; Na ekran poczatkowy. Obróć telefon poziomo dla najlepszego widoku.</span>
+            </div>
+        </div>
+    </div>
 
     <!-- PROFILE SELECTION SCREEN -->
     <div id="profile-screen" style="display:none;">
@@ -1834,6 +1889,20 @@
             var songId = getCurrentSongId();
             if (songId && currentProfile) loadSongSettings(songId);
         }).catch(function() {});
+
+        // ── Mobile tip banner ──
+        function dismissMobileTip() {
+            document.getElementById('mobile-tip').style.display = 'none';
+            localStorage.setItem('jafa_bm_mobile_tip_done', 'true');
+        }
+        (function() {
+            var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            var isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+            var dismissed = localStorage.getItem('jafa_bm_mobile_tip_done');
+            if (isMobile && !isStandalone && !dismissed) {
+                document.getElementById('mobile-tip').style.display = 'block';
+            }
+        })();
 
         // ── Band Member Onboarding Tour ──
         (function() {
