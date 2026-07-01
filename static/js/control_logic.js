@@ -499,7 +499,8 @@ function updateServerState() {
     });
 }
 
-function switchMode(m){document.querySelectorAll('.mode-container').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.segmented-control button, .mode-btn').forEach(b=>b.classList.remove('active'));if(m==='worship'){document.getElementById('worship-mode').classList.add('active');document.querySelector('button[onclick="switchMode(\'worship\')"]').classList.add('active');}else{document.getElementById('conference-mode').classList.add('active');document.querySelector('button[onclick="switchMode(\'conference\')"]').classList.add('active');sendConferenceData();}}
+function switchMode(m){document.querySelectorAll('.mode-container').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.segmented-control button, .mode-btn').forEach(b=>b.classList.remove('active'));if(m==='worship'){document.getElementById('worship-mode').classList.add('active');document.querySelector('button[onclick="switchMode(\'worship\')"]').classList.add('active');resendCurrentSlide();}else{document.getElementById('conference-mode').classList.add('active');document.querySelector('button[onclick="switchMode(\'conference\')"]').classList.add('active');sendConferenceData();}}
+function resendCurrentSlide(){var active=document.querySelector('.slide-btn.active');if(active){active.click();}else if(currentLiveState){goLiveSection(currentLiveState.c,currentLiveState.n,currentLiveState.forceTrans,currentLiveState.nextTrans);}else{fetch('/send_text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({logo:true})});}}
 function openQRModal(){document.getElementById('qrModal').style.display='flex';}
 function closeQRModal(){document.getElementById('qrModal').style.display='none';}
 
@@ -542,12 +543,12 @@ const isIos = () => {
 }
 const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
 
-const prompt = document.getElementById('ios-install-prompt');
-if (prompt && isIos()) {
+const iosPrompt = document.getElementById('ios-install-prompt');
+if (iosPrompt && isIos()) {
     const fsBtn = document.getElementById('fs-btn-desktop');
-    if(fsBtn) fsBtn.style.display = 'none'; 
+    if(fsBtn) fsBtn.style.display = 'none';
     if (!isInStandaloneMode()) {
-        prompt.style.display = 'block';
+        iosPrompt.style.display = 'block';
     }
 }
 
@@ -1160,6 +1161,49 @@ function loadSetlistHistory(id) {
         document.querySelectorAll('div[style*="fixed"][style*="z-index:99999"]').forEach(function(el) { el.remove(); });
         showToast((t('setlist_loaded') || 'Setlista wczytana!') + ' (' + setlist.length + ' ' + (t('songs_count') || 'piosenek') + ')', 'success');
     });
+}
+
+function shareSetlist() {
+    if (!setlist.length) { showToast(t('alert_empty_setlist'), 'error'); return; }
+    var songs = setlist.map(function(s) {
+        return { id: s.id, title: s.title, key: s.key || '', bpm: s.bpm || 0, transpose: s.transpose || 0 };
+    });
+    var dateStr = new Date().toISOString().split('T')[0];
+    fetch('/api/setlist-share', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ name: dateStr, date: dateStr, songs: songs })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        var modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;';
+        modal.innerHTML = '<div style="background:var(--bg-elevated);border-radius:14px;padding:24px;max-width:400px;width:90%;border:1px solid var(--border-default);text-align:center;">' +
+            '<h3 style="margin:0 0 8px;">' + (t('share_code_title') || 'Kod setlisty') + '</h3>' +
+            '<p style="margin:0 0 16px;color:var(--text-tertiary);font-size:0.9em;">' + (t('share_code_msg') || 'Podaj ten kod na innym urzadzeniu:') + '</p>' +
+            '<div style="font-size:2.5rem;font-weight:700;letter-spacing:0.3em;padding:16px;background:var(--bg-surface);border-radius:10px;font-family:monospace;">' + data.code + '</div>' +
+            '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="margin-top:16px;padding:8px 24px;border-radius:8px;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border-default);cursor:pointer;">OK</button></div>';
+        document.body.appendChild(modal);
+    }).catch(function() { showToast(t('alert_error') || 'Blad', 'error'); });
+}
+
+function importSetlistCode() {
+    var code = window.prompt(t('import_code_prompt') || 'Wpisz kod setlisty:');
+    if (!code) return;
+    fetch('/api/setlist-share/' + code.trim().toUpperCase()).then(function(r) {
+        if (!r.ok) throw new Error('not found');
+        return r.json();
+    }).then(function(data) {
+        if (data.error) { showToast(t('import_code_not_found') || 'Nie znaleziono', 'error'); return; }
+        setlist = [];
+        data.songs.forEach(function(s) {
+            var libSong = library.find(function(ls) { return ls.id === s.id; });
+            if (libSong) {
+                setlist.push(Object.assign({}, libSong, { transpose: s.transpose || 0 }));
+            }
+        });
+        renderSetlist();
+        if (setlist.length) selectForLive(0);
+        updateServerState();
+        showToast((t('setlist_loaded') || 'Setlista wczytana!') + ' (' + setlist.length + ' ' + (t('songs_count') || 'piosenek') + ')', 'success');
+    }).catch(function() { showToast(t('import_code_not_found') || 'Nie znaleziono setlisty', 'error'); });
 }
 
 function openEditModal(id){

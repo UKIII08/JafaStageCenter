@@ -165,6 +165,7 @@ class SetlistHistory(db.Model):
     name = db.Column(db.String(200), default='')
     date = db.Column(db.String(30), nullable=False)
     songs = db.Column(db.Text, nullable=False)  # JSON array of {id, title, key, bpm, transpose}
+    share_code = db.Column(db.String(8), unique=True, nullable=True)
 
 def get_notation():
     s = Settings.query.first()
@@ -254,6 +255,12 @@ def check_db_schema():
             # Check SetlistHistory table
             if 'setlist_history' not in inspector.get_table_names():
                 SetlistHistory.__table__.create(db.engine)
+            else:
+                sh_columns = [col['name'] for col in inspector.get_columns('setlist_history')]
+                if 'share_code' not in sh_columns:
+                    with db.engine.connect() as conn:
+                        conn.execute(text("ALTER TABLE setlist_history ADD COLUMN share_code VARCHAR(8)"))
+                        conn.commit()
 
         except Exception as e:
             # Silent fail for exe log
@@ -966,6 +973,29 @@ def delete_setlist_history(hid):
         db.session.delete(h)
         db.session.commit()
     return {'status': 'ok'}
+
+@app.route('/api/setlist-share', methods=['POST'])
+def share_setlist():
+    import string, random
+    data = request.json
+    code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    while SetlistHistory.query.filter_by(share_code=code).first():
+        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    h = SetlistHistory()
+    h.name = data.get('name', '')
+    h.date = data.get('date', '')
+    h.songs = json.dumps(data.get('songs', []))
+    h.share_code = code
+    db.session.add(h)
+    db.session.commit()
+    return {'code': code, 'id': h.id}
+
+@app.route('/api/setlist-share/<code>', methods=['GET'])
+def get_shared_setlist(code):
+    h = SetlistHistory.query.filter_by(share_code=code.upper()).first()
+    if not h:
+        return {'error': 'not found'}, 404
+    return {'id': h.id, 'name': h.name, 'date': h.date, 'songs': json.loads(h.songs), 'code': h.share_code}
 
 @app.route('/detect_key', methods=['POST'])
 def route_detect_key():
