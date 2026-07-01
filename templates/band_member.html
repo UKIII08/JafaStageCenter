@@ -434,11 +434,25 @@
             text-underline-offset: 3px;
         }
 
-        .chord-only-line .chord {
+        .chord-only-line .chord,
+        #next-slide-container .chord-only-line .chord,
+        #current-slide .chord-only-line .chord {
             position: static !important;
-            font-size: 1em !important;
+            font-size: 0.85em !important;
             display: inline-block;
             margin-right: 0.5em;
+            white-space: nowrap;
+        }
+        .chord-only-line .chord-wrapper {
+            display: inline-block !important;
+            position: static !important;
+            width: auto !important;
+            margin-right: 0.3em;
+        }
+        .chord-only-line {
+            line-height: 1.6;
+            display: block;
+            margin: 2px 0;
         }
 
         /* --- WIDOK KONFERENCJI --- */
@@ -560,6 +574,121 @@
 
         @media (max-width: 600px) {
             #settings-panel { width: 100%; right: -100%; }
+        }
+
+        /* --- RESPONSIVE: phones & small screens --- */
+        @media (max-width: 480px) {
+            #current-slide {
+                height: 60vh;
+                font-size: 5.5vh;
+                line-height: 1.8;
+                padding: 0 10px;
+            }
+            #next-slide-container {
+                height: 40vh;
+                padding: 8px 12px;
+            }
+            .meta-info-container {
+                top: 6px;
+                right: 8px;
+                gap: 2px;
+            }
+            #realtime-clock { font-size: 2.2vh; }
+            #key-display { font-size: 2.2vh; }
+            #capo-display { font-size: 1.8vh; }
+            #bpm-display { font-size: 1.8vh; }
+            #next-content {
+                font-size: 2.8vh;
+                line-height: 1.7;
+                padding-right: 70px;
+                padding-top: 8px;
+            }
+            #next-slide-container .chord {
+                font-size: 0.55em;
+                bottom: 0.5em;
+            }
+            .chord-only-line .chord {
+                font-size: 0.85em !important;
+                margin-right: 0.4em;
+            }
+            .chord-only-line {
+                line-height: 1.4 !important;
+                margin-bottom: 2px;
+            }
+            #current-slide .chord {
+                font-size: 0.55em;
+                bottom: 0.6em;
+            }
+            #setlist-btn, #fs-btn, #settings-btn {
+                width: 36px; height: 36px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            #current-slide {
+                height: 55vh;
+                font-size: 4.5vh;
+                line-height: 1.6;
+            }
+            #next-slide-container {
+                height: 45vh;
+                padding: 6px 10px;
+            }
+            #next-content {
+                font-size: 2.4vh;
+                line-height: 1.5;
+                padding-right: 55px;
+            }
+            .meta-info-container {
+                top: 4px;
+                right: 6px;
+            }
+            #realtime-clock { font-size: 1.8vh; }
+            #key-display { font-size: 1.8vh; }
+            #capo-display { font-size: 1.5vh; }
+            #bpm-display { font-size: 1.5vh; }
+        }
+
+        @media (max-height: 700px) {
+            #current-slide {
+                height: 58vh;
+                font-size: 5vh;
+                line-height: 1.7;
+            }
+            #next-slide-container {
+                height: 42vh;
+            }
+            #next-content {
+                font-size: 2.8vh;
+                line-height: 1.6;
+                padding-right: 80px;
+                padding-top: 6px;
+            }
+            .meta-info-container {
+                top: 6px; right: 10px; gap: 2px;
+            }
+            #realtime-clock { font-size: 2vh; }
+            #key-display { font-size: 2vh; }
+            #capo-display { font-size: 1.6vh; }
+            #bpm-display { font-size: 1.6vh; }
+        }
+
+        @media (max-width: 480px) and (max-height: 700px) {
+            #current-slide {
+                height: 55vh;
+                font-size: 4.5vh;
+                line-height: 1.6;
+            }
+            #next-slide-container {
+                height: 45vh;
+                padding: 6px 10px;
+            }
+            #next-content {
+                font-size: 2.4vh;
+                line-height: 1.5;
+                padding-right: 55px;
+                padding-top: 5px;
+            }
         }
 
         /* Light theme overrides */
@@ -1231,7 +1360,27 @@
                     el.textContent = display;
                 }
             });
-            return container.innerHTML;
+            var result = container.innerHTML;
+            var parts = result.split(/<br\s*\/?>/gi);
+            var out = [];
+            for (var p = 0; p < parts.length; p++) {
+                var tmp = document.createElement('span');
+                tmp.innerHTML = parts[p];
+                var textOnly = tmp.textContent.replace(/ /g, '').trim();
+                var hasChords = tmp.querySelector('.chord-wrapper');
+                var hasNonChordText = false;
+                if (textOnly) {
+                    var clone = tmp.cloneNode(true);
+                    clone.querySelectorAll('.chord-wrapper').forEach(function(el) { el.remove(); });
+                    hasNonChordText = clone.textContent.replace(/ /g, '').trim().length > 0;
+                }
+                if (hasChords && !hasNonChordText) {
+                    out.push('<span class="chord-only-line">' + parts[p] + '</span>');
+                } else {
+                    out.push(parts[p]);
+                }
+            }
+            return out.join('<br>');
         }
 
         function getNoteHtml() {
