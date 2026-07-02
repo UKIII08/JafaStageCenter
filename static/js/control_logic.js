@@ -1596,42 +1596,44 @@ document.addEventListener('keydown', function(e) {
         .onboarding-spotlight {
             position: fixed;
             z-index: 99991;
-            border-radius: 8px;
+            border-radius: 12px;
             background: transparent;
-            box-shadow: 0 0 0 9999px rgba(6,6,10,0.82);
-            transition: top 0.45s ease, left 0.45s ease, width 0.45s ease, height 0.45s ease;
+            box-shadow: 0 0 0 9999px rgba(4,6,11,0.86);
+            transition: top 0.45s cubic-bezier(0.16,1,0.3,1), left 0.45s cubic-bezier(0.16,1,0.3,1), width 0.45s cubic-bezier(0.16,1,0.3,1), height 0.45s cubic-bezier(0.16,1,0.3,1);
             pointer-events: none;
         }
         .onboarding-spotlight::after {
             content: '';
             position: absolute;
             inset: -4px;
-            border-radius: 12px;
-            border: 2px solid rgba(59,130,246,0.5);
-            animation: onboarding-pulse 2s ease-in-out infinite;
+            border-radius: 16px;
+            border: 1.5px solid var(--accent, #22D3EE);
+            animation: onboarding-pulse 2.2s ease-in-out infinite;
         }
         @keyframes onboarding-pulse {
-            0%, 100% { border-color: rgba(59,130,246,0.5); box-shadow: 0 0 8px rgba(59,130,246,0.2); }
-            50% { border-color: rgba(59,130,246,0.9); box-shadow: 0 0 20px rgba(59,130,246,0.4); }
+            0%, 100% { box-shadow: 0 0 12px var(--accent-glow, rgba(34,211,238,0.3)); opacity: 0.7; }
+            50% { box-shadow: 0 0 26px var(--accent-glow, rgba(34,211,238,0.5)); opacity: 1; }
         }
         .onboarding-tooltip {
             position: absolute;
-            max-width: 340px;
-            background: rgba(14,14,20,0.96);
-            border: 1px solid rgba(59,130,246,0.2);
-            border-radius: 16px;
+            max-width: 350px;
+            background: var(--glass-bg, rgba(11,15,24,0.85));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-default, rgba(255,255,255,0.08));
+            border-radius: 18px;
             padding: 24px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            box-shadow: 0 24px 70px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05);
             z-index: 99992;
             opacity: 0;
-            transform: translateY(10px);
-            transition: opacity 0.35s ease, transform 0.35s ease;
-            color: #e0e0e0;
+            transform: translateY(10px) scale(0.98);
+            transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1);
+            color: var(--text-primary, #EAF1F9);
             font-family: inherit;
         }
         .onboarding-tooltip.visible {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
         }
         .onboarding-tooltip-arrow {
             position: absolute;
@@ -1641,45 +1643,47 @@ document.addEventListener('keydown', function(e) {
         .onboarding-tooltip-arrow.arrow-top {
             bottom: 100%;
             left: 24px;
-            border-bottom-color: rgba(14,14,20,0.96);
+            border-bottom-color: var(--glass-bg, rgba(11,15,24,0.85));
         }
         .onboarding-tooltip-arrow.arrow-bottom {
             top: 100%;
             left: 24px;
-            border-top-color: rgba(14,14,20,0.96);
+            border-top-color: var(--glass-bg, rgba(11,15,24,0.85));
         }
         .onboarding-tooltip-arrow.arrow-left {
             right: 100%;
             top: 24px;
-            border-right-color: rgba(14,14,20,0.96);
+            border-right-color: var(--glass-bg, rgba(11,15,24,0.85));
         }
         .onboarding-tooltip-arrow.arrow-right {
             left: 100%;
             top: 24px;
-            border-left-color: rgba(14,14,20,0.96);
+            border-left-color: var(--glass-bg, rgba(11,15,24,0.85));
         }
         .onboarding-step-counter {
             display: inline-block;
-            background: rgba(59,130,246,0.15);
-            color: rgba(59,130,246,0.9);
+            background: var(--accent-subtle, rgba(34,211,238,0.1));
+            color: var(--accent, #22D3EE);
             font-size: 11px;
-            font-weight: 600;
-            padding: 3px 10px;
+            font-weight: 700;
+            padding: 3px 11px;
             border-radius: 20px;
-            margin-bottom: 10px;
-            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            letter-spacing: 0.06em;
+            border: 1px solid var(--accent-line, rgba(34,211,238,0.35));
         }
         .onboarding-tooltip h3 {
             margin: 0 0 8px 0;
-            font-size: 16px;
-            font-weight: 700;
-            color: #fff;
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            color: var(--text-primary, #fff);
         }
         .onboarding-tooltip p {
             margin: 0 0 18px 0;
             font-size: 13.5px;
-            line-height: 1.5;
-            color: #b0b0b0;
+            line-height: 1.55;
+            color: var(--text-secondary, #94A2B8);
         }
         .onboarding-btn-row {
             display: flex;
@@ -1687,19 +1691,19 @@ document.addEventListener('keydown', function(e) {
             gap: 8px;
         }
         .onboarding-btn-primary {
-            background: linear-gradient(135deg, #3B82F6, #60A5FA);
-            color: #fff;
+            background: linear-gradient(135deg, var(--accent-strong, #06B6D4), var(--accent, #22D3EE));
+            color: #04121A;
             border: none;
-            padding: 8px 20px;
-            border-radius: 8px;
+            padding: 9px 22px;
+            border-radius: 10px;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 800;
             cursor: pointer;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
         .onboarding-btn-primary:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 16px rgba(59,130,246,0.4);
+            box-shadow: 0 6px 20px var(--accent-glow, rgba(34,211,238,0.4));
         }
         .onboarding-btn-ghost {
             background: transparent;
