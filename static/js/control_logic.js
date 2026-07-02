@@ -978,7 +978,9 @@ function selectForLive(i, broadcast = true){
     }
 
     const item=setlist[i];
-    document.getElementById('live-header').style.display='block';
+    // '' (nie 'block') → wraca do arkusza CSS, który steruje layoutem
+    // (flex-row na desktopie, contents w landscape). Inline 'block' bił CSS.
+    document.getElementById('live-header').style.display='';
     document.getElementById('current-title').innerText=item.title;
     document.getElementById('current-trans').innerText=(item.transpose>0?"+":"")+item.transpose;
     

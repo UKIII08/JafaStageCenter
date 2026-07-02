@@ -946,8 +946,25 @@
     @media (min-width: 1286px) {
         #col-live { min-height: 0; overflow: hidden; }
         .live-top-header, #current-title, .live-split-wrapper { flex-shrink: 0; }
-        /* Keep the preview from dominating so tiles get room */
-        #live-preview-box { max-height: 46vh; }
+
+        /* Compact top zone: small 16:9 preview thumbnail on the left,
+           pad + music cards side-by-side filling the rest. Frees ~130px
+           of vertical space for the section-tile grid below. */
+        .live-split-wrapper { height: clamp(168px, 22vh, 216px); align-items: stretch; margin-bottom: var(--s5); }
+        #live-preview-box {
+            flex: 0 0 auto;
+            height: 100%;
+            width: auto;
+            aspect-ratio: 16 / 9;
+            max-height: none;
+            font-size: clamp(0.75rem, 1.1vw, 1.05rem);
+            padding: var(--s4);
+        }
+        .live-side-controls { flex: 1; width: auto; flex-direction: row; gap: var(--s4); }
+        .pad-panel-box, .music-info-box { flex: 1; }
+        .pad-btn { width: 46px; height: 46px; font-size: 1.2rem; }
+        .pad-center { margin-bottom: var(--s3); }
+        .pad-row-top { margin-bottom: var(--s3); }
         #slides-container {
             flex: 1 1 auto;
             min-height: 0;
