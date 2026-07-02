@@ -924,6 +924,29 @@
     /* ── Mobile nav (hidden on desktop) ── */
     .mobile-nav { display: none; }
 
+    /* ═══ Desktop live panel: tiles get all free space + scroll,
+          LOGO/BLACKOUT pinned at the bottom (always visible) ═══ */
+    @media (min-width: 1286px) {
+        #col-live { min-height: 0; overflow: hidden; }
+        .live-top-header, #current-title, .live-split-wrapper { flex-shrink: 0; }
+        /* Keep the preview from dominating so tiles get room */
+        #live-preview-box { max-height: 46vh; }
+        #slides-container {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            padding-right: var(--s2);
+            margin-right: calc(var(--s2) * -1);
+            margin-bottom: var(--s4);
+        }
+        .bottom-controls {
+            flex-shrink: 0;
+            margin-top: 0;
+            padding-top: var(--s4);
+            border-top: 1px solid var(--border-subtle);
+        }
+    }
+
     /* ═══ Responsive — portrait phones/tablets ═══ */
     @media (max-width: 1285px) {
         .top-bar { display: none !important; }
