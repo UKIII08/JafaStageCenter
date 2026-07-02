@@ -75,7 +75,12 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-function normalizeKey(k) {
+// Nazwy plików padów używają WYŁĄCZNIE krzyżyków (C#, D#, F#, G#, A#) — to
+// historyczna konwencja tej aplikacji i pod nią użytkownicy mają nazwane pliki.
+// (Notacja mieszana C#/Eb/... dotyczy tylko wyświetlania tonacji i akordów.)
+const PAD_SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+function keyToPitchClass(k) {
     if(!k) return null;
     let match = k.match(/^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$/);
     if(!match) return null;
@@ -86,7 +91,13 @@ function normalizeKey(k) {
     let suffix = match[2].trim().toLowerCase();
     let isMinor = isLowerRoot || (suffix.startsWith('m') && !suffix.startsWith('maj'));
     if(isMinor) pc = (pc + 3) % 12; // pad w tonacji równoległej durowej
-    return KEY_MAP[pc];
+    return pc;
+}
+
+// Zwraca nazwę pliku pada (krzyżyki) dla danej tonacji.
+function normalizeKey(k) {
+    let pc = keyToPitchClass(k);
+    return pc === null ? null : PAD_SHARP_NAMES[pc];
 }
 
 function triggerDebouncedPad(targetKey) {
@@ -160,6 +171,9 @@ observer.observe(document.documentElement, { attributes: true });
 
 // Krzywa equal-power (sin przy narastaniu, cos przy opadaniu) — suma mocy obu
 // padów podczas crossfade'u jest stała, bez dołka głośności w środku przejścia.
+// setValueCurveAtTime sam ustawia wartość startową (curve[0]), więc NIE wolno
+// przed nim wołać setValueAtTime na tym samym czasie — inaczej rzuca
+// NotSupportedError. Wywołujący robi tylko cancelScheduledValues(startTime).
 function scheduleFade(gainParam, from, to, startTime, durationSec) {
     const steps = 48;
     const curve = new Float32Array(steps);
@@ -172,6 +186,8 @@ function scheduleFade(gainParam, from, to, startTime, durationSec) {
     try {
         gainParam.setValueCurveAtTime(curve, startTime, durationSec);
     } catch (e) {
+        // Fallback: ustaw punkt startowy nieco wcześniej, potem rampa liniowa
+        gainParam.setValueAtTime(from, startTime);
         gainParam.linearRampToValueAtTime(to, startTime + durationSec);
     }
 }
@@ -219,8 +235,9 @@ function playPad(rawKey, fadeOutSec = 4) {
         const t = ctx.currentTime;
         currentPadEl = next;
 
-        // Nowy pad narasta (equal-power)
-        nextNode.gain.gain.setValueAtTime(0, t);
+        // Nowy pad narasta (equal-power). Bez setValueAtTime — krzywa sama
+        // ustala punkt startowy, a jawne zdarzenie w t rozbiłoby setValueCurve.
+        nextNode.gain.gain.cancelScheduledValues(t);
         scheduleFade(nextNode.gain.gain, 0, globalPadVolume, t, fadeOutSec);
 
         // Stary pad opada (equal-power) — równoległy crossfade o stałej mocy
@@ -228,7 +245,6 @@ function playPad(rawKey, fadeOutSec = 4) {
             const activeNode = getPadNode(active);
             const currentVol = activeNode.gain.gain.value;
             activeNode.gain.gain.cancelScheduledValues(t);
-            activeNode.gain.gain.setValueAtTime(currentVol, t);
             scheduleFade(activeNode.gain.gain, currentVol, 0, t, fadeOutSec);
             setTimeout(() => {
                 if (currentPadEl !== active) {
@@ -253,7 +269,6 @@ function fadeOutAllPads(duration = 3) {
             const node = getPadNode(el);
             const vol = node.gain.gain.value;
             node.gain.gain.cancelScheduledValues(now);
-            node.gain.gain.setValueAtTime(vol, now);
             scheduleFade(node.gain.gain, vol, 0, now, duration);
             setTimeout(() => {
                 el.pause();
