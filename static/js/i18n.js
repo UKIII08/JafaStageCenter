@@ -104,6 +104,9 @@ var translations = {
         // ── Control extras ──
         lang_label: "Język / Language:",
         logo_label: "Logo:",
+        shortcuts_header: "Skróty klawiszowe",
+        shortcuts_hint: "Kliknij klawisz obok akcji i naciśnij nowy. Pod te skróty podłączysz hardware'owy sterownik (emulujący klawiaturę).",
+        shortcuts_reset: "Przywróć domyślne skróty",
         system_section: "System",
         reset_confirm: "Przywrócić domyślne?",
         reset_btn_text: "↻ RESET",
@@ -372,6 +375,9 @@ var translations = {
         // ── Control extras ──
         lang_label: "Language:",
         logo_label: "Logo:",
+        shortcuts_header: "Keyboard shortcuts",
+        shortcuts_hint: "Click the key next to an action and press a new one. Map a hardware controller (keyboard emulation) to these shortcuts.",
+        shortcuts_reset: "Restore default shortcuts",
         system_section: "System",
         reset_confirm: "Restore defaults?",
         reset_btn_text: "↻ RESET",

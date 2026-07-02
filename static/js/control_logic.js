@@ -557,6 +557,8 @@ function openSettingsModal(){
     document.getElementById('theme-toggle').checked = (currentTheme === 'dark');
     
     document.getElementById('lang-select').value = localStorage.getItem('appLang') || 'pl';
+
+    renderShortcuts();
 }
 function closeSettingsModal(){document.getElementById('settingsModal').style.display='none';}
 function openImportModal(){document.getElementById('importModal').style.display='flex';}
@@ -616,32 +618,165 @@ function updateFileName(input) {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS — konfigurowalne, pod hardware'owy sterownik
+//  (kontroler emulujący klawiaturę/HID mapuje się 1:1 na te akcje)
+// ═══════════════════════════════════════════════════════════════
+
+// Akcje, które można podpiąć pod klawisz. `run` wywołuje istniejące funkcje.
+const SHORTCUT_ACTIONS = [
+    { id: 'next_section',   run: () => navigateSlides(1) },
+    { id: 'prev_section',   run: () => navigateSlides(-1) },
+    { id: 'next_song',      run: () => goToNextSong() },
+    { id: 'prev_song',      run: () => goToPrevSong() },
+    { id: 'blackout',       run: () => blackout() },
+    { id: 'logo',           run: () => showLogo() },
+    { id: 'pad_toggle',     run: () => togglePad() },
+    { id: 'resend',         run: () => resendCurrentSlide() },
+    { id: 'transpose_up',   run: () => adjustLiveTrans(1) },
+    { id: 'transpose_down', run: () => adjustLiveTrans(-1) },
+];
+
+// Dwujęzyczne etykiety akcji (specyficzne dla panelu — trzymamy lokalnie)
+const SHORTCUT_LABELS = {
+    next_section:   { pl: 'Następny kafelek',        en: 'Next section' },
+    prev_section:   { pl: 'Poprzedni kafelek',       en: 'Previous section' },
+    next_song:      { pl: 'Następna piosenka',       en: 'Next song' },
+    prev_song:      { pl: 'Poprzednia piosenka',     en: 'Previous song' },
+    blackout:       { pl: 'Wygaś ekran (Blackout)',  en: 'Blackout' },
+    logo:           { pl: 'Pokaż logo',              en: 'Show logo' },
+    pad_toggle:     { pl: 'Pad (wł / wył)',          en: 'Toggle pad' },
+    resend:         { pl: 'Wyślij slajd ponownie',   en: 'Resend slide' },
+    transpose_up:   { pl: 'Transpozycja +1',         en: 'Transpose +1' },
+    transpose_down: { pl: 'Transpozycja −1',         en: 'Transpose −1' },
+};
+
+const DEFAULT_KEYMAP = {
+    next_section: 'ArrowRight',
+    prev_section: 'ArrowLeft',
+    next_song: 'PageDown',
+    prev_song: 'PageUp',
+    blackout: 'b',
+    logo: 'l',
+    pad_toggle: 'p',
+    resend: 'Enter',
+    transpose_up: '+',
+    transpose_down: '-',
+};
+
+let shortcutKeymap = {};
+function loadKeymap() {
+    shortcutKeymap = Object.assign({}, DEFAULT_KEYMAP);
+    try {
+        var saved = JSON.parse(localStorage.getItem('shortcutKeymap') || '{}');
+        Object.assign(shortcutKeymap, saved);
+    } catch (e) {}
+}
+function saveKeymap() { localStorage.setItem('shortcutKeymap', JSON.stringify(shortcutKeymap)); }
+loadKeymap();
+
+// Ta sama funkcja przy przechwytywaniu i dopasowaniu → gwarancja spójności,
+// niezależnie od dokładnej normalizacji przeglądarki.
+function eventToKeyString(e) {
+    var mods = [];
+    if (e.ctrlKey) mods.push('Ctrl');
+    if (e.altKey) mods.push('Alt');
+    if (e.metaKey) mods.push('Meta');
+    var k = e.key;
+    if (k === ' ') k = 'Space';
+    // Shift traktujemy jako modyfikator tylko dla klawiszy nazwanych
+    // (dla znaków drukowalnych Shift jest już zawarty w e.key).
+    if (e.shiftKey && k.length > 1) mods.push('Shift');
+    mods.push(k);
+    return mods.join('+');
+}
+
+// Ładny podpis klawisza dla UI
+function prettyKey(ks) {
+    if (!ks) return '—';
+    return ks
+        .replace('ArrowRight', '→').replace('ArrowLeft', '←')
+        .replace('ArrowUp', '↑').replace('ArrowDown', '↓')
+        .replace('PageDown', 'PgDn').replace('PageUp', 'PgUp');
+}
+
+let shortcutCaptureId = null; // aktywne przechwytywanie (id akcji) — blokuje dispatcher
+
 document.addEventListener('keydown', (e) => {
-    // Ignoruj strzałki, jeśli akurat wpisujesz coś w polu tekstowym (np. wiadomość dla mówcy)
+    // Nie przechwytuj podczas pisania w polach
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    
-    // Sprawdzamy, który tryb jest obecnie włączony na ekranie
+    if (shortcutCaptureId) return; // trwa remapowanie — obsługiwane osobno
+
     var confEl = document.getElementById('conference-mode');
     const isConferenceActive = confEl ? confEl.classList.contains('active') : false;
+    const keyStr = eventToKeyString(e);
 
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { 
-        e.preventDefault(); 
-        if (isConferenceActive) {
-            changeSlide(1); // Zmienia slajd PDF w trybie Konferencji
-        } else {
-            navigateSlides(1); // Zmienia kafelek piosenki w trybie Uwielbienia
+    // Tryb konferencji: strzałki sterują slajdami PDF
+    if (isConferenceActive) {
+        if (keyStr === 'ArrowRight' || keyStr === 'ArrowDown') { e.preventDefault(); changeSlide(1); return; }
+        if (keyStr === 'ArrowLeft' || keyStr === 'ArrowUp') { e.preventDefault(); changeSlide(-1); return; }
+    }
+
+    // Dopasuj do keymapy
+    for (var i = 0; i < SHORTCUT_ACTIONS.length; i++) {
+        if (shortcutKeymap[SHORTCUT_ACTIONS[i].id] === keyStr) {
+            e.preventDefault();
+            SHORTCUT_ACTIONS[i].run();
+            return;
         }
     }
-    
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { 
-        e.preventDefault(); 
-        if (isConferenceActive) {
-            changeSlide(-1);
-        } else {
-            navigateSlides(-1); 
-        }
+
+    // Fallback: pionowe strzałki też nawigują sekcjami w Uwielbieniu
+    if (!isConferenceActive) {
+        if (keyStr === 'ArrowDown') { e.preventDefault(); navigateSlides(1); }
+        else if (keyStr === 'ArrowUp') { e.preventDefault(); navigateSlides(-1); }
     }
 });
+
+// Przechwytywanie klawisza przy remapowaniu (faza capture, by wyprzedzić dispatcher)
+function startShortcutCapture(actionId, btn) {
+    shortcutCaptureId = actionId;
+    btn.classList.add('capturing');
+    btn.textContent = currentLang === 'en' ? 'Press a key…' : 'Naciśnij klawisz…';
+    function onKey(ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        if (ev.key === 'Escape') { finish(); return; }
+        var ks = eventToKeyString(ev);
+        // Usuń ten klawisz z innych akcji, by uniknąć duplikatów
+        for (var id in shortcutKeymap) { if (shortcutKeymap[id] === ks) delete shortcutKeymap[id]; }
+        shortcutKeymap[actionId] = ks;
+        saveKeymap();
+        finish();
+    }
+    function finish() {
+        window.removeEventListener('keydown', onKey, true);
+        shortcutCaptureId = null;
+        renderShortcuts();
+    }
+    window.addEventListener('keydown', onKey, true);
+}
+
+function resetShortcuts() {
+    shortcutKeymap = Object.assign({}, DEFAULT_KEYMAP);
+    saveKeymap();
+    renderShortcuts();
+}
+
+function renderShortcuts() {
+    var list = document.getElementById('shortcuts-list');
+    if (!list) return;
+    var lang = currentLang || 'pl';
+    list.innerHTML = SHORTCUT_ACTIONS.map(function (a) {
+        var label = (SHORTCUT_LABELS[a.id] || {})[lang] || a.id;
+        var key = shortcutKeymap[a.id];
+        return '<div class="shortcut-row">' +
+                 '<span class="shortcut-label">' + label + '</span>' +
+                 '<button type="button" class="shortcut-key-btn" onclick="startShortcutCapture(\'' + a.id + '\', this)">' +
+                    '<kbd>' + prettyKey(key) + '</kbd>' +
+                 '</button>' +
+               '</div>';
+    }).join('');
+}
 
 function navigateSlides(direction) {
     const slides = Array.from(document.querySelectorAll('.slide-btn:not(.transition-tile)'));
@@ -680,6 +815,16 @@ function goToNextSong() {
     } else {
         const txt = currentLang === 'en' ? "Last song in setlist!" : "To ostatnia piosenka w setliście!";
         alert(txt);
+    }
+}
+
+function goToPrevSong() {
+    if (currentSetIndex > 0) {
+        selectForLive(currentSetIndex - 1);
+        setTimeout(() => {
+            const newSlides = document.querySelectorAll('.slide-btn:not(.transition-tile)');
+            if (newSlides.length > 0) newSlides[0].click();
+        }, 100);
     }
 }
 

@@ -793,6 +793,35 @@
 
     .inst-divider { border: none; border-top: 1px solid var(--border-subtle); margin: var(--s4) 0; }
 
+    /* Keyboard shortcuts list */
+    .shortcuts-hint { margin: 0 0 var(--s4); font-size: var(--font-xs); line-height: 1.5; color: var(--text-tertiary); }
+    .shortcut-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: var(--s2) 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+    .shortcut-row:last-child { border-bottom: none; }
+    .shortcut-label { font-size: var(--font-sm); color: var(--text-secondary); }
+    .shortcut-key-btn {
+        background: var(--bg-inset);
+        border: 1px solid var(--border-default);
+        border-radius: var(--r-sm);
+        padding: var(--s1) var(--s3);
+        cursor: pointer;
+        min-width: 64px;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .shortcut-key-btn:hover { border-color: var(--accent-line); }
+    .shortcut-key-btn kbd {
+        font-family: inherit; font-weight: 700; font-size: var(--font-sm);
+        color: var(--text-primary); letter-spacing: 0.02em;
+    }
+    .shortcut-key-btn.capturing {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-subtle), 0 0 16px var(--accent-glow);
+    }
+    .shortcut-key-btn.capturing kbd { color: var(--accent); font-weight: 800; }
+
     /* Settings extras */
     .system-section .system-actions { display: flex; gap: var(--s3); }
     .backup-btn {
@@ -1592,6 +1621,13 @@
                         <button type="submit" class="btn-primary btn-sm" data-t="upload_btn">WGRAJ</button>
                     </form>
                 </div>
+            </div>
+
+            <div class="settings-section">
+                <h4 data-t="shortcuts_header">Skróty klawiszowe</h4>
+                <p class="shortcuts-hint" data-t="shortcuts_hint">Kliknij klawisz obok akcji i naciśnij nowy. Pod te skróty podłączysz hardware'owy sterownik (emulujący klawiaturę).</p>
+                <div id="shortcuts-list"></div>
+                <button type="button" class="backup-btn" onclick="resetShortcuts()" data-t="shortcuts_reset" style="width:100%; margin-top:var(--s4);">Przywróć domyślne skróty</button>
             </div>
 
             <div class="settings-section system-section">
