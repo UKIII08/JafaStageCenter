@@ -820,7 +820,13 @@
         border-color: var(--accent);
         box-shadow: 0 0 0 3px var(--accent-subtle), 0 0 16px var(--accent-glow);
     }
+    .shortcut-key-btn.capturing { color: var(--accent); font-weight: 800; font-size: var(--font-xs); }
     .shortcut-key-btn.capturing kbd { color: var(--accent); font-weight: 800; }
+    .shortcut-key-btn.capture-warn {
+        border-color: var(--amber);
+        box-shadow: 0 0 0 3px var(--amber-subtle), 0 0 16px var(--amber-subtle);
+        color: var(--amber);
+    }
 
     /* Settings extras */
     .system-section .system-actions { display: flex; gap: var(--s3); }

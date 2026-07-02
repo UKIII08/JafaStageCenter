@@ -651,18 +651,28 @@ const SHORTCUT_LABELS = {
     transpose_down: { pl: 'Transpozycja −1',         en: 'Transpose −1' },
 };
 
+// Domyślne skróty. Nawigacja na klawiszach nazwanych (strzałki, PgUp/Dn –
+// nie kolidują z pisaniem), a akcje na literach ZAWSZE w kombinacji z
+// Ctrl+Alt (bare litery są zabronione — patrz startShortcutCapture).
 const DEFAULT_KEYMAP = {
     next_section: 'ArrowRight',
     prev_section: 'ArrowLeft',
     next_song: 'PageDown',
     prev_song: 'PageUp',
-    blackout: 'b',
-    logo: 'l',
-    pad_toggle: 'p',
-    resend: 'Enter',
-    transpose_up: '+',
-    transpose_down: '-',
+    blackout: 'Ctrl+Alt+b',
+    logo: 'Ctrl+Alt+l',
+    pad_toggle: 'Ctrl+Alt+p',
+    resend: 'Ctrl+Alt+Enter',
+    transpose_up: 'Ctrl+Alt+ArrowUp',
+    transpose_down: 'Ctrl+Alt+ArrowDown',
 };
+
+// Czy binding wymaga modyfikatora? Tak dla znaków drukowalnych (litery/cyfry),
+// nie dla klawiszy nazwanych (ArrowRight, PageDown, F13, Enter...).
+function keyNeedsModifier(ev) {
+    return ev.key.length === 1; // pojedynczy znak drukowalny
+}
+const MODIFIER_KEYS = ['Control', 'Alt', 'Shift', 'Meta', 'AltGraph'];
 
 let shortcutKeymap = {};
 function loadKeymap() {
@@ -678,26 +688,33 @@ loadKeymap();
 // Ta sama funkcja przy przechwytywaniu i dopasowaniu → gwarancja spójności,
 // niezależnie od dokładnej normalizacji przeglądarki.
 function eventToKeyString(e) {
+    var k = e.key;
+    if (k === ' ') k = 'Space';
+    // Znaki drukowalne małą literą → Shift zawsze jako JAWNY modyfikator,
+    // by "Ctrl+Shift+l" nie mieszało się z "Ctrl+l". Stała kolejność modyfikatorów.
+    if (k.length === 1) k = k.toLowerCase();
     var mods = [];
     if (e.ctrlKey) mods.push('Ctrl');
     if (e.altKey) mods.push('Alt');
+    if (e.shiftKey) mods.push('Shift');
     if (e.metaKey) mods.push('Meta');
-    var k = e.key;
-    if (k === ' ') k = 'Space';
-    // Shift traktujemy jako modyfikator tylko dla klawiszy nazwanych
-    // (dla znaków drukowalnych Shift jest już zawarty w e.key).
-    if (e.shiftKey && k.length > 1) mods.push('Shift');
     mods.push(k);
     return mods.join('+');
 }
 
-// Ładny podpis klawisza dla UI
+// Ładny podpis klawisza dla UI (np. "Ctrl+Alt+b" → "Ctrl + Alt + B")
 function prettyKey(ks) {
     if (!ks) return '—';
-    return ks
+    var parts = ks.split('+');
+    // ostatni segment to właściwy klawisz; wcześniejsze to modyfikatory
+    var key = parts.pop();
+    key = key
         .replace('ArrowRight', '→').replace('ArrowLeft', '←')
         .replace('ArrowUp', '↑').replace('ArrowDown', '↓')
         .replace('PageDown', 'PgDn').replace('PageUp', 'PgUp');
+    if (key.length === 1) key = key.toUpperCase(); // litera na wielką dla czytelności
+    parts.push(key);
+    return parts.join(' + ');
 }
 
 let shortcutCaptureId = null; // aktywne przechwytywanie (id akcji) — blokuje dispatcher
@@ -737,10 +754,20 @@ document.addEventListener('keydown', (e) => {
 function startShortcutCapture(actionId, btn) {
     shortcutCaptureId = actionId;
     btn.classList.add('capturing');
-    btn.textContent = currentLang === 'en' ? 'Press a key…' : 'Naciśnij klawisz…';
+    var promptTxt = currentLang === 'en' ? 'Press a combination…' : 'Naciśnij kombinację…';
+    btn.textContent = promptTxt;
     function onKey(ev) {
         ev.preventDefault(); ev.stopPropagation();
         if (ev.key === 'Escape') { finish(); return; }
+        // Czekaj na właściwy klawisz — ignoruj samotne modyfikatory
+        if (MODIFIER_KEYS.indexOf(ev.key) !== -1) return;
+        // Bare litera/cyfra bez modyfikatora — zabroniona (kolidowałaby z pisaniem)
+        if (keyNeedsModifier(ev) && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
+            btn.classList.add('capture-warn');
+            btn.textContent = currentLang === 'en' ? 'Add Ctrl / Alt…' : 'Dodaj Ctrl / Alt…';
+            return; // nie kończ — czekaj na poprawną kombinację
+        }
+        btn.classList.remove('capture-warn');
         var ks = eventToKeyString(ev);
         // Usuń ten klawisz z innych akcji, by uniknąć duplikatów
         for (var id in shortcutKeymap) { if (shortcutKeymap[id] === ks) delete shortcutKeymap[id]; }
