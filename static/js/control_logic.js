@@ -73,7 +73,21 @@ document.addEventListener("DOMContentLoaded", function() {
         // Initial render
         filterLibrary();
     }
+
+    // Restore collapsed-library state (desktop only; CSS ignores it on mobile)
+    if (localStorage.getItem('libraryCollapsed') === '1') {
+        var lib = document.getElementById('col-library');
+        if (lib) lib.classList.add('collapsed');
+    }
 });
+
+// Zwijanie/rozwijanie biblioteki — gdy set gotowy, oddaje szerokość panelowi live
+function toggleLibrary() {
+    var lib = document.getElementById('col-library');
+    if (!lib) return;
+    var collapsed = lib.classList.toggle('collapsed');
+    localStorage.setItem('libraryCollapsed', collapsed ? '1' : '0');
+}
 
 // Nazwy plików padów używają WYŁĄCZNIE krzyżyków (C#, D#, F#, G#, A#) — to
 // historyczna konwencja tej aplikacji i pod nią użytkownicy mają nazwane pliki.

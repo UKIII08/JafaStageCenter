@@ -232,7 +232,7 @@
         background: var(--bg-panel);
         padding: var(--s5) var(--s5) var(--s4);
     }
-    #col-library { width: 300px; flex-shrink: 0; }
+    #col-library { width: 300px; flex-shrink: 0; transition: width var(--duration-normal) var(--ease-out), padding var(--duration-normal) var(--ease-out); }
     #col-setlist { width: 340px; flex-shrink: 0; }
     #col-live    { flex: 1; min-width: 0; padding: var(--s6); }
 
@@ -240,9 +240,11 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: var(--s2);
         margin-bottom: var(--s4);
         min-height: 30px;
     }
+    .col-header-left { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
     .col-title {
         margin: 0;
         font-size: var(--font-xs);
@@ -250,7 +252,22 @@
         letter-spacing: 0.12em;
         text-transform: uppercase;
         color: var(--text-tertiary);
+        white-space: nowrap;
     }
+
+    /* Library collapse toggle */
+    .lib-collapse-btn {
+        display: flex; align-items: center; justify-content: center;
+        width: 26px; height: 26px; flex-shrink: 0;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--border-default);
+        background: var(--bg-surface);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .lib-collapse-btn:hover { border-color: var(--accent-line); color: var(--accent); background: var(--accent-subtle); }
+    .lib-collapse-btn svg { transition: transform var(--duration-normal) var(--ease-out); }
 
     /* ── Library ── */
     .plus-container { position: relative; }
@@ -945,6 +962,21 @@
             padding-top: var(--s4);
             border-top: 1px solid var(--border-subtle);
         }
+
+        /* Collapsed library — thin rail with only the expand button.
+           The freed width flows to #col-live (flex:1) → bigger tile area. */
+        #col-library.collapsed {
+            width: 46px;
+            padding-left: var(--s2);
+            padding-right: var(--s2);
+        }
+        #col-library.collapsed .col-title,
+        #col-library.collapsed .plus-container,
+        #col-library.collapsed #searchBox,
+        #col-library.collapsed #library-list,
+        #col-library.collapsed .branding-area { display: none; }
+        #col-library.collapsed .col-header { justify-content: center; margin-bottom: 0; }
+        #col-library.collapsed .lib-collapse-btn svg { transform: rotate(180deg); }
     }
 
     /* ═══ Responsive — portrait phones/tablets ═══ */
@@ -953,6 +985,7 @@
         .mode-container.active { display: block; }
         #worship-mode { display: block; height: 100vh; background: var(--bg-app); }
         .conf-grid { grid-template-columns: 1fr; }
+        .lib-collapse-btn { display: none; }  /* library is a full-screen tab on mobile */
 
         .col {
             display: none;
@@ -1100,7 +1133,12 @@
         <!-- ── Library Column ── -->
         <div id="col-library" class="col">
             <div class="col-header">
-                <h2 class="col-title" data-t="library_header">Biblioteka</h2>
+                <div class="col-header-left">
+                    <button class="lib-collapse-btn" onclick="toggleLibrary()" title="Zwiń / rozwiń bibliotekę" aria-label="Zwiń bibliotekę">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    <h2 class="col-title" data-t="library_header">Biblioteka</h2>
+                </div>
                 <div class="plus-container">
                     <button class="plus-btn" onclick="toggleAddMenu()">+</button>
                     <div id="add-menu-dropdown" class="dropdown-menu">
