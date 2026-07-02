@@ -1335,6 +1335,19 @@
             return [...unique];
         }
 
+        function extractChordCounts(rawText) {
+            const counts = new Map();
+            if (!rawText) return counts;
+            const matches = rawText.match(/\[(.*?)\]/g);
+            if (!matches) return counts;
+            for (const m of matches) {
+                let ch = m.slice(1, -1);
+                if (ch.includes('/')) ch = ch.split('/')[0];
+                if (parseRoot(ch)) counts.set(ch, (counts.get(ch) || 0) + 1);
+            }
+            return counts;
+        }
+
         function chordSimplifiedRoot(chord) {
             const p = parseRoot(chord);
             if (!p) return chord;
@@ -1347,29 +1360,35 @@
 
         function suggestCapo() {
             const box = document.getElementById('capo-suggestion');
-            const rawChords = extractChords(currentRawText);
-            if (rawChords.length === 0) { box.style.display = 'none'; return; }
+            const rawCounts = extractChordCounts(currentRawText);
+            if (rawCounts.size === 0) { box.style.display = 'none'; return; }
             // Apply current transposition so capo suggestions match what's actually displayed
-            const chords = currentTranspose !== 0
-                ? rawChords.map(ch => transposeChord(ch, currentTranspose))
-                : rawChords;
+            const counts = new Map();
+            for (const [ch, n] of rawCounts) {
+                const t = currentTranspose !== 0 ? transposeChord(ch, currentTranspose) : ch;
+                counts.set(t, (counts.get(t) || 0) + n);
+            }
 
             let bestCapo = 0;
             let bestScore = -1;
             let bestChords = [];
 
             for (let capo = 0; capo <= 7; capo++) {
-                const transposed = chords.map(ch => {
-                    const simple = simplifyChord(transposeChord(ch, -capo));
-                    return chordSimplifiedRoot(simple);
-                });
-                const uniqueT = [...new Set(transposed)];
-                const easyCount = uniqueT.filter(c => EASY_CHORDS.has(c)).length;
-                const score = easyCount / uniqueT.length;
+                // Ważone częstością występowania: akord grany 20x w piosence liczy
+                // się bardziej niż przejściowy grany raz.
+                let easyWeight = 0, totalWeight = 0;
+                const uniqueT = new Set();
+                for (const [ch, n] of counts) {
+                    const simple = chordSimplifiedRoot(simplifyChord(transposeChord(ch, -capo)));
+                    uniqueT.add(simple);
+                    totalWeight += n;
+                    if (EASY_CHORDS.has(simple)) easyWeight += n;
+                }
+                const score = easyWeight / totalWeight;
                 if (score > bestScore || (score === bestScore && capo < bestCapo)) {
                     bestScore = score;
                     bestCapo = capo;
-                    bestChords = uniqueT;
+                    bestChords = [...uniqueT];
                 }
             }
 

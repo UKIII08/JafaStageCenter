@@ -29,8 +29,15 @@ let globalPadVolume = 0.5;
 let padDebounceTimer = null;
 const PAD_DELAY_MS = 2000;
 
-const KEY_MAP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-const FLAT_TO_SHARP = {'Db':'C#', 'Eb':'D#', 'Gb':'F#', 'Ab':'G#', 'Bb':'A#', 'Cb':'B'};
+// Jedna konwencja enharmoniczna w całej aplikacji (jak TRANSPOSE_LOOKUP na serwerze
+// i NOTES w band_member): krzyżyki dla C#/F#, bemole dla Eb/Ab/Bb.
+const KEY_MAP = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+const NOTE_TO_PC = {
+    'C':0, 'C#':1, 'DB':1, 'D':2, 'D#':3, 'EB':3, 'E':4, 'FB':4, 'E#':5,
+    'F':5, 'F#':6, 'GB':6, 'G':7, 'G#':8, 'AB':8, 'A':9, 'A#':10, 'BB':10,
+    'B':11, 'CB':11, 'H':11, 'B#':0,
+    'CIS':1, 'DIS':3, 'ES':3, 'FIS':6, 'GIS':8, 'AS':8, 'AIS':10, 'HIS':0
+};
 
 function ensureAudioCtx() {
     if (!audioCtx) {
@@ -70,21 +77,16 @@ document.addEventListener("DOMContentLoaded", function() {
 
 function normalizeKey(k) {
     if(!k) return null;
-    let match = k.match(/^([A-G][#b]?)(.*)$/i);
+    let match = k.match(/^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$/);
     if(!match) return null;
-    let root = match[1];
-    root = root.charAt(0).toUpperCase() + root.slice(1).toLowerCase();
-    if(FLAT_TO_SHARP[root]) root = FLAT_TO_SHARP[root];
+    let isLowerRoot = match[1][0] === match[1][0].toLowerCase();
+    let pc = NOTE_TO_PC[match[1].toUpperCase()];
+    if(pc === undefined) return null;
 
     let suffix = match[2].trim().toLowerCase();
-    if(suffix.startsWith('m') && !suffix.startsWith('maj')) {
-        let idx = KEY_MAP.indexOf(root);
-        if(idx !== -1) {
-            let newIdx = (idx + 3) % 12;
-            return KEY_MAP[newIdx];
-        }
-    }
-    return root;
+    let isMinor = isLowerRoot || (suffix.startsWith('m') && !suffix.startsWith('maj'));
+    if(isMinor) pc = (pc + 3) % 12; // pad w tonacji równoległej durowej
+    return KEY_MAP[pc];
 }
 
 function triggerDebouncedPad(targetKey) {
@@ -156,6 +158,24 @@ const observer = new MutationObserver(function(mutations) {
 });
 observer.observe(document.documentElement, { attributes: true });
 
+// Krzywa equal-power (sin przy narastaniu, cos przy opadaniu) — suma mocy obu
+// padów podczas crossfade'u jest stała, bez dołka głośności w środku przejścia.
+function scheduleFade(gainParam, from, to, startTime, durationSec) {
+    const steps = 48;
+    const curve = new Float32Array(steps);
+    const rising = to > from;
+    for (let i = 0; i < steps; i++) {
+        const x = i / (steps - 1);
+        const shape = rising ? Math.sin(x * Math.PI / 2) : (1 - Math.cos(x * Math.PI / 2));
+        curve[i] = from + (to - from) * shape;
+    }
+    try {
+        gainParam.setValueCurveAtTime(curve, startTime, durationSec);
+    } catch (e) {
+        gainParam.linearRampToValueAtTime(to, startTime + durationSec);
+    }
+}
+
 function playPad(rawKey, fadeOutSec = 4) {
     if(!isPadPlaying) return;
     let targetKey = normalizeKey(rawKey);
@@ -173,7 +193,8 @@ function playPad(rawKey, fadeOutSec = 4) {
 
     currentPadKey = targetKey;
 
-    let filename = `/static/pads/${targetKey}.mp3`;
+    // encodeURIComponent: '#' w nazwie pliku (C#.mp3) inaczej ucina URL jako fragment
+    let filename = `/static/pads/${encodeURIComponent(targetKey)}.mp3`;
     let active = currentPadEl;
     let next = (active === padElA) ? padElB : padElA;
 
@@ -198,17 +219,17 @@ function playPad(rawKey, fadeOutSec = 4) {
         const t = ctx.currentTime;
         currentPadEl = next;
 
-        // Nowy pad narasta liniowo
+        // Nowy pad narasta (equal-power)
         nextNode.gain.gain.setValueAtTime(0, t);
-        nextNode.gain.gain.linearRampToValueAtTime(globalPadVolume, t + fadeOutSec);
+        scheduleFade(nextNode.gain.gain, 0, globalPadVolume, t, fadeOutSec);
 
-        // Stary pad maleje liniowo — równoległy crossfade
+        // Stary pad opada (equal-power) — równoległy crossfade o stałej mocy
         if (active && active !== next && !active.paused) {
             const activeNode = getPadNode(active);
             const currentVol = activeNode.gain.gain.value;
             activeNode.gain.gain.cancelScheduledValues(t);
             activeNode.gain.gain.setValueAtTime(currentVol, t);
-            activeNode.gain.gain.linearRampToValueAtTime(0, t + fadeOutSec);
+            scheduleFade(activeNode.gain.gain, currentVol, 0, t, fadeOutSec);
             setTimeout(() => {
                 if (currentPadEl !== active) {
                     active.pause();
@@ -233,7 +254,7 @@ function fadeOutAllPads(duration = 3) {
             const vol = node.gain.gain.value;
             node.gain.gain.cancelScheduledValues(now);
             node.gain.gain.setValueAtTime(vol, now);
-            node.gain.gain.linearRampToValueAtTime(0, now + duration);
+            scheduleFade(node.gain.gain, vol, 0, now, duration);
             setTimeout(() => {
                 el.pause();
                 el.currentTime = 0;
@@ -770,14 +791,15 @@ function renderLibrary(f="") {
         if (s.title.toLowerCase().includes(f.toLowerCase()) || s.content.toLowerCase().includes(f.toLowerCase())) {
             const d = document.createElement('details'); d.className = 'lib-item';
             const preview = s.content.replace(/\[.*?\]/g, "").substring(0, 300) + "...";
+            const keyBadge = s.key ? `<span class="lib-key-badge">${s.key}</span>` : '';
             d.innerHTML = `
                 <summary class="lib-summary">
-                    <div><b>${s.title}</b></div>
+                    <div class="lib-title-row"><b>${s.title}</b>${keyBadge}</div>
                     <div style="display:flex;gap:5px;">
                         <button class="btn-icon" onclick="event.preventDefault(); openEditModal(${s.id})" style="background:none; border:none; cursor:pointer; color:var(--text-muted);">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        </button> 
-                        <button class="btn-sm" onclick="event.preventDefault(); addToSetlist(${s.id}, this)" style="background:var(--accent-success);color:white; border:none; transition: transform 0.2s;">${btnText}</button>
+                        </button>
+                        <button class="btn-sm lib-add-btn" onclick="event.preventDefault(); addToSetlist(${s.id}, this)">${btnText}</button>
                     </div>
                 </summary>
                 <div class="lib-content-preview">${preview}</div>`;
@@ -857,31 +879,27 @@ function moveSetlistItem(index, direction) {
 
 function calculateTransposedKey(originalKey, shift) {
     if (!originalKey) return "N/A";
-    const match = originalKey.match(/^([A-G][#b]?)(.*)$/i);
+    const match = originalKey.match(/^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$/);
     if (!match) return originalKey;
-    let root = match[1]; let suffix = match[2]; let isLower = (root[0] === root[0].toLowerCase()); let rootUpper = root.toUpperCase();
-    const noteMap = {'C':0, 'C#':1, 'DB':1, 'D':2, 'D#':3, 'EB':3, 'E':4, 'F':5, 'F#':6, 'GB':6, 'G':7, 'G#':8, 'AB':8, 'A':9, 'A#':10, 'BB':10, 'B':11, 'CB':11};
-    const reverseMap = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    if (noteMap[rootUpper] === undefined) return originalKey;
-    let val = noteMap[rootUpper]; let newVal = (val + shift) % 12; if (newVal < 0) newVal += 12;
-    let newRoot = reverseMap[newVal]; if (isLower) newRoot = newRoot.toLowerCase();
+    let root = match[1]; let suffix = match[2]; let isLower = (root[0] === root[0].toLowerCase());
+    let val = NOTE_TO_PC[root.toUpperCase()];
+    if (val === undefined) return originalKey;
+    let newVal = (val + shift) % 12; if (newVal < 0) newVal += 12;
+    let newRoot = KEY_MAP[newVal]; if (isLower) newRoot = newRoot.toLowerCase();
     return newRoot + suffix;
 }
 
 function getParallelKey(key) {
     if (!key || key === '-' || key === 'N/A') return '';
-    var match = key.match(/^([A-G][#b]?)(m|min)?$/i);
+    var match = key.match(/^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)\s*(m|min)?$/);
     if (!match) return '';
-    var root = match[1].toUpperCase();
-    var isMinor = !!(match[2]);
-    var noteMap = {'C':0,'C#':1,'DB':1,'D':2,'D#':3,'EB':3,'E':4,'F':5,'F#':6,'GB':6,'G':7,'G#':8,'AB':8,'A':9,'A#':10,'BB':10,'B':11};
-    var reverseMap = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-    var val = noteMap[root];
+    var isMinor = !!(match[2]) || match[1][0] === match[1][0].toLowerCase();
+    var val = NOTE_TO_PC[match[1].toUpperCase()];
     if (val === undefined) return '';
     if (isMinor) {
-        return reverseMap[(val + 3) % 12];
+        return KEY_MAP[(val + 3) % 12];
     } else {
-        return reverseMap[(val + 9) % 12] + 'm';
+        return KEY_MAP[(val + 9) % 12] + 'm';
     }
 }
 
@@ -2048,7 +2066,7 @@ document.addEventListener('keydown', function(e) {
 
         // Animate in
         requestAnimationFrame(function() {
-            onboardingTooltip.classList.add('visible');
+            if (onboardingTooltip) onboardingTooltip.classList.add('visible');
         });
     }
 
@@ -2094,6 +2112,8 @@ document.addEventListener('keydown', function(e) {
         targetEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
 
         setTimeout(function() {
+            // Tour mógł zostać zamknięty zanim ten callback się wykonał
+            if (!onboardingSpotlight || !onboardingTooltip) return;
             var rect = targetEl.getBoundingClientRect();
             var PAD = 8;
 
@@ -2105,6 +2125,7 @@ document.addEventListener('keydown', function(e) {
 
             onboardingTooltip.classList.remove('visible');
             setTimeout(function() {
+                if (!onboardingTooltip) return;
                 onboardingPositionTooltip(rect, stepDef.position, stepIndex, ONBOARDING_STEPS.length);
             }, 50);
         }, 350);

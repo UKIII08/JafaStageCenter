@@ -535,7 +535,7 @@ class AdvancedKeyDetector:
             'e': 4, 'f': 5, 'f#': 6, 'gb': 6, 'g': 7, 'g#': 8, 'ab': 8,
             'a': 9, 'a#': 10, 'bb': 10, 'b': 11, 'h': 11, 'cb': 11
         }
-        self.index_to_note = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+        self.index_to_note = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
         self.major_profile = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88]
         self.minor_profile = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17]
 
@@ -552,34 +552,56 @@ class AdvancedKeyDetector:
     def _extract_chords_from_text(self, text):
         return [c.strip() for c in re.findall(r'\[(.*?)\]', text) if c.strip()]
 
+    def _parse_chord(self, c):
+        """Parse one chord token -> (pitch_class, is_major, bass_pc | None).
+
+        Uses the app-wide CHORD_ROOT_RE so Polish notation (H, Cis, Es, B=Bb)
+        parses identically to the transpose pipeline. 'm' in the suffix only
+        counts as minor when it is not part of 'maj' (Cmaj7 is major)."""
+        c = clean_chord(c)
+        bass_pc = None
+        if '/' in c:
+            main, _, bass = c.partition('/')
+            bm = CHORD_ROOT_RE.match(bass.strip())
+            if bm:
+                bass_pc = _resolve_pitch_class(bm.group(1).upper())
+            c = main.strip()
+        m = CHORD_ROOT_RE.match(c)
+        if not m:
+            return None
+        pc = _resolve_pitch_class(m.group(1).upper())
+        if pc is None:
+            return None
+        suffix = m.group(2)
+        is_minor = m.group(1)[0].islower() or bool(re.search(r'(?<!di)m(?!aj)', suffix)) or 'dim' in suffix
+        return pc, not is_minor, bass_pc
+
     def detect(self, text):
         chords_raw = self._extract_chords_from_text(text) if not isinstance(text, list) else text
         if not chords_raw: return "N/A"
-        
-        def parse(c):
-             match = re.match(r'^([A-Ga-g][#b]?)(.*)$', c)
-             if not match: return None
-             root_lower = match.group(1).lower()
-             if root_lower not in self.note_map: return None
-             return self.note_map[root_lower], not (c[0].islower() or 'm' in match.group(2))
 
-        first, last = parse(chords_raw[0]), parse(chords_raw[-1])
-        vec = [0]*12
-        for c in chords_raw:
-            p = parse(c)
-            if p: 
-                for n in self._get_chord_notes(*p): vec[n] += 1
-        
+        parsed = [self._parse_chord(c) for c in chords_raw]
+        parsed = [p for p in parsed if p]
+        if not parsed: return "N/A"
+
+        first, last = parsed[0], parsed[-1]
+        vec = [0.0]*12
+        for pc, is_major, bass_pc in parsed:
+            for n in self._get_chord_notes(pc, is_major):
+                vec[n] += 1
+            if bass_pc is not None:
+                vec[bass_pc] += 0.5
+
         best_key, best_score = "N/A", -999.0
         for i in range(12):
             s = self._calculate_correlation(vec, self.major_profile[-i:] + self.major_profile[:-i])
-            if last and last[1] and last[0]==i: s+=0.5
-            if first and first[1] and first[0]==i: s+=0.6
+            if last[1] and last[0]==i: s+=0.5
+            if first[1] and first[0]==i: s+=0.6
             if s > best_score: best_score, best_key = s, self.index_to_note[i]
-            
+
             s = self._calculate_correlation(vec, self.minor_profile[-i:] + self.minor_profile[:-i])
-            if last and not last[1] and last[0]==i: s+=0.5
-            if first and not first[1] and first[0]==i: s+=0.6
+            if not last[1] and last[0]==i: s+=0.5
+            if not first[1] and first[0]==i: s+=0.6
             if s > best_score: best_score, best_key = s, f"{self.index_to_note[i]}m"
         return best_key
 
