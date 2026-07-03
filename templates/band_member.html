@@ -783,6 +783,18 @@
             letter-spacing: 0.22em; text-transform: uppercase;
             color: var(--text-tertiary, #56627A);
         }
+        .smd-capo-badge {
+            display: none;
+            margin: 0 auto 2vh;
+            padding: 0.6vh 2.2vh;
+            border-radius: 999px;
+            background: var(--amber-subtle, rgba(251,191,36,0.12));
+            border: 1px solid var(--amber, #FBBF24);
+            color: var(--amber, #FBBF24);
+            font-weight: 800;
+            font-size: clamp(0.7rem, 1.9vh, 1.15rem);
+            letter-spacing: 0.08em; text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
@@ -846,9 +858,10 @@
 
     <div id="silent-md-overlay">
         <div class="smd-inner">
+            <div class="smd-capo-badge" id="smd-capo-badge"></div>
             <div class="smd-history" id="smd-history"></div>
             <div class="smd-current" id="smd-current">—</div>
-            <div class="smd-tag" data-t="smd_tag">SILENT MODE · pianino prowadzi</div>
+            <div class="smd-tag" id="smd-tag" data-t="smd_tag">SILENT MODE · pianino prowadzi</div>
         </div>
     </div>
 
@@ -1524,6 +1537,8 @@
         var liveSectionIndex = 0;
 
         function rerender() {
+            // Jeśli nakładka Silent MD jest aktywna, przelicz ją pod nowe capo/notację
+            if (typeof lastSMD !== 'undefined' && lastSMD && lastSMD.active) renderSilentMD();
             if (currentContent.style.display === 'none') return;
             currentContent.innerHTML = transformServerHtml(currentBandHtml);
             currentContent.style.fontSize = currentSettings.font_size + 'vh';
@@ -1841,22 +1856,53 @@
         socket.on('refresh_logo', function() { location.reload(); });
 
         // ===== SILENT MUSIC DIRECTOR — akordy na żywo z pianina =====
-        socket.on('silent_md', function(d) {
+        // Akordy przychodzą w stroju koncertowym (to, co gra pianista). Każdy
+        // muzyk widzi je po SWOIM capo i w SWOJEJ notacji — z wyraźną informacją.
+        var lastSMD = null;
+
+        function smdTransformChord(name) {
+            if (!name) return name;
+            var display = name;
+            var capo = currentSettings.capo_fret || 0;
+            if (capo > 0) display = transposeChord(display, -capo); // kształty pod capo
+            display = convertNotation(display);                     // notacja + małe mol
+            return display;
+        }
+
+        function renderSilentMD() {
             var ov = document.getElementById('silent-md-overlay');
             if (!ov) return;
-            if (d && d.active) {
-                document.getElementById('smd-current').textContent = d.current || '—';
-                var hist = document.getElementById('smd-history');
-                hist.innerHTML = '';
-                (d.history || []).forEach(function(name) {
-                    var s = document.createElement('span');
-                    s.textContent = name;
-                    hist.appendChild(s);
-                });
-                ov.classList.add('show');
+            var d = lastSMD;
+            if (!d || !d.active) { ov.classList.remove('show'); return; }
+
+            document.getElementById('smd-current').textContent = smdTransformChord(d.current) || '—';
+            var hist = document.getElementById('smd-history');
+            hist.innerHTML = '';
+            (d.history || []).forEach(function(name) {
+                var s = document.createElement('span');
+                s.textContent = smdTransformChord(name);
+                hist.appendChild(s);
+            });
+
+            // Informacja o capo — akordy są JUŻ transponowane
+            var capo = currentSettings.capo_fret || 0;
+            var badge = document.getElementById('smd-capo-badge');
+            var tag = document.getElementById('smd-tag');
+            if (capo > 0) {
+                badge.textContent = (currentLang === 'en' ? 'CAPO ' : 'CAPO ') + capo + ' · ' +
+                    (currentLang === 'en' ? 'shapes already transposed' : 'akordy już przeliczone na capo');
+                badge.style.display = 'inline-block';
+                tag.textContent = currentLang === 'en' ? 'SILENT MODE · piano leads' : 'SILENT MODE · pianino prowadzi';
             } else {
-                ov.classList.remove('show');
+                badge.style.display = 'none';
+                tag.textContent = currentLang === 'en' ? 'SILENT MODE · piano leads' : 'SILENT MODE · pianino prowadzi';
             }
+            ov.classList.add('show');
+        }
+
+        socket.on('silent_md', function(d) {
+            lastSMD = d;
+            renderSilentMD();
         });
 
         // ===== SETTINGS UI =====

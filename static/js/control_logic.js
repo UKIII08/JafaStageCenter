@@ -559,6 +559,7 @@ function openSettingsModal(){
     document.getElementById('lang-select').value = localStorage.getItem('appLang') || 'pl';
 
     renderShortcuts();
+    if (typeof refreshMidiSelectUI === 'function') refreshMidiSelectUI();
 }
 function closeSettingsModal(){document.getElementById('settingsModal').style.display='none';}
 function openImportModal(){document.getElementById('importModal').style.display='flex';}
@@ -2529,14 +2530,80 @@ document.addEventListener('keydown', function(e) {
         }
     }
 
-    function bindInputs() {
-        if (!midiAccess) return;
+    var selectedDeviceId = localStorage.getItem('midiDeviceId') || '';
+
+    function listInputs() {
         midiInputs = [];
-        midiAccess.inputs.forEach(function (inp) {
-            midiInputs.push(inp);
-            inp.onmidimessage = onMidiMessage;
+        if (!midiAccess) return midiInputs;
+        midiAccess.inputs.forEach(function (inp) { midiInputs.push(inp); });
+        return midiInputs;
+    }
+
+    // Podpina TYLKO wybrane urządzenie (albo pierwsze, gdy nic nie wybrano).
+    function bindSelectedInput() {
+        if (!midiAccess) return;
+        listInputs();
+        // Odłącz wszystkie, potem podłącz jedno
+        midiInputs.forEach(function (inp) { inp.onmidimessage = null; });
+        var target = null;
+        if (selectedDeviceId) {
+            for (var i = 0; i < midiInputs.length; i++) {
+                if (midiInputs[i].id === selectedDeviceId) { target = midiInputs[i]; break; }
+            }
+        }
+        if (!target && midiInputs.length > 0) {
+            target = midiInputs[0];
+            selectedDeviceId = target.id;
+        }
+        boundInput = target;
+        if (target) target.onmidimessage = onMidiMessage;
+        populateMidiSelect();
+    }
+
+    function ensureMidiAccess(cb) {
+        if (!navigator.requestMIDIAccess) {
+            showToast(currentLang === 'en' ? 'Web MIDI not supported in this runtime.' : 'To środowisko nie wspiera Web MIDI.');
+            return;
+        }
+        if (midiAccess) { cb(); return; }
+        navigator.requestMIDIAccess({ sysex: false }).then(function (acc) {
+            midiAccess = acc;
+            midiAccess.onstatechange = function () { bindSelectedInput(); };
+            cb();
+        }).catch(function () {
+            showToast(currentLang === 'en' ? 'MIDI access denied.' : 'Odmówiono dostępu do MIDI.');
         });
     }
+
+    function populateMidiSelect() {
+        var sel = document.getElementById('midi-device-select');
+        if (!sel) return;
+        listInputs();
+        if (midiInputs.length === 0) {
+            sel.innerHTML = '<option value="">' + (currentLang === 'en' ? '— none detected —' : '— nie wykryto —') + '</option>';
+            return;
+        }
+        sel.innerHTML = midiInputs.map(function (inp) {
+            var nm = inp.name || inp.id;
+            var selAttr = (inp.id === selectedDeviceId) ? ' selected' : '';
+            return '<option value="' + inp.id + '"' + selAttr + '>' + nm + '</option>';
+        }).join('');
+    }
+
+    window.scanMidiDevices = function () {
+        ensureMidiAccess(function () {
+            bindSelectedInput();
+            populateMidiSelect();
+            var n = midiInputs.length;
+            showToast((currentLang === 'en' ? 'MIDI devices: ' : 'Urządzenia MIDI: ') + n);
+        });
+    };
+
+    window.selectMidiDevice = function (id) {
+        selectedDeviceId = id || '';
+        localStorage.setItem('midiDeviceId', selectedDeviceId);
+        bindSelectedInput();
+    };
 
     function updateMidiButtonState(state) {
         var btn = document.getElementById('silent-md-btn');
@@ -2556,32 +2623,15 @@ document.addEventListener('keydown', function(e) {
 
     window.toggleSilentMD = function () {
         if (!active) {
-            // Włącz — zażądaj MIDI jeśli trzeba
-            if (!navigator.requestMIDIAccess) {
-                showToast(currentLang === 'en'
-                    ? 'Web MIDI not supported in this runtime.'
-                    : 'To środowisko nie wspiera Web MIDI.');
-                return;
-            }
-            if (midiAccess) {
-                startSilentMD();
-            } else {
-                navigator.requestMIDIAccess({ sysex: false }).then(function (acc) {
-                    midiAccess = acc;
-                    midiAccess.onstatechange = bindInputs;
-                    bindInputs();
-                    if (midiInputs.length === 0) {
-                        showToast(currentLang === 'en'
-                            ? 'No MIDI device found. Connect your piano.'
-                            : 'Nie wykryto pianina MIDI. Podłącz je przez USB.');
-                    }
-                    startSilentMD();
-                }).catch(function () {
+            ensureMidiAccess(function () {
+                bindSelectedInput();
+                if (midiInputs.length === 0) {
                     showToast(currentLang === 'en'
-                        ? 'MIDI access denied.'
-                        : 'Odmówiono dostępu do MIDI.');
-                });
-            }
+                        ? 'No MIDI device found. Connect your piano.'
+                        : 'Nie wykryto pianina MIDI. Podłącz je przez USB.');
+                }
+                startSilentMD();
+            });
         } else {
             stopSilentMD();
         }
@@ -2591,10 +2641,16 @@ document.addEventListener('keydown', function(e) {
         active = true;
         heldNotes = {}; sustained = {}; sustainOn = false;
         history = []; lastChordName = null;
-        updateMidiButtonState(midiInputs.length + (currentLang === 'en' ? ' input(s)' : ' wejść'));
+        var devName = boundInput ? (boundInput.name || boundInput.id) : '';
+        updateMidiButtonState(devName ? ('· ' + devName) : '');
         broadcastSilentMD();
         showToast(currentLang === 'en' ? 'Silent MD on' : 'Silent MD włączony');
     }
+
+    // Populacja listy urządzeń przy otwarciu ustawień (jeśli mamy już dostęp)
+    window.refreshMidiSelectUI = function () {
+        if (midiAccess) populateMidiSelect();
+    };
 
     function stopSilentMD() {
         active = false;

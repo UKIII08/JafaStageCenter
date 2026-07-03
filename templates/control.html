@@ -1645,6 +1645,18 @@
             </div>
 
             <div class="settings-section">
+                <h4 data-t="smd_section">Silent Music Director (MIDI)</h4>
+                <p class="shortcuts-hint" data-t="smd_hint">Wybierz pianino MIDI podłączone przez USB. Po włączeniu „Silent MD" w panelu, akordy grane na pianinie pojawią się na żywo u zespołu.</p>
+                <div class="settings-row">
+                    <label data-t="midi_device">Urządzenie MIDI:</label>
+                    <select id="midi-device-select" style="width:55%;" onchange="selectMidiDevice(this.value)">
+                        <option value="" data-t="midi_none">— nie wykryto —</option>
+                    </select>
+                </div>
+                <button type="button" class="backup-btn" style="width:100%; margin-top:var(--s3);" onclick="scanMidiDevices()" data-t="midi_scan">Skanuj urządzenia MIDI</button>
+            </div>
+
+            <div class="settings-section">
                 <h4 data-t="shortcuts_header">Skróty klawiszowe</h4>
                 <p class="shortcuts-hint" data-t="shortcuts_hint">Kliknij klawisz obok akcji i naciśnij nowy. Pod te skróty podłączysz hardware'owy sterownik (emulujący klawiaturę).</p>
                 <div id="shortcuts-list"></div>
