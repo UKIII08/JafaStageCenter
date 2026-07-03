@@ -897,7 +897,78 @@ function renderShortcuts() {
     }).join('');
 }
 
+// ── Hands-free worship flow (tylko gdy metronom WŁĄCZONY) ──
+// Jeden pedał (next) prowadzi: ostatni slajd → [pedał] przejście (metronom
+// milknie, grasz na luzie) → [pedał] intro następnej piosenki (metronom
+// wraca, tekst jeszcze się NIE pokazuje) → [pedał] pokazuje się tekst.
+var worshipFlow = null;      // null | 'transition' | 'armed'
+var flowArmedTile = null;    // kafelek uzbrojony (metronom gra, tekst ukryty)
+
+function resetWorshipFlow() {
+    worshipFlow = null;
+    flowArmedTile = null;
+    document.querySelectorAll('.slide-btn.armed').forEach(function (t) { t.classList.remove('armed'); });
+}
+
+// Uzbraja pierwszy slajd bieżącej piosenki: podświetla, ale NIE wysyła na ekrany
+function armFirstSlide() {
+    var reals = document.querySelectorAll('.slide-btn:not(.transition-tile)');
+    if (!reals.length) { worshipFlow = null; return; }
+    var tile = reals[0];
+    document.querySelectorAll('.slide-btn').forEach(function (x) { x.classList.remove('active'); });
+    tile.classList.add('active');
+    tile.classList.add('armed');
+    activeSectionIdx = 0;
+    flowArmedTile = tile;
+    worshipFlow = 'armed';
+}
+
 function navigateSlides(direction) {
+    var metroOn = (typeof isMetronomeOn === 'function') && isMetronomeOn();
+    var inFlow = metroOn || worshipFlow !== null;
+
+    if (direction === 1 && inFlow) {
+        // 1) Uzbrojony slajd → teraz pokaż tekst
+        if (worshipFlow === 'armed' && flowArmedTile) {
+            var t = flowArmedTile;
+            resetWorshipFlow();
+            t.click(); // wysyła tekst na ekrany
+            return;
+        }
+        // 2) Na przejściu → przejdź do następnej piosenki, wróć metronom, uzbrój intro
+        if (worshipFlow === 'transition') {
+            worshipFlow = null;
+            if (currentSetIndex < setlist.length - 1) {
+                selectForLive(currentSetIndex + 1);
+                setTimeout(function () {
+                    if (typeof metroSetActive === 'function') metroSetActive(true); // metronom wraca na nowe tempo
+                    armFirstSlide();
+                }, 60);
+            }
+            return;
+        }
+        // 3) Zwykły krok w obrębie piosenki; na ostatnim slajdzie → wejdź w przejście
+        var reals = Array.from(document.querySelectorAll('.slide-btn:not(.transition-tile)'));
+        var ai = reals.findIndex(function (s) { return s.classList.contains('active'); });
+        if (ai === -1) { if (reals[0]) reals[0].click(); return; }
+        if (ai + 1 < reals.length) { reals[ai + 1].click(); return; } // następny slajd tej samej piosenki
+        // ostatni slajd piosenki:
+        var trans = document.querySelector('.slide-btn.transition-tile');
+        if (trans && currentSetIndex < setlist.length - 1) {
+            trans.click(); // onclick przejścia: metronom milknie + worshipFlow='transition'
+            return;
+        }
+        if (currentSetIndex < setlist.length - 1) {
+            // brak kafelka przejścia → przejdź i uzbrój (metronom gra dalej)
+            selectForLive(currentSetIndex + 1);
+            setTimeout(function () { armFirstSlide(); }, 60);
+            return;
+        }
+        return; // ostatni slajd ostatniej piosenki
+    }
+
+    // ── Zachowanie normalne (metronom wyłączony, brak flow) ──
+    if (direction === -1) resetWorshipFlow();
     const slides = Array.from(document.querySelectorAll('.slide-btn:not(.transition-tile)'));
     if (slides.length === 0) return;
     const activeIndex = slides.findIndex(s => s.classList.contains('active'));
@@ -1322,6 +1393,7 @@ function renderSectionTiles(songIdx) {
         b.setAttribute('data-sec-idx', idx);
         b.innerHTML = `<span class="slide-label">${sec.label}</span><span>${sec.content.replace(/\[.*?\]/g,"").substring(0,40)}...</span><span class="slide-actions"><button class="slide-dup-btn" title="Duplikuj" onclick="event.stopPropagation(); duplicateSection(${idx});">+</button><button class="slide-del-btn" title="Usuń" onclick="event.stopPropagation(); removeDuplicatedSection(${idx});">×</button></span>`;
         b.onclick = () => {
+            if (typeof resetWorshipFlow === 'function') resetWorshipFlow(); // klik kasuje stan flow
             document.querySelectorAll('.slide-btn').forEach(x => x.classList.remove('active'));
             b.classList.add('active');
             activeSectionIdx = idx;
@@ -1379,6 +1451,15 @@ function renderSectionTiles(songIdx) {
             btn.onclick = () => {
                 document.querySelectorAll('.slide-btn').forEach(x => x.classList.remove('active')); btn.classList.add('active');
                 activeSectionIdx = -1;
+
+                // Hands-free flow: gdy metronom gra, milknie na czas przejścia
+                // (grasz na luzie), a wraca dopiero na intro następnej piosenki.
+                if (typeof isMetronomeOn === 'function' && isMetronomeOn()) {
+                    metroSetActive(false);
+                    worshipFlow = 'transition';
+                } else {
+                    worshipFlow = null;
+                }
 
                 if (isPadPlaying && songIdx < setlist.length - 1) {
                     var nextSong = setlist[songIdx + 1];
@@ -2851,6 +2932,23 @@ document.addEventListener('keydown', function(e) {
             updateMetroUI();
             if (typeof showToast === 'function') showToast((currentLang === 'en' ? 'Metronome ' : 'Metronom ') + currentBpm() + ' BPM');
         }
+    };
+
+    window.isMetronomeOn = function () { return metro.on; };
+    // Start/stop bez toastów i bez efektów ubocznych (dla flow pedałowego)
+    window.metroSetActive = function (on) {
+        if (on && !metro.on) {
+            var ctx = ensureAudioCtx();
+            metro.on = true; metro.beat = 0; metro.ducking = false;
+            if (metro.timer) clearTimeout(metro.timer);
+            try { AudioRouting.metroBus.gain.cancelScheduledValues(ctx.currentTime); AudioRouting.metroBus.gain.setValueAtTime(1, ctx.currentTime); } catch (e) {}
+            metro.nextTime = ctx.currentTime + 0.06;
+            scheduler();
+        } else if (!on && metro.on) {
+            metro.on = false;
+            if (metro.timer) clearTimeout(metro.timer);
+        }
+        updateMetroUI();
     };
 
     // Re-sync UI po zmianie piosenki (żeby BPM się odświeżył)

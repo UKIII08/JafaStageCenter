@@ -672,6 +672,19 @@
         box-shadow: 0 0 12px var(--accent);
     }
     .slide-btn.active .slide-label { color: var(--accent); }
+    /* Uzbrojony (hands-free): metronom gra, tekst jeszcze ukryty */
+    .slide-btn.armed {
+        background: linear-gradient(135deg, var(--amber-subtle), transparent 65%);
+        border-color: var(--amber);
+        box-shadow: 0 0 0 1px var(--amber), 0 6px 24px var(--amber-subtle);
+        animation: armedPulse 1s ease-in-out infinite;
+    }
+    .slide-btn.armed::after { background: var(--amber); box-shadow: 0 0 12px var(--amber); }
+    .slide-btn.armed .slide-label { color: var(--amber); }
+    .slide-btn.armed .slide-label::after {
+        content: ' · INTRO'; font-size: 0.85em; opacity: 0.8;
+    }
+    @keyframes armedPulse { 0%,100% { box-shadow: 0 0 0 1px var(--amber), 0 0 10px var(--amber-subtle); } 50% { box-shadow: 0 0 0 1px var(--amber), 0 0 26px var(--amber-subtle); } }
     .slide-actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 3px; opacity: 0; transition: opacity var(--duration-fast) var(--ease-out); }
     .slide-btn:hover .slide-actions { opacity: 1; }
     .slide-dup-btn, .slide-del-btn {
