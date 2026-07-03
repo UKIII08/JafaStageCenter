@@ -39,11 +39,70 @@ const NOTE_TO_PC = {
     'CIS':1, 'DIS':3, 'ES':3, 'FIS':6, 'GIS':8, 'AS':8, 'AIS':10, 'HIS':0
 };
 
+// ── Szyny wyjściowe: pady i metronom mają osobne busy, które można
+//    kierować na różne kanały interfejsu audio (albo wspólnie w stereo).
+var AudioRouting = {
+    built: false,
+    maxCh: 2,
+    merger: null,
+    padBus: null,
+    metroBus: null,
+    padChannels: (function(){ try { return JSON.parse(localStorage.getItem('padChannels')) || [0,1]; } catch(e){ return [0,1]; } })(),
+    metroChannels: (function(){ try { return JSON.parse(localStorage.getItem('metroChannels')) || [0,1]; } catch(e){ return [0,1]; } })(),
+    outputDeviceId: localStorage.getItem('audioOutId') || ''
+};
+
+function buildAudioGraph(ctx) {
+    if (AudioRouting.built) return;
+    AudioRouting.maxCh = ctx.destination.maxChannelCount || 2;
+    AudioRouting.padBus = ctx.createGain();
+    AudioRouting.metroBus = ctx.createGain();
+    if (AudioRouting.maxCh > 2) {
+        try {
+            ctx.destination.channelCountMode = 'explicit';
+            ctx.destination.channelInterpretation = 'discrete';
+            ctx.destination.channelCount = AudioRouting.maxCh;
+        } catch (e) {}
+        AudioRouting.merger = ctx.createChannelMerger(AudioRouting.maxCh);
+        AudioRouting.merger.connect(ctx.destination);
+    }
+    AudioRouting.built = true;
+    wireAudioBuses(ctx);
+    // Wybrane wyjście (interfejs) — jeśli setSinkId wspierane
+    if (AudioRouting.outputDeviceId && typeof ctx.setSinkId === 'function') {
+        ctx.setSinkId(AudioRouting.outputDeviceId).catch(function(){});
+    }
+}
+
+function connectBusToChannels(ctx, bus, channels) {
+    var sp = ctx.createChannelSplitter(2);
+    bus.connect(sp);
+    var a = Math.min(channels[0], AudioRouting.maxCh - 1);
+    var b = Math.min(channels[1], AudioRouting.maxCh - 1);
+    sp.connect(AudioRouting.merger, 0, a);
+    sp.connect(AudioRouting.merger, 1, b);
+}
+
+// (Prze)podłącza busy do wyjścia — wołane przy zmianie kanałów.
+function wireAudioBuses(ctx) {
+    if (!AudioRouting.padBus) return;
+    try { AudioRouting.padBus.disconnect(); } catch (e) {}
+    try { AudioRouting.metroBus.disconnect(); } catch (e) {}
+    if (AudioRouting.merger) {
+        connectBusToChannels(ctx, AudioRouting.padBus, AudioRouting.padChannels);
+        connectBusToChannels(ctx, AudioRouting.metroBus, AudioRouting.metroChannels);
+    } else {
+        AudioRouting.padBus.connect(ctx.destination);
+        AudioRouting.metroBus.connect(ctx.destination);
+    }
+}
+
 function ensureAudioCtx() {
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (audioCtx.state === 'suspended') audioCtx.resume();
+    buildAudioGraph(audioCtx);
     return audioCtx;
 }
 
@@ -54,7 +113,7 @@ function getPadNode(el) {
     const gain = ctx.createGain();
     gain.gain.value = 0;
     source.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(AudioRouting.padBus);   // pady → szyna padów
     const node = { source, gain };
     padNodes.set(el, node);
     return node;
@@ -560,6 +619,12 @@ function openSettingsModal(){
 
     renderShortcuts();
     if (typeof refreshMidiSelectUI === 'function') refreshMidiSelectUI();
+
+    // Przywróć zapisane ustawienia metronomu do formularza
+    var mb = document.getElementById('metro-beats-select');
+    if (mb) mb.value = localStorage.getItem('metroBeats') || '4';
+    var mv = document.getElementById('metro-vol-slider');
+    if (mv) { var v = parseFloat(localStorage.getItem('metroVolume')); mv.value = isNaN(v) ? 0.6 : v; }
 }
 function closeSettingsModal(){document.getElementById('settingsModal').style.display='none';}
 function openImportModal(){document.getElementById('importModal').style.display='flex';}
@@ -1161,7 +1226,8 @@ function selectForLive(i, broadcast = true){
     document.getElementById('live-key').innerText = finalKey;
     updateParallelKey();
     document.getElementById('live-bpm').innerText = item.bpm ? item.bpm : "-";
-    
+    if (typeof syncMetronome === 'function') syncMetronome(); // odśwież BPM metronomu
+
     if(isPadPlaying) {
        triggerDebouncedPad(finalKey);
     }
@@ -2666,5 +2732,166 @@ document.addEventListener('keydown', function(e) {
         start: function () { startSilentMD(); },
         stop: function () { stopSilentMD(); },
         state: function () { return { active: active, history: history.slice() }; }
+    };
+})();
+
+
+// ═══════════════════════════════════════════════════════════════
+//  METRONOM + ROUTING AUDIO
+//  Metronom (dokładny scheduler Web Audio) na osobnej szynie, którą
+//  można skierować na inne wyjścia interfejsu niż pady (click do IEM,
+//  pady do FOH). Bez interfejsu — wszystko w stereo.
+// ═══════════════════════════════════════════════════════════════
+(function () {
+    var metro = {
+        on: false, beats: 4, volume: 0.6, manualBpm: 0,
+        nextTime: 0, beat: 0, timer: null,
+        lookahead: 25, scheduleAhead: 0.12
+    };
+    try { metro.volume = parseFloat(localStorage.getItem('metroVolume')); if (isNaN(metro.volume)) metro.volume = 0.6; } catch (e) {}
+    try { metro.beats = parseInt(localStorage.getItem('metroBeats')) || 4; } catch (e) {}
+
+    function getLiveBpm() {
+        if (typeof currentSetIndex !== 'undefined' && currentSetIndex >= 0 && setlist[currentSetIndex]) {
+            var b = parseInt(setlist[currentSetIndex].bpm);
+            if (b && b > 0) return b;
+        }
+        return 0;
+    }
+    function currentBpm() {
+        if (metro.manualBpm > 0) return metro.manualBpm;
+        var live = getLiveBpm();
+        return (live > 0) ? live : 120;
+    }
+
+    function scheduleClick(beat, time) {
+        var ctx = ensureAudioCtx();
+        var osc = ctx.createOscillator();
+        var g = ctx.createGain();
+        var accent = (beat === 0);
+        osc.frequency.value = accent ? 1600 : 950;
+        g.gain.setValueAtTime(0.0001, time);
+        g.gain.exponentialRampToValueAtTime(metro.volume * (accent ? 1.0 : 0.65), time + 0.001);
+        g.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
+        osc.connect(g);
+        g.connect(AudioRouting.metroBus || ctx.destination);
+        osc.start(time);
+        osc.stop(time + 0.06);
+    }
+
+    function scheduler() {
+        var ctx = ensureAudioCtx();
+        while (metro.nextTime < ctx.currentTime + metro.scheduleAhead) {
+            scheduleClick(metro.beat, metro.nextTime);
+            metro.nextTime += 60.0 / currentBpm();
+            metro.beat = (metro.beat + 1) % metro.beats;
+        }
+        metro.timer = setTimeout(scheduler, metro.lookahead);
+    }
+
+    function updateMetroUI() {
+        var btn = document.getElementById('metro-btn');
+        if (btn) {
+            btn.classList.toggle('active', metro.on);
+            btn.textContent = metro.on ? '■' : '▶';
+        }
+        var bpmv = document.getElementById('metro-bpm-val');
+        if (bpmv) bpmv.textContent = currentBpm();
+    }
+
+    window.toggleMetronome = function () {
+        if (metro.on) {
+            metro.on = false;
+            if (metro.timer) clearTimeout(metro.timer);
+            updateMetroUI();
+            if (typeof showToast === 'function') showToast(currentLang === 'en' ? 'Metronome off' : 'Metronom wyłączony');
+        } else {
+            var ctx = ensureAudioCtx();
+            metro.on = true; metro.beat = 0;
+            metro.nextTime = ctx.currentTime + 0.06;
+            scheduler();
+            updateMetroUI();
+            if (typeof showToast === 'function') showToast((currentLang === 'en' ? 'Metronome ' : 'Metronom ') + currentBpm() + ' BPM');
+        }
+    };
+
+    // Re-sync UI po zmianie piosenki (żeby BPM się odświeżył)
+    window.syncMetronome = function () { updateMetroUI(); };
+    window.setMetroVolume = function (v) { metro.volume = parseFloat(v); localStorage.setItem('metroVolume', metro.volume); };
+    window.setMetroBeats = function (v) { metro.beats = parseInt(v) || 4; localStorage.setItem('metroBeats', metro.beats); updateMetroUI(); };
+
+    // ── Wybór wyjścia audio i kanałów ──
+    window.scanAudioOutputs = function () {
+        var ctx = ensureAudioCtx(); // zbuduj graf, poznaj maxChannelCount
+        populateChannelSelects(ctx);
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+            if (typeof showToast === 'function') showToast(currentLang === 'en' ? 'Device list unavailable.' : 'Lista urządzeń niedostępna.');
+            return;
+        }
+        navigator.mediaDevices.enumerateDevices().then(function (devs) {
+            var outs = devs.filter(function (d) { return d.kind === 'audiooutput'; });
+            var sel = document.getElementById('audio-out-select');
+            if (sel) {
+                var def = (currentLang === 'en' ? 'System default' : 'Domyślne systemowe');
+                sel.innerHTML = '<option value="">' + def + '</option>' + outs.map(function (d, i) {
+                    var nm = d.label || ((currentLang === 'en' ? 'Output ' : 'Wyjście ') + (i + 1));
+                    var s = (d.deviceId === AudioRouting.outputDeviceId) ? ' selected' : '';
+                    return '<option value="' + d.deviceId + '"' + s + '>' + nm + '</option>';
+                }).join('');
+            }
+            if (typeof showToast === 'function') showToast((currentLang === 'en' ? 'Audio outputs: ' : 'Wyjścia audio: ') + outs.length +
+                ' · ' + AudioRouting.maxCh + (currentLang === 'en' ? ' ch' : ' kan.'));
+        });
+    };
+
+    window.selectAudioOutput = function (id) {
+        AudioRouting.outputDeviceId = id || '';
+        localStorage.setItem('audioOutId', AudioRouting.outputDeviceId);
+        if (audioCtx && typeof audioCtx.setSinkId === 'function') {
+            audioCtx.setSinkId(AudioRouting.outputDeviceId).catch(function () {
+                if (typeof showToast === 'function') showToast(currentLang === 'en' ? 'Output routing not supported here.' : 'To środowisko nie wspiera wyboru wyjścia.');
+            });
+        }
+    };
+
+    function channelPairOptions(maxCh, selected) {
+        var opts = '';
+        for (var i = 0; i + 1 < maxCh; i += 2) {
+            var val = '[' + i + ',' + (i + 1) + ']';
+            var s = (selected[0] === i) ? ' selected' : '';
+            opts += '<option value="' + val + '"' + s + '>' + (i + 1) + '–' + (i + 2) + '</option>';
+        }
+        return opts;
+    }
+    function populateChannelSelects(ctx) {
+        var max = AudioRouting.maxCh || 2;
+        var padSel = document.getElementById('pad-channels-select');
+        var metroSel = document.getElementById('metro-channels-select');
+        if (padSel) padSel.innerHTML = channelPairOptions(max, AudioRouting.padChannels);
+        if (metroSel) metroSel.innerHTML = channelPairOptions(max, AudioRouting.metroChannels);
+        var note = document.getElementById('audio-ch-note');
+        if (note && max <= 2) {
+            note.textContent = currentLang === 'en'
+                ? 'Stereo device — pads and metronome share 1–2.'
+                : 'Urządzenie stereo — pady i metronom idą razem na 1–2.';
+        } else if (note) {
+            note.textContent = '';
+        }
+    }
+    window.selectPadChannels = function (val) {
+        try { AudioRouting.padChannels = JSON.parse(val); } catch (e) { return; }
+        localStorage.setItem('padChannels', JSON.stringify(AudioRouting.padChannels));
+        if (audioCtx) wireAudioBuses(audioCtx);
+    };
+    window.selectMetroChannels = function (val) {
+        try { AudioRouting.metroChannels = JSON.parse(val); } catch (e) { return; }
+        localStorage.setItem('metroChannels', JSON.stringify(AudioRouting.metroChannels));
+        if (audioCtx) wireAudioBuses(audioCtx);
+    };
+
+    // Ekspozycja do testów
+    window.__metro = {
+        state: function () { return { on: metro.on, bpm: currentBpm(), beats: metro.beats }; },
+        routing: function () { return AudioRouting; }
     };
 })();

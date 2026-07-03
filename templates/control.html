@@ -709,6 +709,26 @@
         box-shadow: 0 0 0 1px var(--accent-line), 0 0 22px var(--accent-glow);
     }
     .silent-md-btn.active svg { stroke: #04121A; }
+
+    /* Metronom — mały przycisk przy BPM */
+    .bpm-metro-group { display: inline-flex; align-items: center; gap: var(--s3); }
+    .metro-btn {
+        width: 28px; height: 28px; flex-shrink: 0;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--border-default);
+        background: var(--bg-inset);
+        color: var(--text-secondary);
+        font-size: 0.8rem; line-height: 1; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .metro-btn:hover { border-color: var(--accent-line); color: var(--accent); }
+    .metro-btn.active {
+        background: var(--accent); color: #04121A; border-color: transparent;
+        box-shadow: 0 0 14px var(--accent-glow);
+        animation: metroPulse 0.5s ease-in-out infinite;
+    }
+    @keyframes metroPulse { 0%,100% { box-shadow: 0 0 8px var(--accent-glow); } 50% { box-shadow: 0 0 20px var(--accent-glow); } }
     button.danger, button.secondary {
         flex: 1;
         padding: var(--s4);
@@ -1286,7 +1306,10 @@
                         </div>
                         <div class="music-info-row">
                             <span class="info-label">BPM</span>
-                            <span id="live-bpm" class="info-value info-value-red">-</span>
+                            <div class="bpm-metro-group">
+                                <button id="metro-btn" class="metro-btn" onclick="toggleMetronome()" title="Metronom (BPM piosenki)">▶</button>
+                                <span id="live-bpm" class="info-value info-value-red">-</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1642,6 +1665,44 @@
                         <button type="submit" class="btn-primary btn-sm" data-t="upload_btn">WGRAJ</button>
                     </form>
                 </div>
+            </div>
+
+            <div class="settings-section">
+                <h4 data-t="audio_section">Audio — pady i metronom</h4>
+                <p class="shortcuts-hint" data-t="audio_hint">Wybierz interfejs audio i wyjścia. Pady i metronom mogą iść na różne kanały (np. pady na FOH, click na słuchawki/IEM). Bez interfejsu wielokanałowego — wszystko w stereo.</p>
+                <div class="settings-row">
+                    <label data-t="audio_out">Interfejs / wyjście:</label>
+                    <select id="audio-out-select" style="width:55%;" onchange="selectAudioOutput(this.value)">
+                        <option value="" data-t="audio_out_default">Domyślne systemowe</option>
+                    </select>
+                </div>
+                <div class="settings-row">
+                    <label data-t="audio_pad_ch">Wyjście padów:</label>
+                    <select id="pad-channels-select" style="width:55%;" onchange="selectPadChannels(this.value)">
+                        <option value="[0,1]">1–2</option>
+                    </select>
+                </div>
+                <div class="settings-row">
+                    <label data-t="audio_metro_ch">Wyjście metronomu:</label>
+                    <select id="metro-channels-select" style="width:55%;" onchange="selectMetroChannels(this.value)">
+                        <option value="[0,1]">1–2</option>
+                    </select>
+                </div>
+                <div class="settings-row">
+                    <label data-t="audio_metro_beats">Metrum (uderzeń/takt):</label>
+                    <select id="metro-beats-select" style="width:55%;" onchange="setMetroBeats(this.value)">
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4" selected>4</option>
+                        <option value="6">6</option>
+                    </select>
+                </div>
+                <div class="settings-row">
+                    <label data-t="audio_metro_vol">Głośność metronomu:</label>
+                    <input type="range" id="metro-vol-slider" min="0" max="1" step="0.01" value="0.6" style="width:55%;" oninput="setMetroVolume(this.value)">
+                </div>
+                <p id="audio-ch-note" class="shortcuts-hint" style="margin-top:var(--s2);"></p>
+                <button type="button" class="backup-btn" style="width:100%; margin-top:var(--s3);" onclick="scanAudioOutputs()" data-t="audio_scan">Skanuj wyjścia audio</button>
             </div>
 
             <div class="settings-section">
