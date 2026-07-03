@@ -47,8 +47,13 @@ var AudioRouting = {
     merger: null,
     padBus: null,
     metroBus: null,
+    padPanner: null,
+    metroPanner: null,
     padChannels: (function(){ try { return JSON.parse(localStorage.getItem('padChannels')) || [0,1]; } catch(e){ return [0,1]; } })(),
     metroChannels: (function(){ try { return JSON.parse(localStorage.getItem('metroChannels')) || [0,1]; } catch(e){ return [0,1]; } })(),
+    // Podział L/P na zwykłym stereo (bez interfejsu) — pady L, metronom P,
+    // rozdzielasz przejściówką jack → 2× mono.
+    stereoSplit: localStorage.getItem('stereoSplit') === '1',
     outputDeviceId: localStorage.getItem('audioOutId') || ''
 };
 
@@ -57,6 +62,11 @@ function buildAudioGraph(ctx) {
     AudioRouting.maxCh = ctx.destination.maxChannelCount || 2;
     AudioRouting.padBus = ctx.createGain();
     AudioRouting.metroBus = ctx.createGain();
+    // Panery do podziału L/P na zwykłym stereo (gdy brak interfejsu wielokan.)
+    if (typeof ctx.createStereoPanner === 'function') {
+        AudioRouting.padPanner = ctx.createStereoPanner();
+        AudioRouting.metroPanner = ctx.createStereoPanner();
+    }
     if (AudioRouting.maxCh > 2) {
         try {
             ctx.destination.channelCountMode = 'explicit';
@@ -83,19 +93,40 @@ function connectBusToChannels(ctx, bus, channels) {
     sp.connect(AudioRouting.merger, 1, b);
 }
 
-// (Prze)podłącza busy do wyjścia — wołane przy zmianie kanałów.
+// (Prze)podłącza busy do wyjścia — wołane przy zmianie kanałów / trybu.
 function wireAudioBuses(ctx) {
     if (!AudioRouting.padBus) return;
     try { AudioRouting.padBus.disconnect(); } catch (e) {}
     try { AudioRouting.metroBus.disconnect(); } catch (e) {}
+    if (AudioRouting.padPanner) { try { AudioRouting.padPanner.disconnect(); } catch (e) {} }
+    if (AudioRouting.metroPanner) { try { AudioRouting.metroPanner.disconnect(); } catch (e) {} }
+
     if (AudioRouting.merger) {
+        // Interfejs wielokanałowy — kieruj na wybrane pary kanałów
         connectBusToChannels(ctx, AudioRouting.padBus, AudioRouting.padChannels);
         connectBusToChannels(ctx, AudioRouting.metroBus, AudioRouting.metroChannels);
+    } else if (AudioRouting.stereoSplit && AudioRouting.padPanner) {
+        // Zwykłe stereo, podział L/P: pady lewy, metronom prawy
+        AudioRouting.padPanner.pan.value = -1;
+        AudioRouting.metroPanner.pan.value = 1;
+        AudioRouting.padBus.connect(AudioRouting.padPanner);
+        AudioRouting.padPanner.connect(ctx.destination);
+        AudioRouting.metroBus.connect(AudioRouting.metroPanner);
+        AudioRouting.metroPanner.connect(ctx.destination);
     } else {
+        // Zwykłe stereo, razem (wyzeruj panery na wszelki wypadek)
+        if (AudioRouting.padPanner) AudioRouting.padPanner.pan.value = 0;
+        if (AudioRouting.metroPanner) AudioRouting.metroPanner.pan.value = 0;
         AudioRouting.padBus.connect(ctx.destination);
         AudioRouting.metroBus.connect(ctx.destination);
     }
 }
+
+window.setStereoSplit = function (on) {
+    AudioRouting.stereoSplit = !!on;
+    localStorage.setItem('stereoSplit', AudioRouting.stereoSplit ? '1' : '0');
+    if (audioCtx) wireAudioBuses(audioCtx);
+};
 
 function ensureAudioCtx() {
     if (!audioCtx) {
@@ -619,12 +650,7 @@ function openSettingsModal(){
 
     renderShortcuts();
     if (typeof refreshMidiSelectUI === 'function') refreshMidiSelectUI();
-
-    // Przywróć zapisane ustawienia metronomu do formularza
-    var mb = document.getElementById('metro-beats-select');
-    if (mb) mb.value = localStorage.getItem('metroBeats') || '4';
-    var mv = document.getElementById('metro-vol-slider');
-    if (mv) { var v = parseFloat(localStorage.getItem('metroVolume')); mv.value = isNaN(v) ? 0.6 : v; }
+    if (typeof populateAudioRoutingUI === 'function') populateAudioRoutingUI();
 }
 function closeSettingsModal(){document.getElementById('settingsModal').style.display='none';}
 function openImportModal(){document.getElementById('importModal').style.display='flex';}
@@ -1226,7 +1252,7 @@ function selectForLive(i, broadcast = true){
     document.getElementById('live-key').innerText = finalKey;
     updateParallelKey();
     document.getElementById('live-bpm').innerText = item.bpm ? item.bpm : "-";
-    if (typeof syncMetronome === 'function') syncMetronome(); // odśwież BPM metronomu
+    if (typeof metroSongChanged === 'function') metroSongChanged(i); // BPM + ducking przy zmianie
 
     if(isPadPlaying) {
        triggerDebouncedPad(finalKey);
@@ -2744,12 +2770,22 @@ document.addEventListener('keydown', function(e) {
 // ═══════════════════════════════════════════════════════════════
 (function () {
     var metro = {
-        on: false, beats: 4, volume: 0.6, manualBpm: 0,
-        nextTime: 0, beat: 0, timer: null,
+        on: false, beats: 4, volume: 0.6, manualBpm: 0, timbre: 'beep',
+        nextTime: 0, beat: 0, timer: null, ducking: false,
         lookahead: 25, scheduleAhead: 0.12
     };
     try { metro.volume = parseFloat(localStorage.getItem('metroVolume')); if (isNaN(metro.volume)) metro.volume = 0.6; } catch (e) {}
     try { metro.beats = parseInt(localStorage.getItem('metroBeats')) || 4; } catch (e) {}
+    metro.timbre = localStorage.getItem('metroTimbre') || 'beep';
+
+    // Barwy metronomu — typ oscylatora, częstotliwości (akcent/normal), zanik
+    var TIMBRES = {
+        beep:  { type: 'sine',     accent: 1600, normal: 950,  decay: 0.05 },
+        click: { type: 'square',   accent: 2000, normal: 1400, decay: 0.03 },
+        wood:  { type: 'triangle', accent: 1200, normal: 800,  decay: 0.045 },
+        tick:  { type: 'square',   accent: 3200, normal: 2200, decay: 0.02 },
+        soft:  { type: 'sine',     accent: 900,  normal: 640,  decay: 0.07 }
+    };
 
     function getLiveBpm() {
         if (typeof currentSetIndex !== 'undefined' && currentSetIndex >= 0 && setlist[currentSetIndex]) {
@@ -2766,17 +2802,19 @@ document.addEventListener('keydown', function(e) {
 
     function scheduleClick(beat, time) {
         var ctx = ensureAudioCtx();
+        var tb = TIMBRES[metro.timbre] || TIMBRES.beep;
         var osc = ctx.createOscillator();
         var g = ctx.createGain();
         var accent = (beat === 0);
-        osc.frequency.value = accent ? 1600 : 950;
+        osc.type = tb.type;
+        osc.frequency.value = accent ? tb.accent : tb.normal;
         g.gain.setValueAtTime(0.0001, time);
-        g.gain.exponentialRampToValueAtTime(metro.volume * (accent ? 1.0 : 0.65), time + 0.001);
-        g.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
+        g.gain.exponentialRampToValueAtTime(metro.volume * (accent ? 1.0 : 0.6), time + 0.001);
+        g.gain.exponentialRampToValueAtTime(0.0001, time + tb.decay);
         osc.connect(g);
         g.connect(AudioRouting.metroBus || ctx.destination);
         osc.start(time);
-        osc.stop(time + 0.06);
+        osc.stop(time + tb.decay + 0.01);
     }
 
     function scheduler() {
@@ -2817,8 +2855,89 @@ document.addEventListener('keydown', function(e) {
 
     // Re-sync UI po zmianie piosenki (żeby BPM się odświeżył)
     window.syncMetronome = function () { updateMetroUI(); };
+
+    // Zmiana piosenki — odśwież BPM i (jeśli metronom gra) zrób duck+powrót
+    var lastSongForMetro = -1;
+    window.metroSongChanged = function (i) {
+        var changed = (i !== lastSongForMetro);
+        lastSongForMetro = i;
+        updateMetroUI();
+        if (changed && metro.on) window.duckMetronome();
+    };
     window.setMetroVolume = function (v) { metro.volume = parseFloat(v); localStorage.setItem('metroVolume', metro.volume); };
     window.setMetroBeats = function (v) { metro.beats = parseInt(v) || 4; localStorage.setItem('metroBeats', metro.beats); updateMetroUI(); };
+    window.setMetroTimbre = function (t) { metro.timbre = t; localStorage.setItem('metroTimbre', t); };
+
+    // Popover ustawień metronomu (barwa, metrum, głośność) przy przycisku
+    window.toggleMetroPopover = function (ev) {
+        if (ev) ev.stopPropagation();
+        var pop = document.getElementById('metro-popover');
+        if (!pop) return;
+        if (pop.classList.contains('show')) { pop.classList.remove('show'); return; }
+        // Załaduj bieżące wartości
+        var tb = document.getElementById('metro-timbre-select'); if (tb) tb.value = metro.timbre;
+        var be = document.getElementById('metro-beats-select'); if (be) be.value = String(metro.beats);
+        var vo = document.getElementById('metro-vol-slider'); if (vo) vo.value = metro.volume;
+        // Pozycjonuj pod przyciskiem
+        var btn = document.getElementById('metro-cfg-btn');
+        pop.classList.add('show');
+        if (btn) {
+            var r = btn.getBoundingClientRect();
+            var w = pop.offsetWidth || 220;
+            var left = Math.min(r.left, window.innerWidth - w - 12);
+            var top = r.bottom + 8;
+            if (top + pop.offsetHeight > window.innerHeight - 10) top = r.top - pop.offsetHeight - 8;
+            pop.style.left = Math.max(10, left) + 'px';
+            pop.style.top = top + 'px';
+        }
+        // Zamknij na klik poza
+        setTimeout(function () {
+            document.addEventListener('click', closeMetroPopoverOnce, { once: true });
+        }, 0);
+    };
+    function closeMetroPopoverOnce(e) {
+        var pop = document.getElementById('metro-popover');
+        if (!pop) return;
+        if (pop.contains(e.target) || (e.target.closest && e.target.closest('#metro-cfg-btn'))) {
+            document.addEventListener('click', closeMetroPopoverOnce, { once: true });
+            return;
+        }
+        pop.classList.remove('show');
+    }
+
+    // Wyciszenie + powrót przy przejściu między piosenkami: metronom cichnie,
+    // robi krótki oddech i wchodzi znów na „jedynkę" w nowym tempie.
+    window.duckMetronome = function () {
+        if (!metro.on || metro.ducking) return;
+        var ctx = ensureAudioCtx();
+        var bus = AudioRouting.metroBus;
+        if (!bus) return;
+        metro.ducking = true;
+        // Zatrzymaj harmonogram i wycisz szynę
+        if (metro.timer) { clearTimeout(metro.timer); metro.timer = null; }
+        var now = ctx.currentTime;
+        try {
+            bus.gain.cancelScheduledValues(now);
+            bus.gain.setValueAtTime(bus.gain.value, now);
+            bus.gain.linearRampToValueAtTime(0.0001, now + 0.18);
+        } catch (e) {}
+        // Po krótkim oddechu wróć na jedynkę w nowym tempie
+        setTimeout(function () {
+            if (!metro.on) { metro.ducking = false; return; }
+            var c2 = ensureAudioCtx();
+            try {
+                var t2 = c2.currentTime;
+                AudioRouting.metroBus.gain.cancelScheduledValues(t2);
+                AudioRouting.metroBus.gain.setValueAtTime(0.0001, t2);
+                AudioRouting.metroBus.gain.linearRampToValueAtTime(1, t2 + 0.05);
+            } catch (e) {}
+            metro.beat = 0;
+            metro.nextTime = c2.currentTime + 0.06;
+            metro.ducking = false;
+            scheduler();
+            updateMetroUI();
+        }, 650);
+    };
 
     // ── Wybór wyjścia audio i kanałów ──
     window.scanAudioOutputs = function () {
@@ -2863,21 +2982,33 @@ document.addEventListener('keydown', function(e) {
         }
         return opts;
     }
-    function populateChannelSelects(ctx) {
+    window.populateAudioRoutingUI = function () {
         var max = AudioRouting.maxCh || 2;
+        var multi = max > 2;
+        // Stereo → pokaż podział L/P; wielokanałowy → pokaż wybór kanałów
+        var splitRow = document.getElementById('stereo-split-row');
+        var padRow = document.getElementById('pad-ch-row');
+        var metroRow = document.getElementById('metro-ch-row');
+        if (splitRow) splitRow.style.display = multi ? 'none' : 'flex';
+        if (padRow) padRow.style.display = multi ? 'flex' : 'none';
+        if (metroRow) metroRow.style.display = multi ? 'flex' : 'none';
+
+        var splitSel = document.getElementById('stereo-split-select');
+        if (splitSel) splitSel.value = AudioRouting.stereoSplit ? '1' : '0';
+
         var padSel = document.getElementById('pad-channels-select');
         var metroSel = document.getElementById('metro-channels-select');
         if (padSel) padSel.innerHTML = channelPairOptions(max, AudioRouting.padChannels);
         if (metroSel) metroSel.innerHTML = channelPairOptions(max, AudioRouting.metroChannels);
+
         var note = document.getElementById('audio-ch-note');
-        if (note && max <= 2) {
-            note.textContent = currentLang === 'en'
-                ? 'Stereo device — pads and metronome share 1–2.'
-                : 'Urządzenie stereo — pady i metronom idą razem na 1–2.';
-        } else if (note) {
-            note.textContent = '';
+        if (note) {
+            note.textContent = multi ? '' : (currentLang === 'en'
+                ? 'No multi-output interface — split pads to Left, metronome to Right and use a Y-splitter cable.'
+                : 'Brak interfejsu wielokanałowego — rozdziel pady na Lewy, metronom na Prawy i użyj przejściówki jack → 2× mono.');
         }
-    }
+    };
+    function populateChannelSelects(ctx) { window.populateAudioRoutingUI(); }
     window.selectPadChannels = function (val) {
         try { AudioRouting.padChannels = JSON.parse(val); } catch (e) { return; }
         localStorage.setItem('padChannels', JSON.stringify(AudioRouting.padChannels));
