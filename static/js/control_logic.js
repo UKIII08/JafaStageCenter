@@ -2452,3 +2452,163 @@ document.addEventListener('keydown', function(e) {
         }
     });
 })();
+
+// ═══════════════════════════════════════════════════════════════
+//  SILENT MUSIC DIRECTOR — pianino MIDI → akordy na żywo u zespołu
+//  Odczytuje nuty z USB MIDI, rozpoznaje akord (chord_detect.js) i
+//  broadcastuje ślad akordów (obecny + 3 poprzednie) na band_member
+//  oraz scenę. Działa jak nakładka blackout — włącz/wyłącz.
+// ═══════════════════════════════════════════════════════════════
+(function () {
+    var midiAccess = null;
+    var midiInputs = [];
+    var boundInput = null;
+    var heldNotes = {};        // midi number -> true (fizycznie wciśnięte)
+    var sustained = {};        // podtrzymane pedałem po puszczeniu klawisza
+    var sustainOn = false;
+    var settleTimer = null;
+    var lastChordName = null;
+    var history = [];          // ostatnie akordy, najnowszy na końcu
+    var active = false;
+
+    function activeMidiSet() {
+        // Nuty brzmiące = wciśnięte ∪ podtrzymane pedałem
+        var s = {};
+        for (var n in heldNotes) if (heldNotes[n]) s[n] = true;
+        for (var m in sustained) if (sustained[m]) s[m] = true;
+        return Object.keys(s).map(Number);
+    }
+
+    function scheduleDetect() {
+        if (settleTimer) clearTimeout(settleTimer);
+        // ~110ms na "ustabilizowanie" akordu (dźwięki rzadko padają idealnie razem)
+        settleTimer = setTimeout(runDetect, 110);
+    }
+
+    function runDetect() {
+        var notes = activeMidiSet();
+        if (notes.length === 0) return; // nie czyścimy — trzymamy ostatni akord na ekranie
+        var res = (typeof ChordDetect !== 'undefined') ? ChordDetect.detectChord(notes) : null;
+        if (!res) return;
+        if (res.name === lastChordName) return; // bez zmian
+        lastChordName = res.name;
+        history.push(res.name);
+        if (history.length > 4) history = history.slice(-4);
+        broadcastSilentMD();
+    }
+
+    function broadcastSilentMD() {
+        socket.emit('silent_md', {
+            active: active,
+            current: history.length ? history[history.length - 1] : null,
+            history: history.slice(0, -1).slice(-3) // do 3 poprzednich (bez obecnego)
+        });
+    }
+
+    function onMidiMessage(e) {
+        if (!active) return;
+        var d = e.data;
+        var status = d[0] & 0xf0;
+        var data1 = d[1], data2 = d[2];
+        if (status === 0x90 && data2 > 0) {            // note on
+            heldNotes[data1] = true;
+            delete sustained[data1];
+            scheduleDetect();
+        } else if (status === 0x80 || (status === 0x90 && data2 === 0)) { // note off
+            if (sustainOn) { sustained[data1] = true; }
+            delete heldNotes[data1];
+            scheduleDetect();
+        } else if (status === 0xb0 && data1 === 64) {  // sustain pedal (CC64)
+            if (data2 >= 64) {
+                sustainOn = true;
+            } else {
+                sustainOn = false;
+                sustained = {}; // puszczenie pedału gasi podtrzymane
+                scheduleDetect();
+            }
+        }
+    }
+
+    function bindInputs() {
+        if (!midiAccess) return;
+        midiInputs = [];
+        midiAccess.inputs.forEach(function (inp) {
+            midiInputs.push(inp);
+            inp.onmidimessage = onMidiMessage;
+        });
+    }
+
+    function updateMidiButtonState(state) {
+        var btn = document.getElementById('silent-md-btn');
+        if (!btn) return;
+        btn.classList.toggle('active', active);
+        var label = document.getElementById('silent-md-label');
+        if (label) {
+            label.textContent = active
+                ? (currentLang === 'en' ? 'SILENT MD ON' : 'SILENT MD WŁ.')
+                : 'SILENT MD';
+        }
+        if (state) {
+            var status = document.getElementById('silent-md-status');
+            if (status) status.textContent = state;
+        }
+    }
+
+    window.toggleSilentMD = function () {
+        if (!active) {
+            // Włącz — zażądaj MIDI jeśli trzeba
+            if (!navigator.requestMIDIAccess) {
+                showToast(currentLang === 'en'
+                    ? 'Web MIDI not supported in this runtime.'
+                    : 'To środowisko nie wspiera Web MIDI.');
+                return;
+            }
+            if (midiAccess) {
+                startSilentMD();
+            } else {
+                navigator.requestMIDIAccess({ sysex: false }).then(function (acc) {
+                    midiAccess = acc;
+                    midiAccess.onstatechange = bindInputs;
+                    bindInputs();
+                    if (midiInputs.length === 0) {
+                        showToast(currentLang === 'en'
+                            ? 'No MIDI device found. Connect your piano.'
+                            : 'Nie wykryto pianina MIDI. Podłącz je przez USB.');
+                    }
+                    startSilentMD();
+                }).catch(function () {
+                    showToast(currentLang === 'en'
+                        ? 'MIDI access denied.'
+                        : 'Odmówiono dostępu do MIDI.');
+                });
+            }
+        } else {
+            stopSilentMD();
+        }
+    };
+
+    function startSilentMD() {
+        active = true;
+        heldNotes = {}; sustained = {}; sustainOn = false;
+        history = []; lastChordName = null;
+        updateMidiButtonState(midiInputs.length + (currentLang === 'en' ? ' input(s)' : ' wejść'));
+        broadcastSilentMD();
+        showToast(currentLang === 'en' ? 'Silent MD on' : 'Silent MD włączony');
+    }
+
+    function stopSilentMD() {
+        active = false;
+        if (settleTimer) clearTimeout(settleTimer);
+        broadcastSilentMD(); // active:false → ekrany wracają do normalnego widoku
+        updateMidiButtonState('');
+        showToast(currentLang === 'en' ? 'Silent MD off' : 'Silent MD wyłączony');
+    }
+
+    // Ekspozycja do testów (symulacja MIDI bez hardware'u)
+    window.__silentMD = {
+        feed: function (bytes) { onMidiMessage({ data: bytes }); },
+        start: function () { startSilentMD(); },
+        stop: function () { stopSilentMD(); },
+        state: function () { return { active: active, history: history.slice() }; }
+    };
+})();

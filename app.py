@@ -87,11 +87,27 @@ SERVER_STATE = {
 }
 LAST_SLIDE_DATA = {}
 
+SILENT_MD_STATE = {'active': False, 'current': None, 'history': []}
+
 @socketio.on('connect')
 def handle_connect():
     emit('sync_state_to_client', SERVER_STATE)
     if LAST_SLIDE_DATA:
         emit('update_slide', LAST_SLIDE_DATA)
+    if SILENT_MD_STATE.get('active'):
+        emit('silent_md', SILENT_MD_STATE)
+
+@socketio.on('silent_md')
+def handle_silent_md(data):
+    """Tryb Silent Music Director — relay akordów granych na pianinie
+    (MIDI) do wszystkich ekranów zespołu (band_member + stage)."""
+    global SILENT_MD_STATE
+    SILENT_MD_STATE = {
+        'active': bool(data.get('active')),
+        'current': data.get('current'),
+        'history': data.get('history', [])[-4:]
+    }
+    emit('silent_md', SILENT_MD_STATE, broadcast=True)
 
 @socketio.on('request_current_slide')
 def handle_request_slide():

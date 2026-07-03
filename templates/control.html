@@ -12,6 +12,7 @@
     <script src="{{ url_for('static', filename='js/Sortable.min.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
     <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chord_detect.js') }}"></script>
 
     <style>
     /* ═══════════════════════════════════════════════════════════
@@ -699,6 +700,15 @@
 
     /* ── Bottom controls: LED action buttons ── */
     .bottom-controls { display: flex; gap: var(--s3); margin-top: var(--s6); }
+    .silent-md-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); }
+    .silent-md-btn svg { stroke: currentColor; }
+    .silent-md-btn.active {
+        background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+        border-color: transparent;
+        color: #04121A;
+        box-shadow: 0 0 0 1px var(--accent-line), 0 0 22px var(--accent-glow);
+    }
+    .silent-md-btn.active svg { stroke: #04121A; }
     button.danger, button.secondary {
         flex: 1;
         padding: var(--s4);
@@ -1287,6 +1297,11 @@
             <div class="bottom-controls">
                 <button class="danger" onclick="blackout()">BLACKOUT</button>
                 <button class="secondary" onclick="showLogo()">LOGO</button>
+                <button id="silent-md-btn" class="secondary silent-md-btn" onclick="toggleSilentMD()" title="Silent Music Director — pianino MIDI">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="14"/><line x1="10" y1="10" x2="10" y2="14"/><line x1="14" y1="10" x2="14" y2="14"/><line x1="18" y1="10" x2="18" y2="14"/></svg>
+                    <span id="silent-md-label">SILENT MD</span>
+                    <span id="silent-md-status" style="font-size:0.7em;opacity:0.6;"></span>
+                </button>
             </div>
         </div>
     </div>

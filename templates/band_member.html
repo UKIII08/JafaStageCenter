@@ -744,6 +744,45 @@
         [data-theme="light"] #conf-message {
             color: var(--amber);
         }
+
+        /* Silent Music Director — nakładka z akordami na żywo */
+        #silent-md-overlay {
+            position: fixed; inset: 0; z-index: 5000;
+            display: none;
+            align-items: center; justify-content: center;
+            background:
+                radial-gradient(120% 90% at 50% 30%, rgba(34,211,238,0.08), transparent 60%),
+                var(--bg-app, #070A11);
+        }
+        #silent-md-overlay.show { display: flex; animation: smdFade 0.25s ease; }
+        @keyframes smdFade { from { opacity: 0; } to { opacity: 1; } }
+        .smd-inner { text-align: center; width: 100%; padding: 4vh 4vw; }
+        .smd-history {
+            display: flex; align-items: baseline; justify-content: center;
+            gap: clamp(12px, 4vw, 48px);
+            min-height: 8vh; margin-bottom: 2vh;
+        }
+        .smd-history span {
+            font-weight: 800;
+            font-size: clamp(1.4rem, 6vh, 4rem);
+            color: var(--text-tertiary, #56627A);
+            opacity: 0.55;
+        }
+        .smd-history span:last-child { opacity: 0.8; color: var(--text-secondary, #94A2B8); }
+        .smd-current {
+            font-weight: 800;
+            font-size: clamp(4rem, 26vh, 20rem);
+            line-height: 1;
+            color: var(--accent, #22D3EE);
+            text-shadow: 0 0 60px var(--accent-glow, rgba(34,211,238,0.4));
+            letter-spacing: -0.02em;
+        }
+        .smd-tag {
+            margin-top: 4vh;
+            font-size: clamp(0.7rem, 1.8vh, 1.1rem);
+            letter-spacing: 0.22em; text-transform: uppercase;
+            color: var(--text-tertiary, #56627A);
+        }
     </style>
 </head>
 <body>
@@ -804,6 +843,14 @@
     <button id="setlist-btn" onclick="toggleSetlistDrawer()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
     <button id="fs-btn" onclick="toggleFullscreen()">⛶</button>
     <button id="settings-btn" onclick="toggleSettings()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+
+    <div id="silent-md-overlay">
+        <div class="smd-inner">
+            <div class="smd-history" id="smd-history"></div>
+            <div class="smd-current" id="smd-current">—</div>
+            <div class="smd-tag" data-t="smd_tag">SILENT MODE · pianino prowadzi</div>
+        </div>
+    </div>
 
     <div id="worship-view">
         <div id="current-slide">
@@ -1792,6 +1839,25 @@
         });
 
         socket.on('refresh_logo', function() { location.reload(); });
+
+        // ===== SILENT MUSIC DIRECTOR — akordy na żywo z pianina =====
+        socket.on('silent_md', function(d) {
+            var ov = document.getElementById('silent-md-overlay');
+            if (!ov) return;
+            if (d && d.active) {
+                document.getElementById('smd-current').textContent = d.current || '—';
+                var hist = document.getElementById('smd-history');
+                hist.innerHTML = '';
+                (d.history || []).forEach(function(name) {
+                    var s = document.createElement('span');
+                    s.textContent = name;
+                    hist.appendChild(s);
+                });
+                ov.classList.add('show');
+            } else {
+                ov.classList.remove('show');
+            }
+        });
 
         // ===== SETTINGS UI =====
         function toggleSettings() {
