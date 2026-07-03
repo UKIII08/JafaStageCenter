@@ -228,6 +228,16 @@
             font-size: 0.6rem; font-weight: 700; color: #fff;
         }
         #profile-badge .profile-name { font-size: var(--text-xs); color: var(--text-primary); }
+        /* Kropka statusu połączenia: kolorowa = połączony, szara = rozłączony */
+        .conn-dot {
+            width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+            background: var(--text-tertiary, #56627A);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+        .conn-dot.connected {
+            background: var(--green, #34D399);
+            box-shadow: 0 0 8px rgba(52, 211, 153, 0.7);
+        }
 
         /* PERSONAL NOTES (in meta panel) */
         #section-note-area {
@@ -837,6 +847,7 @@
     <div id="profile-badge" style="display:none;" onclick="showProfileScreen()" data-t-title="profile_switch">
         <div class="mini-avatar" id="badge-avatar"></div>
         <span class="profile-name" id="badge-name"></span>
+        <span class="conn-dot" id="conn-dot" title="Status połączenia"></span>
     </div>
 
     <!-- NOTE EDITOR -->
@@ -1006,6 +1017,16 @@
     <script>
         var socket;
         try { socket = io(); } catch(e) { socket = { on: function(){}, emit: function(){} }; }
+
+        // Kropka statusu połączenia przy imieniu profilu
+        function setConnDot(connected) {
+            var d = document.getElementById('conn-dot');
+            if (d) d.classList.toggle('connected', !!connected);
+        }
+        socket.on('connect', function(){ setConnDot(true); });
+        socket.on('disconnect', function(){ setConnDot(false); });
+        socket.on('reconnect', function(){ setConnDot(true); });
+        setConnDot(socket && socket.connected);
         const worshipView = document.getElementById('worship-view');
         const confView = document.getElementById('conference-view');
         const currentContent = document.getElementById('current-content');
