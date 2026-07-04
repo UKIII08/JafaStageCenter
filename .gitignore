@@ -31,4 +31,8 @@ static/pads/
 # --- Node / Playwright ---
 node_modules/
 package.json
-package-lock.json
+package-lock.json# Bible verse prototype — auto-downloaded corpus + trained caches
+prototypes/ubg.txt
+prototypes/vref.txt
+prototypes/bible_model.cache*
+prototypes/verse_embeddings.npy

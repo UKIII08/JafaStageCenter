@@ -5,12 +5,26 @@ Silnik: FastText trenowany na UBG (subwordy => polska fleksja) +
 embeddingi wersetów ważone IDF z oknem kontekstu ±1 + detektor cytatów.
 Wyjście: same SIGLA (np. Ps 23:1-3) — zero problemów z prawami.
 """
-import re, math, sys, json
+import re, math, sys, os, json, urllib.request
 from collections import Counter
 import numpy as np
 from gensim.models import FastText
 
-DIR = "/tmp/claude-0/-home-user-JafaStageCenter/c433b786-994d-51dd-bbb0-3a97a4020736/scratchpad"
+DIR = os.path.dirname(os.path.abspath(__file__))
+
+CORPUS_URLS = {
+    "ubg.txt":  "https://raw.githubusercontent.com/BibleNLP/ebible/main/corpus/pol-polubg.txt",
+    "vref.txt": "https://raw.githubusercontent.com/BibleNLP/ebible/main/metadata/vref.txt",
+}
+
+def ensure_corpus():
+    """Pobiera UBG + sigla przy pierwszym uruchomieniu (raz, ~5 MB)."""
+    for fname, url in CORPUS_URLS.items():
+        path = os.path.join(DIR, fname)
+        if os.path.exists(path):
+            continue
+        print(f"Pobieranie {fname} (pierwsze uruchomienie)...")
+        urllib.request.urlretrieve(url, path)
 
 # ── Polskie skróty ksiąg (USFM -> polskie sigla) ──
 BOOK_PL = {
@@ -52,15 +66,23 @@ def ref_pl(ref):
     return f"{BOOK_PL[book]} {cv}"
 
 def main():
+    ensure_corpus()
     print("Wczytywanie UBG...")
     verses, refs = load_bible()
     print(f"  {len(verses)} wersetów")
 
     tokenized = [norm_tokens(v) for v in verses]
 
-    print("Trening FastText na Biblii (subwordy => fleksja)...")
-    model = FastText(sentences=tokenized, vector_size=100, window=5, min_count=3,
-                     sg=1, epochs=25, min_n=3, max_n=5, workers=4, seed=42)
+    cache = os.path.join(DIR, "bible_model.cache")
+    if os.path.exists(cache):
+        print("Wczytywanie modelu z cache...")
+        model = FastText.load(cache)
+    else:
+        print("Trening FastText na Biblii (raz, ~1-2 min; potem cache)...")
+        model = FastText(sentences=tokenized, vector_size=100, window=5, min_count=3,
+                         sg=1, epochs=25, min_n=3, max_n=5, workers=4, seed=42,
+                         bucket=100000)  # 100k bucketów: cache ~40MB zamiast 800MB
+        model.save(cache)
     print(f"  słownik: {len(model.wv)} słów")
 
     # IDF
@@ -82,6 +104,12 @@ def main():
         n = np.linalg.norm(e)
         return e / n if n > 0 else None
 
+    emb_cache = os.path.join(DIR, "verse_embeddings.npy")
+    if os.path.exists(emb_cache):
+        M = np.load(emb_cache)
+        _skip_embed = True
+    else:
+        _skip_embed = False
     print("Embeddingi wersetów (okno ±1)...")
     ctx_tokens = []
     for i in range(len(tokenized)):
@@ -89,10 +117,12 @@ def main():
         if i > 0 and refs[i-1].split()[0] == refs[i].split()[0]: toks += tokenized[i-1]
         if i+1 < len(tokenized) and refs[i+1].split()[0] == refs[i].split()[0]: toks += tokenized[i+1]
         ctx_tokens.append(toks)
-    M = np.zeros((len(verses), 100), dtype=np.float32)
-    for i, toks in enumerate(ctx_tokens):
-        e = embed(toks)
-        if e is not None: M[i] = e
+    if not _skip_embed:
+        M = np.zeros((len(verses), 100), dtype=np.float32)
+        for i, toks in enumerate(ctx_tokens):
+            e = embed(toks)
+            if e is not None: M[i] = e
+        np.save(emb_cache, M)
 
     # ── Detektor bezpośrednich cytatów: 4-gramy słów ──
     def ngrams(toks, n=4): return set(tuple(toks[i:i+n]) for i in range(len(toks)-n+1))
@@ -122,6 +152,17 @@ def main():
                 sem.append((float(sims[i]), i))
                 if len(sem) >= topn: break
         return quotes[:2], sem
+
+    # ── Tryb CLI: python bible_verse_suggest.py "tekst piosenki..." ──
+    if len(sys.argv) > 1:
+        lyrics = " ".join(sys.argv[1:])
+        quotes, sem = suggest(lyrics, topn=7)
+        print("\n=== SUGEROWANE SIGLA ===")
+        for hitc, i in quotes:
+            print(f"  CYTAT   {ref_pl(refs[i]):16} ({hitc} wspólnych fraz)")
+        for s_, i in sem:
+            print(f"  temat   {ref_pl(refs[i]):16} (podobieństwo {s_:.2f})")
+        return
 
     # ── TESTY: własne teksty w stylu uwielbienia (bez praw autorskich),
     #    każdy celuje w znany fragment ──
