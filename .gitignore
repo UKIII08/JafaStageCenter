@@ -36,3 +36,8 @@ prototypes/ubg.txt
 prototypes/vref.txt
 prototypes/bible_model.cache*
 prototypes/verse_embeddings.npy
+
+# Node artifacts from local Playwright testing (app itself is Python)
+node_modules/
+package.json
+package-lock.json
