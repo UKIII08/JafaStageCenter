@@ -674,6 +674,12 @@
         }
         /* Wysokość napędzana wysokością paska dolnego — diagramy wypełniają go. */
         .nd-svg svg { height: min(21vh, 210px); width: auto; display: block; }
+        /* Pianino: klawiatura jest szeroka — rozłóż karty równo na całą szerokość
+           i skaluj szerokością, żeby ZAWSZE zmieściły się wszystkie akordy
+           sekcji bez przewijania. */
+        .nd-row--piano { width: 100%; overflow-x: visible; flex-wrap: nowrap; }
+        .nd-row--piano .nd-card { flex: 1 1 0; min-width: 0; max-width: 190px; }
+        .nd-row--piano .nd-svg svg { width: 100%; height: auto; }
         .nd-star {
             position: absolute; top: -3px; right: -1px; z-index: 2;
             font-size: 15px; color: var(--accent);
@@ -2163,7 +2169,7 @@
                         (en ? '★ Suggested' : '★ Sugerowany') + '</button>' +
                     '<button class="nd-seg-btn' + (!inlineVoicing ? ' on' : '') + '" onclick="setInlineVoicing(false)">' +
                         (en ? 'Basic' : 'Podstawowy') + '</button>' +
-                '</div></div><div class="nd-row">';
+                '</div></div><div class="nd-row' + (inst === 'piano' ? ' nd-row--piano' : '') + '">';
 
             chords.forEach(function(ch) {
                 let svg = null, star = false;
