@@ -666,21 +666,23 @@
         .nd-seg-btn:hover { color: var(--text-secondary); }
         .nd-seg-btn.on { background: var(--accent); color: #fff; }
         .nd-row {
-            display: flex; gap: var(--s3); overflow-x: auto; padding-bottom: 4px;
-            justify-content: center; max-width: 100%;
+            display: flex; gap: var(--s3); overflow-x: auto; padding-bottom: 2px;
+            justify-content: center; max-width: 100%; align-items: center;
         }
         .nd-card {
             position: relative; flex: 0 0 auto; line-height: 0;
         }
-        .nd-svg svg { width: 92px; height: auto; display: block; }
+        /* Wysokość napędzana wysokością paska dolnego — diagramy wypełniają go. */
+        .nd-svg svg { height: min(21vh, 210px); width: auto; display: block; }
         .nd-star {
             position: absolute; top: -3px; right: -1px; z-index: 2;
-            font-size: 13px; color: var(--accent);
+            font-size: 15px; color: var(--accent);
             text-shadow: 0 0 3px var(--bg-base, #000);
         }
         .nd-miss {
-            width: 92px; height: 122px; display: flex; align-items: center; justify-content: center;
-            font-size: var(--font-sm); font-weight: 700; color: var(--text-tertiary);
+            width: calc(min(21vh, 210px) * 0.75); height: min(21vh, 210px);
+            display: flex; align-items: center; justify-content: center;
+            font-size: var(--font-md, 1rem); font-weight: 700; color: var(--text-tertiary);
             background: var(--bg-elevated); border: 1px solid var(--border-default);
             border-radius: 8px; line-height: 1.1; text-align: center;
         }
@@ -691,7 +693,7 @@
             #now-diagrams { padding-right: 0; flex: 0 0 auto; align-items: flex-start; }
             .nd-head { justify-content: flex-start; }
             .nd-row { justify-content: flex-start; }
-            .nd-svg svg { width: 68px; }
+            .nd-svg svg { height: auto; width: 68px; }
             .nd-miss { width: 68px; height: 90px; }
         }
 

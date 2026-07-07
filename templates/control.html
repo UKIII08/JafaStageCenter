@@ -527,6 +527,9 @@
         animation: led-pulse 2s ease-in-out infinite;
     }
     #live-preview-box:hover { border-color: var(--accent-line); }
+    #live-preview-box .preview-fit {
+        white-space: pre-wrap; max-width: 100%; line-height: 1.4;
+    }
     .preview-info-label {
         color: var(--text-tertiary);
         font-weight: 700;
@@ -1857,15 +1860,37 @@
             serverIp: "{{ server_ip }}"
         };
 
+        function fitPreviewText(box) {
+            var inner = box.querySelector('.preview-fit');
+            if (!inner) return;
+            var size = 22, min = 8, guard = 0;   // start ~1.35rem, zmniejszaj aż się zmieści
+            inner.style.fontSize = size + 'px';
+            while ((box.scrollHeight > box.clientHeight || box.scrollWidth > box.clientWidth)
+                   && size > min && guard < 80) {
+                size -= 1; guard++;
+                inner.style.fontSize = size + 'px';
+            }
+        }
         window.updateLocalPreview = function(text, label) {
             var previewBox = document.getElementById('live-preview-box');
             if (!text || text.trim() === '') {
                 var displayLabel = label ? label : '...';
                 previewBox.innerHTML = '<span class="preview-info-label">' + displayLabel + '</span>';
             } else {
-                previewBox.innerText = text;
+                previewBox.innerHTML = '<div class="preview-fit"></div>';
+                previewBox.querySelector('.preview-fit').innerText = text;
+                fitPreviewText(previewBox);
             }
         };
+        // Przelicz dopasowanie przy zmianie rozmiaru okna
+        var _prevFitTimer = null;
+        window.addEventListener('resize', function() {
+            clearTimeout(_prevFitTimer);
+            _prevFitTimer = setTimeout(function() {
+                var box = document.getElementById('live-preview-box');
+                if (box && box.querySelector('.preview-fit')) fitPreviewText(box);
+            }, 150);
+        });
     </script>
 
     <script src="{{ url_for('static', filename='js/control_logic.js') }}"></script>
