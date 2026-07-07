@@ -101,18 +101,22 @@ function wireAudioBuses(ctx) {
     if (AudioRouting.padPanner) { try { AudioRouting.padPanner.disconnect(); } catch (e) {} }
     if (AudioRouting.metroPanner) { try { AudioRouting.metroPanner.disconnect(); } catch (e) {} }
 
-    if (AudioRouting.merger) {
-        // Interfejs wielokanałowy — kieruj na wybrane pary kanałów
-        connectBusToChannels(ctx, AudioRouting.padBus, AudioRouting.padChannels);
-        connectBusToChannels(ctx, AudioRouting.metroBus, AudioRouting.metroChannels);
-    } else if (AudioRouting.stereoSplit && AudioRouting.padPanner) {
-        // Zwykłe stereo, podział L/P: pady lewy, metronom prawy
+    if (AudioRouting.stereoSplit && AudioRouting.padPanner) {
+        // Podział L/P: pady twardo na lewo, metronom twardo na prawo.
+        // Ma PRIORYTET nad mergerem — działa na zwykłym stereo, a na karcie
+        // wielokanałowej trafia na kanały wyjściowe 0/1. Dzięki temu wybór
+        // „Pady L / Metronom P" jest zawsze respektowany, także gdy sterownik
+        // raportuje >2 kanały (Realtek 5.1/7.1, HDMI itd.).
         AudioRouting.padPanner.pan.value = -1;
         AudioRouting.metroPanner.pan.value = 1;
         AudioRouting.padBus.connect(AudioRouting.padPanner);
         AudioRouting.padPanner.connect(ctx.destination);
         AudioRouting.metroBus.connect(AudioRouting.metroPanner);
         AudioRouting.metroPanner.connect(ctx.destination);
+    } else if (AudioRouting.merger) {
+        // Interfejs wielokanałowy — kieruj na wybrane pary kanałów
+        connectBusToChannels(ctx, AudioRouting.padBus, AudioRouting.padChannels);
+        connectBusToChannels(ctx, AudioRouting.metroBus, AudioRouting.metroChannels);
     } else {
         // Zwykłe stereo, razem (wyzeruj panery na wszelki wypadek)
         if (AudioRouting.padPanner) AudioRouting.padPanner.pan.value = 0;
@@ -126,6 +130,7 @@ window.setStereoSplit = function (on) {
     AudioRouting.stereoSplit = !!on;
     localStorage.setItem('stereoSplit', AudioRouting.stereoSplit ? '1' : '0');
     if (audioCtx) wireAudioBuses(audioCtx);
+    if (typeof populateAudioRoutingUI === 'function') populateAudioRoutingUI();
 };
 
 function ensureAudioCtx() {
@@ -3083,16 +3088,20 @@ document.addEventListener('keydown', function(e) {
     window.populateAudioRoutingUI = function () {
         var max = AudioRouting.maxCh || 2;
         var multi = max > 2;
-        // Stereo → pokaż podział L/P; wielokanałowy → pokaż wybór kanałów
+        var split = AudioRouting.stereoSplit;
+        // Podział L/P jest ZAWSZE dostępny (najczęstszy przypadek — brak
+        // interfejsu). Wybór par kanałów pokazujemy tylko przy karcie
+        // wielokanałowej i gdy L/P jest wyłączony (bo L/P go nadpisuje).
         var splitRow = document.getElementById('stereo-split-row');
         var padRow = document.getElementById('pad-ch-row');
         var metroRow = document.getElementById('metro-ch-row');
-        if (splitRow) splitRow.style.display = multi ? 'none' : 'flex';
-        if (padRow) padRow.style.display = multi ? 'flex' : 'none';
-        if (metroRow) metroRow.style.display = multi ? 'flex' : 'none';
+        var showCh = multi && !split;
+        if (splitRow) splitRow.style.display = 'flex';
+        if (padRow) padRow.style.display = showCh ? 'flex' : 'none';
+        if (metroRow) metroRow.style.display = showCh ? 'flex' : 'none';
 
         var splitSel = document.getElementById('stereo-split-select');
-        if (splitSel) splitSel.value = AudioRouting.stereoSplit ? '1' : '0';
+        if (splitSel) splitSel.value = split ? '1' : '0';
 
         var padSel = document.getElementById('pad-channels-select');
         var metroSel = document.getElementById('metro-channels-select');
@@ -3101,9 +3110,13 @@ document.addEventListener('keydown', function(e) {
 
         var note = document.getElementById('audio-ch-note');
         if (note) {
-            note.textContent = multi ? '' : (currentLang === 'en'
-                ? 'No multi-output interface — split pads to Left, metronome to Right and use a Y-splitter cable.'
-                : 'Brak interfejsu wielokanałowego — rozdziel pady na Lewy, metronom na Prawy i użyj przejściówki jack → 2× mono.');
+            note.textContent = split
+                ? (currentLang === 'en'
+                    ? 'Pads → Left channel, metronome → Right channel. Use a stereo-jack → 2× mono splitter to feed two mixer inputs.'
+                    : 'Pady → lewy kanał, metronom → prawy. Użyj przejściówki jack stereo → 2× mono, by wpiąć w dwa wejścia miksera.')
+                : (multi ? '' : (currentLang === 'en'
+                    ? 'No multi-output interface — turn on “Pads L / Metronome R” and use a Y-splitter cable.'
+                    : 'Brak interfejsu wielokanałowego — włącz „Pady L / Metronom P" i użyj przejściówki jack → 2× mono.'));
         }
     };
     function populateChannelSelects(ctx) { window.populateAudioRoutingUI(); }
