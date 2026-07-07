@@ -607,12 +607,12 @@
             padding: var(--s1) var(--s5) var(--s2) var(--s2);
         }
         .voicing-row {
-            display: flex; gap: var(--s2); overflow-x: auto;
-            padding: 0 var(--s1) var(--s1); scroll-snap-type: x mandatory;
+            display: flex; gap: var(--s2); flex-wrap: wrap; justify-content: center;
+            padding: 0 var(--s1) var(--s1);
         }
         .voicing-card {
             flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
-            width: 116px; scroll-snap-align: start;
+            width: 116px;
         }
         .voicing-svg { line-height: 0; }
         .voicing-svg svg { width: 108px; height: auto; }
@@ -2218,18 +2218,30 @@
                 } catch (e) { rec = null; }
                 const recIdx = rec ? rec.index : -1;
                 const pedalName = (rec && rec.pedalPc != null) ? PC_NAMES[rec.pedalPc] : null;
+                const recVoicing = (recIdx >= 0) ? voicings[recIdx] : null;
+                const baseVoicing = voicings[0];
+
+                // Pianino: keyboardy są szerokie — pokaż tylko podstawowy +
+                // rekomendowany (max 2), żeby zmieściły się bez przewijania
+                // (pianista nie ma ręki na scrollowanie).
+                let displayVoicings = voicings;
+                if (inst === 'piano' && voicings.length > 2) {
+                    displayVoicings = [baseVoicing];
+                    if (recVoicing && recVoicing !== baseVoicing) displayVoicings.push(recVoicing);
+                }
 
                 // First card uses the display label (respects notation/lowercase);
                 // alternatives keep their own theory names.
                 let html = `<div class="voicing-title">${label} · ${en ? 'voicings' : 'voicingi'}</div>`;
                 html += '<div class="voicing-row">';
-                voicings.forEach(function(v, idx) {
+                displayVoicings.forEach(function(v) {
                     const meta = VOICING_META[v.tag] || VOICING_META.base;
-                    const shownLabel = (idx === 0) ? label : v.label;
-                    const svg = (idx === 0)
+                    const isBase = (v === baseVoicing);
+                    const shownLabel = isBase ? label : v.label;
+                    const svg = isBase
                         ? v.svg.replace('>' + v.label + '<', '>' + shownLabel + '<')
                         : v.svg;
-                    const isRec = (idx === recIdx);
+                    const isRec = (v === recVoicing);
                     const star = isRec ? '<div class="voicing-star">★ ' + (en ? 'best here' : 'do tej progresji') + '</div>' : '';
                     let hint = en ? meta.hen : meta.hpl;
                     if (isRec && pedalName) {

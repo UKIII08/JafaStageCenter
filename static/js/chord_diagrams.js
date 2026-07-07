@@ -594,51 +594,98 @@ function _chordCategory(suffix) {
     return null;
 }
 
+// Czy chwyt gitarowy jest realnie do złapania? Rozstaw ≤ 3 progi i ≤ 4 palce
+// (barre = jeden palec; sąsiednie struny na tym samym progu = jeden palec).
+function _isPlayableShape(d) {
+    if (!d || !d.fingers) return false;
+    var pressed = [];
+    for (var i = 0; i < 6; i++) if (d.fingers[i] > 0) pressed.push({ s: i, fr: d.fingers[i] });
+    if (!pressed.length) return true;              // same puste struny
+    var frets = pressed.map(function (p) { return p.fr; });
+    var span = Math.max.apply(null, frets) - Math.min.apply(null, frets);
+    if (span > 3) return false;
+    var barreFrets = {};
+    (d.barres || []).forEach(function (b) { barreFrets[b[2]] = true; });
+    var byF = {};
+    pressed.forEach(function (p) { (byF[p.fr] = byF[p.fr] || []).push(p.s); });
+    var fingers = 0;
+    Object.keys(byF).forEach(function (fr) {
+        if (barreFrets[fr]) { fingers += 1; return; }
+        var st = byF[fr].sort(function (a, b) { return a - b; });
+        var runs = 1;
+        for (var k = 1; k < st.length; k++) if (st[k] !== st[k - 1] + 1) runs++;
+        fingers += runs;
+    });
+    return fingers <= 4;
+}
+
+// Wyselekcjonowane, ZNANE i ŁATWE chwyty embellishment (nie generowane) —
+// tylko takie, które gitarzyści realnie grają w pozycji otwartej. Dla akordów
+// barre (F, Bb, B…) świadomie nie proponujemy wariantów, bo tam nie ma
+// wygodnych — pokazujemy sam chwyt podstawowy. Wszystkie zweryfikowane
+// nutowo i pod kątem grywalności.
+const NICE_VOICINGS = {
+    'Cadd9': { fret: 0, fingers: [-1,3,2,0,3,0], barres: [] },
+    'Csus2': { fret: 0, fingers: [-1,3,0,0,3,3], barres: [] },
+    'Dsus2': { fret: 0, fingers: [-1,-1,0,2,3,0], barres: [] },
+    'Dsus4': { fret: 0, fingers: [-1,-1,0,2,3,3], barres: [] },
+    'Esus4': { fret: 0, fingers: [0,2,2,2,0,0], barres: [] },
+    'Em7':   { fret: 0, fingers: [0,2,2,0,3,0], barres: [] },
+    'Asus2': { fret: 0, fingers: [-1,0,2,2,0,0], barres: [] },
+    'Asus4': { fret: 0, fingers: [-1,0,2,2,3,0], barres: [] },
+    'Am7':   { fret: 0, fingers: [-1,0,2,0,1,0], barres: [] },
+    'Gsus4': { fret: 0, fingers: [3,-1,0,0,1,3], barres: [] },
+    'Gadd9': { fret: 0, fingers: [3,-1,0,2,0,3], barres: [] },
+    'Dm7':   { fret: 0, fingers: [-1,-1,0,2,1,1], barres: [] },
+};
+
 function getChordVoicings(chordName, instrument) {
     const isGuitar = instrument !== 'piano';
-
-    function renderOf(nm) {
-        if (isGuitar) {
-            const d = lookupChord(nm.split('/')[0]);
-            return d ? renderChordSVG(nm, d) : null;
-        }
-        const n = lookupPianoChord(nm);
-        return n ? renderPianoSVG(nm, n) : null;
-    }
-    function shapeKeyOf(nm) {
-        if (isGuitar) {
-            const d = lookupChord(nm.split('/')[0]);
-            return d ? JSON.stringify([d.fret, d.fingers]) : null;
-        }
-        const n = lookupPianoChord(nm);
-        return n ? JSON.stringify(n) : null;
-    }
-
     const out = [];
     const seen = new Set();
+    const mainName = chordName.split('/')[0];
 
-    // Base voicing (the chord exactly as written)
-    const baseSvg = renderOf(chordName);
-    if (baseSvg) {
-        out.push({ label: chordName, tag: 'base', svg: baseSvg });
-        const bk = shapeKeyOf(chordName);
-        if (bk) seen.add(bk);
+    // ── Chwyt PODSTAWOWY ──
+    if (isGuitar) {
+        var baseData = lookupChord(mainName);
+        // Gdyby baza miała niegrywalny (rozciągnięty) kształt — użyj wersji barre.
+        if (baseData && !_isPlayableShape(baseData)) {
+            var g = generateGuitarChord(mainName);
+            if (g && _isPlayableShape(g)) baseData = g;
+        }
+        if (baseData && _isPlayableShape(baseData)) {
+            out.push({ label: chordName, tag: 'base', svg: renderChordSVG(chordName, baseData) });
+            seen.add(JSON.stringify([baseData.fret, baseData.fingers]));
+        }
+    } else {
+        var n = lookupPianoChord(chordName);
+        if (n) { out.push({ label: chordName, tag: 'base', svg: renderPianoSVG(chordName, n) }); seen.add(JSON.stringify(n)); }
     }
 
-    // Alternatives derived from the chord quality
-    const parsed = _parseChordName(chordName.split('/')[0]);
+    // ── Warianty (embellishmenty) ──
+    const parsed = _parseChordName(mainName);
     if (parsed) {
         const cat = _chordCategory(parsed.suffix);
         const rules = VOICING_RULES[cat] || [];
         for (const rule of rules) {
             const nm = parsed.root + rule.suffix;
             if (nm === chordName) continue;
-            const sk = shapeKeyOf(nm);
-            if (!sk || seen.has(sk)) continue;   // skip unplayable or duplicate shape
-            const svg = renderOf(nm);
-            if (!svg) continue;
-            seen.add(sk);
-            out.push({ label: nm, tag: rule.tag, svg: svg });
+            if (isGuitar) {
+                // Tylko wyselekcjonowane, grywalne chwyty otwarte.
+                const shape = NICE_VOICINGS[nm];
+                if (!shape || !_isPlayableShape(shape)) continue;
+                const key = JSON.stringify([shape.fret, shape.fingers]);
+                if (seen.has(key)) continue;
+                seen.add(key);
+                out.push({ label: nm, tag: rule.tag, svg: renderChordSVG(nm, shape) });
+            } else {
+                const notes = lookupPianoChord(nm);
+                if (!notes) continue;
+                const key = JSON.stringify(notes);
+                if (seen.has(key)) continue;
+                seen.add(key);
+                out.push({ label: nm, tag: rule.tag, svg: renderPianoSVG(nm, notes) });
+            }
         }
     }
 
