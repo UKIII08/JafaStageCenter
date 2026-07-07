@@ -185,38 +185,56 @@ const CHORD_DB = {
 
 const GUITAR_NOTE_VALUES = {'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11,'H':11};
 
-const BARRE_TEMPLATES = {
-    'E': {
-        '':     { fingers: [1,1,2,3,3,1], barres: [[1,6,1]] },
-        'm':    { fingers: [1,1,2,3,3,1], barres: [[1,6,1]] },
-        '7':    { fingers: [1,1,2,1,3,1], barres: [[1,6,1]] },
-        'm7':   { fingers: [1,1,2,1,3,1], barres: [[1,6,1]] },
-        'maj7': { fingers: [1,1,2,3,3,1], barres: [[1,6,1]] },
-        'sus4': { fingers: [1,1,2,3,4,1], barres: [[1,6,1]] },
-        'sus2': { fingers: [1,1,3,4,1,1], barres: [[1,6,1]] },
-        'add9': { fingers: [1,1,2,1,1,3], barres: [[1,6,1]] },
-        '5':    { fingers: [1,3,3,-1,-1,-1], barres: [] },
-        '9':    { fingers: [1,1,2,1,3,3], barres: [[1,6,1]] },
-        '6':    { fingers: [1,1,2,1,3,1], barres: [[1,6,1]] },
-        'm6':   { fingers: [1,1,2,1,3,1], barres: [[1,6,1]] },
-        '7sus4':{ fingers: [1,1,2,3,3,1], barres: [[1,6,1]] },
-        'm9':   { fingers: [1,1,2,1,3,3], barres: [[1,6,1]] },
-    },
-    'A': {
-        '':     { fingers: [-1,1,1,2,3,4], barres: [[2,5,1]] },
-        'm':    { fingers: [-1,1,1,2,3,2], barres: [[2,5,1]] },
-        '7':    { fingers: [-1,1,1,1,3,1], barres: [[2,5,1]] },
-        'm7':   { fingers: [-1,1,1,1,2,1], barres: [[2,5,1]] },
-        'maj7': { fingers: [-1,1,1,2,3,3], barres: [[2,5,1]] },
-        'sus4': { fingers: [-1,1,1,3,4,4], barres: [[2,5,1]] },
-        'sus2': { fingers: [-1,1,1,3,4,1], barres: [[2,5,1]] },
-        'add9': { fingers: [-1,1,1,2,1,4], barres: [[2,5,1]] },
-        '5':    { fingers: [-1,1,3,3,-1,-1], barres: [] },
-        'dim':  { fingers: [-1,1,2,3,2,-1], barres: [] },
-        'aug':  { fingers: [-1,1,3,2,2,1], barres: [[5,6,1]] },
-        'dim7': { fingers: [-1,1,2,3,2,-1], barres: [] },
-    },
+// Ruchome kształty barre budujemy z ZWERYFIKOWANYCH otwartych kształtów E/A
+// (te same, co w chwytach otwartych — sprawdzone nutowo). Chwyt ruchomy ma ten
+// sam wzór interwałów; palec w oknie = fret_w_otwartym + 1 (barre = próg rdzenia).
+// Dzięki temu np. F = E-kształt przesunięty o 1 → [1,3,3,2,1,1], a nie ręcznie
+// wpisana (i wcześniej odwrócona) tablica.
+const _OPEN_E_SHAPE = {
+    '':     [0,2,2,1,0,0],  'm':    [0,2,2,0,0,0],  '7':    [0,2,0,1,0,0],
+    'm7':   [0,2,0,0,0,0],  'maj7': [0,2,1,1,0,0],  'sus4': [0,2,2,2,0,0],
+    'sus2': [0,2,4,4,0,0],  'add9': [0,2,2,1,0,2],  '5':    [0,2,2,-1,-1,-1],
+    '9':    [0,2,0,1,0,2],  '6':    [0,2,2,1,2,0],  'm6':   [0,2,2,0,2,0],
+    '7sus4':[0,2,0,2,0,0],  'm9':   [0,2,0,0,0,2],
 };
+const _OPEN_A_SHAPE = {
+    '':     [-1,0,2,2,2,0], 'm':    [-1,0,2,2,1,0], '7':    [-1,0,2,0,2,0],
+    'm7':   [-1,0,2,0,1,0], 'maj7': [-1,0,2,1,2,0], 'sus4': [-1,0,2,2,3,0],
+    'sus2': [-1,0,2,2,0,0], 'add9': [-1,0,2,4,2,0], '5':    [-1,0,2,2,-1,-1],
+    'dim':  [-1,0,1,2,1,-1],'aug':  [-1,0,3,2,2,1], 'dim7': [-1,0,1,2,1,2],
+    '6':    [-1,0,2,2,2,2], 'm6':   [-1,0,2,2,1,2], '9':    [-1,0,2,4,2,3],
+    'm9':   [-1,0,2,4,1,3],
+};
+function _buildBarreTemplates(openMap, rootStringIdx) {
+    var out = {};
+    Object.keys(openMap).forEach(function (q) {
+        var open = openMap[q];
+        var fingers = open.map(function (f) { return f < 0 ? -1 : f + 1; });
+        // Wizualny barre na progu rdzenia od struny rdzenia do wysokiego E —
+        // tylko gdy chwyt jest pełny (bez luk: nie power-chord/dim/aug).
+        var barres = [];
+        var full = fingers.slice(rootStringIdx).every(function (f) { return f >= 1; });
+        if (full && q !== '5') barres = [[rootStringIdx + 1, 6, 1]];
+        out[q] = { fingers: fingers, barres: barres };
+    });
+    return out;
+}
+const BARRE_TEMPLATES = {
+    'E': _buildBarreTemplates(_OPEN_E_SHAPE, 0),
+    'A': _buildBarreTemplates(_OPEN_A_SHAPE, 1),
+};
+
+// Historyczne, BŁĘDNE (odwrócone) chwyty barre + kilka otwartych z fałszywymi
+// dźwiękami. Usuwamy je z bazy — lookupChord odtworzy je poprawnie przez
+// generateGuitarChord (na naprawionych szablonach powyżej). Zweryfikowane
+// nutowo skryptem: każdy z tych chwytów grał obce dźwięki względem akordu.
+[
+    'F','B','Bb','C#','Db','Eb','F#','Gb','Ab','G#',
+    'Bm','Cm','Fm','Gm','Bbm','C#m','Dbm','Ebm','D#m','F#m','Gbm','G#m','Abm',
+    'F7','Bb7','Bm7','Cm7','F#m7','G#m7','Bbmaj7',
+    'Bsus2','Csus2','Fsus2','Bsus4','Csus4','Fsus4','Gsus4',
+    'Cdim','Edim','G7sus4','F/C'
+].forEach(function (k) { delete CHORD_DB[k]; });
 
 function generateGuitarChord(chordName) {
     const m = chordName.match(/^([A-Ha-h][#b]?)(.*)$/);
@@ -233,27 +251,15 @@ function generateGuitarChord(chordName) {
     var aFret = (rootVal - 9 + 12) % 12;
     if (aFret === 0) aFret = 12;
 
-    if (BARRE_TEMPLATES['E'][suffix] && eFret <= 7) {
-        var t = BARRE_TEMPLATES['E'][suffix];
-        return { fret: eFret, fingers: t.fingers.slice(), barres: t.barres.map(function(b) { return b.slice(); }) };
-    }
-
-    if (BARRE_TEMPLATES['A'][suffix] && aFret <= 7) {
-        var t = BARRE_TEMPLATES['A'][suffix];
-        return { fret: aFret, fingers: t.fingers.slice(), barres: t.barres.map(function(b) { return b.slice(); }) };
-    }
-
-    if (BARRE_TEMPLATES['E'][suffix]) {
-        var t = BARRE_TEMPLATES['E'][suffix];
-        return { fret: eFret, fingers: t.fingers.slice(), barres: t.barres.map(function(b) { return b.slice(); }) };
-    }
-
-    if (BARRE_TEMPLATES['A'][suffix]) {
-        var t = BARRE_TEMPLATES['A'][suffix];
-        return { fret: aFret, fingers: t.fingers.slice(), barres: t.barres.map(function(b) { return b.slice(); }) };
-    }
-
-    return null;
+    // Zbierz dostępne kształty i wybierz NIŻSZĄ (bardziej otwartą, łatwiejszą)
+    // pozycję — np. Bb jako A-kształt na 1. progu, nie E-kształt na 6.
+    var candidates = [];
+    if (BARRE_TEMPLATES['E'][suffix]) candidates.push({ fret: eFret, t: BARRE_TEMPLATES['E'][suffix] });
+    if (BARRE_TEMPLATES['A'][suffix]) candidates.push({ fret: aFret, t: BARRE_TEMPLATES['A'][suffix] });
+    if (!candidates.length) return null;
+    candidates.sort(function (a, b) { return a.fret - b.fret; });
+    var pick = candidates[0];
+    return { fret: pick.fret, fingers: pick.t.fingers.slice(), barres: pick.t.barres.map(function (b) { return b.slice(); }) };
 }
 
 function lookupChord(chordName) {
