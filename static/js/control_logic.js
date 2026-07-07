@@ -459,10 +459,13 @@ socket.on('update_slide', function(data) {
             }
         }
 
-        // Podgląd live na panelu głównym
+        // Podgląd live na panelu głównym — z auto-dopasowaniem, żeby długie
+        // zwrotki nie były przycinane przez sztywne 16:9 + overflow:hidden.
         if (data.is_blackout) {
             const txt = (currentLang === 'en') ? "SCREEN BLACKED OUT" : "EKRAN WYGASZONY";
             previewBox.innerText = txt;
+        } else if (window.updateLocalPreview) {
+            window.updateLocalPreview(textContent);
         } else {
             previewBox.innerText = textContent;
         }
@@ -1602,7 +1605,9 @@ function goLiveSection(c, n, forceTrans = null, nextTrans = null) {
     });
     
     // Operator zawsze widzi u siebie na podglądzie tekst, żeby wiedzieć co wysłał zespołowi
-    document.getElementById('live-preview-box').innerText = c.replace(/\[.*?\]/g, "");
+    var _previewClean = c.replace(/\[.*?\]/g, "");
+    if (window.updateLocalPreview) window.updateLocalPreview(_previewClean);
+    else document.getElementById('live-preview-box').innerText = _previewClean;
 }
 function showLogo(){fetch('/send_text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({logo:true})});document.getElementById('live-preview-box').innerText="LOGO";}
 
