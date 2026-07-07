@@ -522,6 +522,114 @@ function generatePianoChord(chordName) {
     return intervals.map(i => pc + i);
 }
 
+// ===== INTERESTING VOICINGS =====
+// Deterministic "worship guitar" embellishments. We never invent shapes here:
+// each voicing is a chord-name transform resolved through the existing shape
+// DB / generators, so every suggested voicing is guaranteed playable.
+//
+// Returns [{label, tag, svg}] with the base voicing first, then alternatives.
+// `tag` is a character key ('base','color','open','tension','jazzy','soft',
+// 'resolve') that the UI turns into a localized label + hint.
+
+function _parseChordName(name) {
+    const m = name.match(/^([A-Ha-h][#b]?)(.*)$/);
+    if (!m) return null;
+    let root = m[1].charAt(0).toUpperCase() + m[1].slice(1);
+    if (root === 'H') root = 'B';
+    return { root: root, suffix: m[2] };
+}
+
+// Per-quality embellishment rules. Each rule = a new suffix + a character tag.
+// Order matters: most useful/idiomatic first.
+const VOICING_RULES = {
+    major: [
+        { suffix: 'add9', tag: 'color'   },
+        { suffix: 'sus2', tag: 'open'    },
+        { suffix: 'sus4', tag: 'tension' },
+    ],
+    minor: [
+        { suffix: 'm7', tag: 'jazzy' },
+        { suffix: 'm9', tag: 'color' },
+    ],
+    min7: [
+        { suffix: 'm9', tag: 'color'   },
+        { suffix: 'm',  tag: 'resolve' },
+    ],
+    dom7: [
+        { suffix: '9',     tag: 'color'   },
+        { suffix: '7sus4', tag: 'tension' },
+    ],
+    maj7: [
+        { suffix: 'add9', tag: 'color' },
+        { suffix: '6',    tag: 'soft'  },
+    ],
+    sus: [
+        { suffix: '',     tag: 'resolve' },
+        { suffix: 'add9', tag: 'color'   },
+    ],
+};
+
+function _chordCategory(suffix) {
+    if (suffix === '') return 'major';
+    if (suffix === 'm') return 'minor';
+    if (suffix === 'm7') return 'min7';
+    if (suffix === '7') return 'dom7';
+    if (suffix === 'maj7') return 'maj7';
+    if (suffix === 'sus' || suffix === 'sus2' || suffix === 'sus4') return 'sus';
+    return null;
+}
+
+function getChordVoicings(chordName, instrument) {
+    const isGuitar = instrument !== 'piano';
+
+    function renderOf(nm) {
+        if (isGuitar) {
+            const d = lookupChord(nm.split('/')[0]);
+            return d ? renderChordSVG(nm, d) : null;
+        }
+        const n = lookupPianoChord(nm);
+        return n ? renderPianoSVG(nm, n) : null;
+    }
+    function shapeKeyOf(nm) {
+        if (isGuitar) {
+            const d = lookupChord(nm.split('/')[0]);
+            return d ? JSON.stringify([d.fret, d.fingers]) : null;
+        }
+        const n = lookupPianoChord(nm);
+        return n ? JSON.stringify(n) : null;
+    }
+
+    const out = [];
+    const seen = new Set();
+
+    // Base voicing (the chord exactly as written)
+    const baseSvg = renderOf(chordName);
+    if (baseSvg) {
+        out.push({ label: chordName, tag: 'base', svg: baseSvg });
+        const bk = shapeKeyOf(chordName);
+        if (bk) seen.add(bk);
+    }
+
+    // Alternatives derived from the chord quality
+    const parsed = _parseChordName(chordName.split('/')[0]);
+    if (parsed) {
+        const cat = _chordCategory(parsed.suffix);
+        const rules = VOICING_RULES[cat] || [];
+        for (const rule of rules) {
+            const nm = parsed.root + rule.suffix;
+            if (nm === chordName) continue;
+            const sk = shapeKeyOf(nm);
+            if (!sk || seen.has(sk)) continue;   // skip unplayable or duplicate shape
+            const svg = renderOf(nm);
+            if (!svg) continue;
+            seen.add(sk);
+            out.push({ label: nm, tag: rule.tag, svg: svg });
+        }
+    }
+
+    return out;
+}
+
 function renderPianoSVG(chordName, notes) {
     const W = 200, H = 120;
     const TOP = 28;
