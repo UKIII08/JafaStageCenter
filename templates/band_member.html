@@ -335,8 +335,29 @@
             padding: 10px 40px; box-sizing: border-box;
             border-top: 1px solid var(--border-default);
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
+            align-items: stretch;
+            gap: 24px;
             position: relative;
+        }
+        /* Lewa strefa: tekst „następnie" (jak dawniej). */
+        #bottom-left {
+            flex: 0 1 42%;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        /* Środek: diagramy akordów aktualnie granych (co grać TERAZ). */
+        #now-diagrams {
+            display: none;              /* włączane z JS gdy aktywne */
+            flex: 1 1 auto;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-right: 190px;       /* nie wchodź pod meta (zegar/tonacja) */
+            box-sizing: border-box;
+            min-width: 0;
         }
 
         .meta-info-container {
@@ -401,7 +422,7 @@
             display: flex;
             align-items: flex-start;
             padding-top: 15px;
-            padding-right: 180px;
+            padding-right: var(--s2);
         }
 
         .text-wrapper { width: 100%; }
@@ -622,43 +643,56 @@
         }
         .voicing-card { position: relative; }
 
-        /* --- INLINE NEXT-SECTION DIAGRAMS --- */
-        #next-diagrams { display: none; margin-top: var(--s2); }
+        /* --- INLINE "NOW PLAYING" DIAGRAMS (center of bottom bar) --- */
         .nd-head {
-            display: flex; align-items: center; justify-content: space-between;
-            gap: var(--s2); margin-bottom: var(--s1);
+            display: flex; align-items: center; justify-content: center;
+            gap: var(--s3); margin-bottom: var(--s2); flex-wrap: wrap;
         }
         .nd-title {
-            font-size: var(--font-2xs, 0.66rem); font-weight: 700; letter-spacing: .08em;
+            font-size: var(--font-2xs, 0.66rem); font-weight: 700; letter-spacing: .1em;
             text-transform: uppercase; color: var(--text-tertiary);
         }
-        .nd-toggle {
-            font-size: var(--font-2xs, 0.66rem); font-weight: 700; letter-spacing: .02em;
-            padding: 3px 10px; border-radius: var(--r-full, 999px);
-            background: var(--bg-subtle, rgba(255,255,255,.06)); color: var(--text-secondary);
-            border: 1px solid var(--border-default); cursor: pointer;
-            transition: all var(--duration-fast, .15s) ease; white-space: nowrap;
+        /* Segmentowany przełącznik: dwa czytelne przyciski, aktywny podświetlony */
+        .nd-seg {
+            display: inline-flex; border: 1px solid var(--border-default);
+            border-radius: var(--r-full, 999px); overflow: hidden; background: var(--bg-elevated);
         }
-        .nd-toggle--on { background: var(--accent); color: #fff; border-color: var(--accent); }
-        .nd-toggle:hover { filter: brightness(1.1); }
+        .nd-seg-btn {
+            font-size: var(--font-2xs, 0.66rem); font-weight: 700; letter-spacing: .02em;
+            padding: 4px 12px; background: transparent; color: var(--text-tertiary);
+            border: none; cursor: pointer; white-space: nowrap;
+            transition: all var(--duration-fast, .15s) ease;
+        }
+        .nd-seg-btn:hover { color: var(--text-secondary); }
+        .nd-seg-btn.on { background: var(--accent); color: #fff; }
         .nd-row {
-            display: flex; gap: var(--s2); overflow-x: auto; padding-bottom: 4px;
-            scroll-snap-type: x mandatory;
+            display: flex; gap: var(--s3); overflow-x: auto; padding-bottom: 4px;
+            justify-content: center; max-width: 100%;
         }
         .nd-card {
-            position: relative; flex: 0 0 auto; scroll-snap-align: start; line-height: 0;
+            position: relative; flex: 0 0 auto; line-height: 0;
         }
-        .nd-svg svg { width: 78px; height: auto; display: block; }
+        .nd-svg svg { width: 92px; height: auto; display: block; }
         .nd-star {
-            position: absolute; top: -4px; right: -2px; z-index: 2;
-            font-size: 12px; color: var(--accent);
+            position: absolute; top: -3px; right: -1px; z-index: 2;
+            font-size: 13px; color: var(--accent);
             text-shadow: 0 0 3px var(--bg-base, #000);
         }
         .nd-miss {
-            width: 78px; height: 104px; display: flex; align-items: center; justify-content: center;
+            width: 92px; height: 122px; display: flex; align-items: center; justify-content: center;
             font-size: var(--font-sm); font-weight: 700; color: var(--text-tertiary);
             background: var(--bg-elevated); border: 1px solid var(--border-default);
             border-radius: 8px; line-height: 1.1; text-align: center;
+        }
+        /* Wąskie ekrany: pod tekstem, mniejsze, bez rezerwy na meta */
+        @media (max-width: 820px) {
+            #next-slide-container { flex-direction: column; gap: var(--s2); }
+            #bottom-left { flex: 1 1 auto; }
+            #now-diagrams { padding-right: 0; flex: 0 0 auto; align-items: flex-start; }
+            .nd-head { justify-content: flex-start; }
+            .nd-row { justify-content: flex-start; }
+            .nd-svg svg { width: 68px; }
+            .nd-miss { width: 68px; height: 90px; }
         }
 
         .chord.clickable { cursor: pointer; }
@@ -973,11 +1007,13 @@
                 <div id="section-note-area"></div>
             </div>
 
-            <div id="next-label" data-t="bm_next_label">NASTĘPNIE:</div>
-            <div id="next-content">
-                <div id="next-text-inner" class="text-wrapper"></div>
+            <div id="bottom-left">
+                <div id="next-label" data-t="bm_next_label">NASTĘPNIE:</div>
+                <div id="next-content">
+                    <div id="next-text-inner" class="text-wrapper"></div>
+                </div>
             </div>
-            <div id="next-diagrams"></div>
+            <div id="now-diagrams"></div>
         </div>
     </div>
 
@@ -1070,7 +1106,7 @@
                 </select>
             </label>
             <label>
-                <span data-t="bm_inline_diagrams">Diagramy przy tekście „następnie"</span>
+                <span data-t="bm_inline_diagrams">Diagramy akordów (co grasz teraz)</span>
                 <div class="toggle" id="tog-inline-diagrams" onclick="toggleInlineDiagrams()"></div>
             </label>
         </div>
@@ -1699,7 +1735,7 @@
 
             document.getElementById('section-note-area').innerHTML = getNoteHtml();
 
-            renderNextDiagrams();
+            renderNowDiagrams();
             suggestCapo();
         }
 
@@ -1912,14 +1948,15 @@
                 document.getElementById('next-label').style.display = 'none';
                 currentRawText = ''; currentRawNext = '';
                 currentBandHtml = ''; currentBandNext = '';
-                renderNextDiagrams();
+                renderNowDiagrams();
             } else if (data.mode === 'blackout') {
                 worshipView.style.display = 'flex';
                 confView.style.display = 'none';
                 document.getElementById('next-text-inner').innerHTML = '';
                 document.getElementById('next-label').style.display = 'none';
                 currentRawNext = ''; currentBandNext = '';
-                renderNextDiagrams();
+                currentBandHtml = '';
+                renderNowDiagrams();
             } else if (data.mode === 'conference') {
                 worshipView.style.display = 'none';
                 confView.style.display = 'flex';
@@ -1966,7 +2003,7 @@
                 document.getElementById('next-text-inner').innerHTML = '';
                 document.getElementById('next-label').style.display = 'none';
                 currentBandNext = '';
-                renderNextDiagrams();
+                renderNowDiagrams();
             }
         });
 
@@ -2091,36 +2128,40 @@
         }
         function currentProgressionChords() { return chordsFromHtml(currentBandHtml); }
 
-        // ===== INLINE DIAGRAMS (next section) =====
+        // ===== INLINE "NOW PLAYING" DIAGRAMS (center of bottom bar) =====
         function toggleInlineDiagrams() {
             inlineDiagrams = !inlineDiagrams;
             localStorage.setItem('bm_inline_diagrams', inlineDiagrams ? '1' : '0');
             updateToggles();
-            renderNextDiagrams();
+            renderNowDiagrams();
         }
-        function toggleInlineVoicing() {
-            inlineVoicing = !inlineVoicing;
+        function setInlineVoicing(on) {
+            inlineVoicing = !!on;
             localStorage.setItem('bm_inline_voicing', inlineVoicing ? '1' : '0');
-            renderNextDiagrams();
+            renderNowDiagrams();
         }
 
-        function renderNextDiagrams() {
-            const strip = document.getElementById('next-diagrams');
+        function renderNowDiagrams() {
+            const strip = document.getElementById('now-diagrams');
             if (!strip) return;
             const inst = currentSettings.diagram_instrument;
             const isNash = currentSettings.chord_notation === 'nashville';
-            if (!inlineDiagrams || inst === 'off' || isNash || !currentBandNext || !currentBandNext.trim()) {
+            if (!inlineDiagrams || inst === 'off' || isNash || !currentBandHtml || !currentBandHtml.trim()) {
                 strip.style.display = 'none'; strip.innerHTML = ''; return;
             }
-            const chords = chordsFromHtml(currentBandNext);
+            // Akordy aktualnie granej części (to, co muzyk gra TERAZ).
+            const chords = chordsFromHtml(currentBandHtml);
             if (!chords.length) { strip.style.display = 'none'; strip.innerHTML = ''; return; }
 
             const en = currentLang === 'en';
             let html = '<div class="nd-head"><span class="nd-title">' +
-                (en ? 'Coming up' : 'Za chwilę') + '</span>' +
-                '<button class="nd-toggle' + (inlineVoicing ? ' nd-toggle--on' : '') + '" onclick="toggleInlineVoicing()">' +
-                (inlineVoicing ? (en ? '★ suggested' : '★ sugerowany') : (en ? 'plain' : 'zwykły')) +
-                '</button></div><div class="nd-row">';
+                (en ? 'Playing now' : 'Teraz grasz') + '</span>' +
+                '<div class="nd-seg">' +
+                    '<button class="nd-seg-btn' + (inlineVoicing ? ' on' : '') + '" onclick="setInlineVoicing(true)">' +
+                        (en ? '★ Suggested' : '★ Sugerowany') + '</button>' +
+                    '<button class="nd-seg-btn' + (!inlineVoicing ? ' on' : '') + '" onclick="setInlineVoicing(false)">' +
+                        (en ? 'Basic' : 'Podstawowy') + '</button>' +
+                '</div></div><div class="nd-row">';
 
             chords.forEach(function(ch) {
                 let svg = null, star = false;
