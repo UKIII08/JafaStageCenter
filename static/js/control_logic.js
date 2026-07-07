@@ -1828,14 +1828,20 @@ function exportToPDF() {
             alert(t('alert_critical_error') + err);
         });
     } else {
+        // Okno MUSI być otwarte synchronicznie w kontekście kliknięcia — inaczej
+        // blokada popupów przeglądarki je zablokuje (window.open w .then() jest
+        // traktowane jako nie-użytkownikowe).
+        const w = window.open('', '_blank');
+        if (!w) { alert(t('alert_popup_blocked')); return; }
+        w.document.write('<!doctype html><meta charset="utf-8"><body style="font-family:sans-serif;padding:40px;color:#555">Generowanie PDF…</body>');
         fetch('/print_setlist', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(setlist)
         }).then(r => r.text()).then(h => {
-            const w = window.open('', '_blank');
-            w.document.write(h);
-            w.document.close();
+            w.document.open(); w.document.write(h); w.document.close();
+        }).catch(err => {
+            try { w.document.body.innerHTML = 'Błąd generowania PDF: ' + err; } catch (e) {}
         });
     }
 }
@@ -1857,14 +1863,17 @@ function exportLyricsPDF() {
             alert(t('alert_critical_error') + err);
         });
     } else {
+        const w = window.open('', '_blank');
+        if (!w) { alert(t('alert_popup_blocked')); return; }
+        w.document.write('<!doctype html><meta charset="utf-8"><body style="font-family:sans-serif;padding:40px;color:#555">Generowanie PDF…</body>');
         fetch('/print_lyrics', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(setlist)
         }).then(r => r.text()).then(h => {
-            const w = window.open('', '_blank');
-            w.document.write(h);
-            w.document.close();
+            w.document.open(); w.document.write(h); w.document.close();
+        }).catch(err => {
+            try { w.document.body.innerHTML = 'Błąd generowania PDF: ' + err; } catch (e) {}
         });
     }
 }

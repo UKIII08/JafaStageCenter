@@ -256,6 +256,7 @@ var translations = {
 
         // ── Alerts ──
         alert_empty_setlist: "Setlista jest pusta! Dodaj najpierw piosenki.",
+        alert_popup_blocked: "Przeglądarka zablokowała nowe okno. Zezwól na wyskakujące okienka dla tej strony i spróbuj ponownie.",
         alert_last_song: "To ostatnia piosenka w setliście!",
         alert_error: "Błąd",
         alert_loading: "Ładowanie...",
@@ -553,6 +554,7 @@ var translations = {
 
         // ── Alerts ──
         alert_empty_setlist: "Setlist is empty! Add songs first.",
+        alert_popup_blocked: "Your browser blocked the new window. Allow pop-ups for this page and try again.",
         alert_last_song: "This is the last song in setlist!",
         alert_error: "Error",
         alert_loading: "Loading...",
