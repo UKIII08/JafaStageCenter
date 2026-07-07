@@ -355,7 +355,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding-right: 190px;       /* nie wchodź pod meta (zegar/tonacja) */
+            padding-right: 150px;       /* nie wchodź pod meta (zegar/tonacja) */
             box-sizing: border-box;
             min-width: 0;
         }
@@ -692,8 +692,10 @@
             background: var(--bg-elevated); border: 1px solid var(--border-default);
             border-radius: 8px; line-height: 1.1; text-align: center;
         }
-        /* Wąskie ekrany: pod tekstem, mniejsze, bez rezerwy na meta */
-        @media (max-width: 820px) {
+        /* Tablety i węziej: układ pionowy (diagramy dostają pełną szerokość).
+           Tekst „następnie" jest pełnej szerokości, więc musi omijać absolutną
+           meta (zegar/tonacja) w prawym górnym rogu. */
+        @media (max-width: 1024px) {
             #next-slide-container { flex-direction: column; gap: var(--s2); }
             #bottom-left { flex: 1 1 auto; }
             #now-diagrams { padding-right: 0; flex: 0 0 auto; align-items: flex-start; }
@@ -701,6 +703,11 @@
             .nd-row { justify-content: flex-start; }
             .nd-svg svg { height: auto; width: 68px; }
             .nd-miss { width: 68px; height: 90px; }
+            /* zmniejsz meta i zrób miejsce, żeby tekst nie wchodził pod nią */
+            .meta-info-container { top: 10px; right: 12px; gap: 2px; }
+            #realtime-clock, #key-display { font-size: 2.3vh; }
+            #capo-display, #bpm-display { font-size: 1.9vh; }
+            #next-content { padding-right: 150px; }
         }
 
         .chord.clickable { cursor: pointer; }
@@ -777,7 +784,7 @@
             #next-content {
                 font-size: 2.8vh;
                 line-height: 1.7;
-                padding-right: 70px;
+                padding-right: 110px;   /* omiń meta (zegar/tonacja) w rogu */
                 padding-top: 8px;
             }
             #next-slide-container .chord {
@@ -814,7 +821,7 @@
             #next-content {
                 font-size: 2.4vh;
                 line-height: 1.5;
-                padding-right: 55px;
+                padding-right: 95px;   /* omiń meta w rogu */
             }
             .meta-info-container {
                 top: 4px;
@@ -863,7 +870,7 @@
             #next-content {
                 font-size: 2.4vh;
                 line-height: 1.5;
-                padding-right: 55px;
+                padding-right: 95px;   /* omiń meta w rogu */
                 padding-top: 5px;
             }
         }
