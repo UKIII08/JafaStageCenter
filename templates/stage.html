@@ -559,13 +559,20 @@
                 document.getElementById('next-text-inner').innerHTML = "";
                 document.getElementById('next-label').style.display = 'none';
             }
-            else if (data.mode === 'conference') {
+            else if (data.mode === 'conference' || data.mode === 'presentation' || data.mode === 'canva') {
+                // Tryb konferencyjny (także gdy na projektor idzie prezentacja/Canva):
+                // ekran ZESPOŁU pokazuje wyłącznie zegar i wiadomość do mówcy —
+                // slajdy trafiają tylko na projektor/prezentera, nie na scenę.
                 worshipView.style.display = 'none';
                 confView.style.display = 'flex';
 
-                document.getElementById('conf-timer').innerText = data.timer;
-                document.getElementById('conf-timer').style.color = data.timer_color;
-                document.getElementById('conf-message').innerText = data.message;
+                if (data.timer !== undefined) {
+                    document.getElementById('conf-timer').innerText = data.timer;
+                    document.getElementById('conf-timer').style.color = data.timer_color;
+                }
+                if (data.message !== undefined) {
+                    document.getElementById('conf-message').innerText = data.message;
+                }
             }
             else {
                 // WORSHIP MODE (Tekst piosenki)
