@@ -622,6 +622,45 @@
         }
         .voicing-card { position: relative; }
 
+        /* --- INLINE NEXT-SECTION DIAGRAMS --- */
+        #next-diagrams { display: none; margin-top: var(--s2); }
+        .nd-head {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: var(--s2); margin-bottom: var(--s1);
+        }
+        .nd-title {
+            font-size: var(--font-2xs, 0.66rem); font-weight: 700; letter-spacing: .08em;
+            text-transform: uppercase; color: var(--text-tertiary);
+        }
+        .nd-toggle {
+            font-size: var(--font-2xs, 0.66rem); font-weight: 700; letter-spacing: .02em;
+            padding: 3px 10px; border-radius: var(--r-full, 999px);
+            background: var(--bg-subtle, rgba(255,255,255,.06)); color: var(--text-secondary);
+            border: 1px solid var(--border-default); cursor: pointer;
+            transition: all var(--duration-fast, .15s) ease; white-space: nowrap;
+        }
+        .nd-toggle--on { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .nd-toggle:hover { filter: brightness(1.1); }
+        .nd-row {
+            display: flex; gap: var(--s2); overflow-x: auto; padding-bottom: 4px;
+            scroll-snap-type: x mandatory;
+        }
+        .nd-card {
+            position: relative; flex: 0 0 auto; scroll-snap-align: start; line-height: 0;
+        }
+        .nd-svg svg { width: 78px; height: auto; display: block; }
+        .nd-star {
+            position: absolute; top: -4px; right: -2px; z-index: 2;
+            font-size: 12px; color: var(--accent);
+            text-shadow: 0 0 3px var(--bg-base, #000);
+        }
+        .nd-miss {
+            width: 78px; height: 104px; display: flex; align-items: center; justify-content: center;
+            font-size: var(--font-sm); font-weight: 700; color: var(--text-tertiary);
+            background: var(--bg-elevated); border: 1px solid var(--border-default);
+            border-radius: 8px; line-height: 1.1; text-align: center;
+        }
+
         .chord.clickable { cursor: pointer; }
         .chord.clickable:hover { text-decoration: underline; }
 
@@ -938,6 +977,7 @@
             <div id="next-content">
                 <div id="next-text-inner" class="text-wrapper"></div>
             </div>
+            <div id="next-diagrams"></div>
         </div>
     </div>
 
@@ -1029,6 +1069,10 @@
                     <option value="piano" data-t="bm_piano">Piano</option>
                 </select>
             </label>
+            <label>
+                <span data-t="bm_inline_diagrams">Diagramy przy tekście „następnie"</span>
+                <div class="toggle" id="tog-inline-diagrams" onclick="toggleInlineDiagrams()"></div>
+            </label>
         </div>
 
         <div class="setting-group">
@@ -1085,6 +1129,10 @@
             diagram_instrument: 'guitar',
             font_size: 8
         };
+        // Diagramy przy sekcji „następnie" — preferencje wyświetlania (klient).
+        let inlineDiagrams = localStorage.getItem('bm_inline_diagrams') === '1';
+        let inlineVoicing  = localStorage.getItem('bm_inline_voicing') !== '0'; // domyślnie sugerowany
+
         let currentRawText = '';
         let currentRawNext = '';
         let currentBandHtml = '';
@@ -1651,6 +1699,7 @@
 
             document.getElementById('section-note-area').innerHTML = getNoteHtml();
 
+            renderNextDiagrams();
             suggestCapo();
         }
 
@@ -1863,12 +1912,14 @@
                 document.getElementById('next-label').style.display = 'none';
                 currentRawText = ''; currentRawNext = '';
                 currentBandHtml = ''; currentBandNext = '';
+                renderNextDiagrams();
             } else if (data.mode === 'blackout') {
                 worshipView.style.display = 'flex';
                 confView.style.display = 'none';
                 document.getElementById('next-text-inner').innerHTML = '';
                 document.getElementById('next-label').style.display = 'none';
                 currentRawNext = ''; currentBandNext = '';
+                renderNextDiagrams();
             } else if (data.mode === 'conference') {
                 worshipView.style.display = 'none';
                 confView.style.display = 'flex';
@@ -1914,6 +1965,8 @@
             if (state.is_blackout && !browseMode) {
                 document.getElementById('next-text-inner').innerHTML = '';
                 document.getElementById('next-label').style.display = 'none';
+                currentBandNext = '';
+                renderNextDiagrams();
             }
         });
 
@@ -2003,6 +2056,8 @@
             document.getElementById('tog-beginner').classList.toggle('active', currentSettings.beginner_mode);
             document.getElementById('chord-notation').value = currentSettings.chord_notation || 'international';
             document.getElementById('diagram-instrument').value = currentSettings.diagram_instrument || 'guitar';
+            var inlineTog = document.getElementById('tog-inline-diagrams');
+            if (inlineTog) inlineTog.classList.toggle('active', inlineDiagrams);
         }
 
         // ===== CHORD POPUP =====
@@ -2020,19 +2075,81 @@
         // Pitch class → note name (app enharmonic convention).
         const PC_NAMES = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
 
-        // Raw chords of the current song, in the same domain as data-chord,
-        // so the progression matches the clicked chord exactly.
-        function currentProgressionChords() {
+        // Unique chords (in order) from a chunk of server chord-HTML — same raw
+        // domain as data-chord, so recommendations match the clicked chord.
+        function chordsFromHtml(html) {
             try {
                 const tmp = document.createElement('div');
-                tmp.innerHTML = currentBandHtml || '';
-                const seen = new Set();
+                tmp.innerHTML = html || '';
+                const seen = new Set(), order = [];
                 tmp.querySelectorAll('.chord').forEach(function(el) {
                     const c = (el.textContent || '').trim();
-                    if (c) seen.add(c);
+                    if (c && !seen.has(c)) { seen.add(c); order.push(c); }
                 });
-                return Array.from(seen);
+                return order;
             } catch (e) { return []; }
+        }
+        function currentProgressionChords() { return chordsFromHtml(currentBandHtml); }
+
+        // ===== INLINE DIAGRAMS (next section) =====
+        function toggleInlineDiagrams() {
+            inlineDiagrams = !inlineDiagrams;
+            localStorage.setItem('bm_inline_diagrams', inlineDiagrams ? '1' : '0');
+            updateToggles();
+            renderNextDiagrams();
+        }
+        function toggleInlineVoicing() {
+            inlineVoicing = !inlineVoicing;
+            localStorage.setItem('bm_inline_voicing', inlineVoicing ? '1' : '0');
+            renderNextDiagrams();
+        }
+
+        function renderNextDiagrams() {
+            const strip = document.getElementById('next-diagrams');
+            if (!strip) return;
+            const inst = currentSettings.diagram_instrument;
+            const isNash = currentSettings.chord_notation === 'nashville';
+            if (!inlineDiagrams || inst === 'off' || isNash || !currentBandNext || !currentBandNext.trim()) {
+                strip.style.display = 'none'; strip.innerHTML = ''; return;
+            }
+            const chords = chordsFromHtml(currentBandNext);
+            if (!chords.length) { strip.style.display = 'none'; strip.innerHTML = ''; return; }
+
+            const en = currentLang === 'en';
+            let html = '<div class="nd-head"><span class="nd-title">' +
+                (en ? 'Coming up' : 'Za chwilę') + '</span>' +
+                '<button class="nd-toggle' + (inlineVoicing ? ' nd-toggle--on' : '') + '" onclick="toggleInlineVoicing()">' +
+                (inlineVoicing ? (en ? '★ suggested' : '★ sugerowany') : (en ? 'plain' : 'zwykły')) +
+                '</button></div><div class="nd-row">';
+
+            chords.forEach(function(ch) {
+                let svg = null, star = false;
+                try {
+                    if (inlineVoicing) {
+                        const vs = getChordVoicings(ch, inst);
+                        const rec = recommendVoicing(ch, chords, inst);
+                        const idx = (rec && vs[rec.index]) ? rec.index : 0;
+                        const pick = vs[idx];
+                        if (pick) { svg = pick.svg; star = idx > 0; }
+                    } else if (inst === 'piano') {
+                        const n = lookupPianoChord(ch);
+                        svg = n ? renderPianoSVG(processChord(ch).display, n) : null;
+                    } else {
+                        const d = lookupChord(ch.split('/')[0]);
+                        svg = d ? renderChordSVG(processChord(ch).display, d) : null;
+                    }
+                } catch (e) { svg = null; }
+
+                if (!svg) {
+                    html += '<div class="nd-card"><div class="nd-miss">' + processChord(ch).display + '</div></div>';
+                } else {
+                    html += '<div class="nd-card">' + (star ? '<div class="nd-star">★</div>' : '') +
+                            '<div class="nd-svg">' + svg + '</div></div>';
+                }
+            });
+            html += '</div>';
+            strip.innerHTML = html;
+            strip.style.display = 'block';
         }
 
         function showChordPopup(event, chordName, displayName) {
