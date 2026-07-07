@@ -612,6 +612,15 @@
             margin-top: 4px; font-size: var(--font-2xs, 0.66rem); line-height: 1.3;
             color: var(--text-tertiary); text-align: center; max-width: 108px;
         }
+        .voicing-card--rec .voicing-svg {
+            outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 10px;
+        }
+        .voicing-star {
+            font-size: var(--font-2xs, 0.66rem); font-weight: 800; letter-spacing: .02em;
+            color: var(--accent); margin-bottom: 3px; text-align: center;
+            white-space: nowrap;
+        }
+        .voicing-card { position: relative; }
 
         .chord.clickable { cursor: pointer; }
         .chord.clickable:hover { text-decoration: underline; }
@@ -2008,6 +2017,24 @@
             resolve: { pl: 'rozwiązanie',  en: 'resolve',     hpl: 'wróć do czystego akordu',                hen: 'return to the plain chord' },
         };
 
+        // Pitch class → note name (app enharmonic convention).
+        const PC_NAMES = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+
+        // Raw chords of the current song, in the same domain as data-chord,
+        // so the progression matches the clicked chord exactly.
+        function currentProgressionChords() {
+            try {
+                const tmp = document.createElement('div');
+                tmp.innerHTML = currentBandHtml || '';
+                const seen = new Set();
+                tmp.querySelectorAll('.chord').forEach(function(el) {
+                    const c = (el.textContent || '').trim();
+                    if (c) seen.add(c);
+                });
+                return Array.from(seen);
+            } catch (e) { return []; }
+        }
+
         function showChordPopup(event, chordName, displayName) {
             event.stopPropagation();
             const popup = document.getElementById('chord-popup');
@@ -2023,6 +2050,15 @@
             if (!voicings.length) {
                 content.innerHTML = `<div class="no-diagram"><strong>${label}</strong><br>${t('bm_no_diagram')}</div>`;
             } else {
+                // Progression-aware pick: which voicing ties THIS song together best.
+                let rec = null;
+                try {
+                    const prog = currentProgressionChords();
+                    rec = recommendVoicing(chordName, prog, inst);
+                } catch (e) { rec = null; }
+                const recIdx = rec ? rec.index : -1;
+                const pedalName = (rec && rec.pedalPc != null) ? PC_NAMES[rec.pedalPc] : null;
+
                 // First card uses the display label (respects notation/lowercase);
                 // alternatives keep their own theory names.
                 let html = `<div class="voicing-title">${label} · ${en ? 'voicings' : 'voicingi'}</div>`;
@@ -2033,10 +2069,17 @@
                     const svg = (idx === 0)
                         ? v.svg.replace('>' + v.label + '<', '>' + shownLabel + '<')
                         : v.svg;
-                    html += '<div class="voicing-card">' +
+                    const isRec = (idx === recIdx);
+                    const star = isRec ? '<div class="voicing-star">★ ' + (en ? 'best here' : 'do tej progresji') + '</div>' : '';
+                    let hint = en ? meta.hen : meta.hpl;
+                    if (isRec && pedalName) {
+                        hint = (en ? 'ties the progression (drone ' : 'spina progresję (wspólny dźwięk ') + pedalName + ')';
+                    }
+                    html += '<div class="voicing-card' + (isRec ? ' voicing-card--rec' : '') + '">' +
+                                star +
                                 '<div class="voicing-svg">' + svg + '</div>' +
                                 '<div class="voicing-tag voicing-tag--' + v.tag + '">' + (en ? meta.en : meta.pl) + '</div>' +
-                                '<div class="voicing-hint">' + (en ? meta.hen : meta.hpl) + '</div>' +
+                                '<div class="voicing-hint">' + hint + '</div>' +
                             '</div>';
                 });
                 html += '</div>';

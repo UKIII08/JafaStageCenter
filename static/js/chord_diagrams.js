@@ -630,6 +630,74 @@ function getChordVoicings(chordName, instrument) {
     return out;
 }
 
+// ===== PROGRESSION-AWARE VOICING RECOMMENDATION =====
+// Given the whole progression, pick the voicing that ties it together best.
+// Heuristic mirrors real worship-guitar practice: a top-string note that is a
+// chord tone in MANY of the progression's chords becomes a ringing "pedal"
+// tone (the shimmer), and add9/sus colors are gently preferred in that context.
+// Fully deterministic — no guessing.
+
+const _OPEN_PC = [4, 9, 2, 7, 11, 4]; // guitar open strings: E A D G B e
+
+function _guitarStringPCs(chordName) {
+    const d = lookupChord(chordName.split('/')[0]);
+    if (!d) return null;
+    const pcs = [];
+    for (let i = 0; i < 6; i++) {
+        const f = d.fingers[i];
+        if (f < 0) { pcs.push(null); continue; }      // muted
+        const fret = (d.fret > 0) ? (d.fret + f - 1) : f;
+        pcs.push((_OPEN_PC[i] + fret) % 12);
+    }
+    return pcs;
+}
+
+function _topPitchClasses(chordName, instrument) {
+    if (instrument !== 'piano') {
+        const s = _guitarStringPCs(chordName);
+        if (!s) return [];
+        const top = [];
+        for (let i = 5; i >= 0 && top.length < 2; i--) { if (s[i] != null) top.push(s[i]); }
+        return top;
+    }
+    const n = lookupPianoChord(chordName);
+    if (!n) return [];
+    return n.slice().sort((a, b) => b - a).slice(0, 2).map(x => ((x % 12) + 12) % 12);
+}
+
+function _allPitchClasses(chordName, instrument) {
+    if (instrument !== 'piano') {
+        const s = _guitarStringPCs(chordName);
+        return s ? s.filter(x => x != null) : [];
+    }
+    const n = lookupPianoChord(chordName);
+    return n ? n.map(x => ((x % 12) + 12) % 12) : [];
+}
+
+// Returns {index, pedalPc} — index into getChordVoicings() output, or null if
+// there isn't enough context (single-chord "progression") to recommend.
+function recommendVoicing(chordName, progression, instrument) {
+    const voicings = getChordVoicings(chordName, instrument);
+    if (voicings.length < 2 || !progression || progression.length < 2) return null;
+
+    // How many progression chords contain each pitch class → pedal candidates.
+    const pcCount = new Array(12).fill(0);
+    progression.forEach(function (ch) {
+        new Set(_allPitchClasses(ch, instrument)).forEach(function (pc) { pcCount[pc]++; });
+    });
+
+    const COLOR = { base: 1.0, color: 1.6, open: 0.8, tension: 0.3, jazzy: 0.9, soft: 0.7, resolve: 0.4 };
+    let best = 0, bestScore = -Infinity, bestPedal = null;
+    voicings.forEach(function (v, idx) {
+        const top = _topPitchClasses(v.label, instrument);
+        let pedal = 0, pc = null;
+        top.forEach(function (t) { if (pcCount[t] > pedal) { pedal = pcCount[t]; pc = t; } });
+        const score = pedal + (COLOR[v.tag] || 0.5);
+        if (score > bestScore) { bestScore = score; best = idx; bestPedal = pc; }
+    });
+    return { index: best, pedalPc: bestPedal };
+}
+
 function renderPianoSVG(chordName, notes) {
     const W = 200, H = 120;
     const TOP = 28;
