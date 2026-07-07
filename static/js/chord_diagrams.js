@@ -190,20 +190,22 @@ const GUITAR_NOTE_VALUES = {'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,
 // sam wzór interwałów; palec w oknie = fret_w_otwartym + 1 (barre = próg rdzenia).
 // Dzięki temu np. F = E-kształt przesunięty o 1 → [1,3,3,2,1,1], a nie ręcznie
 // wpisana (i wcześniej odwrócona) tablica.
+// UWAGA: pomijamy kształty, które po przesunięciu na barre wymagają rozciągu
+// 4 progów (niegrywalne). Dla sus2 używamy tylko A-kształtu; dla add9/9/m9
+// tylko E-kształtu — bo drugi wariant dawałby rozstaw palca na 4 progi.
 const _OPEN_E_SHAPE = {
     '':     [0,2,2,1,0,0],  'm':    [0,2,2,0,0,0],  '7':    [0,2,0,1,0,0],
     'm7':   [0,2,0,0,0,0],  'maj7': [0,2,1,1,0,0],  'sus4': [0,2,2,2,0,0],
-    'sus2': [0,2,4,4,0,0],  'add9': [0,2,2,1,0,2],  '5':    [0,2,2,-1,-1,-1],
+    'add9': [0,2,2,1,0,2],  '5':    [0,2,2,-1,-1,-1],
     '9':    [0,2,0,1,0,2],  '6':    [0,2,2,1,2,0],  'm6':   [0,2,2,0,2,0],
     '7sus4':[0,2,0,2,0,0],  'm9':   [0,2,0,0,0,2],
 };
 const _OPEN_A_SHAPE = {
     '':     [-1,0,2,2,2,0], 'm':    [-1,0,2,2,1,0], '7':    [-1,0,2,0,2,0],
     'm7':   [-1,0,2,0,1,0], 'maj7': [-1,0,2,1,2,0], 'sus4': [-1,0,2,2,3,0],
-    'sus2': [-1,0,2,2,0,0], 'add9': [-1,0,2,4,2,0], '5':    [-1,0,2,2,-1,-1],
+    'sus2': [-1,0,2,2,0,0], '5':    [-1,0,2,2,-1,-1],
     'dim':  [-1,0,1,2,1,-1],'aug':  [-1,0,3,2,2,1], 'dim7': [-1,0,1,2,1,2],
-    '6':    [-1,0,2,2,2,2], 'm6':   [-1,0,2,2,1,2], '9':    [-1,0,2,4,2,3],
-    'm9':   [-1,0,2,4,1,3],
+    '6':    [-1,0,2,2,2,2], 'm6':   [-1,0,2,2,1,2],
 };
 function _buildBarreTemplates(openMap, rootStringIdx) {
     var out = {};
@@ -251,14 +253,21 @@ function generateGuitarChord(chordName) {
     var aFret = (rootVal - 9 + 12) % 12;
     if (aFret === 0) aFret = 12;
 
-    // Zbierz dostępne kształty i wybierz NIŻSZĄ (bardziej otwartą, łatwiejszą)
-    // pozycję — np. Bb jako A-kształt na 1. progu, nie E-kształt na 6.
+    // Zbierz dostępne kształty. Wybieramy GRYWALNY (rozstaw palca ≤ 3 progi),
+    // a wśród grywalnych — NIŻSZĄ (łatwiejszą) pozycję. Np. Bb jako A-kształt
+    // na 1. progu, nie E-kształt na 6.
     var candidates = [];
     if (BARRE_TEMPLATES['E'][suffix]) candidates.push({ fret: eFret, t: BARRE_TEMPLATES['E'][suffix] });
     if (BARRE_TEMPLATES['A'][suffix]) candidates.push({ fret: aFret, t: BARRE_TEMPLATES['A'][suffix] });
     if (!candidates.length) return null;
-    candidates.sort(function (a, b) { return a.fret - b.fret; });
-    var pick = candidates[0];
+    candidates.forEach(function (c) {
+        var pressed = c.t.fingers.filter(function (f) { return f > 0; });
+        c.span = pressed.length ? (Math.max.apply(null, pressed) - Math.min.apply(null, pressed)) : 0;
+    });
+    var playable = candidates.filter(function (c) { return c.span <= 3; });
+    var pool = playable.length ? playable : candidates;
+    pool.sort(function (a, b) { return a.fret - b.fret; });
+    var pick = pool[0];
     return { fret: pick.fret, fingers: pick.t.fingers.slice(), barres: pick.t.barres.map(function (b) { return b.slice(); }) };
 }
 
