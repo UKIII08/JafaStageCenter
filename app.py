@@ -14,6 +14,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO, emit
 from sqlalchemy import text 
 import re
+import html
 import shutil
 import itertools
 from collections import Counter
@@ -691,7 +692,9 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
     text = text.strip()
     if transpose_amount != 0:
         text = re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, transpose_amount, 'international'), text)
-    text_people = re.sub(r'\[.*?\]', '', text).strip().replace('\n', '<br>')
+    # HTML-escape treści tekstu (ochrona przed wstrzyknięciem HTML/JS z pieśni —
+    # np. z importu lub z otwartego /send_text w sieci). Akordy w [] są usuwane.
+    text_people = html.escape(re.sub(r'\[.*?\]', '', text).strip(), quote=False).replace('\n', '<br>')
     tokens = re.split(r'(\[.*?\])', text)
     text_smart = ""
 
@@ -744,7 +747,7 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
 
     for i, token in enumerate(tokens):
         if token.startswith('[') and token.endswith(']'):
-            chord_content = token[1:-1]
+            chord_content = html.escape(token[1:-1], quote=False)   # escapuj nazwę akordu
             if '/' in chord_content:
                 parts = chord_content.split('/')
                 root_part = parts[0]
@@ -768,7 +771,9 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
                 else:
                     text_smart += f'<span class="chord-wrapper"><span class="chord">{chord_content}</span></span>'
         else:
-            safe_token = token.replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;').replace('  ', '&nbsp;&nbsp;')
+            # escapuj tekst pieśni PRZED zamianą tab/spacji na &nbsp; (żeby nie
+            # podwójnie escapować wstawianych encji)
+            safe_token = html.escape(token, quote=False).replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;').replace('  ', '&nbsp;&nbsp;')
             text_smart += safe_token
             
     text_band = text_smart.replace('\n', '<br>')
@@ -1293,7 +1298,7 @@ def print_lyrics():
         html_blocks = []
         for p in paragraphs:
             if p.strip():
-                lines = p.strip().replace('\n', '<br>')
+                lines = html.escape(p.strip(), quote=False).replace('\n', '<br>')
                 html_blocks.append(f'<div class="lyrics-block">{lines}</div>')
         songs_to_print.append({'title': item['title'], 'html': ''.join(html_blocks)})
     return render_template('print_lyrics.html', songs=songs_to_print, static_root='/static')
