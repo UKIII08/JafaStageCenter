@@ -16,6 +16,7 @@ from sqlalchemy import text
 import re
 import html
 import shutil
+import uuid
 import itertools
 from collections import Counter
 import random
@@ -1447,21 +1448,22 @@ def upload_presentation():
     if not (filename.endswith('.pdf') or filename.endswith('.pptx') or filename.endswith('.ppt')):
         return {'status': 'error', 'message': 'Proszę wgrać plik PDF lub PowerPoint (.pptx).'}
 
-    save_dir = os.path.join(app.static_folder, 'presentation')
+    base_dir = os.path.join(app.static_folder, 'presentation')
+    os.makedirs(base_dir, exist_ok=True)
+
+    # Każda prezentacja trafia do własnego podfolderu (unikalne id), więc
+    # wgranie kolejnego PDF NIE kasuje poprzednich — można je przełączać.
+    pres_id = uuid.uuid4().hex[:8]
+    save_dir = os.path.join(base_dir, pres_id)
     os.makedirs(save_dir, exist_ok=True)
-    
-    # Czyszczenie starych slajdów
-    for f in os.listdir(save_dir):
-        try:
-            os.remove(os.path.join(save_dir, f))
-        except Exception:
-            pass
+
+    display_name = os.path.splitext(os.path.basename(file.filename))[0]
 
     # Zapisujemy wgrany plik tymczasowo z jego oryginalnym rozszerzeniem
     ext = os.path.splitext(filename)[1]
     temp_input_path = os.path.join(save_dir, 'uploaded_file' + ext)
     file.save(temp_input_path)
-    
+
     pdf_path = os.path.join(save_dir, 'temp.pdf')
 
     try:
@@ -1497,20 +1499,35 @@ def upload_presentation():
             pix = page.get_pixmap(dpi=150) # Rozdzielczość 150 dpi jest idealna i szybka
             img_name = f"slide_{i}.png"
             pix.save(os.path.join(save_dir, img_name))
-            
-            slide_urls.append(f"/static/presentation/{img_name}?v={random.randint(1,10000)}")
+
+            slide_urls.append(f"/static/presentation/{pres_id}/{img_name}?v={random.randint(1,10000)}")
 
         doc.close()
-        
+
         # Opcjonalnie usuwamy tymczasowy plik PDF/PPTX żeby nie zaśmiecać dysku
-        try: os.remove(pdf_path) 
+        try: os.remove(pdf_path)
         except: pass
-        
-        socketio.emit('presentation_ready', {'slides': slide_urls})
-        return {'status': 'ok', 'slides': slide_urls}
-        
+
+        payload = {'id': pres_id, 'name': display_name, 'slides': slide_urls}
+        socketio.emit('presentation_ready', payload)
+        return {'status': 'ok', **payload}
+
     except Exception as e:
         return {'status': 'error', 'message': f'Błąd przetwarzania: {str(e)}'}
+
+
+@app.route('/delete_presentation', methods=['POST'])
+def delete_presentation():
+    """Usuwa pojedynczą wgraną prezentację (jej podfolder ze slajdami)."""
+    data = request.get_json(silent=True) or {}
+    pres_id = data.get('id', '')
+    # Zabezpieczenie przed wyjściem poza katalog prezentacji
+    if not pres_id or '/' in pres_id or '\\' in pres_id or '..' in pres_id:
+        return {'status': 'error', 'message': 'Nieprawidłowe id.'}
+    target = os.path.join(app.static_folder, 'presentation', pres_id)
+    if os.path.isdir(target):
+        shutil.rmtree(target, ignore_errors=True)
+    return {'status': 'ok'}
 # --- SERVER START THREAD ---
 def start_server():
     socketio.run(app, host='0.0.0.0', port=5000, use_reloader=False, allow_unsafe_werkzeug=True)

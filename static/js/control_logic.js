@@ -480,11 +480,18 @@ socket.on('update_slide', function(data) {
 });
 let currentPresentationSlides = [];
 let currentSlideIndex = 0;
+// Wszystkie wgrane prezentacje: [{ id, name, slides }]. Przełączamy między
+// nimi bez ponownego wgrywania — jeden PDF pokazujemy, potem kolejny itd.
+let loadedPresentations = [];
+let activePresentationId = null;
 
 // Funkcja wgrywająca PDF
 function uploadPdfPresentation() {
     const fileInput = document.getElementById('pdf-upload');
     if (!fileInput.files[0]) return alert(t('alert_choose_pdf'));
+
+    const btn = document.querySelector('.conf-upload-btn');
+    if (btn) { btn.disabled = true; btn.dataset.prev = btn.innerText; btn.innerText = '…'; }
 
     const formData = new FormData();
     formData.append("pres_file", fileInput.files[0]);
@@ -495,21 +502,101 @@ function uploadPdfPresentation() {
     })
     .then(r => r.json())
     .then(data => {
-        if(data.status === 'ok') {
-            alert(t('alert_slides_ready'));
-            // Slajdy zostaną odebrane przez socket event 'presentation_ready'
-        } else {
+        if (data.status !== 'ok') {
             alert(data.message);
         }
+        // reset pola wyboru pliku, by można było wgrać kolejny
+        fileInput.value = '';
+        const lbl = document.getElementById('pdf-file-label');
+        if (lbl) lbl.innerText = t('pdf_ph');
+    })
+    .catch(() => alert(t('alert_upload_failed') || 'Upload failed.'))
+    .finally(() => {
+        if (btn) { btn.disabled = false; btn.innerText = btn.dataset.prev || t('upload_btn'); }
     });
 }
 
-// Odbieranie slajdów od serwera
+// Odbieranie slajdów od serwera — dodajemy do listy i od razu aktywujemy
 socket.on('presentation_ready', function(data) {
-    currentPresentationSlides = data.slides;
-    currentSlideIndex = 0;
-    document.getElementById('slide-counter').innerText = `1 / ${currentPresentationSlides.length}`;
+    if (!data || !data.slides || !data.slides.length) return;
+    var pres = { id: data.id, name: data.name || 'PDF', slides: data.slides };
+    // jeśli ten sam id już był (np. odświeżenie), podmień
+    var existing = loadedPresentations.findIndex(function(p) { return p.id === pres.id; });
+    if (existing >= 0) loadedPresentations[existing] = pres;
+    else loadedPresentations.push(pres);
+    selectPresentation(pres.id, false);
+    renderPresentationList();
 });
+
+// Ustawia daną prezentację jako aktywną (do sterowania i pokazywania)
+function selectPresentation(id, autoShow) {
+    var pres = loadedPresentations.find(function(p) { return p.id === id; });
+    if (!pres) return;
+    activePresentationId = id;
+    currentPresentationSlides = pres.slides;
+    currentSlideIndex = 0;
+    var counter = document.getElementById('slide-counter');
+    if (counter) counter.innerText = `1 / ${currentPresentationSlides.length}`;
+    renderPresentationList();
+    if (autoShow) sendPresentationState();
+}
+
+// Pokazuje wybraną prezentację na ekranach (aktywuje + wypycha slajd)
+function showPresentation(id) {
+    selectPresentation(id, true);
+}
+
+function removePresentation(id) {
+    fetch('/delete_presentation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id })
+    }).catch(function() {});
+    loadedPresentations = loadedPresentations.filter(function(p) { return p.id !== id; });
+    if (activePresentationId === id) {
+        activePresentationId = null;
+        currentPresentationSlides = [];
+        currentSlideIndex = 0;
+        var counter = document.getElementById('slide-counter');
+        if (counter) counter.innerText = '0 / 0';
+    }
+    renderPresentationList();
+}
+
+function renderPresentationList() {
+    var list = document.getElementById('pdf-list');
+    if (!list) return;
+    list.innerHTML = '';
+    if (loadedPresentations.length === 0) {
+        var emptyMsg = t('no_pdf_msg') || 'Brak wgranych prezentacji.';
+        list.innerHTML = `<div style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding:10px; border:1px dashed var(--border-color); border-radius:6px;">${emptyMsg}</div>`;
+        return;
+    }
+    var btnShow = t('show_btn') || 'Pokaż';
+    loadedPresentations.forEach(function(pres) {
+        var item = document.createElement('div');
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.style.gap = '8px';
+        item.style.padding = '8px 12px';
+        item.style.borderRadius = '6px';
+        var isActive = pres.id === activePresentationId;
+        item.style.background = isActive ? 'var(--accent-primary-soft, rgba(59,130,246,0.15))' : 'var(--bg-element)';
+        item.style.border = isActive ? '1px solid var(--accent-primary, #3B82F6)' : '1px solid var(--border-color)';
+
+        var safeName = String(pres.name).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var shortName = safeName.length > 28 ? safeName.substring(0, 28) + '…' : safeName;
+
+        item.innerHTML = `
+            <div style="flex-grow:1; font-size:0.8rem; color:var(--text-main); overflow:hidden; white-space:nowrap; text-overflow:ellipsis;" title="${safeName}">
+                📄 ${shortName} <span style="color:var(--text-muted); font-size:0.7rem;">(${pres.slides.length})</span>
+            </div>
+            <button class="action-btn" style="background:var(--accent-success); padding:6px 12px; font-size:0.75rem;" onclick="showPresentation('${pres.id}')">${btnShow}</button>
+            <button class="btn-sm" style="background:var(--accent-danger); color:white; border:none; padding:6px 10px; font-weight:bold; border-radius:6px;" onclick="removePresentation('${pres.id}')">✕</button>
+        `;
+        list.appendChild(item);
+    });
+}
 
 // Sterowanie lokalną prezentacją
 function changeSlide(direction) {
@@ -628,9 +715,10 @@ function sendSpecificCanvaLink(index) {
 // Inicjalizacja listy po załadowaniu skryptu
 document.addEventListener('DOMContentLoaded', () => {
     renderCanvaLinks();
+    renderPresentationList();
 });
 // Asekuracyjne wywołanie (gdyby skrypt załadował się po DOMContentLoaded)
-setTimeout(renderCanvaLinks, 500);
+setTimeout(() => { renderCanvaLinks(); renderPresentationList(); }, 500);
 
 function updateServerState() {
     socket.emit('client_update_state', {
