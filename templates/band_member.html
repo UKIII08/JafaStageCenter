@@ -27,7 +27,7 @@
         }
 
         /* PRZYCISKI GÓRNE */
-        #fs-btn, #settings-btn, #setlist-btn {
+        #fs-btn, #settings-btn, #setlist-btn, #tuner-btn {
             position: absolute;
             top: var(--s3);
             background: var(--glass-bg);
@@ -46,9 +46,11 @@
         }
         #fs-btn { right: var(--s3); }
         #settings-btn { right: 60px; }
+        #tuner-btn { right: 108px; }
         #setlist-btn { left: var(--s3); }
-        #fs-btn:hover, #settings-btn:hover, #setlist-btn:hover { opacity: 1; filter: brightness(1.15); }
-        #fs-btn:active, #settings-btn:active, #setlist-btn:active { transform: scale(0.97); }
+        #tuner-btn.active { opacity: 1; color: var(--accent, #22D3EE); border-color: var(--accent, #22D3EE); }
+        #fs-btn:hover, #settings-btn:hover, #setlist-btn:hover, #tuner-btn:hover { opacity: 1; filter: brightness(1.15); }
+        #fs-btn:active, #settings-btn:active, #setlist-btn:active, #tuner-btn:active { transform: scale(0.97); }
 
         /* SETLIST DRAWER */
         #setlist-overlay {
@@ -803,9 +805,11 @@
                 font-size: 0.55em;
                 bottom: 0.6em;
             }
-            #setlist-btn, #fs-btn, #settings-btn {
+            #setlist-btn, #fs-btn, #settings-btn, #tuner-btn {
                 width: 36px; height: 36px;
             }
+            #settings-btn { right: 54px; }
+            #tuner-btn { right: 96px; }
         }
 
         @media (max-width: 380px) {
@@ -936,6 +940,95 @@
             font-size: clamp(0.7rem, 1.9vh, 1.15rem);
             letter-spacing: 0.08em; text-transform: uppercase;
         }
+
+        /* --- TUNER (stroik) --- */
+        #tuner-overlay {
+            position: fixed; inset: 0; z-index: 6000;
+            display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            background:
+                radial-gradient(120% 90% at 50% 28%, rgba(34,211,238,0.07), transparent 60%),
+                var(--bg-app, #070A11);
+        }
+        #tuner-overlay.show { display: flex; animation: smdFade 0.25s ease; }
+        #tuner-close {
+            position: absolute; top: var(--s4); right: var(--s4);
+            width: 40px; height: 40px; border-radius: var(--r-md);
+            background: var(--glass-bg); border: 1px solid var(--border-default);
+            color: var(--text-primary); font-size: 1.1rem; cursor: pointer;
+            z-index: 2;
+        }
+        .tuner-inner { width: min(680px, 92vw); text-align: center; padding: 2vh 0; }
+        .tuner-note-wrap { display: flex; align-items: baseline; justify-content: center; gap: 0.3vw; }
+        #tuner-note {
+            font-weight: 800; line-height: 1;
+            font-size: clamp(5rem, 30vh, 18rem);
+            color: var(--text-tertiary, #56627A);
+            letter-spacing: -0.03em;
+            transition: color 0.12s ease, text-shadow 0.12s ease;
+        }
+        #tuner-note.in-tune {
+            color: var(--green, #34D399);
+            text-shadow: 0 0 60px rgba(52,211,153,0.45);
+        }
+        #tuner-note.off { color: var(--text-primary, #E7ECF3); }
+        #tuner-octave { font-weight: 700; font-size: clamp(1rem, 4vh, 2.2rem); color: var(--text-tertiary, #56627A); }
+        #tuner-direction {
+            margin-top: 0.5vh; min-height: 3vh;
+            font-size: clamp(0.8rem, 2.2vh, 1.3rem); font-weight: 700;
+            letter-spacing: 0.04em; color: var(--text-secondary, #94A2B8);
+        }
+        #tuner-direction.flat  { color: var(--amber, #FBBF24); }
+        #tuner-direction.sharp { color: var(--red, #F87171); }
+        #tuner-direction.good  { color: var(--green, #34D399); }
+
+        .tuner-meter { margin: 3vh auto 1vh; width: 100%; }
+        .tuner-scale {
+            display: flex; justify-content: space-between;
+            font-size: clamp(0.6rem, 1.4vh, 0.85rem); color: var(--text-tertiary, #56627A);
+            font-variant-numeric: tabular-nums; margin-bottom: 0.6vh; padding: 0 2px;
+        }
+        .tuner-scale .tm-c { color: var(--text-secondary, #94A2B8); font-weight: 700; }
+        .tuner-track {
+            position: relative; height: 46px;
+            background: var(--bg-surface, #0E1420);
+            border: 1px solid var(--border-default);
+            border-radius: 999px; overflow: hidden;
+        }
+        .tuner-center-line {
+            position: absolute; left: 50%; top: 8%; bottom: 8%; width: 2px;
+            transform: translateX(-50%); background: var(--green, #34D399); opacity: 0.6;
+        }
+        #tuner-needle {
+            position: absolute; top: 50%; left: 50%;
+            width: 8px; height: 34px; border-radius: 6px;
+            background: var(--text-tertiary, #56627A);
+            transform: translate(-50%, -50%);
+            transition: left 0.09s linear, background 0.12s ease;
+            box-shadow: 0 0 12px rgba(0,0,0,0.4);
+        }
+        #tuner-needle.in-tune { background: var(--green, #34D399); box-shadow: 0 0 16px rgba(52,211,153,0.7); }
+        #tuner-needle.flat  { background: var(--amber, #FBBF24); }
+        #tuner-needle.sharp { background: var(--red, #F87171); }
+        .tuner-cents { margin-top: 1vh; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text-secondary, #94A2B8); }
+        .tuner-cents-u { font-size: 0.75em; color: var(--text-tertiary, #56627A); font-weight: 600; }
+        .tuner-freq {
+            margin-top: 2.5vh; font-size: clamp(0.75rem, 1.8vh, 1rem);
+            color: var(--text-tertiary, #56627A); font-variant-numeric: tabular-nums;
+        }
+        .tuner-strings {
+            display: flex; justify-content: center; gap: clamp(6px, 2vw, 16px);
+            margin-top: 3vh; flex-wrap: wrap;
+        }
+        .tuner-string-chip {
+            min-width: 40px; padding: 0.8vh 0.4vw; border-radius: var(--r-md);
+            background: var(--bg-surface, #0E1420); border: 1px solid var(--border-default);
+            color: var(--text-tertiary, #56627A); font-weight: 800;
+            font-size: clamp(0.9rem, 2.2vh, 1.3rem); cursor: default;
+            transition: all 0.15s ease;
+        }
+        .tuner-string-chip.near { color: var(--text-primary, #E7ECF3); border-color: var(--text-tertiary, #56627A); }
+        .tuner-string-chip.locked { color: var(--green, #34D399); border-color: var(--green, #34D399); box-shadow: 0 0 14px rgba(52,211,153,0.3); }
     </style>
 </head>
 <body>
@@ -995,6 +1088,7 @@
     </div>
 
     <button id="setlist-btn" onclick="toggleSetlistDrawer()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+    <button id="tuner-btn" onclick="toggleTuner()" title="Tuner" aria-label="Tuner"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10"/><circle cx="12" cy="16" r="3"/><path d="M5 8a9 9 0 0 1 14 0"/><path d="M7.5 11a5.5 5.5 0 0 1 9 0"/></svg></button>
     <button id="fs-btn" onclick="toggleFullscreen()">⛶</button>
     <button id="settings-btn" onclick="toggleSettings()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
 
@@ -1004,6 +1098,33 @@
             <div class="smd-history" id="smd-history"></div>
             <div class="smd-current" id="smd-current">—</div>
             <div class="smd-tag" id="smd-tag" data-t="smd_tag">SILENT MODE · pianino prowadzi</div>
+        </div>
+    </div>
+
+    <!-- Tuner (stroik) — mikrofon wykrywa wysokość dźwięku -->
+    <div id="tuner-overlay">
+        <button id="tuner-close" onclick="toggleTuner()" aria-label="Close">✕</button>
+        <div class="tuner-inner">
+            <div class="tuner-note-wrap">
+                <div id="tuner-note">—</div>
+                <div id="tuner-octave"></div>
+            </div>
+            <div id="tuner-direction" data-t="tuner_hint_play">Zagraj jedną strunę…</div>
+
+            <div class="tuner-meter">
+                <div class="tuner-scale">
+                    <span>-50</span><span>-25</span><span class="tm-c">0</span><span>+25</span><span>+50</span>
+                </div>
+                <div class="tuner-track">
+                    <div class="tuner-center-line"></div>
+                    <div id="tuner-needle"></div>
+                </div>
+                <div class="tuner-cents"><span id="tuner-cents-val">–</span> <span class="tuner-cents-u">cents</span></div>
+            </div>
+
+            <div class="tuner-freq"><span id="tuner-freq">—</span> Hz &nbsp;·&nbsp; <span data-t="tuner_target">cel</span>: <span id="tuner-target">—</span> Hz</div>
+
+            <div id="tuner-strings" class="tuner-strings"></div>
         </div>
     </div>
 
@@ -2080,6 +2201,167 @@
             const overlay = document.getElementById('settings-overlay');
             const open = panel.classList.toggle('open');
             overlay.style.display = open ? 'block' : 'none';
+        }
+
+        // ===================== TUNER (STROIK) =====================
+        const TUNER = {
+            ctx: null, analyser: null, stream: null, source: null,
+            buf: null, raf: null, running: false,
+            // wygładzanie i histereza „nastrojenia"
+            smoothCents: 0, lastNote: '', holdMs: 0, lastTs: 0
+        };
+        const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+        // Standardowe struny gitary (E2 A2 D3 G3 B3 E4)
+        const GUITAR_STRINGS = [
+            { name: 'E', midi: 40 }, { name: 'A', midi: 45 }, { name: 'D', midi: 50 },
+            { name: 'G', midi: 55 }, { name: 'B', midi: 59 }, { name: 'E', midi: 64 }
+        ];
+
+        function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+        function buildTunerStrings() {
+            const wrap = document.getElementById('tuner-strings');
+            if (!wrap || wrap.childElementCount) return;
+            GUITAR_STRINGS.forEach((s, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'tuner-string-chip';
+                chip.id = 'tstr-' + i;
+                chip.textContent = s.name;
+                wrap.appendChild(chip);
+            });
+        }
+
+        async function toggleTuner() {
+            const ov = document.getElementById('tuner-overlay');
+            const btn = document.getElementById('tuner-btn');
+            if (ov.classList.contains('show')) { stopTuner(); return; }
+            buildTunerStrings();
+            try {
+                TUNER.stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false }
+                });
+            } catch (e) {
+                alert(t('tuner_mic_denied') || 'Brak dostępu do mikrofonu. Zezwól na mikrofon w przeglądarce.');
+                return;
+            }
+            TUNER.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (TUNER.ctx.state === 'suspended') await TUNER.ctx.resume();
+            TUNER.analyser = TUNER.ctx.createAnalyser();
+            TUNER.analyser.fftSize = 4096;
+            TUNER.source = TUNER.ctx.createMediaStreamSource(TUNER.stream);
+            TUNER.source.connect(TUNER.analyser);
+            TUNER.buf = new Float32Array(TUNER.analyser.fftSize);
+            TUNER.running = true;
+            ov.classList.add('show');
+            if (btn) btn.classList.add('active');
+            tunerLoop();
+        }
+
+        function stopTuner() {
+            TUNER.running = false;
+            if (TUNER.raf) cancelAnimationFrame(TUNER.raf);
+            try { if (TUNER.source) TUNER.source.disconnect(); } catch (e) {}
+            if (TUNER.stream) TUNER.stream.getTracks().forEach(tr => tr.stop());
+            if (TUNER.ctx) { try { TUNER.ctx.close(); } catch (e) {} }
+            TUNER.ctx = TUNER.analyser = TUNER.stream = TUNER.source = null;
+            document.getElementById('tuner-overlay').classList.remove('show');
+            const btn = document.getElementById('tuner-btn');
+            if (btn) btn.classList.remove('active');
+            resetTunerUI();
+        }
+
+        function resetTunerUI() {
+            document.getElementById('tuner-note').textContent = '—';
+            document.getElementById('tuner-note').className = '';
+            document.getElementById('tuner-octave').textContent = '';
+            document.getElementById('tuner-freq').textContent = '—';
+            document.getElementById('tuner-target').textContent = '—';
+            document.getElementById('tuner-cents-val').textContent = '–';
+            const dir = document.getElementById('tuner-direction');
+            dir.className = ''; dir.textContent = t('tuner_hint_play') || 'Zagraj jedną strunę…';
+            const needle = document.getElementById('tuner-needle');
+            needle.className = ''; needle.style.left = '50%';
+            document.querySelectorAll('.tuner-string-chip').forEach(c => c.className = 'tuner-string-chip');
+        }
+
+        // Autokorelacja — solidne wykrywanie wysokości dla pojedynczego dźwięku
+        function autoCorrelate(buf, sampleRate) {
+            const SIZE = buf.length;
+            let rms = 0;
+            for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+            rms = Math.sqrt(rms / SIZE);
+            if (rms < 0.008) return -1; // za cicho
+
+            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+            for (let i = 0; i < SIZE / 2; i++) { if (Math.abs(buf[i]) < thres) { r1 = i; break; } }
+            for (let i = 1; i < SIZE / 2; i++) { if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; } }
+            const b = buf.slice(r1, r2);
+            const n = b.length;
+            const c = new Array(n).fill(0);
+            for (let lag = 0; lag < n; lag++)
+                for (let i = 0; i < n - lag; i++) c[lag] += b[i] * b[i + lag];
+
+            let d = 0; while (d < n - 1 && c[d] > c[d + 1]) d++;
+            let maxval = -1, maxpos = -1;
+            for (let i = d; i < n; i++) { if (c[i] > maxval) { maxval = c[i]; maxpos = i; } }
+            let T0 = maxpos;
+            if (T0 <= 0) return -1;
+            // interpolacja paraboliczna dla dokładności
+            const x1 = c[T0 - 1] || 0, x2 = c[T0], x3 = c[T0 + 1] || 0;
+            const a = (x1 + x3 - 2 * x2) / 2, bb = (x3 - x1) / 2;
+            if (a) T0 = T0 - bb / (2 * a);
+            return sampleRate / T0;
+        }
+
+        function tunerLoop() {
+            if (!TUNER.running) return;
+            TUNER.analyser.getFloatTimeDomainData(TUNER.buf);
+            const freq = autoCorrelate(TUNER.buf, TUNER.ctx.sampleRate);
+
+            if (freq > 0 && freq < 2000) {
+                const midiFloat = 69 + 12 * Math.log2(freq / 440);
+                const midi = Math.round(midiFloat);
+                const cents = Math.round((midiFloat - midi) * 100);
+                // wygładzenie igły
+                TUNER.smoothCents += (cents - TUNER.smoothCents) * 0.35;
+                renderTuner(freq, midi, TUNER.smoothCents);
+            }
+            TUNER.raf = requestAnimationFrame(tunerLoop);
+        }
+
+        function renderTuner(freq, midi, cents) {
+            const name = NOTE_NAMES[((midi % 12) + 12) % 12];
+            const octave = Math.floor(midi / 12) - 1;
+            const noteEl = document.getElementById('tuner-note');
+            noteEl.textContent = name.replace('#', '♯');
+            document.getElementById('tuner-octave').textContent = octave;
+            document.getElementById('tuner-freq').textContent = freq.toFixed(1);
+            document.getElementById('tuner-target').textContent = midiToFreq(midi).toFixed(1);
+            document.getElementById('tuner-cents-val').textContent = (cents > 0 ? '+' : '') + Math.round(cents);
+
+            const inTune = Math.abs(cents) <= 5;
+            noteEl.className = inTune ? 'in-tune' : 'off';
+
+            // igła: -50..+50 centów => 0%..100%
+            const pct = Math.max(0, Math.min(100, 50 + cents));
+            const needle = document.getElementById('tuner-needle');
+            needle.style.left = pct + '%';
+            needle.className = inTune ? 'in-tune' : (cents < 0 ? 'flat' : 'sharp');
+
+            const dir = document.getElementById('tuner-direction');
+            if (inTune) { dir.className = 'good'; dir.textContent = '✓ ' + (t('tuner_in_tune') || 'Nastrojone'); }
+            else if (cents < 0) { dir.className = 'flat'; dir.textContent = '↑ ' + (t('tuner_tune_up') || 'za nisko — podciągnij'); }
+            else { dir.className = 'sharp'; dir.textContent = '↓ ' + (t('tuner_tune_down') || 'za wysoko — poluzuj'); }
+
+            // podświetlenie najbliższej struny gitary
+            let nearest = 0, best = 1e9;
+            GUITAR_STRINGS.forEach((s, i) => { const d = Math.abs(s.midi - midi); if (d < best) { best = d; nearest = i; } });
+            GUITAR_STRINGS.forEach((s, i) => {
+                const chip = document.getElementById('tstr-' + i);
+                if (!chip) return;
+                if (i === nearest) chip.className = 'tuner-string-chip ' + (inTune && s.midi === midi ? 'locked' : 'near');
+                else chip.className = 'tuner-string-chip';
+            });
         }
 
         function toggleOpt(key) {
