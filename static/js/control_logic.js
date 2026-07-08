@@ -524,22 +524,32 @@ function changeSlide(direction) {
 }
 
 function sendPresentationState() {
-    let currentUrl = currentPresentationSlides[currentSlideIndex];
-    let nextUrl = (currentSlideIndex + 1 < currentPresentationSlides.length) ? currentPresentationSlides[currentSlideIndex + 1] : null;
-    
-    let d = updTimer(); // Twoja funkcja aktualizująca zegar
-    fetch('/send_text', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            mode: 'presentation', 
-            slide_url: currentUrl, 
-            next_slide_url: nextUrl,
-            timer: d.text, 
-            timer_color: d.color, 
-            message: actMsg,
-            blackout: isBlackoutActive
-        })
-    });
+    if (!currentPresentationSlides || currentPresentationSlides.length === 0) return;
+    confMode = 'presentation';   // od teraz konferencja pokazuje slajdy
+    pushConference();
+}
+
+// JEDNO źródło prawdy dla ekranów w trybie konferencji. Timer, wiadomość,
+// blackout i zmiana slajdu — wszystko przechodzi tędy, więc tik zegara NIE
+// nadpisuje już prezentacji trybem 'conference'.
+function pushConference() {
+    var d = (typeof updTimer === 'function') ? updTimer() : { text: '00:00', color: 'white' };
+    var payload = {
+        timer: d.text, timer_color: d.color,
+        message: (typeof actMsg !== 'undefined') ? actMsg : '',
+        blackout: isBlackoutActive
+    };
+    if (confMode === 'presentation' && currentPresentationSlides && currentPresentationSlides.length) {
+        payload.mode = 'presentation';
+        payload.slide_url = currentPresentationSlides[currentSlideIndex];
+        payload.next_slide_url = (currentSlideIndex + 1 < currentPresentationSlides.length) ? currentPresentationSlides[currentSlideIndex + 1] : null;
+    } else if (confMode === 'canva' && confCanvaUrl) {
+        payload.mode = 'canva';
+        payload.url = confCanvaUrl;
+    } else {
+        payload.mode = 'conference';
+    }
+    fetch('/send_text', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 }
 
 // --- ZARZĄDZANIE KILKOMA LINKAMI CANVA ---
@@ -609,19 +619,10 @@ function removeCanvaLink(index) {
 function sendSpecificCanvaLink(index) {
     const link = canvaLinks[index];
     if (!link) return;
-
-    let d = typeof updTimer === 'function' ? updTimer() : {text: '00:00', color: 'white'};
-    fetch('/send_text', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            mode: 'canva', 
-            url: link,
-            timer: d.text, 
-            timer_color: d.color, 
-            message: typeof actMsg !== 'undefined' ? actMsg : '',
-            blackout: typeof isBlackoutActive !== 'undefined' ? isBlackoutActive : false
-        })
-    });
+    appMode = 'conference';
+    confMode = 'canva';
+    confCanvaUrl = link;
+    pushConference();
 }
 
 // Inicjalizacja listy po załadowaniu skryptu
@@ -638,7 +639,7 @@ function updateServerState() {
     });
 }
 
-function switchMode(m){document.querySelectorAll('.mode-container').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.segmented-control button, .mode-btn').forEach(b=>b.classList.remove('active'));if(m==='worship'){var wm=document.getElementById('worship-mode');if(wm)wm.classList.add('active');var wb=document.querySelector('button[onclick="switchMode(\'worship\')"]');if(wb)wb.classList.add('active');resendCurrentSlide();}else{var cm=document.getElementById('conference-mode');if(cm)cm.classList.add('active');var cb=document.querySelector('button[onclick="switchMode(\'conference\')"]');if(cb)cb.classList.add('active');sendConferenceData();}}
+function switchMode(m){document.querySelectorAll('.mode-container').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.segmented-control button, .mode-btn').forEach(b=>b.classList.remove('active'));if(m==='worship'){appMode='worship';var wm=document.getElementById('worship-mode');if(wm)wm.classList.add('active');var wb=document.querySelector('button[onclick="switchMode(\'worship\')"]');if(wb)wb.classList.add('active');resendCurrentSlide();}else{appMode='conference';var cm=document.getElementById('conference-mode');if(cm)cm.classList.add('active');var cb=document.querySelector('button[onclick="switchMode(\'conference\')"]');if(cb)cb.classList.add('active');confMode='timer';pushConference();}}
 function resendCurrentSlide(){var active=document.querySelector('.slide-btn.active');if(active){active.click();}else if(currentLiveState){goLiveSection(currentLiveState.c,currentLiveState.n,currentLiveState.forceTrans,currentLiveState.nextTrans);}else{fetch('/send_text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({logo:true})});}}
 function openQRModal(){document.getElementById('qrModal').style.display='flex';}
 function closeQRModal(){document.getElementById('qrModal').style.display='none';}
@@ -1534,6 +1535,13 @@ function adjustLiveTrans(a){
 let isBlackoutActive = false;
 let currentLiveState = { c: '', n: '', forceTrans: null, nextTrans: null };
 
+// Tryb aplikacji: 'worship' albo 'conference'. Decyduje, jak zachowuje się
+// blackout i co odświeża zegar konferencyjny.
+let appMode = 'worship';
+// W obrębie konferencji: co jest realnie POKAZYWANE na ekranach.
+let confMode = 'timer';          // 'timer' | 'presentation' | 'canva'
+let confCanvaUrl = null;
+
 function blackout() {
     isBlackoutActive = !isBlackoutActive;
     
@@ -1556,6 +1564,14 @@ function blackout() {
         });
     }
 
+    // W konferencji blackout gasi TYLKO projektor (audiencję) i zachowuje
+    // aktualny tryb (prezentacja/zegar) — nie przełącza na worship, żeby ekran
+    // ZESPOŁU nie migał i slajdy nie znikały.
+    if (appMode === 'conference') {
+        pushConference();
+        return;
+    }
+
     let t = (currentLiveState.forceTrans !== null) ? currentLiveState.forceTrans : (setlist[currentSetIndex] ? setlist[currentSetIndex].transpose : 0);
     let nt = (currentLiveState.nextTrans !== null) ? currentLiveState.nextTrans : t;
     let currentKey = document.getElementById('live-key') ? document.getElementById('live-key').innerText : '';
@@ -1563,12 +1579,12 @@ function blackout() {
 
     fetch('/send_text', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            text: currentLiveState.c, 
-            next_text: currentLiveState.n, 
-            transpose: t, 
+        body: JSON.stringify({
+            text: currentLiveState.c,
+            next_text: currentLiveState.n,
+            transpose: t,
             next_transpose: nt,
-            key: currentKey, 
+            key: currentKey,
             bpm: currentBpm,
             current_index: currentSetIndex,
             setlist: setlist,
@@ -1798,14 +1814,15 @@ function closeEditModal(){document.getElementById('editModal').style.display='no
 function deleteCurrentSong(){if(confirm(t('alert_delete_confirm')))document.getElementById('deleteForm').submit();}
 
 let tInt=null,totSec=0,isRun=false,actMsg="";
-function setTimer(){var v=parseInt(document.getElementById('timer-input').value);totSec=(isNaN(v)||v<0)?0:v*60;updTimer();sendConferenceData();}
+function setTimer(){var v=parseInt(document.getElementById('timer-input').value);totSec=(isNaN(v)||v<0)?0:v*60;updTimer();pushConference();}
 function updTimer(){let m=Math.floor(Math.abs(totSec)/60),s=Math.abs(totSec)%60,fmt=(totSec<0?"-":"")+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;document.getElementById('timer-val').innerText=fmt;document.getElementById('timer-val').style.color=totSec<=0?"#ff6b6b":"var(--text-main)";return{text:fmt,color:totSec<=0?"red":"white"};}
-function startTimer(){if(isRun)return;isRun=true;tInt=setInterval(()=>{totSec--;updTimer();sendConferenceData();},1000);}
+function startTimer(){if(isRun)return;isRun=true;tInt=setInterval(()=>{totSec--;updTimer();pushConference();},1000);}
 function stopTimer(){isRun=false;clearInterval(tInt);}
 function resetTimer(){stopTimer();setTimer();}
-function sendConfMessage(){actMsg=document.getElementById('conf-msg').value;sendConferenceData();}
-function clearConfMessage(){actMsg="";document.getElementById('conf-msg').value="";sendConferenceData();}
-function sendConferenceData(){let d=updTimer();fetch('/send_text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'conference',timer:d.text,timer_color:d.color,message:actMsg})});}
+function sendConfMessage(){actMsg=document.getElementById('conf-msg').value;pushConference();}
+function clearConfMessage(){actMsg="";document.getElementById('conf-msg').value="";pushConference();}
+// Zachowane dla zgodności — pełny „powrót do samego zegara".
+function sendConferenceData(){appMode='conference';confMode='timer';pushConference();}
 
 function exportToPDF() {
     if (!setlist || setlist.length === 0) {

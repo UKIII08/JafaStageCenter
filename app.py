@@ -1363,6 +1363,10 @@ def send_text():
         socketio.emit('update_slide', LAST_SLIDE_DATA)
         return {'status': 'ok'}
     if data.get('mode') in ['conference', 'canva', 'presentation']:
+        # Ujednolić flagę blackoutu: widoki czytają 'is_blackout', a klient
+        # wysyła 'blackout'. Bez tego blackout nie gasił projektora w prezentacji.
+        data['is_blackout'] = bool(data.get('blackout', data.get('is_blackout', False)))
+        SERVER_STATE['is_blackout'] = data['is_blackout']
         LAST_SLIDE_DATA = data
         socketio.emit('update_slide', data)
         return {'status': 'ok'}

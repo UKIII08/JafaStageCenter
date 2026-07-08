@@ -160,6 +160,13 @@
                 placeholder.style.display = 'block';
                 placeholder.innerText = t('pres_canva_msg');
             }
+            else if (data.mode === 'conference') {
+                // Tryb zegara: pokazujemy tylko odliczanie + wiadomość (są wyżej),
+                // bez brzydkiego napisu „MODE: CONFERENCE".
+                currentImg.style.display = 'none';
+                nextImg.style.display = 'none';
+                placeholder.style.display = 'none';
+            }
             else {
                 currentImg.style.display = 'none';
                 nextImg.style.display = 'none';
