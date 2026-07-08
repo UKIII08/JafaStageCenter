@@ -743,21 +743,44 @@ function recommendVoicing(chordName, progression, instrument) {
     if (voicings.length < 2 || !progression || progression.length < 2) return null;
 
     // How many progression chords contain each pitch class → pedal candidates.
+    const uniqProg = [];
+    const progSeen = new Set();
+    progression.forEach(function (ch) { const k = ch.split('/')[0]; if (!progSeen.has(k)) { progSeen.add(k); uniqProg.push(ch); } });
+
     const pcCount = new Array(12).fill(0);
-    progression.forEach(function (ch) {
+    uniqProg.forEach(function (ch) {
         new Set(_allPitchClasses(ch, instrument)).forEach(function (pc) { pcCount[pc]++; });
     });
 
-    const COLOR = { base: 1.0, color: 1.6, open: 0.8, tension: 0.3, jazzy: 0.9, soft: 0.7, resolve: 0.4 };
-    let best = 0, bestScore = -Infinity, bestPedal = null;
-    voicings.forEach(function (v, idx) {
+    // Ile z NAJWYŻSZYCH dźwięków chwytu jest wspólnym „dronem" progresji.
+    function pedalStrength(v) {
         const top = _topPitchClasses(v.label, instrument);
-        let pedal = 0, pc = null;
-        top.forEach(function (t) { if (pcCount[t] > pedal) { pedal = pcCount[t]; pc = t; } });
-        const score = pedal + (COLOR[v.tag] || 0.5);
-        if (score > bestScore) { bestScore = score; best = idx; bestPedal = pc; }
-    });
-    return { index: best, pedalPc: bestPedal };
+        let best = 0, pc = null;
+        top.forEach(function (t) { if (pcCount[t] > best) { best = pcCount[t]; pc = t; } });
+        return { count: best, pc: pc };
+    }
+
+    // Chwyt PODSTAWOWY (index 0) jest domyślny. Kolorowy voicing (add9/sus…)
+    // proponujemy TYLKO gdy jego górny dźwięk realnie brzmi jako wspólny ton
+    // przez większość progresji I mocniej niż w chwycie podstawowym. Dzięki temu
+    // nie podmieniamy zwykłego G na Gadd9 wszędzie bez powodu.
+    const base = pedalStrength(voicings[0]);
+    const threshold = Math.max(2, Math.ceil(uniqProg.length * 0.6));
+    // Auto-podpowiadamy tylko chwyty, które DODAJĄ barwę zachowując charakter
+    // akordu (add9, m7, m9, 9, 6). Warianty sus (open/tension) usuwają tercję
+    // i zaskakują — zostają dostępne tylko w podglądzie po kliknięciu.
+    const AUTO_TAGS = { color: true, jazzy: true, soft: true };
+
+    let best = 0, bestPedal = base.pc, bestGain = 0;
+    for (let i = 1; i < voicings.length; i++) {
+        if (!AUTO_TAGS[voicings[i].tag]) continue;
+        const p = pedalStrength(voicings[i]);
+        const gain = p.count - base.count;
+        if (p.count >= threshold && gain > 0 && gain > bestGain) {
+            best = i; bestPedal = p.pc; bestGain = gain;
+        }
+    }
+    return { index: best, pedalPc: (best === 0 ? null : bestPedal) };
 }
 
 function renderPianoSVG(chordName, notes) {

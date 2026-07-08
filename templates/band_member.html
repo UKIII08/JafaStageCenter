@@ -1652,6 +1652,15 @@
             return { display, cls };
         }
 
+        // Akord tak, jak muzyk faktycznie go chwyta z założonym kapodastrem —
+        // sam kształt (bez konwersji notacji / trybu początkującego, bo baza
+        // diagramów jest międzynarodowa). Z kapo na progu N grasz kształt o N
+        // półtonów niżej niż brzmiący akord.
+        function diagramChord(ch) {
+            var capo = (currentSettings.capo_fret > 0) ? currentSettings.capo_fret : 0;
+            return capo > 0 ? transposeChord(ch, -capo) : ch;
+        }
+
         function applyLowercaseMinorNashville(nashStr) {
             if (nashStr.includes('/')) {
                 const parts = nashStr.split('/');
@@ -2449,6 +2458,8 @@
             // Akordy aktualnie granej części (to, co muzyk gra TERAZ).
             const chords = chordsFromHtml(currentBandHtml);
             if (!chords.length) { strip.style.display = 'none'; strip.innerHTML = ''; return; }
+            // Kształty rysujemy dla akordów PO uwzględnieniu kapodastra.
+            const dchords = chords.map(diagramChord);
 
             const en = currentLang === 'en';
             let html = '<div class="nd-head"><span class="nd-title">' +
@@ -2460,26 +2471,32 @@
                         (en ? 'Basic' : 'Podstawowy') + '</button>' +
                 '</div></div><div class="nd-row' + (inst === 'piano' ? ' nd-row--piano' : '') + '">';
 
-            chords.forEach(function(ch) {
+            chords.forEach(function(ch, i) {
+                const dch = dchords[i];               // kształt z kapo
+                const label = processChord(ch).display; // etykieta (notacja + kapo)
                 let svg = null, star = false;
                 try {
                     if (inlineVoicing) {
-                        const vs = getChordVoicings(ch, inst);
-                        const rec = recommendVoicing(ch, chords, inst);
+                        const vs = getChordVoicings(dch, inst);
+                        const rec = recommendVoicing(dch, dchords, inst);
                         const idx = (rec && vs[rec.index]) ? rec.index : 0;
                         const pick = vs[idx];
-                        if (pick) { svg = pick.svg; star = idx > 0; }
+                        if (pick) {
+                            // etykietę bazowego chwytu zastąp lokalną (respektuje notację/kapo)
+                            svg = (idx === 0) ? pick.svg.replace('>' + pick.label + '<', '>' + label + '<') : pick.svg;
+                            star = idx > 0;
+                        }
                     } else if (inst === 'piano') {
-                        const n = lookupPianoChord(ch);
-                        svg = n ? renderPianoSVG(processChord(ch).display, n) : null;
+                        const n = lookupPianoChord(dch);
+                        svg = n ? renderPianoSVG(label, n) : null;
                     } else {
-                        const d = lookupChord(ch.split('/')[0]);
-                        svg = d ? renderChordSVG(processChord(ch).display, d) : null;
+                        const d = lookupChord(dch.split('/')[0]);
+                        svg = d ? renderChordSVG(label, d) : null;
                     }
                 } catch (e) { svg = null; }
 
                 if (!svg) {
-                    html += '<div class="nd-card"><div class="nd-miss">' + processChord(ch).display + '</div></div>';
+                    html += '<div class="nd-card"><div class="nd-miss">' + label + '</div></div>';
                 } else {
                     html += '<div class="nd-card">' + (star ? '<div class="nd-star">★</div>' : '') +
                             '<div class="nd-svg">' + svg + '</div></div>';
@@ -2499,8 +2516,11 @@
             const inst = currentSettings.diagram_instrument;
             const en = currentLang === 'en';
 
+            // Kształty i rekomendacja liczone w przestrzeni kapodastra.
+            const dch = diagramChord(chordName);
+
             let voicings = [];
-            try { voicings = getChordVoicings(chordName, inst) || []; } catch (e) { voicings = []; }
+            try { voicings = getChordVoicings(dch, inst) || []; } catch (e) { voicings = []; }
 
             if (!voicings.length) {
                 content.innerHTML = `<div class="no-diagram"><strong>${label}</strong><br>${t('bm_no_diagram')}</div>`;
@@ -2508,8 +2528,8 @@
                 // Progression-aware pick: which voicing ties THIS song together best.
                 let rec = null;
                 try {
-                    const prog = currentProgressionChords();
-                    rec = recommendVoicing(chordName, prog, inst);
+                    const prog = currentProgressionChords().map(diagramChord);
+                    rec = recommendVoicing(dch, prog, inst);
                 } catch (e) { rec = null; }
                 const recIdx = rec ? rec.index : -1;
                 const pedalName = (rec && rec.pedalPc != null) ? PC_NAMES[rec.pedalPc] : null;
