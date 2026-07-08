@@ -42,3 +42,7 @@ prototypes/stemmed_verses.pkl
 node_modules/
 package.json
 package-lock.json
+
+# Runtime-generated presentation slides (uploaded PDFs sliced to PNG)
+static/presentation/*
+!static/presentation/.gitkeep
