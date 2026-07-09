@@ -1895,7 +1895,7 @@ function deleteCurrentSong(){if(confirm(t('alert_delete_confirm')))document.getE
 
 let tInt=null,totSec=0,isRun=false,actMsg="";
 function setTimer(){var v=parseInt(document.getElementById('timer-input').value);totSec=(isNaN(v)||v<0)?0:v*60;updTimer();pushConference();}
-function updTimer(){let m=Math.floor(Math.abs(totSec)/60),s=Math.abs(totSec)%60,fmt=(totSec<0?"-":"")+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;document.getElementById('timer-val').innerText=fmt;document.getElementById('timer-val').style.color=totSec<=0?"#ff6b6b":"var(--text-main)";return{text:fmt,color:totSec<=0?"red":"white"};}
+function updTimer(){let m=Math.floor(Math.abs(totSec)/60),s=Math.abs(totSec)%60,fmt=(totSec<0?"-":"")+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;document.getElementById('timer-val').innerText=fmt;document.getElementById('timer-val').style.color=totSec<0?"var(--red)":"var(--text-primary)";return{text:fmt,color:totSec<0?"red":"white"};}
 function startTimer(){if(isRun)return;isRun=true;tInt=setInterval(()=>{totSec--;updTimer();pushConference();},1000);}
 function stopTimer(){isRun=false;clearInterval(tInt);}
 function resetTimer(){stopTimer();setTimer();}
