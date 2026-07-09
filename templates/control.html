@@ -419,8 +419,8 @@
         text-align: center;
         opacity: 0.5;
     }
-    .brand-wordmark { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.22em; color: var(--text-tertiary); }
-    .version-text { font-size: 0.62rem; color: var(--text-tertiary); letter-spacing: 0.08em; margin-top: var(--s1); opacity: 0.7; }
+    .branding-img { max-width: 88px; height: auto; opacity: 0.9; }
+    .version-text { font-size: 0.62rem; color: var(--text-tertiary); letter-spacing: 0.08em; margin-top: var(--s1); }
 
     /* ── Setlist ── */
     #setlist-container { flex: 1; margin: 0 calc(var(--s5) * -1); padding: 0 var(--s3); }
@@ -1322,7 +1322,7 @@
             <div class="scrollable" id="library-list"></div>
 
             <div class="branding-area">
-                <div class="brand-wordmark">JAFA STAGE CENTER</div>
+                <img id="control-logo" src="{{ url_for('static', filename='logo.png') }}?v=2" class="branding-img" alt="Logo">
                 <div class="version-text">v1.0</div>
             </div>
         </div>

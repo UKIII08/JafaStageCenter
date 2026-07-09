@@ -318,26 +318,10 @@
         }
 
         #stage-logo {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 0.4vh;
-            user-select: none;
-        }
-        #stage-logo .stage-wordmark-main {
-            font-size: 9vh;
-            font-weight: 800;
-            letter-spacing: 0.14em;
-            color: var(--text-primary);
-            line-height: 1;
-        }
-        #stage-logo .stage-wordmark-sub {
-            font-size: 2.4vh;
-            font-weight: 700;
-            letter-spacing: 0.5em;
-            text-indent: 0.5em;
-            color: var(--text-tertiary);
+            max-width: 55%;
+            max-height: 70%;
+            object-fit: contain;
+            display: block;
         }
 
         #current-content {
@@ -1146,7 +1130,7 @@
 
     <div id="worship-view">
         <div id="current-slide">
-            <div id="stage-logo"><span class="stage-wordmark-main">JAFA</span><span class="stage-wordmark-sub">STAGE&nbsp;CENTER</span></div>
+            <img id="stage-logo" src="{{ url_for('static', filename='logo.png') }}">
             <div id="current-content" class="text-wrapper"></div>
         </div>
 
