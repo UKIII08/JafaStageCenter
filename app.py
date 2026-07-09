@@ -70,6 +70,16 @@ else:
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Katalog na dane zapisywalne (obok bazy) — tam trzymamy certyfikat HTTPS.
+DATA_DIR = os.path.dirname(db_path) or os.path.abspath('.')
+
+# HTTPS (opcjonalny). Potrzebny, żeby MIKROFON (stroik) działał na telefonach —
+# iOS/Android udostępniają getUserMedia tylko w bezpiecznym kontekście (HTTPS).
+# Włączasz zmienną środowiskową JAFA_HTTPS=1. Domyślnie wyłączony, więc istniejące
+# instalacje działają bez zmian (po HTTP).
+HTTPS_ENABLED = os.environ.get('JAFA_HTTPS', '').strip().lower() in ('1', 'true', 'yes', 'on')
+APP_SCHEME = 'https' if HTTPS_ENABLED else 'http'
+
 db = SQLAlchemy(app)
 
 @app.after_request
@@ -1333,7 +1343,7 @@ def qr_setlist():
 @app.route('/qr_code/<path:subpath>')
 def qr_code(subpath):
     ip = get_local_ip()
-    url = f"http://{ip}:5000/{subpath}"
+    url = f"{APP_SCHEME}://{ip}:5000/{subpath}"
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(url); qr.make(fit=True)
     img_io = BytesIO()
@@ -1566,9 +1576,77 @@ def delete_presentation():
     if os.path.isdir(target):
         shutil.rmtree(target, ignore_errors=True)
     return {'status': 'ok'}
+# --- HTTPS: samopodpisany certyfikat (generowany raz) ---
+def ensure_https_cert():
+    """Zwraca (cert_path, key_path). Generuje samopodpisany certyfikat dla
+    localhost + lokalnego IP, jeśli jeszcze nie istnieje."""
+    cert_path = os.path.join(DATA_DIR, 'jafa_cert.pem')
+    key_path = os.path.join(DATA_DIR, 'jafa_key.pem')
+    if os.path.exists(cert_path) and os.path.exists(key_path):
+        return cert_path, key_path
+
+    ip = get_local_ip()
+
+    # 1) cryptography (dostępne jako zależność Pythona) — preferowane.
+    try:
+        import datetime, ipaddress
+        from cryptography import x509
+        from cryptography.x509.oid import NameOID
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        san = [x509.DNSName('localhost')]
+        for addr in ('127.0.0.1', ip):
+            try:
+                san.append(x509.IPAddress(ipaddress.ip_address(addr)))
+            except Exception:
+                pass
+        name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, u'JafaStageCenter')])
+        cert = (x509.CertificateBuilder()
+                .subject_name(name).issuer_name(name)
+                .public_key(key.public_key())
+                .serial_number(x509.random_serial_number())
+                .not_valid_before(datetime.datetime.utcnow() - datetime.timedelta(days=1))
+                .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=3650))
+                .add_extension(x509.SubjectAlternativeName(san), critical=False)
+                .sign(key, hashes.SHA256()))
+        with open(key_path, 'wb') as f:
+            f.write(key.private_bytes(serialization.Encoding.PEM,
+                                      serialization.PrivateFormat.TraditionalOpenSSL,
+                                      serialization.NoEncryption()))
+        with open(cert_path, 'wb') as f:
+            f.write(cert.public_bytes(serialization.Encoding.PEM))
+        return cert_path, key_path
+    except BaseException as e:
+        # BaseException, bo uszkodzone natywne biblioteki cryptography potrafią
+        # rzucić panikę Rusta (nie zwykły Exception) — wtedy schodzimy na openssl.
+        logging.warning(f"Generowanie certyfikatu przez cryptography nie powiodło się ({e}); próbuję openssl.")
+
+    # 2) openssl (CLI) — fallback, gdyby cryptography było niedostępne.
+    ossl = shutil.which('openssl')
+    if ossl:
+        san = f"subjectAltName=DNS:localhost,IP:127.0.0.1,IP:{ip}"
+        subprocess.run([ossl, 'req', '-x509', '-newkey', 'rsa:2048',
+                        '-keyout', key_path, '-out', cert_path, '-days', '3650', '-nodes',
+                        '-subj', '/CN=JafaStageCenter', '-addext', san],
+                       check=True, timeout=60,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if os.path.exists(cert_path) and os.path.exists(key_path):
+            return cert_path, key_path
+
+    raise RuntimeError('Brak cryptography i openssl — nie można wygenerować certyfikatu HTTPS.')
+
 # --- SERVER START THREAD ---
 def start_server():
-    socketio.run(app, host='0.0.0.0', port=5000, use_reloader=False, allow_unsafe_werkzeug=True)
+    run_kwargs = dict(host='0.0.0.0', port=5000, use_reloader=False, allow_unsafe_werkzeug=True)
+    if HTTPS_ENABLED:
+        try:
+            run_kwargs['ssl_context'] = ensure_https_cert()
+            logging.info("HTTPS włączony — stroik na telefonie będzie mógł użyć mikrofonu.")
+        except Exception as e:
+            logging.warning(f"Nie udało się włączyć HTTPS ({e}) — start w trybie HTTP.")
+    socketio.run(app, **run_kwargs)
 
 if __name__ == '__main__':
     with app.app_context():
@@ -1588,8 +1666,13 @@ if __name__ == '__main__':
     # Używamy resource_path, aby działało też po kompilacji do .exe
     loading_screen_path = resource_path(os.path.join('templates', 'loading.html'))
     
-    # 2. Konwertujemy ścieżkę na format URL (file://)
+    # 2. Konwertujemy ścieżkę na format URL (file://). W trybie HTTPS przekazujemy
+    #    ?https=1, żeby ekran ładowania połączył się z serwerem po https, oraz
+    #    pozwalamy oknu (WebView2 na Windows) zaakceptować samopodpisany certyfikat.
     loading_url = f'file://{os.path.abspath(loading_screen_path)}'
+    if HTTPS_ENABLED:
+        loading_url += '?https=1'
+        os.environ.setdefault('WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS', '--ignore-certificate-errors')
 
     # 3. Otwieramy okno startując od pliku lokalnego
     webview.create_window(

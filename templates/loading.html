@@ -184,7 +184,9 @@
 
     <script>
         // --- KONFIGURACJA ---
-        const SERVER_URL = 'http://127.0.0.1:5000';
+        // Schemat (http/https) zależny od trybu serwera — app.py dokłada ?https=1.
+        const SERVER_SCHEME = (new URLSearchParams(location.search).get('https') === '1') ? 'https' : 'http';
+        const SERVER_URL = SERVER_SCHEME + '://127.0.0.1:5000';
 
         // --- USTAWIENIA CZASU (W MILISEKUNDACH) ---
         const MIN_LOADING_TIME = 3500;

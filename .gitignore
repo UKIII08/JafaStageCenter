@@ -46,3 +46,7 @@ package-lock.json
 # Runtime-generated presentation slides (uploaded PDFs sliced to PNG)
 static/presentation/*
 !static/presentation/.gitkeep
+
+# HTTPS self-signed cert (generated at runtime)
+jafa_cert.pem
+jafa_key.pem
