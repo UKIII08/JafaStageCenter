@@ -2257,10 +2257,11 @@
             // więc nie ma jak nawet zapytać o zgodę. Wtedy dajemy jasny komunikat.
             const en = currentLang === 'en';
             if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                const msg = en
-                    ? 'The tuner needs microphone access, which phones only allow over a secure (HTTPS) connection. This screen is open over HTTP, so the browser blocks the mic.\n\nOpen the step-by-step setup guide?'
-                    : 'Stroik potrzebuje mikrofonu, a telefon udostępnia go tylko przez bezpieczne połączenie (HTTPS). Ten ekran jest otwarty po HTTP, więc przeglądarka blokuje mikrofon.\n\nOtworzyć instrukcję konfiguracji krok po kroku?';
-                if (confirm(msg)) window.location.href = '/mic_help';
+                // Telefony blokują mikrofon bez HTTPS — stroik oficjalnie
+                // działa na komputerze (localhost to bezpieczny kontekst).
+                alert(en
+                    ? 'The tuner uses the microphone, which phones block over a local-network connection. Use the tuner on the computer instead.'
+                    : 'Stroik korzysta z mikrofonu, którego telefony blokują przy połączeniu po sieci lokalnej. Użyj stroika na komputerze.');
                 return;
             }
 
@@ -2270,10 +2271,9 @@
                 });
             } catch (e) {
                 if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) {
-                    const dmsg = en
-                        ? 'Microphone permission was denied. Allow the mic for this site (address bar → AA/site icon → Microphone, or Settings → Safari → Microphone) and try again.\n\nOpen the setup guide with all the steps?'
-                        : 'Odmówiono dostępu do mikrofonu. Zezwól na mikrofon dla tej strony (pasek adresu → AA/ikona witryny → Mikrofon, albo Ustawienia → Safari → Mikrofon) i spróbuj ponownie.\n\nOtworzyć instrukcję ze wszystkimi krokami?';
-                    if (confirm(dmsg)) window.location.href = '/mic_help';
+                    alert(en
+                        ? 'Microphone permission was denied. Allow the mic for this site in your browser settings, then try again.'
+                        : 'Odmówiono dostępu do mikrofonu. Zezwól na mikrofon dla tej strony w ustawieniach przeglądarki i spróbuj ponownie.');
                 } else {
                     alert(t('tuner_mic_denied') || (en ? 'Could not access the microphone.' : 'Nie udało się uruchomić mikrofonu.'));
                 }

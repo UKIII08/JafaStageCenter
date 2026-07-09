@@ -1710,17 +1710,9 @@
                             <span class="slider round"></span>
                         </label>
                     </div>
-                    <div class="settings-row">
-                        <label data-t="https_mic">HTTPS (mikrofon / stroik na telefonie):</label>
-                        <label class="switch">
-                            <input type="checkbox" id="https-toggle" onchange="toggleHttps(this.checked)">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                    <div class="settings-row" style="margin-top:calc(-1 * var(--s3));">
-                        <span style="font-size:var(--font-xs); color:var(--text-tertiary); line-height:1.5;" data-t="https_mic_hint">Włącz, jeśli chcesz używać stroika na telefonie. Wymaga restartu aplikacji; na telefonie raz zaakceptuj certyfikat.</span>
-                        <a href="/mic_help" target="_blank" style="font-size:var(--font-xs); color:var(--accent-primary); white-space:nowrap; margin-left:var(--s2); text-decoration:none;" data-t="https_mic_help_link">Instrukcja (telefon) →</a>
-                    </div>
+                    <!-- Przełącznik HTTPS (stroik na telefonie) wycofany — stroik działa
+                         na komputerze (localhost = bezpieczny kontekst). Backend
+                         /toggle_https i /mic_help zostają na przyszłość. -->
                     <div class="settings-row">
                         <label data-t="trans_engine">Styl przejść (Silnik AI):</label>
                         <select name="transition_engine" style="width:50%;">
