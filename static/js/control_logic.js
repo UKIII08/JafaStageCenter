@@ -989,7 +989,8 @@ function renderShortcuts() {
 // milknie, grasz na luzie) → [pedał] intro następnej piosenki (metronom
 // wraca, tekst jeszcze się NIE pokazuje) → [pedał] pokazuje się tekst.
 var worshipFlow = null;      // null | 'transition' | 'armed'
-var flowArmedTile = null;    // kafelek uzbrojony (metronom gra, tekst ukryty)
+var flowArmedTile = null;    // kafelek uzbrojony (tekst ukryty)
+var metroWasOnBeforeTransition = false; // czy metronom grał przed przejściem (by go przywrócić)
 
 function resetWorshipFlow() {
     worshipFlow = null;
@@ -1012,7 +1013,10 @@ function armFirstSlide() {
 
 function navigateSlides(direction) {
     var metroOn = (typeof isMetronomeOn === 'function') && isMetronomeOn();
-    var inFlow = metroOn || worshipFlow !== null;
+    // Flow przejść (transition + uzbrojenie intro) działa zawsze, gdy przejścia
+    // są włączone — niezależnie od metronomu. Metronom milknie/wraca tylko jako
+    // efekt uboczny, jeśli akurat grał.
+    var inFlow = metroOn || worshipFlow !== null || transitionsEnabled;
 
     if (direction === 1 && inFlow) {
         // 1) Uzbrojony slajd → teraz pokaż tekst
@@ -1028,7 +1032,8 @@ function navigateSlides(direction) {
             if (currentSetIndex < setlist.length - 1) {
                 selectForLive(currentSetIndex + 1);
                 setTimeout(function () {
-                    if (typeof metroSetActive === 'function') metroSetActive(true); // metronom wraca na nowe tempo
+                    // Metronom wraca na nowe tempo tylko jeśli grał przed przejściem.
+                    if (metroWasOnBeforeTransition && typeof metroSetActive === 'function') metroSetActive(true);
                     armFirstSlide();
                 }, 60);
             }
@@ -1539,14 +1544,12 @@ function renderSectionTiles(songIdx) {
                 document.querySelectorAll('.slide-btn').forEach(x => x.classList.remove('active')); btn.classList.add('active');
                 activeSectionIdx = -1;
 
-                // Hands-free flow: gdy metronom gra, milknie na czas przejścia
-                // (grasz na luzie), a wraca dopiero na intro następnej piosenki.
-                if (typeof isMetronomeOn === 'function' && isMetronomeOn()) {
-                    metroSetActive(false);
-                    worshipFlow = 'transition';
-                } else {
-                    worshipFlow = null;
-                }
+                // Wejście w przejście: kolejny klik przełączy na następną piosenkę
+                // i uzbroi intro. Metronom (jeśli grał) milknie na czas przejścia
+                // i wróci dopiero na intro następnej piosenki.
+                metroWasOnBeforeTransition = (typeof isMetronomeOn === 'function' && isMetronomeOn());
+                if (metroWasOnBeforeTransition) metroSetActive(false);
+                worshipFlow = 'transition';
 
                 if (isPadPlaying && songIdx < setlist.length - 1) {
                     var nextSong = setlist[songIdx + 1];
