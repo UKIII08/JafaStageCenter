@@ -2493,8 +2493,10 @@
                         const idx = (rec && vs[rec.index]) ? rec.index : 0;
                         const pick = vs[idx];
                         if (pick) {
-                            // etykietę bazowego chwytu zastąp lokalną (respektuje notację/kapo)
-                            svg = (idx === 0) ? pick.svg.replace('>' + pick.label + '<', '>' + label + '<') : pick.svg;
+                            // Etykietę chwytu zastąp lokalną — respektuje notację i „małe
+                            // litery = mol" (np. Dm→d, więc alternatywa Dm7→d7).
+                            const shownLabel = (idx === 0) ? label : convertNotation(pick.label);
+                            svg = pick.svg.replace('>' + pick.label + '<', '>' + shownLabel + '<');
                             star = idx > 0;
                         }
                     } else if (inst === 'piano') {
@@ -2559,17 +2561,15 @@
                     if (recVoicing && recVoicing !== baseVoicing) displayVoicings.push(recVoicing);
                 }
 
-                // First card uses the display label (respects notation/lowercase);
-                // alternatives keep their own theory names.
+                // Etykiety respektują notację i „małe litery = mol" — także na
+                // alternatywach (np. baza d → alternatywa d7, nie Dm7).
                 let html = `<div class="voicing-title">${label} · ${en ? 'voicings' : 'voicingi'}</div>`;
                 html += '<div class="voicing-row">';
                 displayVoicings.forEach(function(v) {
                     const meta = VOICING_META[v.tag] || VOICING_META.base;
                     const isBase = (v === baseVoicing);
-                    const shownLabel = isBase ? label : v.label;
-                    const svg = isBase
-                        ? v.svg.replace('>' + v.label + '<', '>' + shownLabel + '<')
-                        : v.svg;
+                    const shownLabel = isBase ? label : convertNotation(v.label);
+                    const svg = v.svg.replace('>' + v.label + '<', '>' + shownLabel + '<');
                     const isRec = (v === recVoicing);
                     const star = isRec ? '<div class="voicing-star">★ ' + (en ? 'best here' : 'do tej progresji') + '</div>' : '';
                     let hint = en ? meta.hen : meta.hpl;
