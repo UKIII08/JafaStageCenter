@@ -743,6 +743,12 @@ function toggleHttps(enabled){
     }).then(r => r.json()).then(function(res){
         if (res.status !== 'ok') { showToast((res.message || 'Błąd') ); return; }
         var en = (localStorage.getItem('appLang') || 'pl') === 'en';
+        if (enabled && res.can_https === false) {
+            alert(en
+                ? 'This app build cannot create an HTTPS certificate (missing library). The tuner mic on phones needs an updated build. Nothing was broken — the app keeps working over HTTP.'
+                : 'Ta wersja aplikacji nie potrafi utworzyć certyfikatu HTTPS (brak biblioteki). Mikrofon stroika na telefonie wymaga zaktualizowanego builda. Nic się nie zepsuło — apka działa dalej po HTTP.');
+            return;
+        }
         if (res.restart_required) {
             alert(en
                 ? (enabled

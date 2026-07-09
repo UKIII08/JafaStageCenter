@@ -32,6 +32,19 @@ try:
     HAS_WIN32 = True
 except ImportError:
     HAS_WIN32 = False
+
+# Import na poziomie modułu, żeby PyInstaller SPAKOWAŁ cryptography do .exe
+# (przy leniwym imporcie potrafi go pominąć, przez co generowanie certyfikatu
+# HTTPS pada, serwer schodzi na HTTP i telefon dostaje ERR_SSL_PROTOCOL_ERROR).
+# BaseException — uszkodzony natywny backend cryptography potrafi rzucić panikę.
+try:
+    from cryptography import x509 as _crypto_x509
+    from cryptography.x509.oid import NameOID as _crypto_NameOID
+    from cryptography.hazmat.primitives import hashes as _crypto_hashes, serialization as _crypto_serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa as _crypto_rsa
+    HAS_CRYPTOGRAPHY = True
+except BaseException:
+    HAS_CRYPTOGRAPHY = False
 # --- ENGINE IMPORTS ---
 from Mingus_silnik import WorshipHybridEngineV1
 try:
@@ -88,7 +101,6 @@ def https_requested():
         return False
 
 HTTPS_ENABLED = https_requested()
-APP_SCHEME = 'https' if HTTPS_ENABLED else 'http'
 
 db = SQLAlchemy(app)
 
@@ -1353,7 +1365,7 @@ def qr_setlist():
 @app.route('/qr_code/<path:subpath>')
 def qr_code(subpath):
     ip = get_local_ip()
-    url = f"{APP_SCHEME}://{ip}:5000/{subpath}"
+    url = f"{current_scheme()}://{ip}:5000/{subpath}"
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(url); qr.make(fit=True)
     img_io = BytesIO()
@@ -1450,8 +1462,13 @@ def conf_timer():
 
 @app.route('/https_status', methods=['GET'])
 def https_status():
-    """Zwraca, czy tryb HTTPS jest włączony (i czy aktywny w tej sesji)."""
-    return {'enabled': os.path.exists(HTTPS_FLAG_FILE), 'active': HTTPS_ENABLED}
+    """enabled = przełącznik ustawiony; active = serwer FAKTYCZNIE po HTTPS w tej sesji;
+    can_https = czy w ogóle da się wygenerować certyfikat (cryptography lub openssl)."""
+    return {
+        'enabled': os.path.exists(HTTPS_FLAG_FILE),
+        'active': HTTPS_ACTIVE,
+        'can_https': bool(HAS_CRYPTOGRAPHY or shutil.which('openssl')),
+    }
 
 @app.route('/toggle_https', methods=['POST'])
 def toggle_https():
@@ -1467,7 +1484,12 @@ def toggle_https():
             os.remove(HTTPS_FLAG_FILE)
     except Exception as e:
         return {'status': 'error', 'message': str(e)}
-    return {'status': 'ok', 'enabled': want, 'restart_required': (want != HTTPS_ENABLED)}
+    return {
+        'status': 'ok',
+        'enabled': want,
+        'restart_required': (want != HTTPS_ENABLED),
+        'can_https': bool(HAS_CRYPTOGRAPHY or shutil.which('openssl')),
+    }
 
 @app.route('/export_songs', methods=['GET'])
 def export_songs():
@@ -1618,41 +1640,36 @@ def ensure_https_cert():
 
     ip = get_local_ip()
 
-    # 1) cryptography (dostępne jako zależność Pythona) — preferowane.
-    try:
-        import datetime, ipaddress
-        from cryptography import x509
-        from cryptography.x509.oid import NameOID
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import rsa
-
-        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-        san = [x509.DNSName('localhost')]
-        for addr in ('127.0.0.1', ip):
-            try:
-                san.append(x509.IPAddress(ipaddress.ip_address(addr)))
-            except Exception:
-                pass
-        name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, u'JafaStageCenter')])
-        cert = (x509.CertificateBuilder()
-                .subject_name(name).issuer_name(name)
-                .public_key(key.public_key())
-                .serial_number(x509.random_serial_number())
-                .not_valid_before(datetime.datetime.utcnow() - datetime.timedelta(days=1))
-                .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=3650))
-                .add_extension(x509.SubjectAlternativeName(san), critical=False)
-                .sign(key, hashes.SHA256()))
-        with open(key_path, 'wb') as f:
-            f.write(key.private_bytes(serialization.Encoding.PEM,
-                                      serialization.PrivateFormat.TraditionalOpenSSL,
-                                      serialization.NoEncryption()))
-        with open(cert_path, 'wb') as f:
-            f.write(cert.public_bytes(serialization.Encoding.PEM))
-        return cert_path, key_path
-    except BaseException as e:
-        # BaseException, bo uszkodzone natywne biblioteki cryptography potrafią
-        # rzucić panikę Rusta (nie zwykły Exception) — wtedy schodzimy na openssl.
-        logging.warning(f"Generowanie certyfikatu przez cryptography nie powiodło się ({e}); próbuję openssl.")
+    # 1) cryptography (spakowane na poziomie modułu) — preferowane.
+    if HAS_CRYPTOGRAPHY:
+        try:
+            import datetime, ipaddress
+            x509 = _crypto_x509
+            key = _crypto_rsa.generate_private_key(public_exponent=65537, key_size=2048)
+            san = [x509.DNSName('localhost')]
+            for addr in ('127.0.0.1', ip):
+                try:
+                    san.append(x509.IPAddress(ipaddress.ip_address(addr)))
+                except Exception:
+                    pass
+            name = x509.Name([x509.NameAttribute(_crypto_NameOID.COMMON_NAME, u'JafaStageCenter')])
+            cert = (x509.CertificateBuilder()
+                    .subject_name(name).issuer_name(name)
+                    .public_key(key.public_key())
+                    .serial_number(x509.random_serial_number())
+                    .not_valid_before(datetime.datetime.utcnow() - datetime.timedelta(days=1))
+                    .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=3650))
+                    .add_extension(x509.SubjectAlternativeName(san), critical=False)
+                    .sign(key, _crypto_hashes.SHA256()))
+            with open(key_path, 'wb') as f:
+                f.write(key.private_bytes(_crypto_serialization.Encoding.PEM,
+                                          _crypto_serialization.PrivateFormat.TraditionalOpenSSL,
+                                          _crypto_serialization.NoEncryption()))
+            with open(cert_path, 'wb') as f:
+                f.write(cert.public_bytes(_crypto_serialization.Encoding.PEM))
+            return cert_path, key_path
+        except BaseException as e:
+            logging.warning(f"Certyfikat przez cryptography nie powiódł się ({e}); próbuję openssl.")
 
     # 2) openssl (CLI) — fallback, gdyby cryptography było niedostępne.
     ossl = shutil.which('openssl')
@@ -1668,15 +1685,26 @@ def ensure_https_cert():
 
     raise RuntimeError('Brak cryptography i openssl — nie można wygenerować certyfikatu HTTPS.')
 
+# Czy serwer FAKTYCZNIE wystartował po HTTPS (True dopiero po udanym certyfikacie).
+# Ważne: kody QR i przekierowania używają tego, a NIE samego "chcę HTTPS" — inaczej
+# telefon dostaje https://… podczas gdy serwer mówi HTTP → ERR_SSL_PROTOCOL_ERROR.
+HTTPS_ACTIVE = False
+
+def current_scheme():
+    return 'https' if HTTPS_ACTIVE else 'http'
+
 # --- SERVER START THREAD ---
 def start_server():
+    global HTTPS_ACTIVE
     run_kwargs = dict(host='0.0.0.0', port=5000, use_reloader=False, allow_unsafe_werkzeug=True)
     if HTTPS_ENABLED:
         try:
             run_kwargs['ssl_context'] = ensure_https_cert()
-            logging.info("HTTPS włączony — stroik na telefonie będzie mógł użyć mikrofonu.")
+            HTTPS_ACTIVE = True
+            logging.info("HTTPS aktywny — stroik na telefonie będzie mógł użyć mikrofonu.")
         except Exception as e:
-            logging.warning(f"Nie udało się włączyć HTTPS ({e}) — start w trybie HTTP.")
+            HTTPS_ACTIVE = False
+            logging.warning(f"Nie udało się włączyć HTTPS ({e}) — serwer w trybie HTTP (stroik na telefonie nie zadziała).")
     socketio.run(app, **run_kwargs)
 
 if __name__ == '__main__':
