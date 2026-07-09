@@ -47,6 +47,10 @@ package-lock.json
 static/presentation/*
 !static/presentation/.gitkeep
 
-# HTTPS self-signed cert (generated at runtime)
+# HTTPS local CA + server cert (generated at runtime)
 jafa_cert.pem
 jafa_key.pem
+jafa_ca.pem
+jafa_ca_key.pem
+jafa_ca.srl
+jafa_cert_meta.json

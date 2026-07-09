@@ -39,7 +39,7 @@ except ImportError:
 # BaseException — uszkodzony natywny backend cryptography potrafi rzucić panikę.
 try:
     from cryptography import x509 as _crypto_x509
-    from cryptography.x509.oid import NameOID as _crypto_NameOID
+    from cryptography.x509.oid import NameOID as _crypto_NameOID, ExtendedKeyUsageOID as _crypto_EKUOID
     from cryptography.hazmat.primitives import hashes as _crypto_hashes, serialization as _crypto_serialization
     from cryptography.hazmat.primitives.asymmetric import rsa as _crypto_rsa
     HAS_CRYPTOGRAPHY = True
@@ -1491,6 +1491,30 @@ def toggle_https():
         'can_https': bool(HAS_CRYPTOGRAPHY or shutil.which('openssl')),
     }
 
+@app.route('/ca.crt')
+def ca_certificate():
+    """Certyfikat lokalnego CA do JEDNORAZOWEJ instalacji na telefonie.
+    Po zainstalowaniu i zaufaniu (iPhone: Ustawienia → Profil → Zainstaluj,
+    potem Ogólne → Informacje → Ustawienia zaufania certyfikatów) połączenie
+    HTTPS jest w pełni zaufane i mikrofon (stroik) działa bez ostrzeżeń."""
+    if not os.path.exists(CA_CERT_FILE):
+        try:
+            ensure_https_cert()
+        except Exception:
+            return ('Certyfikat nie został jeszcze wygenerowany. Włącz HTTPS w '
+                    'Ustawieniach i uruchom aplikację ponownie.'), 404
+    return send_file(CA_CERT_FILE, mimetype='application/x-x509-ca-cert',
+                     as_attachment=True, download_name='JafaStageCenter-CA.crt')
+
+@app.route('/mic_help')
+def mic_help():
+    """Instrukcja (PL/EN) jak uruchomić mikrofon/stroik na telefonie + test na żywo."""
+    return render_template('mic_help.html',
+                           ip=get_local_ip(),
+                           https_active=HTTPS_ACTIVE,
+                           https_enabled=https_requested(),
+                           can_https=bool(HAS_CRYPTOGRAPHY or shutil.which('openssl')))
+
 @app.route('/export_songs', methods=['GET'])
 def export_songs():
     songs = Song.query.all()
@@ -1629,61 +1653,162 @@ def delete_presentation():
     if os.path.isdir(target):
         shutil.rmtree(target, ignore_errors=True)
     return {'status': 'ok'}
-# --- HTTPS: samopodpisany certyfikat (generowany raz) ---
-def ensure_https_cert():
-    """Zwraca (cert_path, key_path). Generuje samopodpisany certyfikat dla
-    localhost + lokalnego IP, jeśli jeszcze nie istnieje."""
-    cert_path = os.path.join(DATA_DIR, 'jafa_cert.pem')
-    key_path = os.path.join(DATA_DIR, 'jafa_key.pem')
-    if os.path.exists(cert_path) and os.path.exists(key_path):
-        return cert_path, key_path
+# --- HTTPS: lokalne CA + certyfikat serwera ---
+# Model jak w mkcert: raz generujemy własne CA ("JafaStageCenter Local CA"),
+# a certyfikat serwera jest nim PODPISANY. Telefon, na którym zainstaluje się
+# i zaufa CA (jednorazowo, przez /mic_help → /ca.crt), widzi połączenie jako
+# w pełni zaufane (kłódka, bez ostrzeżeń) — a wtedy iOS/Android na pewno
+# pozwalają na mikrofon. Bez instalacji CA nadal działa ścieżka "zaakceptuj
+# ostrzeżenie w Safari". Certyfikat serwera regenerujemy automatycznie, gdy
+# zmieni się IP w sieci (inne Wi-Fi) albo zbliża się koniec ważności.
+CA_CERT_FILE = os.path.join(DATA_DIR, 'jafa_ca.pem')
+CA_KEY_FILE = os.path.join(DATA_DIR, 'jafa_ca_key.pem')
+TLS_CERT_FILE = os.path.join(DATA_DIR, 'jafa_cert.pem')
+TLS_KEY_FILE = os.path.join(DATA_DIR, 'jafa_key.pem')
+CERT_META_FILE = os.path.join(DATA_DIR, 'jafa_cert_meta.json')
 
-    ip = get_local_ip()
+def _cert_is_current(ip):
+    """True, gdy certyfikat serwera istnieje, obejmuje bieżące IP i nie wygasa
+    w ciągu 30 dni. Metadane (IP, ważność) trzymamy w JSON obok certyfikatu,
+    żeby nie parsować X.509 (cryptography może być niedostępne)."""
+    try:
+        needed = (TLS_CERT_FILE, TLS_KEY_FILE, CA_CERT_FILE, CA_KEY_FILE, CERT_META_FILE)
+        if not all(os.path.exists(p) for p in needed):
+            return False
+        import datetime
+        with open(CERT_META_FILE) as f:
+            meta = json.load(f)
+        expires = datetime.datetime.fromisoformat(meta.get('expires', '1970-01-01T00:00:00'))
+        if expires - datetime.datetime.utcnow() < datetime.timedelta(days=30):
+            return False
+        return ip in meta.get('ips', [])
+    except Exception:
+        return False
 
-    # 1) cryptography (spakowane na poziomie modułu) — preferowane.
-    if HAS_CRYPTOGRAPHY:
-        try:
-            import datetime, ipaddress
-            x509 = _crypto_x509
-            key = _crypto_rsa.generate_private_key(public_exponent=65537, key_size=2048)
-            san = [x509.DNSName('localhost')]
-            for addr in ('127.0.0.1', ip):
-                try:
-                    san.append(x509.IPAddress(ipaddress.ip_address(addr)))
-                except Exception:
-                    pass
-            name = x509.Name([x509.NameAttribute(_crypto_NameOID.COMMON_NAME, u'JafaStageCenter')])
-            cert = (x509.CertificateBuilder()
-                    .subject_name(name).issuer_name(name)
-                    .public_key(key.public_key())
-                    .serial_number(x509.random_serial_number())
-                    .not_valid_before(datetime.datetime.utcnow() - datetime.timedelta(days=1))
-                    .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=3650))
-                    .add_extension(x509.SubjectAlternativeName(san), critical=False)
-                    .sign(key, _crypto_hashes.SHA256()))
-            with open(key_path, 'wb') as f:
-                f.write(key.private_bytes(_crypto_serialization.Encoding.PEM,
-                                          _crypto_serialization.PrivateFormat.TraditionalOpenSSL,
-                                          _crypto_serialization.NoEncryption()))
-            with open(cert_path, 'wb') as f:
-                f.write(cert.public_bytes(_crypto_serialization.Encoding.PEM))
-            return cert_path, key_path
-        except BaseException as e:
-            logging.warning(f"Certyfikat przez cryptography nie powiódł się ({e}); próbuję openssl.")
+def _san_ips(ip):
+    ips = ['127.0.0.1']
+    if ip and ip not in ips:
+        ips.append(ip)
+    return ips
 
-    # 2) openssl (CLI) — fallback, gdyby cryptography było niedostępne.
-    ossl = shutil.which('openssl')
-    if ossl:
-        san = f"subjectAltName=DNS:localhost,IP:127.0.0.1,IP:{ip}"
+# iOS odrzuca certyfikaty serwera ważne dłużej niż 825 dni.
+LEAF_DAYS = 820
+
+def _generate_certs_cryptography(ip):
+    """Generuje CA (jeśli brak) i podpisany nim certyfikat serwera. Zwraca listę IP w SAN."""
+    import datetime, ipaddress
+    x509 = _crypto_x509
+    now = datetime.datetime.utcnow()
+
+    if os.path.exists(CA_CERT_FILE) and os.path.exists(CA_KEY_FILE):
+        with open(CA_KEY_FILE, 'rb') as f:
+            ca_key = _crypto_serialization.load_pem_private_key(f.read(), password=None)
+        with open(CA_CERT_FILE, 'rb') as f:
+            ca_cert = x509.load_pem_x509_certificate(f.read())
+    else:
+        ca_key = _crypto_rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        ca_name = x509.Name([x509.NameAttribute(_crypto_NameOID.COMMON_NAME, u'JafaStageCenter Local CA')])
+        ca_cert = (x509.CertificateBuilder()
+                   .subject_name(ca_name).issuer_name(ca_name)
+                   .public_key(ca_key.public_key())
+                   .serial_number(x509.random_serial_number())
+                   .not_valid_before(now - datetime.timedelta(days=1))
+                   .not_valid_after(now + datetime.timedelta(days=3650))
+                   .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
+                   .add_extension(x509.KeyUsage(digital_signature=False, content_commitment=False,
+                                                key_encipherment=False, data_encipherment=False,
+                                                key_agreement=False, key_cert_sign=True, crl_sign=True,
+                                                encipher_only=False, decipher_only=False), critical=True)
+                   .sign(ca_key, _crypto_hashes.SHA256()))
+        with open(CA_KEY_FILE, 'wb') as f:
+            f.write(ca_key.private_bytes(_crypto_serialization.Encoding.PEM,
+                                         _crypto_serialization.PrivateFormat.TraditionalOpenSSL,
+                                         _crypto_serialization.NoEncryption()))
+        with open(CA_CERT_FILE, 'wb') as f:
+            f.write(ca_cert.public_bytes(_crypto_serialization.Encoding.PEM))
+
+    key = _crypto_rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    ips = _san_ips(ip)
+    sans = [x509.DNSName('localhost')] + [x509.IPAddress(ipaddress.ip_address(a)) for a in ips]
+    cert = (x509.CertificateBuilder()
+            .subject_name(x509.Name([x509.NameAttribute(_crypto_NameOID.COMMON_NAME, u'JafaStageCenter')]))
+            .issuer_name(ca_cert.subject)
+            .public_key(key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now - datetime.timedelta(days=1))
+            .not_valid_after(now + datetime.timedelta(days=LEAF_DAYS))
+            .add_extension(x509.SubjectAlternativeName(sans), critical=False)
+            .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+            .add_extension(x509.ExtendedKeyUsage([_crypto_EKUOID.SERVER_AUTH]), critical=False)
+            .sign(ca_key, _crypto_hashes.SHA256()))
+    with open(TLS_KEY_FILE, 'wb') as f:
+        f.write(key.private_bytes(_crypto_serialization.Encoding.PEM,
+                                  _crypto_serialization.PrivateFormat.TraditionalOpenSSL,
+                                  _crypto_serialization.NoEncryption()))
+    # Pełny łańcuch (serwer + CA), żeby klient zawsze mógł go zweryfikować.
+    with open(TLS_CERT_FILE, 'wb') as f:
+        f.write(cert.public_bytes(_crypto_serialization.Encoding.PEM))
+        f.write(ca_cert.public_bytes(_crypto_serialization.Encoding.PEM))
+    return ips
+
+def _generate_certs_openssl(ip, ossl):
+    """To samo co wyżej, ale przez openssl CLI (fallback, gdy brak cryptography)."""
+    if not (os.path.exists(CA_CERT_FILE) and os.path.exists(CA_KEY_FILE)):
         subprocess.run([ossl, 'req', '-x509', '-newkey', 'rsa:2048',
-                        '-keyout', key_path, '-out', cert_path, '-days', '3650', '-nodes',
-                        '-subj', '/CN=JafaStageCenter', '-addext', san],
+                        '-keyout', CA_KEY_FILE, '-out', CA_CERT_FILE, '-days', '3650', '-nodes',
+                        '-subj', '/CN=JafaStageCenter Local CA',
+                        '-addext', 'basicConstraints=critical,CA:TRUE,pathlen:0',
+                        '-addext', 'keyUsage=critical,keyCertSign,cRLSign'],
                        check=True, timeout=60,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        if os.path.exists(cert_path) and os.path.exists(key_path):
-            return cert_path, key_path
+    ips = _san_ips(ip)
+    san = 'subjectAltName=DNS:localhost,' + ','.join('IP:' + a for a in ips)
+    with tempfile.TemporaryDirectory() as tmp:
+        csr = os.path.join(tmp, 'server.csr')
+        ext = os.path.join(tmp, 'server.ext')
+        with open(ext, 'w') as f:
+            f.write(san + '\nbasicConstraints=critical,CA:FALSE\nextendedKeyUsage=serverAuth\n')
+        subprocess.run([ossl, 'req', '-new', '-newkey', 'rsa:2048', '-nodes',
+                        '-keyout', TLS_KEY_FILE, '-out', csr, '-subj', '/CN=JafaStageCenter'],
+                       check=True, timeout=60,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run([ossl, 'x509', '-req', '-in', csr, '-CA', CA_CERT_FILE, '-CAkey', CA_KEY_FILE,
+                        '-CAcreateserial', '-days', str(LEAF_DAYS), '-out', TLS_CERT_FILE,
+                        '-extfile', ext],
+                       check=True, timeout=60,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    with open(CA_CERT_FILE, 'rb') as f:
+        ca_pem = f.read()
+    with open(TLS_CERT_FILE, 'ab') as f:
+        f.write(ca_pem)
+    return ips
 
-    raise RuntimeError('Brak cryptography i openssl — nie można wygenerować certyfikatu HTTPS.')
+def ensure_https_cert():
+    """Zwraca (cert_path, key_path). Dba o to, żeby certyfikat obejmował
+    bieżące IP (regeneruje po zmianie sieci) i był podpisany lokalnym CA."""
+    ip = get_local_ip()
+    if _cert_is_current(ip):
+        return TLS_CERT_FILE, TLS_KEY_FILE
+
+    import datetime
+    ips = None
+    if HAS_CRYPTOGRAPHY:
+        try:
+            ips = _generate_certs_cryptography(ip)
+        except BaseException as e:
+            logging.warning(f"Certyfikat przez cryptography nie powiódł się ({e}); próbuję openssl.")
+    if ips is None:
+        ossl = shutil.which('openssl')
+        if ossl:
+            ips = _generate_certs_openssl(ip, ossl)
+    if ips is None:
+        raise RuntimeError('Brak cryptography i openssl — nie można wygenerować certyfikatu HTTPS.')
+
+    meta = {'ips': ips,
+            'expires': (datetime.datetime.utcnow() + datetime.timedelta(days=LEAF_DAYS)).isoformat()}
+    with open(CERT_META_FILE, 'w') as f:
+        json.dump(meta, f)
+    return TLS_CERT_FILE, TLS_KEY_FILE
 
 # Czy serwer FAKTYCZNIE wystartował po HTTPS (True dopiero po udanym certyfikacie).
 # Ważne: kody QR i przekierowania używają tego, a NIE samego "chcę HTTPS" — inaczej

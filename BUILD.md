@@ -41,13 +41,25 @@ Available endpoints:
 
 ## Building a Standalone .exe (Windows)
 
-### 1. Install PyInstaller
+### 1. Install PyInstaller (and cryptography)
 
 ```bash
-pip install pyinstaller
+pip install pyinstaller cryptography
 ```
 
+`cryptography` is REQUIRED for the HTTPS mode (phone microphone / tuner).
+Without it the built .exe silently falls back to HTTP and the tuner cannot
+access the mic on phones. `build.py` refuses to build if it's missing.
+
 ### 2. Build
+
+The recommended way is the build script (it includes all required flags):
+
+```bash
+python build.py
+```
+
+Or manually:
 
 ```bash
 pyinstaller --noconfirm --onedir --windowed ^
@@ -58,6 +70,8 @@ pyinstaller --noconfirm --onedir --windowed ^
     --hidden-import "socketio" ^
     --hidden-import "flask_socketio" ^
     --hidden-import "sqlalchemy.dialects.sqlite" ^
+    --hidden-import "_cffi_backend" ^
+    --collect-submodules "cryptography" ^
     app.py
 ```
 
@@ -72,6 +86,8 @@ pyinstaller --noconfirm --onedir --windowed \
     --hidden-import "socketio" \
     --hidden-import "flask_socketio" \
     --hidden-import "sqlalchemy.dialects.sqlite" \
+    --hidden-import "_cffi_backend" \
+    --collect-submodules "cryptography" \
     app.py
 ```
 

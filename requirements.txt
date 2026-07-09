@@ -5,6 +5,7 @@ cffi==2.0.0
 click==8.3.1
 clr_loader==0.2.9
 colorama==0.4.6
+cryptography>=42.0
 Flask==3.1.2
 Flask-SocketIO==5.6.0
 Flask-SQLAlchemy==3.1.1
