@@ -2102,14 +2102,17 @@
                 currentRawNext = ''; currentBandNext = '';
                 currentBandHtml = '';
                 renderNowDiagrams();
-            } else if (data.mode === 'conference') {
-                worshipView.style.display = 'none';
-                confView.style.display = 'flex';
-                document.getElementById('conf-timer').innerText = data.timer;
-                // Calm palette: only real overtime turns red (soft --red), otherwise neutral.
-                document.getElementById('conf-timer').style.color =
-                    (data.timer_color === 'red') ? 'var(--red)' : 'var(--text-primary)';
-                document.getElementById('conf-message').innerText = data.message;
+            } else if (data.mode === 'conference' || data.mode === 'presentation' || data.mode === 'canva') {
+                // Konferencja/prezentacja: muzyk nie gra. Pokazujemy logo/idle,
+                // BEZ zegara mówcy — ten jest tylko na scenie (ZESPÓŁ) i u prezentera.
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+                currentContent.style.display = 'none';
+                stageLogo.style.display = 'block';
+                document.getElementById('next-text-inner').innerHTML = '';
+                document.getElementById('next-label').style.display = 'none';
+                currentBandHtml = ''; currentBandNext = '';
+                renderNowDiagrams();
             } else {
                 worshipView.style.display = 'flex';
                 confView.style.display = 'none';

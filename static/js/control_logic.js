@@ -1902,13 +1902,21 @@ function closeEditModal(){document.getElementById('editModal').style.display='no
 function deleteCurrentSong(){if(confirm(t('alert_delete_confirm')))document.getElementById('deleteForm').submit();}
 
 let tInt=null,totSec=0,isRun=false,actMsg="";
-function setTimer(){var v=parseInt(document.getElementById('timer-input').value);totSec=(isNaN(v)||v<0)?0:v*60;updTimer();pushConference();}
+// Zegar/wiadomość mówcy idą osobnym kanałem (/conf_timer → 'timer_update'),
+// NIE przez pushConference — dzięki temu tik zegara nie przebudowuje rzutnika
+// (prezentacja zostaje) i nie trafia na ekrany muzyków (band_member).
+function pushTimer(){
+    var d = (typeof updTimer === 'function') ? updTimer() : { text:'00:00', color:'white' };
+    fetch('/conf_timer', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ timer: d.text, timer_color: d.color, message: actMsg || '' }) });
+}
+function setTimer(){var v=parseInt(document.getElementById('timer-input').value);totSec=(isNaN(v)||v<0)?0:v*60;pushTimer();}
 function updTimer(){let m=Math.floor(Math.abs(totSec)/60),s=Math.abs(totSec)%60,fmt=(totSec<0?"-":"")+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;document.getElementById('timer-val').innerText=fmt;document.getElementById('timer-val').style.color=totSec<0?"var(--red)":"var(--text-primary)";return{text:fmt,color:totSec<0?"red":"white"};}
-function startTimer(){if(isRun)return;isRun=true;tInt=setInterval(()=>{totSec--;updTimer();pushConference();},1000);}
+function startTimer(){if(isRun)return;isRun=true;tInt=setInterval(()=>{totSec--;pushTimer();},1000);}
 function stopTimer(){isRun=false;clearInterval(tInt);}
 function resetTimer(){stopTimer();setTimer();}
-function sendConfMessage(){actMsg=document.getElementById('conf-msg').value;pushConference();}
-function clearConfMessage(){actMsg="";document.getElementById('conf-msg').value="";pushConference();}
+function sendConfMessage(){actMsg=document.getElementById('conf-msg').value;pushTimer();}
+function clearConfMessage(){actMsg="";document.getElementById('conf-msg').value="";pushTimer();}
 // Zachowane dla zgodności — pełny „powrót do samego zegara".
 function sendConferenceData(){appMode='conference';confMode='timer';pushConference();}
 

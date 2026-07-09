@@ -88,6 +88,10 @@ SERVER_STATE = {
     'is_blackout': False
 }
 LAST_SLIDE_DATA = {}
+# Zegar/wiadomość mówcy — osobny kanał, żeby tik zegara NIE przebudowywał
+# tego, co jest na rzutniku (prezentacja/Canva). Trafia tylko na scenę i
+# prezentera, nie na ekrany poszczególnych muzyków (band_member).
+CONF_TIMER_STATE = {'timer': '00:00', 'timer_color': 'white', 'message': ''}
 
 SILENT_MD_STATE = {'active': False, 'current': None, 'history': []}
 
@@ -96,6 +100,7 @@ def handle_connect():
     emit('sync_state_to_client', SERVER_STATE)
     if LAST_SLIDE_DATA:
         emit('update_slide', LAST_SLIDE_DATA)
+    emit('timer_update', CONF_TIMER_STATE)
     if SILENT_MD_STATE.get('active'):
         emit('silent_md', SILENT_MD_STATE)
 
@@ -1405,6 +1410,21 @@ def send_text():
         'transpose': shift
     }
     socketio.emit('update_slide', LAST_SLIDE_DATA)
+    return {'status': 'ok'}
+
+@app.route('/conf_timer', methods=['POST'])
+def conf_timer():
+    """Zegar/wiadomość mówcy — osobny, lekki kanał. NIE dotyka rzutnika ani
+    LAST_SLIDE_DATA, więc uruchomienie/tik zegara nie gasi prezentacji.
+    Odbierają go tylko scena (ZESPÓŁ) i prezenter — nie band_member."""
+    global CONF_TIMER_STATE
+    data = request.json or {}
+    CONF_TIMER_STATE = {
+        'timer': data.get('timer', '00:00'),
+        'timer_color': data.get('timer_color', 'white'),
+        'message': data.get('message', '')
+    }
+    socketio.emit('timer_update', CONF_TIMER_STATE)
     return {'status': 'ok'}
 
 @app.route('/export_songs', methods=['GET'])

@@ -175,6 +175,18 @@
             }
         });
 
+        // Osobny, lekki kanał zegara/wiadomości mówcy (nie rusza prezentacji).
+        socket.on('timer_update', function(data) {
+            if (data.timer !== undefined) {
+                document.getElementById('conf-timer').innerText = data.timer;
+                document.getElementById('conf-timer').style.color =
+                    (data.timer_color === 'red') ? 'var(--red, #F87171)' : 'white';
+            }
+            var msgEl = document.getElementById('conf-message');
+            if (data.message) { msgEl.innerText = data.message; msgEl.style.display = 'block'; }
+            else { msgEl.style.display = 'none'; }
+        });
+
         socket.on('apply_settings', function(data) {
             if (data.lang) {
                 initI18n(data.lang);

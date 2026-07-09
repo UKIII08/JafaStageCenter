@@ -634,6 +634,18 @@
             }
         });
 
+        // Osobny kanał zegara mówcy — scena (ZESPÓŁ) pokazuje odliczanie.
+        socket.on('timer_update', function(data) {
+            if (data.timer !== undefined) {
+                var tEl = document.getElementById('conf-timer');
+                if (tEl) { tEl.innerText = data.timer; tEl.style.color = data.timer_color; }
+            }
+            if (data.message !== undefined) {
+                var mEl = document.getElementById('conf-message');
+                if (mEl) mEl.innerText = data.message;
+            }
+        });
+
         socket.on('sync_state_to_client', function(state) {
             if (state.is_blackout) {
                 document.getElementById('next-text-inner').innerHTML = "";
