@@ -184,9 +184,10 @@
 
     <script>
         // --- KONFIGURACJA ---
-        // Schemat (http/https) zależny od trybu serwera — app.py dokłada ?https=1.
-        const SERVER_SCHEME = (new URLSearchParams(location.search).get('https') === '1') ? 'https' : 'http';
-        const SERVER_URL = SERVER_SCHEME + '://127.0.0.1:5000';
+        // Schemat wykrywamy sami: próbujemy najpierw https (tryb telefonowy),
+        // potem http. Bez przekazywania niczego w adresie pliku (to psuło file://).
+        const SERVER_CANDIDATES = ['https://127.0.0.1:5000', 'http://127.0.0.1:5000'];
+        let SERVER_URL = 'http://127.0.0.1:5000';
 
         // --- USTAWIENIA CZASU (W MILISEKUNDACH) ---
         const MIN_LOADING_TIME = 3500;
@@ -293,24 +294,22 @@
         }
 
         // --- SPRAWDZANIE SERWERA ---
+        async function probeServer(url) {
+            try { await fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' }); return true; }
+            catch (e) { return false; }
+        }
+
         async function checkServer() {
-            try {
-                await fetch(SERVER_URL, { method: 'HEAD', mode: 'no-cors' });
-
-                serverReady = true;
-
-                const elapsed = Date.now() - startTime;
-                const remainingTime = MIN_LOADING_TIME - elapsed;
-
-                if (remainingTime > 0) {
-                    setTimeout(finishSequence, remainingTime);
-                } else {
-                    finishSequence();
-                }
-
-            } catch (e) {
-                setTimeout(checkServer, 500);
+            if (serverReady) return;
+            for (const url of SERVER_CANDIDATES) {
+                if (await probeServer(url)) { SERVER_URL = url; serverReady = true; break; }
             }
+            if (!serverReady) { setTimeout(checkServer, 500); return; }
+
+            const elapsed = Date.now() - startTime;
+            const remainingTime = MIN_LOADING_TIME - elapsed;
+            if (remainingTime > 0) setTimeout(finishSequence, remainingTime);
+            else finishSequence();
         }
 
         // --- SEKWENCJA KOŃCOWA (FADE OUT) ---

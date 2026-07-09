@@ -1697,13 +1697,14 @@ if __name__ == '__main__':
     # Używamy resource_path, aby działało też po kompilacji do .exe
     loading_screen_path = resource_path(os.path.join('templates', 'loading.html'))
     
-    # 2. Konwertujemy ścieżkę na format URL (file://). W trybie HTTPS przekazujemy
-    #    ?https=1, żeby ekran ładowania połączył się z serwerem po https, oraz
-    #    pozwalamy oknu (WebView2 na Windows) zaakceptować samopodpisany certyfikat.
+    # 2. Konwertujemy ścieżkę na format URL (file://). NIE dodajemy query stringa —
+    #    na Windows psuje to adres file:// (ERR_FILE_NOT_FOUND). Schemat http/https
+    #    wykrywa sam ekran ładowania (próbuje obu). W trybie HTTPS pozwalamy oknu
+    #    (WebView2) zaakceptować samopodpisany certyfikat.
     loading_url = f'file://{os.path.abspath(loading_screen_path)}'
     if HTTPS_ENABLED:
-        loading_url += '?https=1'
-        os.environ.setdefault('WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS', '--ignore-certificate-errors')
+        os.environ['WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS'] = \
+            (os.environ.get('WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS', '') + ' --ignore-certificate-errors').strip()
 
     # 3. Otwieramy okno startując od pliku lokalnego
     webview.create_window(
