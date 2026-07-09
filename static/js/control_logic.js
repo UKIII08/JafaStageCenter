@@ -671,15 +671,29 @@ function renderCanvaLinks() {
     });
 }
 
+// Zamienia dowolny link Canva na poprawny adres do OSADZENIA (embed).
+// Publiczny link ma postać /design/{ID}/{TOKEN}/view?... — zachowujemy ID+token
+// i dajemy /view?embed. Bez tokenu (link 'edit' z paska adresu) osadzenie i tak
+// wymaga publicznego udostępnienia w Canvie ("Każdy z linkiem może wyświetlać").
+function canvaEmbedUrl(raw) {
+    var link = (raw || '').trim();
+    if (!/canva\.com\/design\//i.test(link)) return link;          // nie Canva — zostaw
+    var m = link.match(/canva\.com\/design\/([^\/?#]+)(?:\/([^\/?#]+))?/i);
+    if (!m) return link;
+    var base = 'https://www.canva.com/design/' + m[1];
+    var token = m[2];
+    if (token && ['edit', 'view', 'watch', 'present', 'preview'].indexOf(token.toLowerCase()) === -1) {
+        base += '/' + token;
+    }
+    return base + '/view?embed';
+}
+
 function addCanvaLink() {
     let input = document.getElementById('new-canva-link');
     let link = input.value.trim();
     if (!link) return;
 
-    // Auto-naprawa linku do wersji embed (zabezpieczenie)
-    if (link.includes('canva.com') && !link.includes('?embed')) {
-        link = link.replace(/\/edit.*$/, '/view?embed').replace(/\/view.*$/, '/view?embed');
-    }
+    link = canvaEmbedUrl(link);
 
     canvaLinks.push(link);
     localStorage.setItem('canvaLinks', JSON.stringify(canvaLinks)); // Zapisujemy w pamięci
@@ -698,7 +712,7 @@ function sendSpecificCanvaLink(index) {
     if (!link) return;
     appMode = 'conference';
     confMode = 'canva';
-    confCanvaUrl = link;
+    confCanvaUrl = canvaEmbedUrl(link); // naprawia też starsze, zapisane linki
     pushConference();
 }
 

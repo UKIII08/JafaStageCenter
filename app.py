@@ -22,6 +22,7 @@ from collections import Counter
 import random
 import logging
 import tempfile
+import subprocess
 from pathlib import Path
 import webbrowser
 import fitz  # PyMuPDF do cięcia prezentacji
@@ -1489,23 +1490,40 @@ def upload_presentation():
     try:
         # 1. KONWERSJA Z POWERPOINTA DO PDF (JEŚLI POTRZEBA)
         if ext in ['.pptx', '.ppt']:
-            if not HAS_WIN32:
-                return {'status': 'error', 'message': 'Konwersja PowerPoint wymaga systemu Windows z zainstalowanym MS Office.'}
-            pythoncom.CoInitialize()
-            
-            # PowerPoint wymaga bezwzględnych (pełnych) ścieżek na dysku do zadziałania
             abs_input = os.path.abspath(temp_input_path)
             abs_pdf = os.path.abspath(pdf_path)
-            
-            # Uruchamiamy PowerPointa w tle
-            powerpoint = win32com.client.Dispatch("PowerPoint.Application")
-            presentation = powerpoint.Presentations.Open(abs_input, WithWindow=False)
-            
-            # 32 to magiczny numer formatu PDF w systemie MS Office
-            presentation.SaveAs(abs_pdf, 32) 
-            presentation.Close()
-            
-            pythoncom.CoUninitialize()
+            converted = False
+
+            # 1a. Windows + MS Office (najwierniejsza konwersja) — jeśli dostępne.
+            if HAS_WIN32:
+                try:
+                    pythoncom.CoInitialize()
+                    powerpoint = win32com.client.Dispatch("PowerPoint.Application")
+                    presentation = powerpoint.Presentations.Open(abs_input, WithWindow=False)
+                    presentation.SaveAs(abs_pdf, 32)  # 32 = format PDF w MS Office
+                    presentation.Close()
+                    pythoncom.CoUninitialize()
+                    converted = os.path.exists(abs_pdf)
+                except Exception as e:
+                    logging.warning(f"Konwersja PPTX przez MS Office nie powiodła się: {e}")
+                    converted = False
+
+            # 1b. LibreOffice (Linux/Mac/Windows, bez MS Office) — uniwersalny fallback.
+            if not converted:
+                soffice = shutil.which('soffice') or shutil.which('libreoffice')
+                if not soffice:
+                    return {'status': 'error', 'message': 'Konwersja PowerPoint wymaga LibreOffice lub MS Office (Windows).'}
+                subprocess.run(
+                    [soffice, '--headless', '--convert-to', 'pdf', '--outdir', save_dir, abs_input],
+                    check=True, timeout=180,
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
+                # LibreOffice zapisuje jako <nazwa_wejścia>.pdf w outdir.
+                produced = os.path.join(save_dir, os.path.splitext(os.path.basename(temp_input_path))[0] + '.pdf')
+                if os.path.exists(produced) and produced != pdf_path:
+                    os.rename(produced, pdf_path)
+                if not os.path.exists(pdf_path):
+                    return {'status': 'error', 'message': 'Nie udało się przekonwertować pliku PowerPoint.'}
         else:
             # Jeśli to był od razu PDF, po prostu zmieniamy mu nazwę
             os.rename(temp_input_path, pdf_path)
