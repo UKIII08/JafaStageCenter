@@ -2700,8 +2700,15 @@
                 {
                     target: '#next-slide-container',
                     get title() { return currentLang === 'en' ? 'Info panel' : 'Panel informacji'; },
-                    get text() { return currentLang === 'en' ? 'Key, BPM, capo and your notes for the current song are shown here, along with a preview of the next section.' : 'Tonacja, BPM, kapo i Twoje notatki do piosenki sa tutaj widoczne, razem z podgladem nastepnej sekcji.'; },
+                    get text() { return currentLang === 'en' ? 'Key, BPM, capo and your notes for the current song are shown here, along with a preview of the next section. Tap the note pill to add your own reminder for this section.' : 'Tonacja, BPM, kapo i Twoje notatki do piosenki sa tutaj widoczne, razem z podgladem nastepnej sekcji. Kliknij pole notatki, aby dodac wlasna podpowiedz do tej sekcji.'; },
                     position: 'top'
+                },
+                {
+                    target: '#now-diagrams',
+                    get title() { return currentLang === 'en' ? 'Chord diagrams' : 'Diagramy akordow'; },
+                    get text() { return currentLang === 'en' ? 'Fingering shapes for every chord you are playing right now - guitar or piano. Switch between the Suggested voicing (that fits the song) and the Basic shape. Turn it on in Settings.' : 'Ksztalty chwytow do kazdego akordu, ktory teraz grasz - gitara lub pianino. Przelaczasz miedzy Sugerowanym (pasujacym do piosenki) a Podstawowym. Wlaczysz to w Ustawieniach.'; },
+                    position: 'top',
+                    showIf: function() { var s = document.getElementById('now-diagrams'); return s && s.offsetParent !== null; }
                 },
                 {
                     target: '#setlist-btn',
@@ -2710,9 +2717,15 @@
                     position: 'bottom'
                 },
                 {
+                    target: '#tuner-btn',
+                    get title() { return currentLang === 'en' ? 'Built-in tuner' : 'Wbudowany stroik'; },
+                    get text() { return currentLang === 'en' ? 'Tune your instrument with the phone mic - no app switching. The needle turns green when you are in tune, amber when flat, red when sharp.' : 'Nastroj instrument mikrofonem telefonu - bez wychodzenia z apki. Wskazowka robi sie zielona gdy jestes w stroju, bursztynowa gdy za nisko, czerwona gdy za wysoko.'; },
+                    position: 'bottom'
+                },
+                {
                     target: '#settings-btn',
                     get title() { return currentLang === 'en' ? 'Your settings' : 'Twoje ustawienia'; },
-                    get text() { return currentLang === 'en' ? 'Open settings to personalize your view — chord display, notation, capo, font size and more. Everything saves to your profile automatically.' : 'Otworz ustawienia aby spersonalizowac widok — akordy, notacja, kapo, czcionka i wiecej. Wszystko zapisuje sie automatycznie na Twoim profilu.'; },
+                    get text() { return currentLang === 'en' ? 'Open settings to personalize your view — chord display, notation (international / Polish / Nashville), capo with smart suggestions, beginner mode, chord diagrams and font size. Everything saves to your profile automatically.' : 'Otworz ustawienia aby spersonalizowac widok — akordy, notacja (miedzynarodowa / polska / Nashville), kapo z podpowiedziami, tryb poczatkujacego, diagramy akordow i rozmiar czcionki. Wszystko zapisuje sie automatycznie na Twoim profilu.'; },
                     position: 'bottom'
                 }
             ];

@@ -2332,6 +2332,13 @@ document.addEventListener('keydown', function(e) {
             get text() { return t('onb_step4_text'); },
             position: 'right'
         },
+        {
+            target: '.setlist-actions',
+            get title() { return t('onb_setlisttools_title'); },
+            get text() { return t('onb_setlisttools_text'); },
+            position: 'top',
+            showIf: function() { return !!document.querySelector('.setlist-actions'); }
+        },
         // ── Phase 2: Live Panel ──
         {
             target: '#slides-container',
@@ -2439,6 +2446,12 @@ document.addEventListener('keydown', function(e) {
             target: '.bottom-controls',
             get title() { return t('onb_step16_title'); },
             get text() { return t('onb_step16_text'); },
+            position: 'top'
+        },
+        {
+            target: '#silent-md-btn',
+            get title() { return t('onb_silentmd_title'); },
+            get text() { return t('onb_silentmd_text'); },
             position: 'top'
         }
     ];
