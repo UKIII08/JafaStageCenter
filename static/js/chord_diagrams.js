@@ -293,6 +293,21 @@ function lookupChord(chordName) {
     return generateGuitarChord(chordName);
 }
 
+// Dla złożonych/alterowanych akordów spoza bazy (np. Amadd11/E) pokazujemy
+// prosty trójdźwięk bazowy (Am) — grywalny i czytelny — zamiast dziwnego,
+// generowanego kształtu. Zwykłe akordy (add9, sus, m7, 6, 9, dim…) zostają.
+function simplifyDiagramChord(chordName) {
+    if (!chordName) return chordName;
+    if (CHORD_DB[chordName]) return chordName;            // pełny akord znany (np. slash w bazie)
+    const main = chordName.split('/')[0];
+    if (CHORD_DB[main]) return main;                      // rdzeń znany bezpośrednio (add9, sus, m7…)
+    const p = _parseChordName(main);
+    if (!p) return main;
+    if (_chordCategory(p.suffix)) return main;            // znana kategoria (major/m/7/m7/maj7/sus)
+    const isMin = /^m(?!aj)/i.test(p.suffix);
+    return p.root + (isMin ? 'm' : '');                   // trójdźwięk bazowy
+}
+
 function renderChordSVG(chordName, data) {
     const W = 120, H = 160;
     const LEFT = 30, TOP = 30;

@@ -408,18 +408,12 @@ socket.on('sync_state_to_client', function(data) {
         needsRender = true;
     }
 
-    // Restore blackout state from server
+    // Restore blackout state from server (tylko klasa .active — bez zmiany
+    // tekstu, żeby nie skakała wysokość sekcji).
     if (data.is_blackout !== undefined) {
         isBlackoutActive = data.is_blackout;
-        const btns = document.querySelectorAll('button[onclick="blackout()"]');
-        btns.forEach(btn => {
-            if (isBlackoutActive) {
-                btn.classList.add('active');
-                btn.innerText = translations[currentLang].blackout_off_btn || "ZDEJMIJ BLACKOUT (POKAŻ EKRAN)";
-            } else {
-                btn.classList.remove('active');
-                btn.innerText = translations[currentLang].blackout_on_btn || "WYGAŚ EKRAN RZUTNIKA";
-            }
+        document.querySelectorAll('button[onclick="blackout()"]').forEach(btn => {
+            btn.classList.toggle('active', isBlackoutActive);
         });
     }
 
@@ -1628,21 +1622,12 @@ let confCanvaUrl = null;
 
 function blackout() {
     isBlackoutActive = !isBlackoutActive;
-    
-    const btns = document.querySelectorAll('button[onclick="blackout()"]');
-    if (isBlackoutActive) {
-        btns.forEach(btn => {
-            btn.classList.add('active');
-            // Czerpiemy tekst ze słownika (EN lub PL)
-            btn.innerText = translations[currentLang].blackout_off_btn || "ZDEJMIJ BLACKOUT (POKAŻ EKRAN)";
-        });
-    } else {
-        btns.forEach(btn => {
-            btn.classList.remove('active');
-            // Czerpiemy domyślny tekst (EN lub PL)
-            btn.innerText = translations[currentLang].blackout_on_btn || "WYGAŚ EKRAN RZUTNIKA";
-        });
-    }
+
+    // Prosty przełącznik: tylko klasa .active (inwersja), bez zmiany tekstu ani
+    // rozmiaru — dłuższy napis zawijał się i skakała wysokość całej sekcji.
+    document.querySelectorAll('button[onclick="blackout()"]').forEach(btn => {
+        btn.classList.toggle('active', isBlackoutActive);
+    });
 
     // W konferencji blackout gasi TYLKO projektor (audiencję) i zachowuje
     // aktualny tryb (prezentacja/zegar) — nie przełącza na worship, żeby ekran

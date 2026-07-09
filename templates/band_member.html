@@ -2460,8 +2460,10 @@
             // Akordy aktualnie granej części (to, co muzyk gra TERAZ).
             const chords = chordsFromHtml(currentBandHtml);
             if (!chords.length) { strip.style.display = 'none'; strip.innerHTML = ''; return; }
-            // Kształty rysujemy dla akordów PO uwzględnieniu kapodastra.
+            // Kształty rysujemy dla akordów PO uwzględnieniu kapodastra,
+            // a złożone akordy (np. Amadd11/E) upraszczamy do trójdźwięku (Am).
             const dchords = chords.map(diagramChord);
+            const sdchords = dchords.map(simplifyDiagramChord);
 
             const en = currentLang === 'en';
             let html = '<div class="nd-head"><span class="nd-title">' +
@@ -2475,12 +2477,16 @@
 
             chords.forEach(function(ch, i) {
                 const dch = dchords[i];               // kształt z kapo
-                const label = processChord(ch).display; // etykieta (notacja + kapo)
+                const sdch = sdchords[i];             // uproszczony (złożone → trójdźwięk)
+                // Jeśli akord uprościliśmy, etykieta = uproszczony akord (np. Am);
+                // w przeciwnym razie pełna nazwa z notacją/kapo.
+                const wasSimplified = (sdch !== dch && sdch !== dch.split('/')[0]);
+                const label = wasSimplified ? convertNotation(sdch) : processChord(ch).display;
                 let svg = null, star = false;
                 try {
                     if (inlineVoicing) {
-                        const vs = getChordVoicings(dch, inst);
-                        const rec = recommendVoicing(dch, dchords, inst);
+                        const vs = getChordVoicings(sdch, inst);
+                        const rec = recommendVoicing(sdch, sdchords, inst);
                         const idx = (rec && vs[rec.index]) ? rec.index : 0;
                         const pick = vs[idx];
                         if (pick) {
@@ -2489,10 +2495,10 @@
                             star = idx > 0;
                         }
                     } else if (inst === 'piano') {
-                        const n = lookupPianoChord(dch);
+                        const n = lookupPianoChord(sdch);
                         svg = n ? renderPianoSVG(label, n) : null;
                     } else {
-                        const d = lookupChord(dch.split('/')[0]);
+                        const d = lookupChord(sdch.split('/')[0]);
                         svg = d ? renderChordSVG(label, d) : null;
                     }
                 } catch (e) { svg = null; }
@@ -2513,13 +2519,16 @@
             event.stopPropagation();
             const popup = document.getElementById('chord-popup');
             const content = document.getElementById('chord-popup-content');
-            const label = displayName || chordName;
 
             const inst = currentSettings.diagram_instrument;
             const en = currentLang === 'en';
 
-            // Kształty i rekomendacja liczone w przestrzeni kapodastra.
-            const dch = diagramChord(chordName);
+            // Kształty i rekomendacja liczone w przestrzeni kapodastra;
+            // złożone akordy upraszczamy do trójdźwięku (np. Amadd11/E → Am).
+            const rawDch = diagramChord(chordName);
+            const dch = simplifyDiagramChord(rawDch);
+            const wasSimplified = (dch !== rawDch && dch !== rawDch.split('/')[0]);
+            const label = wasSimplified ? convertNotation(dch) : (displayName || chordName);
 
             let voicings = [];
             try { voicings = getChordVoicings(dch, inst) || []; } catch (e) { voicings = []; }
@@ -2530,7 +2539,7 @@
                 // Progression-aware pick: which voicing ties THIS song together best.
                 let rec = null;
                 try {
-                    const prog = currentProgressionChords().map(diagramChord);
+                    const prog = currentProgressionChords().map(diagramChord).map(simplifyDiagramChord);
                     rec = recommendVoicing(dch, prog, inst);
                 } catch (e) { rec = null; }
                 const recIdx = rec ? rec.index : -1;
