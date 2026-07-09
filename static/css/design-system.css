@@ -34,15 +34,15 @@
 
 /* ── Design Tokens — Dark (default) ── */
 :root {
-    /* Surfaces — Layered Dark Mode (Linear-style depth) */
-    --bg-app: #0B0F17;
-    --bg-panel: #111620;
-    --bg-surface: #161B26;
-    --bg-surface-hover: #1C2333;
-    --bg-elevated: #212A3A;
-    --bg-input: #0F1219;
-    --bg-preview: #080A10;
-    --bg-inset: #0A0D14;
+    /* Surfaces — Graphite dark (neutral charcoal, not navy) */
+    --bg-app: #141416;
+    --bg-panel: #1B1B1E;
+    --bg-surface: #222226;
+    --bg-surface-hover: #2A2A2F;
+    --bg-elevated: #313137;
+    --bg-input: #0F0F11;
+    --bg-preview: #0A0A0C;
+    --bg-inset: #0C0C0E;
 
     /* Borders & dividers — ultra-subtle glass edges */
     --border-subtle: rgba(255, 255, 255, 0.03);
@@ -51,10 +51,10 @@
     --border-focus: rgba(99, 155, 255, 0.5);
 
     /* Text — never pure white */
-    --text-primary: #E6EDF3;
-    --text-secondary: #8B95A8;
-    --text-tertiary: #4F5B6E;
-    --text-inverse: #0B0F17;
+    --text-primary: #ECECEF;
+    --text-secondary: #9A9AA4;
+    --text-tertiary: #5E5E68;
+    --text-inverse: #141416;
     --text-accent: #7EB0FF;
 
     /* Accent palette — refined for premium feel */

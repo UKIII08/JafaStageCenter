@@ -1676,6 +1676,7 @@ function blackout() {
 function goLiveSection(c, n, forceTrans = null, nextTrans = null) {
     // Zapisujemy aktualny stan slajdu (by blackout mógł go użyć przy włączeniu/wyłączeniu)
     currentLiveState = { c: c, n: n, forceTrans: forceTrans, nextTrans: nextTrans };
+    clearLogoActive();
 
     let t = (forceTrans !== null) ? forceTrans : setlist[currentSetIndex].transpose;
     let nt = (nextTrans !== null) ? nextTrans : t; 
@@ -1705,7 +1706,26 @@ function goLiveSection(c, n, forceTrans = null, nextTrans = null) {
     if (window.updateLocalPreview) window.updateLocalPreview(_previewClean);
     else document.getElementById('live-preview-box').innerText = _previewClean;
 }
-function showLogo(){fetch('/send_text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({logo:true})});document.getElementById('live-preview-box').innerText="LOGO";}
+let isLogoActive = false;
+function showLogo(){
+    isLogoActive = !isLogoActive;
+    const btns = document.querySelectorAll('button[onclick="showLogo()"]');
+    if (isLogoActive) {
+        fetch('/send_text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({logo:true})});
+        document.getElementById('live-preview-box').innerText="LOGO";
+        btns.forEach(b => b.classList.add('active'));
+    } else {
+        // Klik ponownie = zdejmij logo i wróć do aktualnego slajdu live.
+        btns.forEach(b => b.classList.remove('active'));
+        resendCurrentSlide();
+    }
+}
+// Wybranie slajdu na żywo zawsze wyłącza tryb logo (i podświetlenie przycisku).
+function clearLogoActive(){
+    if (!isLogoActive) return;
+    isLogoActive = false;
+    document.querySelectorAll('button[onclick="showLogo()"]').forEach(b => b.classList.remove('active'));
+}
 
 function saveSetlistHistory() {
     if (!setlist.length) { showToast(t('alert_empty_setlist'), 'error'); return; }

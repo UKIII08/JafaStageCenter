@@ -25,22 +25,22 @@
     /* ── Scoped palette: electric cyan on layered near-black-blue.
           Overrides design-system tokens for THIS page only. ── */
     :root {
-        --bg-app:          #070A11;
-        --bg-panel:        #0B0F18;
-        --bg-surface:      #111725;
-        --bg-surface-hover:#18202F;
-        --bg-elevated:     #1B2434;
-        --bg-input:        #0A0E17;
-        --bg-preview:      #04060B;
-        --bg-inset:        #080B12;
+        --bg-app:          #141416;
+        --bg-panel:        #1B1B1E;
+        --bg-surface:      #222226;
+        --bg-surface-hover:#2A2A2F;
+        --bg-elevated:     #313137;
+        --bg-input:        #0F0F11;
+        --bg-preview:      #050506;
+        --bg-inset:        #0C0C0E;
 
         --border-subtle: rgba(255,255,255,0.045);
         --border-default: rgba(255,255,255,0.075);
         --border-strong: rgba(255,255,255,0.12);
 
-        --text-primary:   #EAF1F9;
-        --text-secondary: #94A2B8;
-        --text-tertiary:  #56627A;
+        --text-primary:   #ECECEF;
+        --text-secondary: #9A9AA4;
+        --text-tertiary:  #61616B;
 
         /* Calm blue — one restrained accent (premium, not neon) */
         --accent:         #4F8DFB;
@@ -498,9 +498,9 @@
     #live-preview-box {
         flex: 1;
         aspect-ratio: 16/9;
-        background:
-            radial-gradient(120% 120% at 50% 0%, rgba(34,211,238,0.05), transparent 55%),
-            var(--bg-preview);
+        /* Always mirrors the projector: dark background + light text, even in
+           light mode — the audience screen never turns light. */
+        background: #04060B;
         border: 1px solid var(--border-default);
         border-radius: var(--r-lg);
         box-shadow: var(--shadow-md), var(--shadow-inset);
@@ -509,7 +509,7 @@
         justify-content: center;
         text-align: center;
         padding: var(--s5);
-        color: var(--text-primary);
+        color: #EAF1F9;
         font-size: clamp(0.85rem, 1.5vw, 1.35rem);
         line-height: 1.45;
         white-space: pre-wrap;
@@ -820,6 +820,12 @@
     button.secondary:hover {
         background: var(--bg-surface-hover);
         border-color: var(--border-strong);
+    }
+    /* Toggled on (e.g. LOGO active) — invert, like the other active states. */
+    button.secondary.active {
+        background: var(--text-primary);
+        border-color: transparent;
+        color: var(--bg-app);
     }
     .next-song-btn-landscape { display: none; }
 
