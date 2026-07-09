@@ -1512,7 +1512,7 @@ def upload_presentation():
             if not converted:
                 soffice = shutil.which('soffice') or shutil.which('libreoffice')
                 if not soffice:
-                    return {'status': 'error', 'message': 'Konwersja PowerPoint wymaga LibreOffice lub MS Office (Windows).'}
+                    return {'status': 'error', 'message': 'Nie można przekonwertować PowerPointa (brak LibreOffice / MS Office). Najprościej: w PowerPoint zapisz jako PDF i wgraj plik PDF.'}
                 subprocess.run(
                     [soffice, '--headless', '--convert-to', 'pdf', '--outdir', save_dir, abs_input],
                     check=True, timeout=180,
@@ -1523,7 +1523,7 @@ def upload_presentation():
                 if os.path.exists(produced) and produced != pdf_path:
                     os.rename(produced, pdf_path)
                 if not os.path.exists(pdf_path):
-                    return {'status': 'error', 'message': 'Nie udało się przekonwertować pliku PowerPoint.'}
+                    return {'status': 'error', 'message': 'Nie udało się przekonwertować pliku PowerPoint. Najprościej: zapisz go jako PDF i wgraj PDF.'}
         else:
             # Jeśli to był od razu PDF, po prostu zmieniamy mu nazwę
             os.rename(temp_input_path, pdf_path)
