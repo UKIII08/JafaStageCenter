@@ -87,14 +87,14 @@
         <div class="status-row"><span>Mikrofon dostępny w przeglądarce</span><span class="pill" id="st-media">…</span></div>
         <button class="btn" id="mic-test-btn" onclick="testMic()">🎤 Przetestuj mikrofon</button>
         <div id="mic-result"></div>
-        <a class="btn secondary hidden" id="goto-https" href="https://{{ ip }}:5000/mic_help">🔒 Przejdź na wersję HTTPS tej strony</a>
+        <a class="btn secondary hidden" id="goto-https" href="{{ https_url }}/mic_help">🔒 Przejdź na wersję HTTPS tej strony</a>
     </div>
 
     <!-- Szybka ścieżka -->
     <div class="card">
         <h2>⚡ Sposób 1 — szybki (jednorazowe ostrzeżenie)</h2>
         <ol>
-            <li>Zeskanuj kod QR z panelu (albo wejdź na <code>https://{{ ip }}:5000</code>).</li>
+            <li>Na telefonie wejdź na <code>{{ https_url }}</code> (bezpieczny adres aplikacji) albo użyj przycisku „Przejdź na wersję HTTPS" powyżej.</li>
             <li>Safari pokaże „Połączenie nie jest prywatne" — to normalne przy własnym certyfikacie w sieci lokalnej.</li>
             <li>Kliknij <b>Pokaż szczegóły</b> → <b>odwiedź tę witrynę</b> → potwierdź <b>Odwiedź witrynę</b>.</li>
             <li>Włącz stroik i pozwól na dostęp do mikrofonu, gdy telefon zapyta.</li>
@@ -110,7 +110,7 @@
             <li>Pobierz certyfikat przyciskiem poniżej. Safari zapyta o pozwolenie na pobranie <b>profilu</b> — zezwól.</li>
             <li>Wejdź w <b>Ustawienia</b> → u góry pojawi się <b>„Pobrany profil"</b> → <b>Zainstaluj</b> (podaj kod telefonu).</li>
             <li>Potem: <b>Ustawienia → Ogólne → Informacje → Ustawienia zaufania certyfikatów</b> → włącz <b>JafaStageCenter Local CA</b>.</li>
-            <li>Wróć do aplikacji przez <code>https://{{ ip }}:5000</code> — kłódka, bez ostrzeżeń, stroik działa.</li>
+            <li>Wróć do aplikacji przez <code>{{ https_url }}</code> — kłódka, bez ostrzeżeń, stroik działa.</li>
         </ol>
         <a class="btn" href="/ca.crt">⬇️ Pobierz certyfikat (iPhone)</a>
         <p class="muted" style="margin-top:10px;">Android: pobierz ten sam plik, potem <b>Ustawienia → Zabezpieczenia → Zainstaluj certyfikat → Certyfikat CA</b>.</p>

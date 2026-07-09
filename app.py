@@ -92,6 +92,9 @@ DATA_DIR = os.path.dirname(db_path) or os.path.abspath('.')
 # Domyślnie wyłączony — istniejące instalacje działają bez zmian (po HTTP).
 HTTPS_FLAG_FILE = os.path.join(DATA_DIR, 'https.enabled')
 
+# Port dla równoległego serwera HTTPS (główny HTTP zostaje ZAWSZE na :5000).
+HTTPS_PORT = 5443
+
 def https_requested():
     if os.environ.get('JAFA_HTTPS', '').strip().lower() in ('1', 'true', 'yes', 'on'):
         return True
@@ -1365,7 +1368,10 @@ def qr_setlist():
 @app.route('/qr_code/<path:subpath>')
 def qr_code(subpath):
     ip = get_local_ip()
-    url = f"{current_scheme()}://{ip}:5000/{subpath}"
+    # ZAWSZE http:5000 — ten port działa bez względu na ustawienia HTTPS, więc
+    # zeskanowany QR nigdy nie trafi w pustkę. Stroik (jedyna funkcja wymagająca
+    # HTTPS) sam prowadzi na https:5443 przez /mic_help.
+    url = f"http://{ip}:5000/{subpath}"
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(url); qr.make(fit=True)
     img_io = BytesIO()
@@ -1509,8 +1515,10 @@ def ca_certificate():
 @app.route('/mic_help')
 def mic_help():
     """Instrukcja (PL/EN) jak uruchomić mikrofon/stroik na telefonie + test na żywo."""
+    ip = get_local_ip()
     return render_template('mic_help.html',
-                           ip=get_local_ip(),
+                           ip=ip,
+                           https_url=f'https://{ip}:{HTTPS_PORT}',
                            https_active=HTTPS_ACTIVE,
                            https_enabled=https_requested(),
                            can_https=bool(HAS_CRYPTOGRAPHY or shutil.which('openssl')))
@@ -1810,27 +1818,30 @@ def ensure_https_cert():
         json.dump(meta, f)
     return TLS_CERT_FILE, TLS_KEY_FILE
 
-# Czy serwer FAKTYCZNIE wystartował po HTTPS (True dopiero po udanym certyfikacie).
-# Ważne: kody QR i przekierowania używają tego, a NIE samego "chcę HTTPS" — inaczej
-# telefon dostaje https://… podczas gdy serwer mówi HTTP → ERR_SSL_PROTOCOL_ERROR.
+# Czy HTTPS FAKTYCZNIE działa (True dopiero po udanym certyfikacie).
 HTTPS_ACTIVE = False
 
-def current_scheme():
-    return 'https' if HTTPS_ACTIVE else 'http'
+# ARCHITEKTURA DWUPORTOWA: główny serwer mówi ZAWSZE po HTTP na :5000 — każdy
+# stary link, QR i zakładka działa bez względu na ustawienia (koniec z pustą,
+# wiecznie ładującą się stroną po włączeniu HTTPS). HTTPS (potrzebny tylko do
+# mikrofonu/stroika na telefonie) chodzi RÓWNOLEGLE na :5443 z tą samą apką.
 
 # --- SERVER START THREAD ---
 def start_server():
     global HTTPS_ACTIVE
-    run_kwargs = dict(host='0.0.0.0', port=5000, use_reloader=False, allow_unsafe_werkzeug=True)
     if HTTPS_ENABLED:
         try:
-            run_kwargs['ssl_context'] = ensure_https_cert()
+            ssl_ctx = ensure_https_cert()
+            from werkzeug.serving import make_server
+            https_srv = make_server('0.0.0.0', HTTPS_PORT, app, threaded=True, ssl_context=ssl_ctx)
+            threading.Thread(target=https_srv.serve_forever, daemon=True).start()
             HTTPS_ACTIVE = True
-            logging.info("HTTPS aktywny — stroik na telefonie będzie mógł użyć mikrofonu.")
+            logging.info(f"HTTPS aktywny na porcie {HTTPS_PORT} — stroik na telefonie może użyć mikrofonu.")
         except Exception as e:
             HTTPS_ACTIVE = False
-            logging.warning(f"Nie udało się włączyć HTTPS ({e}) — serwer w trybie HTTP (stroik na telefonie nie zadziała).")
-    socketio.run(app, **run_kwargs)
+            logging.warning(f"Nie udało się włączyć HTTPS ({e}) — stroik na telefonie nie zadziała.")
+    # Główny serwer — ZAWSZE zwykły HTTP na :5000.
+    socketio.run(app, host='0.0.0.0', port=5000, use_reloader=False, allow_unsafe_werkzeug=True)
 
 if __name__ == '__main__':
     with app.app_context():
@@ -1851,13 +1862,10 @@ if __name__ == '__main__':
     loading_screen_path = resource_path(os.path.join('templates', 'loading.html'))
     
     # 2. Konwertujemy ścieżkę na format URL (file://). NIE dodajemy query stringa —
-    #    na Windows psuje to adres file:// (ERR_FILE_NOT_FOUND). Schemat http/https
-    #    wykrywa sam ekran ładowania (próbuje obu). W trybie HTTPS pozwalamy oknu
-    #    (WebView2) zaakceptować samopodpisany certyfikat.
+    #    na Windows psuje to adres file:// (ERR_FILE_NOT_FOUND). Okno desktopowe
+    #    łączy się zawsze po http://127.0.0.1:5000 (HTTPS dla telefonów działa
+    #    równolegle na :5443), więc nie potrzebuje żadnych wyjątków certyfikatów.
     loading_url = f'file://{os.path.abspath(loading_screen_path)}'
-    if HTTPS_ENABLED:
-        os.environ['WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS'] = \
-            (os.environ.get('WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS', '') + ' --ignore-certificate-errors').strip()
 
     # 3. Otwieramy okno startując od pliku lokalnego
     webview.create_window(
