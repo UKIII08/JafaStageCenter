@@ -236,7 +236,7 @@ input, textarea, select {
 input:focus, textarea:focus, select:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-subtle), 0 0 20px var(--accent-glow);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
 input::placeholder, textarea::placeholder {
@@ -273,12 +273,23 @@ input::placeholder, textarea::placeholder {
     transition: transform var(--duration-normal) var(--ease-out);
 }
 input:checked + .slider {
-    background: var(--green);
+    background: var(--accent);
 }
 input:checked + .slider::before {
     transform: translateX(20px);
     background: white;
 }
+
+/* ── Global tactile press feedback ──
+   Every button scales down slightly on press so nothing feels flat/dead.
+   Per-component :active rules (higher specificity) can still override. */
+button {
+    transition: transform var(--duration-fast) var(--ease-in-out),
+                background-color var(--duration-fast) var(--ease-in-out),
+                border-color var(--duration-fast) var(--ease-in-out),
+                color var(--duration-fast) var(--ease-in-out);
+}
+button:active { transform: scale(0.955); }
 
 /* ── Button System ── */
 .btn, [class*="btn-"] {
@@ -299,7 +310,7 @@ input:checked + .slider::before {
 }
 
 .btn:active, [class*="btn-"]:active {
-    transform: scale(0.98);
+    transform: scale(0.955);
 }
 
 .btn-primary {
@@ -310,7 +321,7 @@ input:checked + .slider::before {
 }
 .btn-primary:hover {
     background: var(--accent-hover);
-    box-shadow: var(--shadow-md), var(--shadow-glow);
+    box-shadow: var(--shadow-md);
 }
 
 .btn-secondary {
@@ -373,9 +384,9 @@ input:checked + .slider::before {
     color: var(--text-primary);
 }
 .segmented-control button.active {
-    background: var(--accent);
-    color: white;
-    box-shadow: var(--shadow-sm), 0 0 12px var(--accent-glow);
+    background: var(--text-primary);
+    color: var(--bg-panel);
+    box-shadow: var(--shadow-sm);
 }
 
 /* ── Modal ── */

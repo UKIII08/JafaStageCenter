@@ -42,15 +42,15 @@
         --text-secondary: #94A2B8;
         --text-tertiary:  #56627A;
 
-        /* Electric cyan */
-        --accent:         #22D3EE;
-        --accent-hover:   #56E4F8;
-        --accent-strong:  #06B6D4;
-        --accent-subtle:  rgba(34,211,238,0.10);
-        --accent-glow:    rgba(34,211,238,0.30);
-        --accent-line:    rgba(34,211,238,0.35);
+        /* Calm blue — one restrained accent (premium, not neon) */
+        --accent:         #4F8DFB;
+        --accent-hover:   #6BA0FC;
+        --accent-strong:  #3B7BF0;
+        --accent-subtle:  rgba(79,141,251,0.12);
+        --accent-glow:    rgba(79,141,251,0.00);
+        --accent-line:    rgba(79,141,251,0.22);
 
-        --chord-color:    #38E6FF;
+        --chord-color:    #6BA0FC;
 
         --green:  #34D399;  --green-subtle: rgba(52,211,153,0.10);
         --red:    #FB7185;  --red-subtle:   rgba(251,113,133,0.10);
@@ -91,13 +91,13 @@
         --text-secondary: #55607A;
         --text-tertiary:  #8A93A6;
 
-        --accent:         #0891B2;
-        --accent-hover:   #0E7490;
-        --accent-strong:  #0E7490;
-        --accent-subtle:  rgba(8,145,178,0.08);
-        --accent-glow:    rgba(8,145,178,0.16);
-        --accent-line:    rgba(8,145,178,0.30);
-        --chord-color:    #0891B2;
+        --accent:         #0071E3;
+        --accent-hover:   #0060C0;
+        --accent-strong:  #0060C0;
+        --accent-subtle:  rgba(0,113,227,0.08);
+        --accent-glow:    rgba(0,113,227,0.00);
+        --accent-line:    rgba(0,113,227,0.22);
+        --chord-color:    #0071E3;
 
         --glass-bg: rgba(255,255,255,0.82);
         --shadow-sm: 0 1px 2px rgba(15,23,42,0.05);
@@ -113,9 +113,7 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        background:
-            radial-gradient(1200px 600px at 15% -10%, rgba(34,211,238,0.05), transparent 60%),
-            var(--bg-app);
+        background: var(--bg-app);
     }
 
     .scrollable { overflow-y: auto; overflow-x: hidden; }
@@ -168,18 +166,19 @@
     .top-btn svg { stroke: currentColor; }
 
     .top-btn-accent {
-        background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+        background: var(--accent);
         border-color: transparent;
-        color: #04121A;
+        color: #fff;
         font-weight: 700;
-        box-shadow: 0 0 0 1px rgba(34,211,238,0.35), 0 6px 20px var(--accent-glow);
+        box-shadow: var(--shadow-sm);
     }
     .top-btn-accent:hover {
-        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-        color: #04121A;
+        background: var(--accent-hover);
+        color: #fff;
         border-color: transparent;
     }
-    .top-btn-accent svg { stroke: #04121A; }
+    .top-btn-accent:active { transform: scale(0.955); }
+    .top-btn-accent svg { stroke: #fff; }
 
     /* Segmented control (mode switch) — refined pill */
     .segmented-control {
@@ -206,10 +205,11 @@
     }
     .segmented-control button:hover { color: var(--text-primary); }
     .segmented-control button.active {
-        background: linear-gradient(135deg, var(--accent-strong), var(--accent));
-        color: #04121A;
-        box-shadow: 0 2px 10px var(--accent-glow);
+        background: var(--text-primary);
+        color: var(--bg-app);
+        box-shadow: var(--shadow-sm);
     }
+    .segmented-control button:active { transform: scale(0.97); }
 
     /* ── Mode containers ── */
     .mode-container { display: none; flex: 1; min-height: 0; }
@@ -359,14 +359,14 @@
 
     .lib-key-badge {
         flex-shrink: 0;
-        font-size: 0.62rem;
-        font-weight: 800;
-        letter-spacing: 0.02em;
-        color: var(--accent);
-        background: var(--accent-subtle);
-        border: 1px solid var(--accent-line);
-        border-radius: var(--r-full);
-        padding: 1px 8px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        font-family: ui-monospace, 'SFMono-Regular', 'IBM Plex Mono', Menlo, monospace;
+        color: var(--text-tertiary);
+        background: none;
+        border: none;
+        padding: 0;
     }
     .lib-content-preview {
         margin: 0 var(--s2) var(--s2);
@@ -402,14 +402,14 @@
     }
     .btn-sm:hover { background: var(--bg-surface-hover); }
     .lib-add-btn {
-        background: var(--green-subtle);
-        color: var(--green);
-        border-color: transparent;
+        background: var(--bg-surface);
+        color: var(--text-secondary);
+        border-color: var(--border-default);
     }
     .lib-add-btn:hover {
-        background: var(--green);
-        color: #04140D;
-        box-shadow: 0 3px 14px var(--green-subtle);
+        background: var(--accent);
+        color: #fff;
+        border-color: transparent;
     }
 
     .branding-area {
@@ -419,8 +419,8 @@
         text-align: center;
         opacity: 0.5;
     }
-    .branding-img { max-width: 78px; height: auto; filter: grayscale(1) brightness(1.4); }
-    .version-text { font-size: 0.62rem; color: var(--text-tertiary); letter-spacing: 0.08em; margin-top: var(--s1); }
+    .brand-wordmark { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.22em; color: var(--text-tertiary); }
+    .version-text { font-size: 0.62rem; color: var(--text-tertiary); letter-spacing: 0.08em; margin-top: var(--s1); opacity: 0.7; }
 
     /* ── Setlist ── */
     #setlist-container { flex: 1; margin: 0 calc(var(--s5) * -1); padding: 0 var(--s3); }
@@ -442,11 +442,12 @@
     }
     .setlist-item:hover { background: var(--bg-surface-hover); border-color: var(--border-default); }
     .setlist-item.active {
-        background: linear-gradient(135deg, var(--accent-subtle), transparent 70%);
-        border-color: var(--accent-line);
-        box-shadow: 0 0 0 1px var(--accent-line), 0 4px 18px var(--accent-glow);
+        background: var(--accent-subtle);
+        border-color: var(--accent);
     }
     .setlist-item.active .setlist-content { color: var(--text-primary); }
+    .setlist-remove { border-radius: var(--r-sm); transition: color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out); }
+    .setlist-remove:hover { color: var(--red) !important; background: var(--red-subtle) !important; }
     .drag-handle {
         color: var(--text-tertiary);
         cursor: grab;
@@ -610,9 +611,8 @@
     .info-value { font-size: var(--font-lg); font-weight: 800; color: var(--text-primary); }
     .info-value-accent {
         color: var(--accent);
-        text-shadow: 0 0 20px var(--accent-glow);
     }
-    .info-value-red { color: var(--red); }
+    .info-value-red { color: var(--text-primary); }
 
     .trans-controls { display: flex; align-items: center; gap: var(--s2); }
     .trans-btn {
@@ -719,12 +719,12 @@
     .silent-md-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); }
     .silent-md-btn svg { stroke: currentColor; }
     .silent-md-btn.active {
-        background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+        background: var(--text-primary);
         border-color: transparent;
-        color: #04121A;
-        box-shadow: 0 0 0 1px var(--accent-line), 0 0 22px var(--accent-glow);
+        color: var(--bg-app);
+        box-shadow: var(--shadow-sm);
     }
-    .silent-md-btn.active svg { stroke: #04121A; }
+    .silent-md-btn.active svg { stroke: var(--bg-app); }
 
     /* Metronom — mały przycisk przy BPM */
     .bpm-metro-group { display: inline-flex; align-items: center; gap: var(--s3); }
@@ -782,32 +782,44 @@
     .metro-popover select, .metro-popover input[type="range"] { width: 100%; }
     button.danger, button.secondary {
         flex: 1;
+        display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
         padding: var(--s4);
         border-radius: var(--r-md);
         font-family: inherit; font-weight: 800; font-size: var(--font-sm);
         letter-spacing: 0.06em;
         cursor: pointer;
-        transition: all var(--duration-fast) var(--ease-out);
+        transition: transform var(--duration-fast) var(--ease-out),
+                    background var(--duration-fast) var(--ease-out),
+                    border-color var(--duration-fast) var(--ease-out),
+                    color var(--duration-fast) var(--ease-out);
     }
+    button.danger:active, button.secondary:active { transform: scale(0.955); }
+    /* Blackout — calm ghost; the only colour is a small red status dot.
+       When active (screen blacked out) it inverts to solid text-on-bg. */
     button.danger {
-        background: var(--red-subtle);
-        border: 1px solid rgba(251,113,133,0.35);
-        color: var(--red);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        color: var(--text-primary);
     }
-    button.danger:hover {
-        background: var(--red);
-        color: #160406;
-        box-shadow: 0 0 0 1px var(--red), 0 0 22px var(--red-subtle);
+    button.danger::before {
+        content: ""; width: 7px; height: 7px; border-radius: 50%;
+        background: var(--red); opacity: 0.7; flex-shrink: 0;
     }
+    button.danger:hover { background: var(--bg-surface-hover); }
+    button.danger.active {
+        background: var(--text-primary);
+        border-color: transparent;
+        color: var(--bg-app);
+    }
+    button.danger.active::before { opacity: 1; }
     button.secondary {
         background: var(--bg-surface);
         border: 1px solid var(--border-default);
         color: var(--text-primary);
     }
     button.secondary:hover {
-        border-color: var(--accent-line);
-        color: var(--accent);
-        box-shadow: 0 0 0 1px var(--accent-line), 0 0 22px var(--accent-glow);
+        background: var(--bg-surface-hover);
+        border-color: var(--border-strong);
     }
     .next-song-btn-landscape { display: none; }
 
@@ -1311,8 +1323,8 @@
             <div class="scrollable" id="library-list"></div>
 
             <div class="branding-area">
-                <img id="control-logo" src="{{ url_for('static', filename='logo.png') }}?v=1" class="branding-img" alt="Logo">
-                <div class="version-text">JafaStageCenter v1.0</div>
+                <div class="brand-wordmark">JAFA STAGE CENTER</div>
+                <div class="version-text">v1.0</div>
             </div>
         </div>
 
@@ -1327,7 +1339,7 @@
             <div class="setlist-actions">
                 <button class="top-btn" onclick="exportToPDF()" data-t="download_pdf">PDF Z AKORDAMI</button>
                 <button class="top-btn" onclick="exportLyricsPDF()" data-t="download_pdf_lyrics">PDF TEKSTY</button>
-                <button class="top-btn" onclick="saveSetlistHistory()" data-t="save_setlist" style="background:var(--accent-success);color:#fff;">Zapisz setliste</button>
+                <button class="top-btn" onclick="saveSetlistHistory()" data-t="save_setlist">Zapisz setliste</button>
                 <button class="top-btn" onclick="showSetlistHistory()" data-t="setlist_history" style="background:var(--bg-surface);">Historia</button>
                 <button class="top-btn" onclick="shareSetlist()" data-t="share_setlist" style="background:var(--bg-surface);">Udostepnij kod</button>
                 <button class="top-btn" onclick="importSetlistCode()" data-t="import_setlist" style="background:var(--bg-surface);">Importuj kod</button>

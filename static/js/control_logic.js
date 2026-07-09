@@ -414,14 +414,10 @@ socket.on('sync_state_to_client', function(data) {
         const btns = document.querySelectorAll('button[onclick="blackout()"]');
         btns.forEach(btn => {
             if (isBlackoutActive) {
-                btn.style.background = "var(--accent-danger)";
-                btn.style.color = "white";
-                btn.style.boxShadow = "0 0 20px rgba(255, 107, 107, 0.7)";
+                btn.classList.add('active');
                 btn.innerText = translations[currentLang].blackout_off_btn || "ZDEJMIJ BLACKOUT (POKAŻ EKRAN)";
             } else {
-                btn.style.background = "";
-                btn.style.color = "";
-                btn.style.boxShadow = "";
+                btn.classList.remove('active');
                 btn.innerText = translations[currentLang].blackout_on_btn || "WYGAŚ EKRAN RZUTNIKA";
             }
         });
@@ -675,7 +671,7 @@ function renderCanvaLinks() {
                 ${label} ${index + 1}: ${shortLink}
             </div>
             <button class="action-btn" style="background:var(--accent-success); padding: 6px 12px; font-size: 0.75rem;" onclick="sendSpecificCanvaLink(${index})">${btnShow}</button>
-            <button class="btn-sm" style="background:var(--accent-danger); color:white; border:none; padding: 6px 10px; font-weight: bold;" onclick="removeCanvaLink(${index})">✕</button>
+            <button class="btn-sm setlist-remove" style="background:transparent; color:var(--text-tertiary); border:none; padding: 6px 10px; font-weight: bold;" onclick="removeCanvaLink(${index})">✕</button>
         `;
         list.appendChild(item);
     });
@@ -1325,7 +1321,7 @@ function renderSetlist() {
                 <span style="color:var(--text-muted); font-size:0.8rem; margin-left:6px;">(${s.key})</span>
             </div>
             
-            <button class="btn-sm" onclick="event.stopPropagation(); removeFromSetlist(${index})" style="background:transparent; border:1px solid var(--accent-danger); color:var(--accent-danger); padding: 8px;">✕</button>
+            <button class="btn-sm setlist-remove" onclick="event.stopPropagation(); removeFromSetlist(${index})" style="background:transparent; border:none; color:var(--text-tertiary); padding: 8px;">✕</button>
         </div>`;
     });
     container.innerHTML = html;
@@ -1636,17 +1632,13 @@ function blackout() {
     const btns = document.querySelectorAll('button[onclick="blackout()"]');
     if (isBlackoutActive) {
         btns.forEach(btn => {
-            btn.style.background = "var(--accent-danger)";
-            btn.style.color = "white";
-            btn.style.boxShadow = "0 0 20px rgba(255, 107, 107, 0.7)";
+            btn.classList.add('active');
             // Czerpiemy tekst ze słownika (EN lub PL)
             btn.innerText = translations[currentLang].blackout_off_btn || "ZDEJMIJ BLACKOUT (POKAŻ EKRAN)";
         });
     } else {
         btns.forEach(btn => {
-            btn.style.background = ""; 
-            btn.style.color = "";
-            btn.style.boxShadow = "";
+            btn.classList.remove('active');
             // Czerpiemy domyślny tekst (EN lub PL)
             btn.innerText = translations[currentLang].blackout_on_btn || "WYGAŚ EKRAN RZUTNIKA";
         });
