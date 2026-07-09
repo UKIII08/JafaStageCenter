@@ -75,9 +75,19 @@ DATA_DIR = os.path.dirname(db_path) or os.path.abspath('.')
 
 # HTTPS (opcjonalny). Potrzebny, żeby MIKROFON (stroik) działał na telefonach —
 # iOS/Android udostępniają getUserMedia tylko w bezpiecznym kontekście (HTTPS).
-# Włączasz zmienną środowiskową JAFA_HTTPS=1. Domyślnie wyłączony, więc istniejące
-# instalacje działają bez zmian (po HTTP).
-HTTPS_ENABLED = os.environ.get('JAFA_HTTPS', '').strip().lower() in ('1', 'true', 'yes', 'on')
+# Włączany przełącznikiem w Ustawieniach (plik-marker) LUB zmienną JAFA_HTTPS=1.
+# Domyślnie wyłączony — istniejące instalacje działają bez zmian (po HTTP).
+HTTPS_FLAG_FILE = os.path.join(DATA_DIR, 'https.enabled')
+
+def https_requested():
+    if os.environ.get('JAFA_HTTPS', '').strip().lower() in ('1', 'true', 'yes', 'on'):
+        return True
+    try:
+        return os.path.exists(HTTPS_FLAG_FILE)
+    except Exception:
+        return False
+
+HTTPS_ENABLED = https_requested()
 APP_SCHEME = 'https' if HTTPS_ENABLED else 'http'
 
 db = SQLAlchemy(app)
@@ -1437,6 +1447,27 @@ def conf_timer():
     }
     socketio.emit('timer_update', CONF_TIMER_STATE)
     return {'status': 'ok'}
+
+@app.route('/https_status', methods=['GET'])
+def https_status():
+    """Zwraca, czy tryb HTTPS jest włączony (i czy aktywny w tej sesji)."""
+    return {'enabled': os.path.exists(HTTPS_FLAG_FILE), 'active': HTTPS_ENABLED}
+
+@app.route('/toggle_https', methods=['POST'])
+def toggle_https():
+    """Włącza/wyłącza tryb HTTPS (mikrofon/stroik na telefonie). Wymaga
+    restartu aplikacji, żeby serwer wystartował na właściwym protokole."""
+    data = request.get_json(silent=True) or {}
+    want = bool(data.get('enabled'))
+    try:
+        if want:
+            with open(HTTPS_FLAG_FILE, 'w') as f:
+                f.write('1')
+        elif os.path.exists(HTTPS_FLAG_FILE):
+            os.remove(HTTPS_FLAG_FILE)
+    except Exception as e:
+        return {'status': 'error', 'message': str(e)}
+    return {'status': 'ok', 'enabled': want, 'restart_required': (want != HTTPS_ENABLED)}
 
 @app.route('/export_songs', methods=['GET'])
 def export_songs():

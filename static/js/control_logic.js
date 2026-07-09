@@ -736,6 +736,25 @@ function resendCurrentSlide(){var active=document.querySelector('.slide-btn.acti
 function openQRModal(){document.getElementById('qrModal').style.display='flex';}
 function closeQRModal(){document.getElementById('qrModal').style.display='none';}
 
+function toggleHttps(enabled){
+    fetch('/toggle_https', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: !!enabled })
+    }).then(r => r.json()).then(function(res){
+        if (res.status !== 'ok') { showToast((res.message || 'Błąd') ); return; }
+        var en = (localStorage.getItem('appLang') || 'pl') === 'en';
+        if (res.restart_required) {
+            alert(en
+                ? (enabled
+                    ? 'HTTPS enabled. Restart the app to apply it. On each phone, open the app and accept the security certificate once — then the tuner mic will work.'
+                    : 'HTTPS disabled. Restart the app to go back to a normal (HTTP) connection.')
+                : (enabled
+                    ? 'HTTPS włączony. Zrestartuj aplikację, żeby zadziałał. Na każdym telefonie otwórz aplikację i raz zaakceptuj certyfikat — wtedy mikrofon stroika będzie działał.'
+                    : 'HTTPS wyłączony. Zrestartuj aplikację, żeby wrócić do zwykłego połączenia (HTTP).'));
+        }
+    }).catch(function(){ showToast('Błąd połączenia'); });
+}
+
 function openSettingsModal(){
     document.getElementById('settingsModal').style.display='flex';
     
@@ -743,7 +762,13 @@ function openSettingsModal(){
     document.getElementById('trans-toggle').checked = (storedState !== 'false');
     const keyState = localStorage.getItem('keyDetectionEnabled');
     document.getElementById('key-detect-toggle').checked = (keyState !== 'false');
-    
+
+    // Stan przełącznika HTTPS z serwera (plik-marker).
+    fetch('/https_status').then(r => r.json()).then(function(s) {
+        var el = document.getElementById('https-toggle');
+        if (el) el.checked = !!s.enabled;
+    }).catch(function(){});
+
     const currentTheme = document.documentElement.getAttribute('data-theme');
     document.getElementById('theme-toggle').checked = (currentTheme === 'dark');
     
