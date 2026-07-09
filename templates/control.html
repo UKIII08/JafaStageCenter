@@ -222,8 +222,8 @@
         background: var(--border-subtle);
     }
     #worship-mode.active { display: flex; }
-    #conference-mode { display: none; overflow-y: auto; padding: var(--s8); }
-    #conference-mode.active { display: block; }
+    #conference-mode { display: none; flex: 1; min-height: 0; overflow-y: auto; padding: var(--s5) var(--s6); }
+    #conference-mode.active { display: flex; }
 
     /* ── Columns ── */
     .col {
@@ -982,15 +982,16 @@
     .qr-open-btn:hover { border-color: var(--accent-line); color: var(--accent); }
 
     /* ── Conference mode ── */
-    .conf-panel { max-width: 1300px; margin: 0 auto; }
-    .conf-header { font-size: var(--font-2xl); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 var(--s6); }
-    .conf-grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: var(--s5); }
+    .conf-panel { max-width: 1300px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; min-height: 0; flex: 1; }
+    .conf-header { font-size: var(--font-xl); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 var(--s4); flex-shrink: 0; }
+    .conf-grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: var(--s5); flex: 1; min-height: 0; }
     .conf-card {
         display: flex; flex-direction: column;
+        min-height: 0; overflow: hidden;
         background: var(--bg-panel);
         border: 1px solid var(--border-default);
         border-radius: var(--r-xl);
-        padding: var(--s6);
+        padding: var(--s5);
     }
     .conf-card-header {
         display: flex; align-items: center; gap: var(--s3);
@@ -1015,8 +1016,8 @@
     .conf-set-btn:hover, .conf-add-btn:hover, .conf-upload-btn:hover { border-color: var(--accent-line); color: var(--accent); }
     .conf-timer-display {
         text-align: center; font-family: 'Courier New', monospace;
-        font-size: 4rem; font-weight: 800; letter-spacing: 0.04em;
-        color: var(--text-primary); margin: var(--s4) 0;
+        font-size: 2.8rem; font-weight: 800; letter-spacing: 0.04em;
+        color: var(--text-primary); margin: var(--s2) 0;
     }
     .conf-btn-row { display: flex; gap: var(--s3); }
     .conf-action-btn {
@@ -1026,10 +1027,9 @@
         font-family: inherit; font-weight: 800; letter-spacing: 0.04em; cursor: pointer;
         transition: all var(--duration-fast) var(--ease-out);
     }
-    .conf-action-btn.start:hover { background: var(--green); color: #04140D; border-color: transparent; box-shadow: 0 0 20px var(--green-subtle); }
-    .conf-action-btn.stop:hover  { background: var(--amber); color: #140F04; border-color: transparent; }
-    .conf-action-btn.reset:hover { background: var(--red); color: #140406; border-color: transparent; }
-    .conf-msg-area { margin-bottom: var(--s3); resize: vertical; min-height: 70px; }
+    .conf-action-btn:hover { background: var(--bg-surface-hover); border-color: var(--border-strong); }
+    .conf-action-btn:active { transform: scale(0.97); }
+    .conf-msg-area { margin-bottom: var(--s3); resize: none; min-height: 56px; flex: 1; }
     .conf-msg-actions { display: flex; gap: var(--s3); }
     .conf-sub-card {
         background: var(--bg-surface);
@@ -1056,7 +1056,7 @@
     .conf-slide-btn:hover { border-color: var(--accent-line); color: var(--accent); }
     .slide-counter-display { font-weight: 800; font-size: var(--font-lg); min-width: 70px; text-align: center; }
     .conf-blackout-btn { width: 100%; margin-top: var(--s3); }
-    .conf-presenter-btn { display: inline-flex; align-items: center; gap: var(--s3); margin-top: var(--s6); }
+    .conf-presenter-btn { display: inline-flex; align-items: center; gap: var(--s3); }
     .conf-presenter-btn svg { stroke: currentColor; }
     .conf-presenter-btn:hover { border-color: var(--accent-line); color: var(--accent); }
 
@@ -1463,7 +1463,7 @@
 
                     <div class="conf-timer-display" id="timer-val">00:00</div>
 
-                    <div class="conf-btn-row" style="margin-bottom:var(--s8);">
+                    <div class="conf-btn-row" style="margin-bottom:var(--s4);">
                         <button class="conf-action-btn start" onclick="startTimer()">START</button>
                         <button class="conf-action-btn stop" onclick="stopTimer()">STOP</button>
                         <button class="conf-action-btn reset" onclick="resetTimer()">RESET</button>
@@ -1486,7 +1486,7 @@
                         Multimedia
                     </h3>
 
-                    <div style="display:flex; flex-direction:column; gap:var(--s5); flex-grow:1;">
+                    <div style="display:flex; flex-direction:column; gap:var(--s3); flex-grow:1; min-height:0;">
                         <!-- Canva Section -->
                         <div class="conf-sub-card">
                             <label class="conf-sub-label" style="color:var(--text-tertiary);" data-t="canva_title">
@@ -1497,7 +1497,7 @@
                                 <input type="text" id="new-canva-link" placeholder="Wklej link Canva..." data-t-ph="canva_link_ph">
                                 <button class="conf-add-btn" onclick="addCanvaLink()" data-t="add_link_btn">+ DODAJ</button>
                             </div>
-                            <div id="canva-links-list" style="display:flex; flex-direction:column; gap:var(--s3); max-height:200px; overflow-y:auto;"></div>
+                            <div id="canva-links-list" style="display:flex; flex-direction:column; gap:var(--s2); max-height:110px; overflow-y:auto;"></div>
                         </div>
 
                         <!-- PDF Section -->
@@ -1514,7 +1514,7 @@
                             </div>
 
                             <!-- Lista wgranych prezentacji — przełączanie między kilkoma PDF -->
-                            <div id="pdf-list" style="display:flex; flex-direction:column; gap:var(--s2); margin-top:var(--s3); max-height:180px; overflow-y:auto;"></div>
+                            <div id="pdf-list" style="display:flex; flex-direction:column; gap:var(--s2); margin-top:var(--s2); max-height:96px; overflow-y:auto;"></div>
 
                             <div class="conf-sub-card" style="text-align:center; margin-top:auto;">
                                 <div class="slides-control-label" data-t="slides_control_title">Sterowanie Slajdami</div>
@@ -1534,7 +1534,7 @@
                 </div>
             </div>
 
-            <div style="margin-top:var(--s6);">
+            <div style="margin-top:var(--s3); flex-shrink:0;">
                 <button class="conf-presenter-btn" onclick="window.open('/presenter', '_blank')" data-t="open_presenter_btn">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                     Otworz widok prezentera
