@@ -309,8 +309,8 @@ function simplifyDiagramChord(chordName) {
 }
 
 function renderChordSVG(chordName, data) {
-    const W = 120, H = 160;
-    const LEFT = 30, TOP = 30;
+    const W = 120, H = 168;
+    const LEFT = 30, TOP = 42;   // odsuwamy siatkę w dół, żeby nazwa i znaczniki ✕/○ się nie nakładały
     const SW = 70, SH = 100;  // string area
     const FRETS = 5;
     const STRINGS = 6;
@@ -322,8 +322,8 @@ function renderChordSVG(chordName, data) {
     // Background
     svg += `<rect x="0" y="0" width="${W}" height="${H}" rx="8" fill="#1a1a2e"/>`;
 
-    // Title
-    svg += `<text x="${W/2}" y="18" text-anchor="middle" font-size="14" font-weight="bold" fill="#00e5ff" font-family="Sen,sans-serif">${chordName}</text>`;
+    // Title (własny pas na górze — nad znacznikami ✕/○)
+    svg += `<text x="${W/2}" y="16" text-anchor="middle" font-size="14" font-weight="bold" fill="#6BA0FC" font-family="Sen,sans-serif">${chordName}</text>`;
 
     // Fret number indicator
     if (data.fret > 0) {
