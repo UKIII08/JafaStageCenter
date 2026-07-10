@@ -450,8 +450,11 @@
             const r = root.charAt(0).toUpperCase() + root.slice(1);
             let pc = NOTE_MAP[r];
             if (pc === undefined) return chord;
-            const table = stageNotation === 'polish' ? NOTES_PL : NOTES_INT;
-            let newRoot = table[((pc % 12) + 12) % 12];
+            // zachowaj enharmonię źródła: międzynarodowa = passthrough,
+            // polska = bezpośrednia mapa nazw (G#->Gis, nie As)
+            const INT_TO_PL = { 'C#':'Cis','Db':'Des','D#':'Dis','Eb':'Es','F#':'Fis','Gb':'Ges',
+                                'G#':'Gis','Ab':'As','A#':'Ais','Bb':'B','B':'H','Cb':'H','E#':'F','Fb':'E','B#':'C' };
+            let newRoot = stageNotation === 'polish' ? (INT_TO_PL[r] || r) : r;
             let newSuffix = suffix;
             const isMinor = /^m(?!aj)/i.test(suffix);
             if (stageMinorDisplay === 'lowercase' && isMinor) {

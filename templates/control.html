@@ -232,10 +232,12 @@
         min-height: 0;
         background: var(--bg-panel);
         padding: var(--s5) var(--s5) var(--s4);
+        /* wyraźna granica między kolumnami — wcześniej wszystko zlewało się w jedną czerń */
+        border-right: 1px solid var(--border-default);
     }
     #col-library { width: 300px; flex-shrink: 0; transition: width var(--duration-normal) var(--ease-out), padding var(--duration-normal) var(--ease-out); }
     #col-setlist { width: 340px; flex-shrink: 0; }
-    #col-live    { flex: 1; min-width: 0; padding: var(--s6); }
+    #col-live    { flex: 1; min-width: 0; padding: var(--s6); background: var(--bg-app); border-right: none; }
 
     .col-header {
         display: flex;
@@ -1609,11 +1611,12 @@
             </div>
             <form id="addForm" method="POST" action="/add_song" onsubmit="useSuggestedKey('add-key-input')">
                 <div class="form-row">
-                    <input type="text" name="title" id="add-title" class="input-title" required placeholder="Tytuł" data-t-ph="title_ph">
+                    <input type="text" name="title" id="add-title" class="input-title" required placeholder="Tytuł" data-t-ph="title_ph" oninput="checkDuplicateTitle()">
                     <input type="text" name="key" id="add-key-input" class="input-small" placeholder="Key">
                     <input type="number" name="bpm" id="add-bpm-input" class="input-small" placeholder="BPM">
                     <div class="tap-btn" onclick="tapTempo('add-bpm-input')">TAP</div>
                 </div>
+                <div id="add-title-warn" style="display:none; font-size:var(--font-xs); color:var(--amber, #f0a832); margin:2px 0 0 2px;"></div>
                 <div class="notation-row">
                     <label data-t="input_notation_label">Notacja wejściowa:</label>
                     <select name="input_notation">

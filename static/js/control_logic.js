@@ -1200,6 +1200,18 @@ function switchMobTab(tabName) {
     document.querySelectorAll('.mob-tab').forEach(b => b.classList.remove('active'));
     event.currentTarget.classList.add('active');
 }
+// Ostrzeżenie w modalu dodawania: piosenka o tym tytule już istnieje
+// (zapis nadpisałby jej treść) — użytkownik ma wiedzieć PRZED kliknięciem.
+function checkDuplicateTitle() {
+    var inp = document.getElementById('add-title');
+    var warn = document.getElementById('add-title-warn');
+    if (!inp || !warn) return;
+    var v = inp.value.trim().toLowerCase();
+    var exists = v && library.some(function(s) { return (s.title || '').trim().toLowerCase() === v; });
+    warn.style.display = exists ? 'block' : 'none';
+    if (exists) warn.innerText = t('dup_title_warn');
+}
+
 function showToast(message) {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -1573,7 +1585,7 @@ function renderSectionTiles(songIdx) {
         const firstChordRaw = nextMatches ? nextMatches[0] : null;
         if (lastChordRaw && firstChordRaw) {
             const btn = document.createElement('div'); btn.className = 'slide-btn transition-tile';
-            btn.innerHTML = `<span class="slide-label">Transition</span><span id="trans-preview" style="font-size:0.7rem;color:var(--text-muted);">Ładowanie...</span>`;
+            btn.innerHTML = `<span class="slide-label">${t('transition_tile')}</span><span id="trans-preview" style="font-size:0.7rem;color:var(--text-muted);">...</span>`;
 
             const fetchTransition = () => {
                 fetch('/generate_transition', {
@@ -1747,6 +1759,11 @@ function goLiveSection(c, n, forceTrans = null, nextTrans = null) {
     
     // Operator zawsze widzi u siebie na podglądzie tekst, żeby wiedzieć co wysłał zespołowi
     var _previewClean = c.replace(/\[.*?\]/g, "");
+    if (!_previewClean.trim() && /\[/.test(c)) {
+        // same akordy (np. przejście) - pokaż czytelną etykietę zamiast pustki
+        // (window.t, bo lokalne "let t" = transpozycja przesłania funkcję tłumaczeń)
+        _previewClean = '♪ ' + window.t('transition_playing');
+    }
     if (window.updateLocalPreview) window.updateLocalPreview(_previewClean);
     else document.getElementById('live-preview-box').innerText = _previewClean;
 }
@@ -2291,6 +2308,8 @@ document.addEventListener('keydown', function(e) {
 
     var onboardingDemoSongAdded = false;
 
+    var onboardingDemoSongCreated = false;   // dodana przez tour (nie istniała wcześniej)
+
     function onboardingAddDemoSong() {
         if (onboardingDemoSongAdded) return;
         onboardingDemoSongAdded = true;
@@ -2310,6 +2329,7 @@ document.addEventListener('keydown', function(e) {
         formData.append('bpm', '70');
         formData.append('input_notation', 'international');
 
+        onboardingDemoSongCreated = true;
         fetch('/add_song', { method: 'POST', body: formData, redirect: 'manual' })
             .then(function() {
                 var maxId = library.reduce(function(m, s) { return Math.max(m, s.id); }, 0);
@@ -2741,6 +2761,22 @@ document.addEventListener('keydown', function(e) {
         onboardingLeaveStep();
         onboardingCleanupInteract();
         localStorage.setItem('jafa_onboarding_done', '1');
+
+        // sprzątnij piosenkę demo dodaną przez samouczek - nie zostawiaj
+        // jej w bibliotece użytkownika (chyba że miał ją już wcześniej)
+        if (onboardingDemoSongCreated) {
+            onboardingDemoSongCreated = false;
+            // serwer weryfikuje po treści, że kasuje właśnie demo samouczka
+            fetch('/delete_demo_song', { method: 'POST' }).catch(function(){});
+            for (var di = library.length - 1; di >= 0; di--) {
+                if (library[di].title === 'Jedyny Krol') library.splice(di, 1);
+            }
+            setlist = setlist.filter(function(s) { return s.title !== 'Jedyny Krol'; });
+            renderLibrary();
+            renderSetlist();
+            var sc = document.getElementById('slides-container');
+            if (sc && !setlist.length) sc.innerHTML = '';
+        }
 
         var confEl = document.getElementById('conference-mode');
         if (confEl && confEl.classList.contains('active')) {

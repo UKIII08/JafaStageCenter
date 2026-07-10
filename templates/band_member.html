@@ -1504,6 +1504,23 @@
         // ===== MUSIC THEORY =====
         const NOTES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
         const NOTES_PL = ['C', 'Cis', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H'];
+        // pisownia wyniku dziedziczy "smak" źródła: G# transponuje się na
+        // krzyżyki, Ab na bemole (Ab w tonacji C#m było błędem)
+        const NOTES_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const NOTES_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+        function flavorTable(rootStr) {
+            const r = rootStr.toLowerCase();
+            if (r.includes('#') || r.endsWith('is')) return NOTES_SHARP;
+            if ((r.length > 1 && r.slice(1).includes('b')) || r.endsWith('es') || r === 'as' || r === 'es') return NOTES_FLAT;
+            return NOTES;
+        }
+        // bezpośrednie tłumaczenie nazwy INT->PL (zachowuje enharmonię: G#->Gis, Ab->As)
+        const INT_TO_PL = { 'C#':'Cis','Db':'Des','D#':'Dis','Eb':'Es','F#':'Fis','Gb':'Ges',
+                            'G#':'Gis','Ab':'As','A#':'Ais','Bb':'B','B':'H','Cb':'H','E#':'F','Fb':'E','B#':'C' };
+        function toPolishRoot(rootStr) {
+            const r = rootStr.charAt(0).toUpperCase() + rootStr.slice(1);
+            return INT_TO_PL[r] || r;
+        }
 
         const NOTE_MAP_INT = {};
         NOTES.forEach((n, i) => NOTE_MAP_INT[n] = i);
@@ -1544,7 +1561,7 @@
             if (!p) return chord;
             const pc = rootToPitch(p.root);
             if (pc === null) return chord;
-            return NOTES[((pc + semi) % 12 + 12) % 12] + p.suffix;
+            return flavorTable(p.root)[((pc + semi) % 12 + 12) % 12] + p.suffix;
         }
 
         function simplifyChord(chord) {
@@ -1593,8 +1610,10 @@
             const pc = rootToPitch(p.root);
             if (pc === null) return chord;
             const notation = currentSettings.chord_notation || 'international';
-            const table = notation === 'polish' ? NOTES_PL : NOTES;
-            let newRoot = table[((pc % 12) + 12) % 12];
+            // NIE przepisuj pisowni przez tabelę mieszaną - zachowaj enharmonię źródła
+            let newRoot = notation === 'polish'
+                ? toPolishRoot(p.root)
+                : p.root.charAt(0).toUpperCase() + p.root.slice(1);
             let suffix = p.suffix;
             const isMinor = /^m(?!aj)/i.test(suffix);
             if (currentSettings.lowercase_minor) {

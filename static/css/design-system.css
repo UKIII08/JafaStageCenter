@@ -46,14 +46,14 @@
 
     /* Borders & dividers — ultra-subtle glass edges */
     --border-subtle: rgba(255, 255, 255, 0.03);
-    --border-default: rgba(255, 255, 255, 0.06);
-    --border-strong: rgba(255, 255, 255, 0.10);
+    --border-default: rgba(255, 255, 255, 0.09);
+    --border-strong: rgba(255, 255, 255, 0.16);
     --border-focus: rgba(99, 155, 255, 0.5);
 
     /* Text — never pure white */
     --text-primary: #ECECEF;
-    --text-secondary: #9A9AA4;
-    --text-tertiary: #5E5E68;
+    --text-secondary: #A6A6B0;
+    --text-tertiary: #7C7C87;
     --text-inverse: #141416;
     --text-accent: #7EB0FF;
 
@@ -491,13 +491,14 @@ button:active { transform: scale(0.955); }
 
 /* ── Toast ── */
 #toast-container {
+    /* prawy dolny róg — top-center zasłaniał tytuł piosenki w panelu LIVE */
     position: fixed;
-    top: var(--s5);
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: var(--s5);
+    right: var(--s5);
     z-index: 99999;
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
     gap: var(--s3);
     pointer-events: none;
 }

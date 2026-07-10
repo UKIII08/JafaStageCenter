@@ -267,6 +267,11 @@ def check_db_schema():
 
             # Check Settings table
             settings_columns = [col['name'] for col in inspector.get_columns('settings')]
+            # stare bazy: "N/A" zapisane jako tonacja piosenek bez akordów
+            try:
+                with db.engine.begin() as conn:
+                    conn.execute(text("UPDATE song SET key='' WHERE key IN ('N/A','-')"))
+            except Exception: pass
             if 'transition_engine' not in settings_columns:
                 with db.engine.connect() as conn:
                     conn.execute(text("ALTER TABLE settings ADD COLUMN transition_engine VARCHAR(10) DEFAULT 'v4'"))
@@ -445,7 +450,14 @@ def normalize_chord_to_international(chord_str, input_notation='international'):
     pc = _resolve_pitch_class(upper, input_notation)
     if pc is None:
         return chord_str
-    normalized_root = TRANSPOSE_LOOKUP[pc]
+    # zachowaj pisownię źródła: G#m NIE zamienia się w Abm przy zapisie
+    flavor = _accidental_flavor(raw_root, input_notation)
+    if flavor == 'sharp':
+        normalized_root = TRANSPOSE_SHARP[pc]
+    elif flavor == 'flat':
+        normalized_root = TRANSPOSE_FLAT[pc]
+    else:
+        normalized_root = TRANSPOSE_LOOKUP[pc]
     if is_minor_lowercase and not suffix.startswith('m'):
         suffix = 'm' + suffix
         normalized_root = normalized_root[0].upper() + normalized_root[1:]
@@ -1124,6 +1136,7 @@ def route_generate_transition():
     end_chord_raw = "C" 
 
     song_a_content = song_b_content = None
+    song_a = song_b = None
     bpm_a = bpm_b = 0
     if id_start:
         song_a = Song.query.get(id_start)
@@ -1149,6 +1162,12 @@ def route_generate_transition():
     if not id_end:
         end_chord_raw = data.get('end_chord', 'C')
         key_end = data.get('key_end', 'C')
+
+    # Przejście ma sens tylko między piosenkami Z akordami - inaczej silnik
+    # lądowałby na "akordzie" będącym tonacją-zaślepką (np. dawne "N/A").
+    if (id_start and song_a and not get_first_chord_of_song(song_a.content)) or \
+       (id_end and song_b and not get_first_chord_of_song(song_b.content)):
+        return {'status': 'skip', 'reason': 'no_chords'}
 
     if not start_chord_raw.startswith('['): start_to_trans = f"[{start_chord_raw}]"
     else: start_to_trans = start_chord_raw
@@ -1201,6 +1220,7 @@ def add_song():
     if key:
         key = normalize_chord_to_international(key, input_notation=input_notation)
     if not key and content: key = detect_key_algorithm(content)
+    if key in ('N/A', '-'): key = ''   # brak akordów = brak tonacji, nie literal "N/A"
     if title and content:
         try: bpm_val = int(bpm) if bpm else 0
         except ValueError: bpm_val = 0
@@ -1224,6 +1244,7 @@ def import_songs():
         if song_key:
             song_key = normalize_chord_to_international(song_key, input_notation=input_notation)
         if not song_key: song_key = detect_key_algorithm(song_content)
+        if song_key in ('N/A', '-'): song_key = ''
         if existing:
             existing.content = song_content
             existing.key = song_key
@@ -1290,6 +1311,21 @@ def edit_song(id):
     except ValueError: song.bpm = 0
     db.session.commit()
     return redirect(url_for('control'))
+
+@app.route('/delete_demo_song', methods=['POST'])
+def delete_demo_song():
+    """Usuwa WYŁĄCZNIE piosenkę demo samouczka (weryfikacja po treści),
+    żeby sprzątanie po onboardingu nie mogło trafić w piosenkę użytkownika."""
+    s = Song.query.filter_by(title='Jedyny Krol').first()
+    # fraza w treści demo jest poprzecinana akordami ([G]przyjal...) - zdejmij
+    # nawiasy przed porównaniem
+    clean = re.sub(r'\[[^\]]*\]', '', s.content or '') if s else ''
+    if s and 'Jedyny Krol, ktory przyjal postac slugi' in clean:
+        deleted_id = s.id
+        db.session.delete(s)
+        db.session.commit()
+        return {'status': 'ok', 'deleted': deleted_id}
+    return {'status': 'skip'}
 
 @app.route('/delete_song/<int:id>', methods=['POST'])
 def delete_song(id):
@@ -1454,6 +1490,8 @@ def send_text():
         LAST_SLIDE_DATA = data
         socketio.emit('update_slide', data)
         return {'status': 'ok'}
+    if not data or 'text' not in data:
+        return {'status': 'error', 'reason': 'missing text'}, 400
     raw_text = data.get('text', '')
     is_blackout = data.get('blackout', False)
     SERVER_STATE['is_blackout'] = is_blackout
