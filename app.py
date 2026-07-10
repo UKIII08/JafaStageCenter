@@ -46,7 +46,6 @@ try:
 except BaseException:
     HAS_CRYPTOGRAPHY = False
 # --- ENGINE IMPORTS ---
-from Mingus_silnik import WorshipHybridEngineV1
 try:
     from AdvancedEngine import WorshipHybridEngineV2
 except ImportError:
@@ -188,7 +187,7 @@ class Settings(db.Model):
     bg_color = db.Column(db.String(20), default='#000000')
     text_color = db.Column(db.String(20), default='#ffffff')
     chord_color = db.Column(db.String(20), default='#00e5ff')
-    transition_engine = db.Column(db.String(10), default='v20')
+    transition_engine = db.Column(db.String(10), default='v4')
     # NEW FIELD: Language
     language = db.Column(db.String(5), default='pl')
     chord_notation = db.Column(db.String(15), default='international')
@@ -270,7 +269,7 @@ def check_db_schema():
             settings_columns = [col['name'] for col in inspector.get_columns('settings')]
             if 'transition_engine' not in settings_columns:
                 with db.engine.connect() as conn:
-                    conn.execute(text("ALTER TABLE settings ADD COLUMN transition_engine VARCHAR(10) DEFAULT 'v20'"))
+                    conn.execute(text("ALTER TABLE settings ADD COLUMN transition_engine VARCHAR(10) DEFAULT 'v4'"))
                     conn.commit()
             
             # NEW: Check for language column
@@ -1162,19 +1161,19 @@ def route_generate_transition():
     real_key_end = apply_transpose_to_single_chord(f"[{key_end}]", trans_end, 'international')
 
     settings = Settings.query.first()
-    engine_choice = settings.transition_engine if settings else 'v2'
+    engine_choice = settings.transition_engine if settings else 'v4'
+    if engine_choice not in ('v2', 'v3', 'v4'):
+        engine_choice = 'v4'   # v1 wycofany, stare 'v20' -> domyślny V4
 
-    if engine_choice == 'v1':
-        engine = WorshipHybridEngineV1()
+    # v1 wycofany; nieznane/stare wartości ('v1', 'v20') dostają domyślny V4
+    if engine_choice == 'v2' and WorshipHybridEngineV2:
+        engine = WorshipHybridEngineV2()
     elif engine_choice == 'v3' and WorshipPivotEngineV3:
         engine = WorshipPivotEngineV3()
-    elif engine_choice == 'v4' and WorshipContextEngineV4:
+    elif WorshipContextEngineV4:
         engine = WorshipContextEngineV4()
     else:
-        if WorshipHybridEngineV2:
-            engine = WorshipHybridEngineV2()
-        else:
-            engine = WorshipHybridEngineV1()
+        engine = WorshipHybridEngineV2()
 
     if WorshipContextEngineV4 and isinstance(engine, WorshipContextEngineV4):
         # V4 dostaje pełny kontekst: treść obu piosenek (repertuar liczony
@@ -1322,7 +1321,7 @@ def handle_set_language(data):
 @app.route('/reset_settings', methods=['POST'])
 def reset_settings():
     settings = Settings.query.first()
-    settings.font_family = 'Sen'; settings.bg_color = '#000000'; settings.text_color = '#ffffff'; settings.chord_color = '#00e5ff'; settings.transition_engine = 'v20'
+    settings.font_family = 'Sen'; settings.bg_color = '#000000'; settings.text_color = '#ffffff'; settings.chord_color = '#00e5ff'; settings.transition_engine = 'v4'
     settings.language = 'pl'
     settings.chord_notation = 'international'
     settings.minor_display = 'uppercase'

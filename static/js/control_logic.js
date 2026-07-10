@@ -717,7 +717,18 @@ function sendSpecificCanvaLink(index) {
 }
 
 // Inicjalizacja listy po załadowaniu skryptu
+// Opis wybranego silnika przejść w ustawieniach
+function updateEngineDesc() {
+    var sel = document.getElementById('trans-engine-select');
+    if (!sel) return;
+    ['v2', 'v3', 'v4'].forEach(function (v) {
+        var el = document.getElementById('engine-desc-' + v);
+        if (el) el.style.display = (v === sel.value) ? 'block' : 'none';
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    updateEngineDesc();
     renderCanvaLinks();
     renderPresentationList();
 });

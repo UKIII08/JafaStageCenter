@@ -1250,6 +1250,17 @@
     /* ── Keyframes ── */
     @keyframes popIn { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
     @keyframes led-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+        .engine-desc {
+            font-size: 12px;
+            line-height: 1.55;
+            color: var(--text-tertiary, #9aa3b2);
+            background: var(--bg-inset, rgba(255,255,255,0.04));
+            border: 1px solid var(--border-default, rgba(255,255,255,0.08));
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-top: 6px;
+        }
+        .engine-desc b { color: var(--text-secondary, #c9d1de); }
     </style>
     <script>
         (function() {
@@ -1715,12 +1726,16 @@
                          /toggle_https i /mic_help zostają na przyszłość. -->
                     <div class="settings-row">
                         <label data-t="trans_engine">Silnik przejść muzycznych:</label>
-                        <select name="transition_engine" style="width:50%;">
-                            <option value="v2" {% if settings and settings.transition_engine == 'v2' %}selected{% endif %}>Advanced</option>
-                            <option value="v1" {% if settings and settings.transition_engine == 'v1' %}selected{% endif %}>Moderate (Easier)</option>
-                            <option value="v3" {% if settings and settings.transition_engine == 'v3' %}selected{% endif %}>Pivot Pro (V3) – voice leading</option>
-                            <option value="v4" {% if settings and settings.transition_engine == 'v4' %}selected{% endif %}>Kontekstowy (V4) – analiza obu piosenek</option>
+                        <select name="transition_engine" id="trans-engine-select" style="width:50%;" onchange="updateEngineDesc()">
+                            <option value="v4" {% if not settings or settings.transition_engine not in ('v2','v3') %}selected{% endif %} data-t="engine_opt_v4">Kontekstowy (V4) – zalecany</option>
+                            <option value="v3" {% if settings and settings.transition_engine == 'v3' %}selected{% endif %} data-t="engine_opt_v3">Pivot Pro (V3)</option>
+                            <option value="v2" {% if settings and settings.transition_engine == 'v2' %}selected{% endif %} data-t="engine_opt_v2">Advanced (V2)</option>
                         </select>
+                    </div>
+                    <div class="settings-row" style="display:block;">
+                        <div class="engine-desc" id="engine-desc-v4" data-t="engine_desc_v4"></div>
+                        <div class="engine-desc" id="engine-desc-v3" data-t="engine_desc_v3" style="display:none;"></div>
+                        <div class="engine-desc" id="engine-desc-v2" data-t="engine_desc_v2" style="display:none;"></div>
                     </div>
                     <div class="settings-row">
                         <label data-t="chord_notation_label">Notacja akordów:</label>
