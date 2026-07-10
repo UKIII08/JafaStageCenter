@@ -57,6 +57,11 @@ try:
 except ImportError:
     print("Warning: PivotEngine.py not found.")
     WorshipPivotEngineV3 = None
+try:
+    from ContextEngine import WorshipContextEngineV4
+except ImportError:
+    print("Warning: ContextEngine.py not found.")
+    WorshipContextEngineV4 = None
 
 # --- 1. CONFIGURATION ---
 def resource_path(relative_path):
@@ -1119,12 +1124,16 @@ def route_generate_transition():
     start_chord_raw = "C"
     end_chord_raw = "C" 
 
+    song_a_content = song_b_content = None
+    bpm_a = bpm_b = 0
     if id_start:
         song_a = Song.query.get(id_start)
         if song_a:
             key_start = song_a.key if song_a.key else "C"
             first_from_chorus = get_first_chord_from_chorus(song_a.content)
             start_chord_raw = first_from_chorus if first_from_chorus else (get_first_chord_of_song(song_a.content) or key_start)
+            song_a_content = song_a.content
+            bpm_a = song_a.bpm or 0
 
     if id_end:
         song_b = Song.query.get(id_end)
@@ -1132,6 +1141,8 @@ def route_generate_transition():
             key_end = song_b.key if song_b.key else "C"
             first_chord = get_first_chord_of_song(song_b.content)
             end_chord_raw = first_chord if first_chord else key_end
+            song_b_content = song_b.content
+            bpm_b = song_b.bpm or 0
 
     if not id_start:
         start_chord_raw = data.get('start_chord', 'C')
@@ -1157,13 +1168,23 @@ def route_generate_transition():
         engine = WorshipHybridEngineV1()
     elif engine_choice == 'v3' and WorshipPivotEngineV3:
         engine = WorshipPivotEngineV3()
+    elif engine_choice == 'v4' and WorshipContextEngineV4:
+        engine = WorshipContextEngineV4()
     else:
         if WorshipHybridEngineV2:
             engine = WorshipHybridEngineV2()
         else:
             engine = WorshipHybridEngineV1()
 
-    transition_chords = engine.generate_full_progression(real_start_chord, real_key_start, real_end_chord, real_key_end)
+    if WorshipContextEngineV4 and isinstance(engine, WorshipContextEngineV4):
+        # V4 dostaje pełny kontekst: treść obu piosenek (repertuar liczony
+        # po transpozycji), oraz tempa - reszta silników zna tylko 4 akordy
+        transition_chords = engine.generate_full_progression(
+            real_start_chord, real_key_start, real_end_chord, real_key_end,
+            song_a_content=song_a_content, song_b_content=song_b_content,
+            shift_a=trans_start, shift_b=trans_end, bpm_a=bpm_a, bpm_b=bpm_b)
+    else:
+        transition_chords = engine.generate_full_progression(real_start_chord, real_key_start, real_end_chord, real_key_end)
     return {
         'status': 'ok', 'transition': " ".join(transition_chords), 'chords_list': transition_chords,
         'debug_start': real_start_chord, 'debug_end': real_end_chord, 'engine_used': engine_choice

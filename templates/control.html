@@ -1714,11 +1714,12 @@
                          na komputerze (localhost = bezpieczny kontekst). Backend
                          /toggle_https i /mic_help zostają na przyszłość. -->
                     <div class="settings-row">
-                        <label data-t="trans_engine">Styl przejść (Silnik AI):</label>
+                        <label data-t="trans_engine">Silnik przejść muzycznych:</label>
                         <select name="transition_engine" style="width:50%;">
                             <option value="v2" {% if settings and settings.transition_engine == 'v2' %}selected{% endif %}>Advanced</option>
                             <option value="v1" {% if settings and settings.transition_engine == 'v1' %}selected{% endif %}>Moderate (Easier)</option>
                             <option value="v3" {% if settings and settings.transition_engine == 'v3' %}selected{% endif %}>Pivot Pro (V3) – voice leading</option>
+                            <option value="v4" {% if settings and settings.transition_engine == 'v4' %}selected{% endif %}>Kontekstowy (V4) – analiza obu piosenek</option>
                         </select>
                     </div>
                     <div class="settings-row">
