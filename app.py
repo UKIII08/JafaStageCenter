@@ -52,6 +52,11 @@ try:
 except ImportError:
     print("Warning: AdvancedEngine.py not found.")
     WorshipHybridEngineV2 = None
+try:
+    from PivotEngine import WorshipPivotEngineV3
+except ImportError:
+    print("Warning: PivotEngine.py not found.")
+    WorshipPivotEngineV3 = None
 
 # --- 1. CONFIGURATION ---
 def resource_path(relative_path):
@@ -1148,11 +1153,13 @@ def route_generate_transition():
     settings = Settings.query.first()
     engine_choice = settings.transition_engine if settings else 'v2'
 
-    if engine_choice == 'v1': 
+    if engine_choice == 'v1':
         engine = WorshipHybridEngineV1()
-    else: 
+    elif engine_choice == 'v3' and WorshipPivotEngineV3:
+        engine = WorshipPivotEngineV3()
+    else:
         if WorshipHybridEngineV2:
-            engine = WorshipHybridEngineV2() 
+            engine = WorshipHybridEngineV2()
         else:
             engine = WorshipHybridEngineV1()
 
