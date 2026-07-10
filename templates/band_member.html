@@ -305,14 +305,16 @@
         #current-slide {
             height: 70vh;
             width: 100%;
-            padding: 0 20px; box-sizing: border-box;
+            /* góra: pływający pasek profilu/menu; bez tego akordy 1. linii
+               chowały się pod przyciskami */
+            padding: 60px 20px 10px; box-sizing: border-box;
             border-bottom: 1px solid var(--border-default);
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
             font-size: 8vh;
-            line-height: 2.2;
+            line-height: 1.4; /* pary akord+sylaba same rezerwują wiersz na akordy */
             overflow: hidden;
             position: relative;
         }
@@ -418,7 +420,7 @@
             flex-grow: 1;
             color: var(--text-secondary);
             font-size: 4vh;
-            line-height: 2.0;
+            line-height: 1.4;
             text-align: left;
             overflow: hidden;
             display: flex;
@@ -429,63 +431,40 @@
 
         .text-wrapper { width: 100%; }
 
-        /* AKORDY */
-        .chord-wrapper { display: inline-block; position: relative; overflow: visible; vertical-align: baseline; }
+        /* AKORDY — pary akord+sylaba: akord zajmuje prawdziwy wiersz nad sylabą,
+           więc nic nie nachodzi, a przy zawijaniu akord wędruje ze swoją sylabą. */
+        .chord-pair { display: inline-block; vertical-align: baseline; text-align: left; }
+        .chord-pair .chord {
+            display: block;
+            color: var(--accent); font-weight: 700; font-size: 0.65em;
+            line-height: 1.3; white-space: nowrap; padding-right: 0.4em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .chord-pair .chord-syl { display: block; white-space: nowrap; }
+        /* pusta sylaba (kolejny akord obok / koniec linii) trzyma wysokość wiersza */
+        .chord-pair .chord-syl:empty::before { content: "\200B"; }
         .bass-slash { color: var(--red); opacity: 0.8; }
         .bass-note { color: var(--teal); font-weight: 800; font-size: 0.95em; }
 
-        #current-slide .chord {
-            position: absolute; bottom: 0.7em; left: 0; transform: none;
-            color: var(--accent); font-weight: 700; font-size: 0.65em;
-            background: transparent; padding: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
         #current-slide .chord.nashville { color: var(--amber); }
         #current-slide .chord.capo { color: var(--green); }
 
-        #next-slide-container .chord-wrapper {
-            display: inline-block !important;
-            position: relative;
-            overflow: visible;
-            vertical-align: baseline;
-        }
-        #next-slide-container .chord {
-            position: absolute !important;
-            bottom: 0.6em;
-            left: 0;
+        #next-slide-container .chord-pair .chord {
             color: var(--green);
             font-size: 0.6em;
             font-weight: bold;
-            white-space: nowrap;
         }
         #next-slide-container .chord.nashville { color: var(--amber); opacity: 0.6; }
         #next-slide-container .chord.capo { color: var(--green); opacity: 0.6; }
+
+        .chord-only-line { display: block; }
+        .chord-only-line .chord-pair .chord { font-size: 0.85em; }
 
         #current-slide .chord.hard-chord {
             color: var(--amber);
             text-decoration: underline;
             text-decoration-style: dotted;
             text-underline-offset: 3px;
-        }
-
-        .chord-only-line .chord,
-        #next-slide-container .chord-only-line .chord,
-        #current-slide .chord-only-line .chord {
-            position: static !important;
-            font-size: 0.85em !important;
-            display: inline-block;
-            margin-right: 0.5em;
-            white-space: nowrap;
-        }
-        .chord-only-line .chord-wrapper {
-            display: inline-block !important;
-            position: static !important;
-            width: auto !important;
-            margin-right: 0.3em;
-        }
-        .chord-only-line {
-            line-height: 1.6;
-            display: block;
-            margin: 2px 0;
         }
 
         /* --- WIDOK KONFERENCJI --- */
@@ -767,8 +746,8 @@
             #current-slide {
                 height: 60vh;
                 font-size: 5.5vh;
-                line-height: 1.8;
-                padding: 0 10px;
+                line-height: 1.4;
+                padding: 56px 10px 8px;
             }
             #next-slide-container {
                 height: 40vh;
@@ -789,21 +768,18 @@
                 padding-right: 110px;   /* omiń meta (zegar/tonacja) w rogu */
                 padding-top: 8px;
             }
-            #next-slide-container .chord {
+            #next-slide-container .chord-pair .chord {
                 font-size: 0.55em;
-                bottom: 0.5em;
             }
-            .chord-only-line .chord {
-                font-size: 0.85em !important;
-                margin-right: 0.4em;
+            .chord-only-line .chord-pair .chord {
+                font-size: 0.85em;
             }
             .chord-only-line {
                 line-height: 1.4 !important;
                 margin-bottom: 2px;
             }
-            #current-slide .chord {
+            #current-slide .chord-pair .chord {
                 font-size: 0.55em;
-                bottom: 0.6em;
             }
             #setlist-btn, #fs-btn, #settings-btn, #tuner-btn {
                 width: 36px; height: 36px;
@@ -816,7 +792,7 @@
             #current-slide {
                 height: 55vh;
                 font-size: 4.5vh;
-                line-height: 1.6;
+                line-height: 1.4;
             }
             #next-slide-container {
                 height: 45vh;
@@ -841,7 +817,7 @@
             #current-slide {
                 height: 58vh;
                 font-size: 5vh;
-                line-height: 1.7;
+                line-height: 1.4;
             }
             #next-slide-container {
                 height: 42vh;
@@ -865,7 +841,7 @@
             #current-slide {
                 height: 55vh;
                 font-size: 4.5vh;
-                line-height: 1.6;
+                line-height: 1.4;
             }
             #next-slide-container {
                 height: 45vh;
@@ -1768,7 +1744,7 @@
             container.innerHTML = html;
 
             if (!currentSettings.show_chords) {
-                container.querySelectorAll('.chord-wrapper').forEach(el => el.remove());
+                container.querySelectorAll('.chord-pair .chord').forEach(el => el.remove());
                 return container.innerHTML;
             }
             const chordEls = container.querySelectorAll('.chord');
@@ -1786,8 +1762,18 @@
                 }
 
                 if (display.includes('/') && !isNashville) {
+                    // Buduj DOM-em, nie innerHTML — treść akordu pochodzi z pieśni
+                    // (textContent ODKODOWUJE encje serwera), sklejanie stringów w
+                    // innerHTML otwierało z powrotem drogę do wstrzyknięcia HTML.
                     const parts = display.split('/');
-                    el.innerHTML = parts[0] + "<span class='bass-slash'>/</span><span class='bass-note'>" + parts.slice(1).join('/') + "</span>";
+                    el.textContent = '';
+                    el.appendChild(document.createTextNode(parts[0]));
+                    const slash = document.createElement('span');
+                    slash.className = 'bass-slash'; slash.textContent = '/';
+                    el.appendChild(slash);
+                    const bass = document.createElement('span');
+                    bass.className = 'bass-note'; bass.textContent = parts.slice(1).join('/');
+                    el.appendChild(bass);
                 } else {
                     el.textContent = display;
                 }
@@ -1799,11 +1785,11 @@
                 var tmp = document.createElement('span');
                 tmp.innerHTML = parts[p];
                 var textOnly = tmp.textContent.replace(/ /g, '').trim();
-                var hasChords = tmp.querySelector('.chord-wrapper');
+                var hasChords = tmp.querySelector('.chord');
                 var hasNonChordText = false;
                 if (textOnly) {
                     var clone = tmp.cloneNode(true);
-                    clone.querySelectorAll('.chord-wrapper').forEach(function(el) { el.remove(); });
+                    clone.querySelectorAll('.chord').forEach(function(el) { el.remove(); });
                     hasNonChordText = clone.textContent.replace(/ /g, '').trim().length > 0;
                 }
                 if (hasChords && !hasNonChordText) {
@@ -1835,7 +1821,7 @@
             if (currentContent.style.display === 'none') return;
             currentContent.innerHTML = transformServerHtml(currentBandHtml);
             currentContent.style.fontSize = currentSettings.font_size + 'vh';
-            setTimeout(() => { fitText('current-slide', 'current-content', currentSettings.font_size, 3); fixChordOverlap(currentContent); }, 0);
+            setTimeout(() => { fitText('current-slide', 'current-content', currentSettings.font_size, 3); }, 0);
 
             // Next section (max 4 lines like stage view)
             if (currentBandNext && currentBandNext.trim()) {
@@ -1845,7 +1831,7 @@
                     : currentBandNext;
                 document.getElementById('next-text-inner').innerHTML = transformServerHtml(trimmed);
                 document.getElementById('next-label').style.display = 'block';
-                setTimeout(() => { fitText('next-content', 'next-text-inner', 4.5, 2.5); fixChordOverlap(document.getElementById('next-text-inner')); }, 0);
+                setTimeout(() => { fitText('next-content', 'next-text-inner', 4.5, 2.5); }, 0);
             } else {
                 document.getElementById('next-text-inner').innerHTML = '';
                 document.getElementById('next-label').style.display = 'none';
@@ -1884,26 +1870,21 @@
             suggestCapo();
         }
 
-        function fixChordOverlap(container) {
-            if (!container) return;
-            var chords = container.querySelectorAll('.chord');
-            for (var i = 0; i < chords.length; i++) {
-                chords[i].style.left = '0';
-            }
-            for (var i = 0; i < chords.length - 1; i++) {
-                var curr = chords[i].getBoundingClientRect();
-                var next = chords[i + 1].getBoundingClientRect();
-                if (Math.abs(curr.top - next.top) > curr.height) continue;
-                var gap = 6;
-                if (curr.right + gap > next.left) {
-                    var overlap = curr.right + gap - next.left;
-                    var curLeft = parseFloat(chords[i].style.left) || 0;
-                    chords[i].style.left = (curLeft - overlap) + 'px';
-                }
-            }
-        }
+        // fixChordOverlap usunięty — pary akord+sylaba (server-side) fizycznie
+        // uniemożliwiają nachodzenie akordów, JS-owe rozsuwanie jest zbędne.
 
         // Auto-Scale (same as stage)
+        // Obrót telefonu / zmiana rozmiaru: przelicz dopasowanie tekstu
+        // (wcześniej rozmiar zostawał "zamrożony" do następnego slajdu).
+        let _fitResizeTimer;
+        window.addEventListener('resize', function () {
+            clearTimeout(_fitResizeTimer);
+            _fitResizeTimer = setTimeout(function () {
+                fitText('current-slide', 'current-content', (currentSettings && currentSettings.font_size) || 8, 3);
+                fitText('next-content', 'next-text-inner', 4.5, 2.5);
+            }, 150);
+        });
+
         function fitText(containerId, contentId, maxVh, minVh) {
             const container = document.getElementById(containerId);
             const content = document.getElementById(contentId);

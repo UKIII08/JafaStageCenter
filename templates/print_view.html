@@ -56,7 +56,7 @@
         
         .song-content { 
             font-size: 11pt; 
-            line-height: 3.2; 
+            line-height: 1.6; /* pary akord+sylaba same rezerwują wiersz na akordy */ 
             position: relative; 
             font-weight: 400;
             column-count: 2; 
@@ -72,12 +72,16 @@
             margin-bottom: 20px;
         }
         
-        .chord-wrapper { display: inline-block; position: relative; overflow: visible; vertical-align: baseline; }
-        .chord { 
-            position: absolute; bottom: 0.7em; left: 0; 
-            font-family: 'Sen', sans-serif; font-weight: 700; font-size: 0.85em; 
-            color: #d63384; background: transparent; white-space: nowrap; 
+        /* Pary akord+sylaba: akord zajmuje prawdziwy wiersz nad sylabą —
+           w druku nic nie może na siebie nachodzić (bez żadnego JS). */
+        .chord-pair { display: inline-block; vertical-align: baseline; text-align: left; }
+        .chord-pair .chord {
+            display: block;
+            font-family: 'Sen', sans-serif; font-weight: 700; font-size: 0.85em;
+            line-height: 1.25; color: #d63384; white-space: nowrap; padding-right: 0.35em;
         }
+        .chord-pair .chord-syl { display: block; white-space: nowrap; }
+        .chord-pair .chord-syl:empty::before { content: "\200B"; }
 
         /* 5. LOGO I PRZYCISK */
         #print-footer-logo { 

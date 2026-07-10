@@ -354,6 +354,27 @@ PITCH_CLASS_POLISH = {
 }
 TRANSPOSE_LOOKUP = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 TRANSPOSE_LOOKUP_PL = ['C', 'Cis', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H']
+# Pisownia wyniku transpozycji dziedziczy "smak" oryginału: akord z krzyżykiem
+# transponuje się na krzyżyki (F#m +2 -> G#m, nie Abm), z bemolem na bemole
+# (Bb +3 -> Db, nie C#). Nuty naturalne używają domyślnej mieszanej tabeli wyżej.
+TRANSPOSE_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+TRANSPOSE_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
+TRANSPOSE_SHARP_PL = ['C', 'Cis', 'D', 'Dis', 'E', 'F', 'Fis', 'G', 'Gis', 'A', 'Ais', 'H']
+TRANSPOSE_FLAT_PL = ['C', 'Des', 'D', 'Es', 'E', 'F', 'Ges', 'G', 'As', 'A', 'B', 'H']
+
+def _accidental_flavor(root_str, notation='international'):
+    """'sharp' / 'flat' / None (naturalna nuta) — na podstawie pisowni źródła."""
+    r = root_str.strip()
+    if '#' in r or r.lower().endswith('is'):
+        return 'sharp'
+    if len(r) > 1 and 'b' in r[1:].lower():
+        return 'flat'
+    lower = r.lower()
+    if lower.endswith('es') or lower in ('as', 'es'):
+        return 'flat'
+    if notation == 'polish' and r.upper() == 'B':
+        return 'flat'  # polskie B = Bb
+    return None
 CHORD_ROOT_RE = re.compile(r'^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$')
 VALID_CHORD_SUFFIX_RE = re.compile(r'^[majindugsMINDUGSAJ0-9#b()+\-/]*$')
 
@@ -670,7 +691,11 @@ def detect_key_algorithm(text): return key_detector.detect(text)
 # --- TRANSPOSE & PARSING HELPERS ---
 def transpose_chord(match, shift, notation='international'):
     full_chord = match.group(1)
-    lookup = TRANSPOSE_LOOKUP_PL if notation == 'polish' else TRANSPOSE_LOOKUP
+    # NIE ruszaj tokenów, które nie są akordami ([Coda], [Bridge], [x2]…) —
+    # inaczej transpozycja psuła etykiety sekcji ([Coda] +2 -> [Doda]).
+    if not is_valid_chord(full_chord):
+        return f"[{full_chord}]"
+    polish = (notation == 'polish')
     def trans_part(part):
         if not part: return ""
         m = CHORD_ROOT_RE.match(part)
@@ -679,10 +704,19 @@ def transpose_chord(match, shift, notation='international'):
         is_lower = part[0].islower()
         pc = _resolve_pitch_class(root_str.upper(), notation)
         if pc is not None:
+            flavor = _accidental_flavor(root_str, notation)
+            # zachowaj styl pisowni źródła: "Fis" transponuje się na "Gis", nie "G#"
+            spelled_pl = polish or root_str.lower().endswith(('is', 'es'))
+            if flavor == 'sharp':
+                lookup = TRANSPOSE_SHARP_PL if spelled_pl else TRANSPOSE_SHARP
+            elif flavor == 'flat':
+                lookup = TRANSPOSE_FLAT_PL if spelled_pl else TRANSPOSE_FLAT
+            else:
+                lookup = TRANSPOSE_LOOKUP_PL if polish else TRANSPOSE_LOOKUP
             new_root = lookup[(pc + shift) % 12]
             return f"{new_root.lower() if is_lower else new_root}{suffix}"
         return part
-    
+
     if '/' in full_chord:
         parts = full_chord.split('/')
         return f"[{trans_part(parts[0])}/{trans_part(parts[1])}]" if len(parts)>=2 else f"[{trans_part(full_chord)}]"
@@ -737,87 +771,61 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
     # HTML-escape treści tekstu (ochrona przed wstrzyknięciem HTML/JS z pieśni —
     # np. z importu lub z otwartego /send_text w sieci). Akordy w [] są usuwane.
     text_people = html.escape(re.sub(r'\[.*?\]', '', text).strip(), quote=False).replace('\n', '<br>')
+    # PARY AKORD+SYLABA. Akord i sylaba, nad którą stoi, tworzą jeden
+    # inline-block: akord zajmuje PRAWDZIWE miejsce w układzie (wiersz nad
+    # sylabą), więc:
+    #  - akordy nie mogą na siebie nachodzić (para po prostu się poszerza),
+    #  - przy zawijaniu linii akord ZAWSZE wędruje razem ze swoją sylabą,
+    #  - auto-dopasowanie rozmiaru (fitText) widzi pełną wysokość treści.
+    # Zastępuje wcześniejsze zgadywanie szerokości w "ch", absolutne
+    # pozycjonowanie i JS-owe rozsuwanie kolizji (fixChordOverlap).
     tokens = re.split(r'(\[.*?\])', text)
-    text_smart = ""
 
-    def has_text_anywhere_on_line(idx, all_tokens):
-        for k in range(idx - 1, -1, -1):
-            t = all_tokens[k]
-            if t.startswith('[') and t.endswith(']'): continue
-            if '\n' in t: break
-            if t.strip(): return True
-        for k in range(idx + 1, len(all_tokens)):
-            t = all_tokens[k]
-            if t.startswith('[') and t.endswith(']'): continue
-            if '\n' in t:
-                return bool(t.split('\n')[0].strip())
-            if t.strip(): return True
-        return False
+    def esc(s):
+        return (html.escape(s, quote=False)
+                .replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;')
+                .replace('  ', '&nbsp;&nbsp;'))
 
-    def get_text_info_until_next_chord(idx, all_tokens):
-        text_len = 0
-        has_next_chord = False
-        for k in range(idx + 1, len(all_tokens)):
-            t = all_tokens[k]
-            if t.startswith('[') and t.endswith(']'):
-                has_next_chord = True
-                break
-            if '\n' in t:
-                line_end_text = t.split('\n')[0].rstrip()
-                text_len += len(line_end_text)
-                break
-            text_len += len(t)
-        return text_len, has_next_chord
+    def chord_inner_html(name):
+        c = html.escape(name, quote=False)  # escapuj nazwę akordu
+        if '/' in c:
+            parts = c.split('/')
+            c = (f"{parts[0]}<span class='bass-slash'>/</span>"
+                 f"<span class='bass-note'>{'/'.join(parts[1:])}</span>")
+        return c
 
-    def is_chord_mid_word(idx, all_tokens):
-        prev_is_text = False
-        for k in range(idx - 1, -1, -1):
-            t = all_tokens[k]
-            if t.startswith('[') and t.endswith(']'): continue
-            if t and '\n' not in t:
-                prev_is_text = len(t) > 0 and not t[-1].isspace()
-            break
-        next_is_text = False
-        for k in range(idx + 1, len(all_tokens)):
-            t = all_tokens[k]
-            if t.startswith('[') and t.endswith(']'): continue
-            if t:
-                first_char = t.split('\n')[0][:1] if '\n' in t else t[:1]
-                next_is_text = bool(first_char) and not first_char.isspace()
-            break
-        return prev_is_text and next_is_text
-
-    for i, token in enumerate(tokens):
+    parts_out = []
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
         if token.startswith('[') and token.endswith(']'):
-            chord_content = html.escape(token[1:-1], quote=False)   # escapuj nazwę akordu
-            if '/' in chord_content:
-                parts = chord_content.split('/')
-                root_part = parts[0]
-                bass_part = "/".join(parts[1:])
-                chord_content = f"{root_part}<span class='bass-slash'>/</span><span class='bass-note'>{bass_part}</span>"
-
-            if not has_text_anywhere_on_line(i, tokens):
-                text_smart += f'<span class="chord-wrapper" style="width:auto; display:inline-block; margin-right:0.5em;"><span class="chord" style="position:static; font-size:1em;">{chord_content}</span>&nbsp;</span>'
-            else:
-                clean_chord = re.sub(r"<[^>]+>", "", chord_content)
-                ch_width = len(clean_chord) + 0.5
-                text_len, has_next_chord = get_text_info_until_next_chord(i, tokens)
-                mid_word = is_chord_mid_word(i, tokens)
-
-                if mid_word:
-                    text_smart += f'<span class="chord-wrapper"><span class="chord">{chord_content}</span></span>'
-                elif text_len < ch_width:
-                    missing_width = ch_width - text_len if text_len > 0 else ch_width
-                    missing_width = min(missing_width, len(clean_chord) + 0.5)
-                    text_smart += f'<span class="chord-wrapper" style="display:inline-block; width:{missing_width}ch; position:relative;"><span class="chord">{chord_content}</span></span>'
-                else:
-                    text_smart += f'<span class="chord-wrapper"><span class="chord">{chord_content}</span></span>'
+            name = token[1:-1].strip()
+            if not name:
+                i += 1
+                continue
+            # Sylaba pary: tekst za akordem do końca słowa (albo pusta, gdy
+            # zaraz kolejny akord / koniec linii — para trzyma wtedy wysokość
+            # przez CSS ::before z zero-width space).
+            syl = ''
+            if i + 1 < len(tokens) and not (tokens[i + 1].startswith('[') and tokens[i + 1].endswith(']')):
+                m = re.match(r'[^\s]+', tokens[i + 1])
+                if m:
+                    syl = m.group(0)
+                    tokens[i + 1] = tokens[i + 1][len(syl):]
+            # Akord w środku słowa (Ła[G/B]ska): WORD JOINER przed parą
+            # zabrania złamania linii wewnątrz słowa.
+            if parts_out and not parts_out[-1].endswith('>') and parts_out[-1][-1:] and not parts_out[-1][-1:].isspace():
+                parts_out.append('&#8288;')
+            parts_out.append(
+                f'<span class="chord-pair"><span class="chord">{chord_inner_html(name)}</span>'
+                f'<span class="chord-syl">{esc(syl)}</span></span>')
         else:
             # escapuj tekst pieśni PRZED zamianą tab/spacji na &nbsp; (żeby nie
             # podwójnie escapować wstawianych encji)
-            safe_token = html.escape(token, quote=False).replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;').replace('  ', '&nbsp;&nbsp;')
-            text_smart += safe_token
-            
+            parts_out.append(esc(token))
+        i += 1
+
+    text_smart = ''.join(parts_out)
     text_band = text_smart.replace('\n', '<br>')
     blocks = re.split(r'\n\s*\n', text_smart)
     html_blocks = []
@@ -1199,7 +1207,7 @@ def import_songs():
     for file in files:
         if file and file.filename.endswith('.txt'):
             raw_data = file.read()
-            try: content = raw_data.decode('utf-8')
+            try: content = raw_data.decode('utf-8-sig')  # -sig: zdejmij BOM z Notatnika
             except: content = raw_data.decode('cp1250', errors='ignore')
             content=content.replace('\r','')
             if '---' in content:
@@ -1214,6 +1222,8 @@ def import_songs():
                         if match:
                             title = match.group(1).strip()
                             key = match.group(2).strip() if match.group(2) else ''
+                            if key and not is_valid_chord(key):
+                                title = f"{title} ({key})".strip(); key = ''
                             try: bpm = int(match.group(3)) if match.group(3) else 0
                             except: bpm = 0
                         else:
@@ -1226,6 +1236,8 @@ def import_songs():
                 if match:
                     title = match.group(1).strip()
                     key = match.group(2).strip() if match.group(2) else ''
+                    if key and not is_valid_chord(key):
+                        title = f"{title} ({key})".strip(); key = ''
                     try: bpm = int(match.group(3)) if match.group(3) else 0
                     except: bpm = 0
                 else:
