@@ -404,9 +404,13 @@
             // Jeśli kontener lub treść jest ukryta, nie skaluj
             if (container.style.display === 'none' || content.style.display === 'none') return;
 
+            const cs = getComputedStyle(container);
+            const avail = container.clientHeight
+                - (parseFloat(cs.paddingTop) || 0)
+                - (parseFloat(cs.paddingBottom) || 0);
             let size = maxVh;
             content.style.fontSize = size + 'vh';
-            while (content.scrollHeight > container.clientHeight && size > minVh) {
+            while (content.scrollHeight > avail && size > minVh) {
                 size -= 0.2;
                 content.style.fontSize = size + 'vh';
             }
