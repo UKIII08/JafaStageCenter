@@ -1224,9 +1224,9 @@ def get_shared_setlist(code):
 
 @app.route('/convert_song_format', methods=['POST'])
 def route_convert_song_format():
-    """Konwersja formatu "akordy nad tekstem" -> ChordPro na żądanie klienta
-    (wywoływane przy wklejaniu do pola treści, żeby użytkownik od razu
-    ZOBACZYŁ wynik i mógł go poprawić przed zapisem)."""
+    """Konwersja formatu "akordy nad tekstem" -> ChordPro. Wywoływana
+    WYŁĄCZNIE jawnym przyciskiem w modalu dodawania/edycji - żadnej cichej
+    auto-detekcji, użytkownik świadomie uruchamia konwersję i widzi wynik."""
     data = request.json or {}
     text = data.get('text', '')
     converted, changed = convert_chords_over_lyrics(text)
@@ -1337,7 +1337,6 @@ def add_song():
     bpm = request.form.get('bpm')
     input_notation = request.form.get('input_notation', 'international')
     if content:
-        content, _ = convert_chords_over_lyrics(content)   # format "akordy nad tekstem"
         content = normalize_song_chords_to_international(content, input_notation=input_notation)
     if key:
         key = normalize_chord_to_international(key, input_notation=input_notation)
@@ -1362,7 +1361,6 @@ def import_songs():
     input_notation = request.form.get('input_notation', 'international')
     def save_or_update(song_title, song_content, song_key='', song_bpm=0):
         existing = Song.query.filter_by(title=song_title).first()
-        song_content, _ = convert_chords_over_lyrics(song_content)
         song_content = normalize_song_chords_to_international(song_content, input_notation=input_notation)
         if song_key:
             song_key = normalize_chord_to_international(song_key, input_notation=input_notation)
@@ -1425,7 +1423,6 @@ def edit_song(id):
     song.content = request.form.get('content')
     input_notation = request.form.get('input_notation', 'international')
     if song.content:
-        song.content, _ = convert_chords_over_lyrics(song.content)
         song.content = normalize_song_chords_to_international(song.content, input_notation=input_notation)
     song.key = request.form.get('key')
     if song.key:

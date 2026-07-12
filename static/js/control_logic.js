@@ -1202,33 +1202,27 @@ function switchMobTab(tabName) {
 }
 // Ostrzeżenie w modalu dodawania: piosenka o tym tytule już istnieje
 // (zapis nadpisałby jej treść) — użytkownik ma wiedzieć PRZED kliknięciem.
-// Wklejenie piosenki w formacie "akordy nad tekstem" (Ultimate Guitar itp.):
-// serwer konwertuje na format [akord]tekst, a użytkownik OD RAZU widzi wynik
-// w polu i może go poprawić przed zapisem.
-function autoConvertPastedSong(textareaId, statusId, keyInputId) {
+// Jawna konwersja formatu "akordy nad tekstem" (Ultimate Guitar itp.) na
+// [akord]tekst - uruchamiana PRZYCISKIEM w modalu, żeby użytkownik świadomie
+// decydował o konwersji i od razu widział jej wynik w polu.
+function convertPastedFormat(textareaId, statusId, keyInputId) {
     var ta = document.getElementById(textareaId);
-    if (!ta) return;
-    ta.addEventListener('paste', function () {
-        setTimeout(function () {
-            fetch('/convert_song_format', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: ta.value })
-            }).then(function (r) { return r.json(); }).then(function (data) {
-                if (data.changed) {
-                    ta.value = data.text;
-                    showToast(t('format_converted'));
-                    if (keyInputId) liveKeyCheck(textareaId, keyInputId);
-                    if (statusId) validateChords(textareaId, statusId);
-                }
-            }).catch(function () {});
-        }, 50);
-    });
+    if (!ta || !ta.value.trim()) return;
+    fetch('/convert_song_format', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: ta.value })
+    }).then(function (r) { return r.json(); }).then(function (data) {
+        if (data.changed) {
+            ta.value = data.text;
+            showToast(t('format_converted'));
+            if (keyInputId) liveKeyCheck(textareaId, keyInputId);
+            if (statusId) validateChords(textareaId, statusId);
+        } else {
+            showToast(t('format_nothing'));
+        }
+    }).catch(function () { showToast('Błąd połączenia'); });
 }
-document.addEventListener('DOMContentLoaded', function () {
-    autoConvertPastedSong('add-content', 'add-chord-status', 'add-key-input');
-    autoConvertPastedSong('edit-content', 'edit-chord-status', 'edit-key-input');
-});
 
 function checkDuplicateTitle() {
     var inp = document.getElementById('add-title');
