@@ -430,6 +430,117 @@ def normalize_chord_root(root_str, notation='international'):
     lookup = TRANSPOSE_LOOKUP_PL if notation == 'polish' else TRANSPOSE_LOOKUP
     return lookup[pc]
 
+# --- IMPORT FORMATU "AKORDY NAD TEKSTEM" (Ultimate Guitar itp.) ---
+# Wewnętrznym formatem aplikacji jest ChordPro ([C]tekst) - akord jest wtedy
+# jednoznacznie przypięty do sylaby, co przeżywa zawijanie linii, zmianę
+# czcionki i transpozycję. Ale użytkownicy kopiują piosenki z serwisów, gdzie
+# akordy stoją W OSOBNEJ LINII nad tekstem, wyrównane spacjami. Ten konwerter
+# skleja takie pary linii w ChordPro po pozycjach kolumnowych.
+#
+# Zasada bezpieczeństwa: konwersja jest KONSERWATYWNA. Linia jest uznana za
+# linię akordów tylko, gdy WSZYSTKIE tokeny to poprawne akordy - a pojedyncza
+# goła litera (np. "A" - po polsku spójnik!) nigdy. Fałszywy negatyw (nie
+# skonwertował) jest tani; fałszywy pozytyw (zjadł linijkę tekstu) - kosztowny.
+
+_STRICT_SINGLE_CHORD_RE = re.compile(
+    r'^[A-Ha-h][#b]?(?:is|es)?'
+    r'(?:m|maj7|maj9|m7b5|m7|m9|m11|dim7?|aug|sus[24]|add\d+|7sus4|6|7|9|11|13|\+|-)+'
+    r'(?:/[A-Ha-h][#b]?(?:is|es)?)?$'
+    r'|^[A-Ha-h][#b](?:/[A-Ha-h][#b]?)?$'
+    r'|^[A-Ha-h][#b]?/[A-Ha-h][#b]?$'
+)
+
+def _is_chord_token(tok):
+    return bool(CHORD_ROOT_RE.match(tok)) and is_valid_chord(tok)
+
+def _is_chords_over_lyrics_line(line):
+    """Czy linia wygląda JEDNOZNACZNIE na linię samych akordów?"""
+    tokens = line.split()
+    if not tokens:
+        return False
+    if any(not _is_chord_token(t) for t in tokens):
+        return False
+    if len(tokens) == 1:
+        # pojedynczy token: tylko wyraźny akord (Am, F#, G7, C/E) -
+        # goła litera ("A", "E") to po polsku często słowo piosenki
+        return bool(_STRICT_SINGLE_CHORD_RE.match(tokens[0]))
+    return True
+
+_SECTION_HEADER_RE = re.compile(r'^\[([^\[\]]{1,40})\]$')
+
+def convert_chords_over_lyrics(text):
+    """Konwertuje format "akordy nad tekstem" na ChordPro.
+
+    Zwraca (tekst, changed). Tekst już będący ChordPro przechodzi bez zmian
+    (idempotentne) - można bezpiecznie wołać przy każdym zapisie.
+    """
+    if not text:
+        return text, False
+    lines = text.replace('\r', '').expandtabs(4).split('\n')
+    out = []
+    changed = False
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+
+        # nagłówek sekcji w stylu UG: [Intro], [Verse 1] -> zwykła etykieta
+        m = _SECTION_HEADER_RE.match(stripped)
+        if m and not _is_chord_token(m.group(1).strip()):
+            out.append(m.group(1).strip())
+            changed = True
+            i += 1
+            continue
+
+        if _is_chords_over_lyrics_line(stripped):
+            # pozycje akordów w linii (kolumna = indeks znaku)
+            chords = [(mm.start(), mm.group(0)) for mm in re.finditer(r'\S+', line)]
+            nxt = lines[i + 1] if i + 1 < len(lines) else ''
+            nxt_stripped = nxt.strip()
+            if nxt_stripped and not _is_chords_over_lyrics_line(nxt_stripped) \
+                    and not _SECTION_HEADER_RE.match(nxt_stripped):
+                # Akordy + tekst pod spodem -> sklej po kolumnach. Transkrypcje
+                # "nad tekstem" są z konwencji wyrównane do SŁÓW, więc kolumnę
+                # trafiającą w środek słowa przyciągamy do jego początku
+                # (chyba że początek już zajęty innym akordem).
+                merged = nxt
+                positions = []
+                tail = []      # akordy za końcem tekstu - doklejane na końcu
+                taken = set()
+                for col, ch in chords:
+                    if col >= len(merged.rstrip()):
+                        tail.append(ch)
+                        continue
+                    # kolumna na spacji -> początek następnego słowa
+                    while col < len(merged) and merged[col] == ' ':
+                        col += 1
+                    # kolumna w środku słowa -> początek tego słowa
+                    start = col
+                    while start > 0 and merged[start - 1] != ' ':
+                        start -= 1
+                    if start not in taken:
+                        col = start
+                    taken.add(col)
+                    positions.append((col, ch))
+                for col, ch in sorted(positions, reverse=True):
+                    merged = merged[:col] + '[' + ch + ']' + merged[col:]
+                if tail:
+                    merged = merged.rstrip() + ' ' + ' '.join('[' + ch + ']' for ch in tail)
+                out.append(merged)
+                changed = True
+                i += 2
+                continue
+            else:
+                # linia samych akordów bez tekstu (intro/instrumental)
+                out.append(' '.join('[' + ch + ']' for _, ch in chords))
+                changed = True
+                i += 1
+                continue
+
+        out.append(line)
+        i += 1
+    return '\n'.join(out), changed
+
 def normalize_chord_to_international(chord_str, input_notation='international'):
     """Normalize a chord to international notation for storage."""
     if not chord_str or not chord_str.strip():
@@ -1111,6 +1222,16 @@ def get_shared_setlist(code):
         return {'error': 'not found'}, 404
     return {'id': h.id, 'name': h.name, 'date': h.date, 'songs': json.loads(h.songs), 'code': h.share_code}
 
+@app.route('/convert_song_format', methods=['POST'])
+def route_convert_song_format():
+    """Konwersja formatu "akordy nad tekstem" -> ChordPro na żądanie klienta
+    (wywoływane przy wklejaniu do pola treści, żeby użytkownik od razu
+    ZOBACZYŁ wynik i mógł go poprawić przed zapisem)."""
+    data = request.json or {}
+    text = data.get('text', '')
+    converted, changed = convert_chords_over_lyrics(text)
+    return {'text': converted, 'changed': changed}
+
 @app.route('/detect_key', methods=['POST'])
 def route_detect_key():
     data = request.json
@@ -1216,6 +1337,7 @@ def add_song():
     bpm = request.form.get('bpm')
     input_notation = request.form.get('input_notation', 'international')
     if content:
+        content, _ = convert_chords_over_lyrics(content)   # format "akordy nad tekstem"
         content = normalize_song_chords_to_international(content, input_notation=input_notation)
     if key:
         key = normalize_chord_to_international(key, input_notation=input_notation)
@@ -1240,6 +1362,7 @@ def import_songs():
     input_notation = request.form.get('input_notation', 'international')
     def save_or_update(song_title, song_content, song_key='', song_bpm=0):
         existing = Song.query.filter_by(title=song_title).first()
+        song_content, _ = convert_chords_over_lyrics(song_content)
         song_content = normalize_song_chords_to_international(song_content, input_notation=input_notation)
         if song_key:
             song_key = normalize_chord_to_international(song_key, input_notation=input_notation)
@@ -1302,6 +1425,7 @@ def edit_song(id):
     song.content = request.form.get('content')
     input_notation = request.form.get('input_notation', 'international')
     if song.content:
+        song.content, _ = convert_chords_over_lyrics(song.content)
         song.content = normalize_song_chords_to_international(song.content, input_notation=input_notation)
     song.key = request.form.get('key')
     if song.key:
