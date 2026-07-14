@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+    <h2>Twoje wspólnoty</h2>
+    {% for m in memberships %}
+        <p><a class="btn" href="{{ url_for('panel.church_home', church_id=m.church_id) }}">{{ m.church.name }}</a>
+           <span class="muted">({{ m.role }})</span></p>
+    {% endfor %}
+    <a class="btn-ghost btn" href="{{ url_for('panel.create_church') }}">+ Nowa wspólnota</a>
+</div>
+{% endblock %}

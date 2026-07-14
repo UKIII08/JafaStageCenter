@@ -1,0 +1,32 @@
+# JafaStage Cloud — produkcja (VPS). Sekrety w pliku .env obok tego pliku.
+services:
+  app:
+    build: ..
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      DATABASE_URL: postgresql://jafa:${DB_PASSWORD}@db:5432/jafastage
+      REDIS_URL: redis://redis:6379/0
+    depends_on: [db, redis]
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jafa
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: jafastage
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on: [app]
+volumes:
+  pgdata:
+  caddy_data:

@@ -1,0 +1,4 @@
+# Podmień domenę po jej zakupie (RUNBOOK.md) — HTTPS załatwia się sam.
+app.example.com {
+    reverse_proxy app:8000
+}

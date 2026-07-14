@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Rejestracja — JafaStage{% endblock %}
+{% block content %}
+<div class="card" style="max-width:420px; margin:40px auto;">
+    <h2>Załóż konto</h2>
+    <form method="POST">
+        <label>Imię (widoczne dla zespołu)</label>
+        <input name="display_name" required>
+        <label>E-mail</label>
+        <input name="email" type="email" required>
+        <label>Hasło (min. 8 znaków)</label>
+        <input name="password" type="password" minlength="8" required>
+        <button type="submit">Zarejestruj się</button>
+    </form>
+    <p class="muted">Masz konto? <a href="{{ url_for('auth.login') }}" style="color:#5b7cfa;">Zaloguj się</a></p>
+</div>
+{% endblock %}

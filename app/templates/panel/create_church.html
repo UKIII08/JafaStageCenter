@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card" style="max-width:480px; margin:40px auto;">
+    <h2>Załóż wspólnotę</h2>
+    <p class="muted">Utworzysz przestrzeń dla swojego zespołu — piosenki, setlisty i profile muzyków.</p>
+    <form method="POST">
+        <label>Nazwa wspólnoty / zboru</label>
+        <input name="name" required minlength="3" placeholder="np. Zbór Betania Warszawa">
+        <button type="submit">Utwórz</button>
+    </form>
+</div>
+{% endblock %}

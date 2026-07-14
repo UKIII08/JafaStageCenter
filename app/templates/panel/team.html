@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+    <h2>Zespół — {{ church.name }}</h2>
+    <table>
+        <tr><th>Osoba</th><th>Rola</th><th>Profil / instrument</th></tr>
+        {% for m in members %}
+        <tr>
+            <td>{{ m.user.display_name }} <span class="muted">{{ m.user.email }}</span></td>
+            <td>{{ m.role }}</td>
+            <td>
+              {% for p in profiles %}{% if p.user_id == m.user_id %}{{ p.instrument or '—' }}{% endif %}{% endfor %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% for p in profiles %}{% if not p.user_id %}
+        <p class="muted">Profil bez konta: <b>{{ p.name }}</b> ({{ p.instrument or '—' }}) — z aplikacji desktop</p>
+    {% endif %}{% endfor %}
+</div>
+{% if membership.role == 'admin' %}
+<div class="card">
+    <h3>Zaproś do zespołu</h3>
+    {% if invite %}
+        <p>Link dołączenia (ważny do {{ invite.expires_at.strftime('%d.%m.%Y') }}):</p>
+        <p class="invite-code">{{ invite.code }}</p>
+        <p class="muted">Wyślij zespołowi: {{ url_for('panel.join', code=invite.code, _external=True) }}</p>
+    {% endif %}
+    <form method="POST" action="{{ url_for('panel.team_invite', church_id=church.id) }}">
+        <label>Rola dla dołączających</label>
+        <select name="role">
+            <option value="muzyk">Muzyk</option>
+            <option value="prowadzacy">Prowadzący</option>
+        </select>
+        <button type="submit">{{ 'Wygeneruj nowy link' if invite else 'Wygeneruj link zaproszenia' }}</button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}

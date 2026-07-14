@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}JafaStage{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+    <style>
+        body { background: var(--bg-app); color: var(--text-primary, #eee);
+               font-family: 'Sen', system-ui, sans-serif; margin: 0; min-height: 100vh; }
+        .shell { max-width: 960px; margin: 0 auto; padding: var(--s6, 24px); }
+        .card { background: var(--bg-panel); border: 1px solid var(--border-default);
+                border-radius: 12px; padding: var(--s6, 24px); margin-top: var(--s5, 20px); }
+        .brand { font-weight: 800; font-size: 1.3rem; }
+        .brand span { color: #5b7cfa; }
+        input, select { background: var(--bg-inset, #111); color: inherit;
+                border: 1px solid var(--border-default); border-radius: 8px;
+                padding: 10px 12px; width: 100%; box-sizing: border-box; margin: 6px 0 14px; }
+        button, .btn { background: #5b7cfa; color: #fff; border: 0; border-radius: 8px;
+                padding: 10px 18px; font-weight: 700; cursor: pointer; text-decoration: none;
+                display: inline-block; }
+        .btn-ghost { background: transparent; border: 1px solid var(--border-default);
+                color: var(--text-secondary, #aaa); }
+        .flash { background: rgba(240,168,50,.12); border: 1px solid rgba(240,168,50,.4);
+                color: #f0c064; border-radius: 8px; padding: 10px 14px; margin-top: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        td, th { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border-default); }
+        .muted { color: var(--text-tertiary, #888); font-size: .9em; }
+        .topbar { display: flex; justify-content: space-between; align-items: center;
+                padding: 14px 0; border-bottom: 1px solid var(--border-default); }
+        .invite-code { font-family: monospace; font-size: 1.6rem; letter-spacing: .2em;
+                background: var(--bg-inset, #111); padding: 8px 16px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <div class="topbar">
+        <div class="brand">Jafa<span>Stage</span> Cloud</div>
+        <div>
+            {% if user %}<span class="muted">{{ user.display_name }}</span>
+            &nbsp;<a class="btn-ghost btn" href="{{ url_for('auth.logout') }}">Wyloguj</a>{% endif %}
+        </div>
+    </div>
+    {% with messages = get_flashed_messages() %}
+      {% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+</div>
+</body>
+</html>

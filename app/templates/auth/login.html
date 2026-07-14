@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Logowanie — JafaStage{% endblock %}
+{% block content %}
+<div class="card" style="max-width:420px; margin:40px auto;">
+    <h2>Zaloguj się</h2>
+    <form method="POST">
+        <label>E-mail</label>
+        <input name="email" type="email" required>
+        <label>Hasło</label>
+        <input name="password" type="password" required>
+        <button type="submit">Zaloguj</button>
+    </form>
+    <p class="muted">Nowy tutaj? <a href="{{ url_for('auth.register') }}" style="color:#5b7cfa;">Załóż konto</a></p>
+</div>
+{% endblock %}
