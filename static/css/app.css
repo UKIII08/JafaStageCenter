@@ -228,3 +228,53 @@ td a.row-link:hover { color: var(--accent); }
     flex-wrap: wrap;
 }
 .toolbar b { min-width: 34px; text-align: center; }
+
+/* ── Pasek nawigacji w stylu Studia (control.html .top-btn) ── */
+.topbar.topbar-studio {
+    gap: var(--s3);
+    min-height: 60px;
+    padding: 12px var(--s6);
+}
+.top-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s2);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    color: var(--text-secondary);
+    border-radius: var(--r-md);
+    padding: var(--s2) var(--s4);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: background .15s ease, border-color .15s ease,
+                color .15s ease, transform .15s ease;
+}
+.top-btn:hover {
+    background: var(--bg-surface-hover);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+.top-btn:active { transform: scale(0.97); }
+.top-btn svg { stroke: currentColor; flex: none; }
+.top-btn.active {
+    background: var(--accent-subtle);
+    border-color: transparent;
+    color: var(--accent);
+}
+.top-btn-accent {
+    background: var(--accent);
+    border-color: transparent;
+    color: #fff;
+    font-weight: 700;
+}
+.top-btn-accent:hover { background: var(--accent-hover); color: #fff; }
+.topbar-nav { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+.topbar-spacer { flex: 1; }
+@media (max-width: 900px) {
+    .top-btn span { display: none; }       /* na telefonie same ikony */
+    .top-btn { padding: var(--s2) var(--s3); }
+}

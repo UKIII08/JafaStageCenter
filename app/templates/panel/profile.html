@@ -2,7 +2,10 @@
 {% block title %}Mój profil — {{ church.name }}{% endblock %}
 {% block content %}
 <div class="panel" style="max-width:560px;">
-    <h2>Mój profil</h2>
+    <div class="panel-header">
+        <h2>Mój profil</h2>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('auth.account') }}">Konto i hasło</a>
+    </div>
     <p class="hint">Ustawienia zapisują się na Twoim koncie i stosują
     automatycznie w widoku muzyka (live i ćwiczenie) na każdym urządzeniu.</p>
     <form method="POST">
