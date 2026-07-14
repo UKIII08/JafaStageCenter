@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card" style="max-width:760px;">
+    <h2>{{ 'Dodaj piosenkę' if is_new else 'Edytuj: ' + song.title }}</h2>
+    <form method="POST">
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <input name="title" placeholder="Tytuł" required style="flex:3; min-width:220px;"
+                   value="{{ song.title if song else '' }}">
+            <input name="key" id="song-key" placeholder="Tonacja" style="flex:1; min-width:90px;"
+                   value="{{ song.key if song else '' }}">
+            <input name="bpm" type="number" min="0" max="300" placeholder="BPM" style="flex:1; min-width:90px;"
+                   value="{{ song.bpm if song and song.bpm else '' }}">
+        </div>
+        <label>Notacja wejściowa</label>
+        <select name="input_notation">
+            <option value="international">Międzynarodowa (Bb, B)</option>
+            <option value="polish">Polska (B, H, Cis, Fis)</option>
+        </select>
+        <div class="muted" style="margin:8px 0; line-height:1.6;">
+            Akordy w nawiasach: <code>[Am]tekst [G]dalej</code>. Sekcje (Zwrotka, Refren)
+            oddzielaj pustą linią.<br>📋 Wkleiłeś piosenkę z akordami <b>nad tekstem</b>
+            (np. z Ultimate Guitar)? Kliknij przycisk poniżej.
+        </div>
+        <button type="button" class="btn-ghost btn" id="convert-format-btn">⇄ Konwertuj akordy nad tekstem</button>
+        <textarea name="content" id="song-content" rows="14"
+                  style="font-family:monospace; margin-top:10px;"
+                  placeholder="Zwrotka 1&#10;[C]Tekst piosenki [Am]z akordami&#10;&#10;Refren&#10;[F]Tekst refrenu [C]dalej">{{ song.content if song else '' }}</textarea>
+        <div id="chord-status" class="muted" style="min-height:1.3em;"></div>
+        <button type="submit">{{ 'Zapisz do biblioteki' if is_new else 'Zapisz zmiany' }}</button>
+        <a class="btn-ghost btn" href="{{ url_for('songs.songs_list', church_id=church.id) }}">Anuluj</a>
+    </form>
+</div>
+<script src="{{ url_for('static', filename='js/song-editor.js') }}"></script>
+{% endblock %}

@@ -25,8 +25,10 @@ def create_app(config_object='app.config.Config'):
 
     from app.auth.routes import auth_bp
     from app.panel.routes import panel_bp
+    from app.songs.routes import songs_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(panel_bp)
+    app.register_blueprint(songs_bp)
 
     with app.app_context():
         db.create_all()   # M0: create_all; migracje Alembic dojdą w M1

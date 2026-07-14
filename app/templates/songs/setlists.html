@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+    <h2>Setlisty / nabożeństwa</h2>
+    {% if membership.role != 'muzyk' %}
+    <form method="POST" style="display:flex; gap:10px; flex-wrap:wrap;">
+        <input name="name" placeholder="Nazwa (np. Niedziela poranna)" style="flex:2; min-width:200px;">
+        <input name="service_date" type="date" style="flex:1; min-width:140px;">
+        <button type="submit">+ Nowa setlista</button>
+    </form>
+    {% endif %}
+    <table>
+        <tr><th>Nazwa</th><th>Data</th><th>Piosenek</th><th></th></tr>
+        {% for sl in setlists %}
+        <tr>
+            <td><a href="{{ url_for('songs.setlist_edit', church_id=church.id, setlist_id=sl.id) }}"
+                   style="color:inherit; font-weight:700; text-decoration:none;">{{ sl.name }}</a></td>
+            <td class="muted">{{ sl.service_date.strftime('%d.%m.%Y') if sl.service_date else '—' }}</td>
+            <td class="muted">{{ (sl.items or [])|length }}</td>
+            <td>
+                {% if membership.role != 'muzyk' %}
+                <form method="POST" action="{{ url_for('songs.setlist_duplicate', church_id=church.id, setlist_id=sl.id) }}" style="display:inline;">
+                    <button class="btn-ghost btn" style="padding:4px 10px;">Duplikuj</button>
+                </form>
+                <form method="POST" action="{{ url_for('songs.setlist_delete', church_id=church.id, setlist_id=sl.id) }}"
+                      style="display:inline;" onsubmit="return confirm('Usunąć setlistę?')">
+                    <button class="btn-ghost btn" style="padding:4px 10px;">×</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="muted">Brak setlist.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

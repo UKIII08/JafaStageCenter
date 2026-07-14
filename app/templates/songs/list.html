@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Piosenki — {{ church.name }}{% endblock %}
+{% block content %}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <h2 style="margin:0;">Piosenki <span class="muted">({{ songs|length }})</span></h2>
+        <div>
+            {% if membership.role != 'muzyk' %}
+            <a class="btn" href="{{ url_for('songs.song_new', church_id=church.id) }}">+ Dodaj piosenkę</a>
+            <form method="POST" action="{{ url_for('songs.songs_import', church_id=church.id) }}"
+                  enctype="multipart/form-data" style="display:inline;">
+                <label class="btn-ghost btn" style="cursor:pointer;">
+                    Import .txt <input type="file" name="files" accept=".txt" multiple hidden
+                                       onchange="this.form.submit()">
+                </label>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    <form method="GET"><input name="q" value="{{ q }}" placeholder="Szukaj po tytule lub tekście..."></form>
+    <table>
+        <tr><th>Tytuł</th><th>Tonacja</th><th>BPM</th></tr>
+        {% for s in songs %}
+        <tr>
+            <td><a href="{{ url_for('songs.song_view', church_id=church.id, song_id=s.id) }}"
+                   style="color:inherit; font-weight:700; text-decoration:none;">{{ s.title }}</a></td>
+            <td class="muted">{{ s.key or '—' }}</td>
+            <td class="muted">{{ s.bpm or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="muted">Brak piosenek — dodaj pierwszą albo zaimportuj plik .txt
+            (możesz użyć eksportu z aplikacji desktop).</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

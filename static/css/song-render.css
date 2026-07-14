@@ -1,0 +1,12 @@
+/* Pary akord+sylaba — identyczna zasada jak w aplikacji desktop:
+   akord zajmuje prawdziwy wiersz nad sylabą, zawija się razem z nią. */
+.song-render { font-size: 1.15rem; line-height: 1.5; }
+.song-render .chord-pair { display: inline-block; vertical-align: baseline; text-align: left; }
+.song-render .chord-pair .chord {
+    display: block; color: #5b7cfa; font-weight: 700; font-size: 0.72em;
+    line-height: 1.3; white-space: nowrap; padding-right: 0.4em;
+}
+.song-render .chord-pair .chord-syl { display: block; white-space: nowrap; }
+.song-render .chord-pair .chord-syl:empty::before { content: "\200B"; }
+.song-render .bass-slash { color: var(--text-tertiary, #888); opacity: .8; }
+.song-render .bass-note { color: #2dce89; font-weight: 800; font-size: .95em; }

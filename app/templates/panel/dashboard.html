@@ -4,6 +4,8 @@
     <h2>{{ church.name }}</h2>
     <p class="muted">Panel wspólnoty — fundament M0. Kolejne moduły wg PLAN.md:
     Piosenki i Setlisty (M1), LIVE (M2), Ćwiczenie i moje tonacje (M3).</p>
+    <a class="btn" href="{{ url_for('songs.songs_list', church_id=church.id) }}">Piosenki</a>
+    <a class="btn" href="{{ url_for('songs.setlists', church_id=church.id) }}">Setlisty</a>
     <a class="btn" href="{{ url_for('panel.team', church_id=church.id) }}">Zespół</a>
     <a class="btn-ghost btn" href="{{ url_for('panel.my_profile', church_id=church.id) }}">Mój profil</a>
     {% if membership.role == 'admin' %}

@@ -96,3 +96,37 @@ class Invitation(db.Model):
         if self.max_uses is not None and self.uses >= self.max_uses:
             return False
         return True
+
+
+class Song(db.Model):
+    __tablename__ = 'songs'
+    __table_args__ = (db.Index('ix_songs_church_title', 'church_id', 'title'),)
+    id = db.Column(db.String(36), primary_key=True, default=new_uuid)
+    church_id = db.Column(db.String(36), db.ForeignKey('churches.id'),
+                          nullable=False, index=True)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, default='')        # ChordPro
+    key = db.Column(db.String(10), default='')
+    bpm = db.Column(db.Integer, default=0)
+    tags = db.Column(db.JSON, default=list)
+    created_by = db.Column(db.String(36), db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           onupdate=datetime.utcnow)
+    deleted = db.Column(db.Boolean, default=False)  # tombstone pod sync
+
+
+class Setlist(db.Model):
+    __tablename__ = 'setlists'
+    id = db.Column(db.String(36), primary_key=True, default=new_uuid)
+    church_id = db.Column(db.String(36), db.ForeignKey('churches.id'),
+                          nullable=False, index=True)
+    name = db.Column(db.String(200), nullable=False)
+    service_date = db.Column(db.Date, nullable=True)
+    status = db.Column(db.String(20), default='draft')
+    items = db.Column(db.JSON, default=list)   # [{song_id, transpose}]
+    created_by = db.Column(db.String(36), db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           onupdate=datetime.utcnow)
+    deleted = db.Column(db.Boolean, default=False)

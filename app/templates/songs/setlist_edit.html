@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+    <h2>{{ sl.name }}
+        <span class="muted" style="font-size:.7em;">{{ sl.service_date.strftime('%d.%m.%Y') if sl.service_date else '' }}</span>
+    </h2>
+    <table>
+        <tr><th style="width:30px;">#</th><th>Piosenka</th><th>Tonacja</th><th>Transpozycja</th><th></th></tr>
+        {% for r in rows %}
+        <tr>
+            <td class="muted">{{ loop.index }}</td>
+            <td><a href="{{ url_for('songs.song_view', church_id=church.id, song_id=r.song.id, t=r.transpose) }}"
+                   style="color:inherit; font-weight:700; text-decoration:none;">{{ r.song.title }}</a></td>
+            <td>{{ r.shown_key or '—' }}{% if r.transpose %} <span class="muted">(oryg. {{ r.song.key }})</span>{% endif %}</td>
+            <td>
+                {% if membership.role != 'muzyk' %}
+                <form method="POST" action="{{ url_for('songs.setlist_items', church_id=church.id, setlist_id=sl.id) }}" style="display:inline;">
+                    <input type="hidden" name="idx" value="{{ loop.index0 }}">
+                    <button name="action" value="t_down" class="btn-ghost btn" style="padding:2px 9px;">−</button>
+                    <b style="padding:0 6px;">{{ '+' + r.transpose|string if r.transpose > 0 else r.transpose }}</b>
+                    <button name="action" value="t_up" class="btn-ghost btn" style="padding:2px 9px;">+</button>
+                </form>
+                {% else %}{{ r.transpose }}{% endif %}
+            </td>
+            <td>
+                {% if membership.role != 'muzyk' %}
+                <form method="POST" action="{{ url_for('songs.setlist_items', church_id=church.id, setlist_id=sl.id) }}" style="display:inline;">
+                    <input type="hidden" name="idx" value="{{ loop.index0 }}">
+                    <button name="action" value="up" class="btn-ghost btn" style="padding:2px 9px;">↑</button>
+                    <button name="action" value="down" class="btn-ghost btn" style="padding:2px 9px;">↓</button>
+                    <button name="action" value="remove" class="btn-ghost btn" style="padding:2px 9px;">×</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="muted">Setlista jest pusta — dodaj piosenki poniżej.</td></tr>
+        {% endfor %}
+    </table>
+    {% if membership.role != 'muzyk' and available %}
+    <form method="POST" action="{{ url_for('songs.setlist_items', church_id=church.id, setlist_id=sl.id) }}"
+          style="display:flex; gap:10px; margin-top:14px;">
+        <input type="hidden" name="action" value="add">
+        <select name="song_id" style="flex:1;">
+            {% for s in available %}<option value="{{ s.id }}">{{ s.title }} {{ '(' + s.key + ')' if s.key }}</option>{% endfor %}
+        </select>
+        <button type="submit">Dodaj do setlisty</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}
