@@ -158,3 +158,21 @@ class ScreenToken(db.Model):
     name = db.Column(db.String(120), default='')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     revoked_at = db.Column(db.DateTime, nullable=True)
+
+
+class SongPersonal(db.Model):
+    """"Moje tonacje" + prywatne notatki: preferencje muzyka per piosenka.
+    Kluczowane po profilu (nie koncie) — patrz PLAN §1: identycznie działa
+    dla muzyka zalogowanego na stronie i profilu z aplikacji desktop."""
+    __tablename__ = 'song_personal'
+    __table_args__ = (db.UniqueConstraint('profile_id', 'song_id'),)
+    id = db.Column(db.Integer, primary_key=True)
+    profile_id = db.Column(db.String(36), db.ForeignKey('profiles.id'),
+                           nullable=False, index=True)
+    song_id = db.Column(db.String(36), db.ForeignKey('songs.id'),
+                        nullable=False, index=True)
+    preferred_transpose = db.Column(db.Integer, nullable=True)
+    preferred_key = db.Column(db.String(10), nullable=True)
+    note = db.Column(db.Text, default='')
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           onupdate=datetime.utcnow)

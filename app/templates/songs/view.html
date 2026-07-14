@@ -7,6 +7,7 @@
             <span class="muted" style="font-size:.7em;">{{ shown_key or '' }}{% if song.bpm %} · {{ song.bpm }} BPM{% endif %}</span>
         </h2>
         <div>
+            <a class="btn" style="background:#2dce89;" href="{{ url_for('songs.practice', church_id=church.id, song_id=song.id) }}">🎸 Ćwicz</a>
             <a class="btn-ghost btn" href="{{ url_for('songs.song_view', church_id=church.id, song_id=song.id, t=transpose-1) }}">−1</a>
             <span style="padding:0 8px; font-weight:700;">{{ '+' + transpose|string if transpose > 0 else transpose }}</span>
             <a class="btn-ghost btn" href="{{ url_for('songs.song_view', church_id=church.id, song_id=song.id, t=transpose+1) }}">+1</a>

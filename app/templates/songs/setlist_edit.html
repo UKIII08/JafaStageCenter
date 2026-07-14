@@ -14,7 +14,9 @@
         <tr>
             <td class="muted">{{ loop.index }}</td>
             <td><a href="{{ url_for('songs.song_view', church_id=church.id, song_id=r.song.id, t=r.transpose) }}"
-                   style="color:inherit; font-weight:700; text-decoration:none;">{{ r.song.title }}</a></td>
+                   style="color:inherit; font-weight:700; text-decoration:none;">{{ r.song.title }}</a>
+                {% if r.hints %}<br><span class="muted" style="font-size:.8em;">💡 {{ r.hints|join(' · ') }}</span>{% endif %}
+            </td>
             <td>{{ r.shown_key or '—' }}{% if r.transpose %} <span class="muted">(oryg. {{ r.song.key }})</span>{% endif %}</td>
             <td>
                 {% if membership.role != 'muzyk' %}

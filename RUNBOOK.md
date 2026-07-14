@@ -29,6 +29,20 @@
 4. Zanotuj **adres IP** serwera.
 5. Cloud Console → serwer → **Firewall**: reguły „in": TCP 22, 80, 443.
 
+### Wariant OVH (kupiony VPS-2: 4 vCore / 8 GB, Warszawa)
+
+Krok 1 masz z głowy. Różnice względem Hetznera:
+1. Panel OVH → Bare Metal Cloud → VPS → Twój serwer: tu znajdziesz **adres IP**.
+2. SSH: jeśli przy zamówieniu nie podałeś klucza, OVH wysyła mailem hasło
+   użytkownika (zwykle `ubuntu`, nie `root`). Logujesz się
+   `ssh ubuntu@IP`, a w komendach kroku 4 poprzedzaj polecenia `sudo`
+   (albo raz: `sudo -i` i dalej jak root).
+3. Firewall: Ubuntu na OVH ma domyślnie otwarte porty — dla porządku:
+   `sudo ufw allow 22 && sudo ufw allow 80 && sudo ufw allow 443 && sudo ufw enable`
+4. Backup: masz w pakiecie **Automated Backup** (snapshot całego serwera) —
+   nasz nocny backup bazy (krok 7) i tak włącz: odzyskanie samej bazy jest
+   szybsze niż odtwarzanie całego serwera.
+
 ## Krok 2 — Domena + DNS (~15 min)
 
 1. Kup domenę (rekomendacja: krótka .pl; sprawdź promocje pierwszego roku

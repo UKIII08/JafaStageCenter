@@ -9,7 +9,7 @@ from flask import (Blueprint, render_template, request, redirect,
 import music_core as mc
 from app import db
 from app.auth.routes import current_user, login_required
-from app.models import Church, Song, Setlist
+from app.models import Church, Song, Setlist, Profile, SongPersonal
 from app.panel.routes import require_membership, NOTATIONS
 
 songs_bp = Blueprint('songs', __name__)
@@ -264,6 +264,9 @@ def setlist_edit(church_id, setlist_id, membership):
                 f'[{song.key}]', t).strip('[]')
         rows.append({'song': song, 'transpose': t, 'shown_key': shown_key})
     available = sorted(songs_by_id.values(), key=lambda s: s.title.lower())
+    hints = team_preferences(church_id, [r['song'].id for r in rows])
+    for r in rows:
+        r['hints'] = hints.get(r['song'].id, [])
     return render_template('songs/setlist_edit.html', sl=sl, rows=rows,
                            available=available,
                            church=db.session.get(Church, church_id),
@@ -324,3 +327,102 @@ def setlist_duplicate(church_id, setlist_id, membership):
     db.session.commit()
     return redirect(url_for('songs.setlist_edit', church_id=church_id,
                             setlist_id=copy.id))
+
+
+# ── Tryb ćwiczenia + moje tonacje ──
+def _my_profile(church_id):
+    return Profile.query.filter_by(church_id=church_id,
+                                   user_id=current_user().id,
+                                   deleted=False).first()
+
+
+def _my_personal(church_id, song_id, create=False):
+    profile = _my_profile(church_id)
+    if not profile:
+        return None, None
+    sp = SongPersonal.query.filter_by(profile_id=profile.id,
+                                      song_id=song_id).first()
+    if not sp and create:
+        sp = SongPersonal(profile_id=profile.id, song_id=song_id)
+        db.session.add(sp)
+    return profile, sp
+
+
+@songs_bp.get('/c/<church_id>/songs/<song_id>/practice')
+@require_membership('muzyk')
+def practice(church_id, song_id, membership):
+    song = _get_song(church_id, song_id)
+    profile, sp = _my_personal(church_id, song_id)
+    transpose = (sp.preferred_transpose if sp and
+                 sp.preferred_transpose is not None else 0)
+    try:
+        transpose = int(request.args.get('t', transpose))
+    except ValueError:
+        pass
+    transpose = max(-11, min(11, transpose))
+    sections = mc.parse_song_sections(song.content)
+    rendered = []
+    for sec in sections:
+        _, band, _ = mc.process_song(sec['content'],
+                                     transpose_amount=transpose)
+        rendered.append({'label': sec['label'], 'band_html': band})
+    shown_key = song.key
+    if song.key and transpose:
+        shown_key = mc.apply_transpose_to_single_chord(
+            f'[{song.key}]', transpose).strip('[]')
+    return render_template('songs/practice.html', song=song,
+                           sections=rendered, transpose=transpose,
+                           shown_key=shown_key,
+                           note=(sp.note if sp else ''),
+                           prefs=(profile.prefs if profile else {}) or {},
+                           church=db.session.get(Church, church_id),
+                           membership=membership, user=current_user())
+
+
+@songs_bp.post('/c/<church_id>/songs/<song_id>/personal')
+@require_membership('muzyk')
+def save_personal(church_id, song_id, membership):
+    """Zapis "mojej tonacji" / notatki (AJAX z widoku ćwiczenia)."""
+    song = _get_song(church_id, song_id)
+    profile, sp = _my_personal(church_id, song_id, create=True)
+    if not profile:
+        abort(400)
+    data = request.json or {}
+    if 'transpose' in data:
+        try:
+            t = max(-11, min(11, int(data['transpose'])))
+            sp.preferred_transpose = t
+            if song.key:
+                sp.preferred_key = mc.apply_transpose_to_single_chord(
+                    f'[{song.key}]', t).strip('[]')[:10]
+        except (TypeError, ValueError):
+            pass
+    if 'note' in data:
+        sp.note = str(data['note'])[:2000]
+    db.session.commit()
+    return jsonify({'status': 'ok',
+                    'preferred_key': sp.preferred_key,
+                    'preferred_transpose': sp.preferred_transpose})
+
+
+def team_preferences(church_id, song_ids):
+    """Podpowiedzi dla prowadzącego: kto woli jaką tonację (per piosenka)."""
+    if not song_ids:
+        return {}
+    rows = db.session.query(SongPersonal, Profile).join(
+        Profile, SongPersonal.profile_id == Profile.id).filter(
+        Profile.church_id == church_id,
+        SongPersonal.song_id.in_(song_ids),
+        SongPersonal.preferred_transpose.isnot(None)).all()
+    hints = {}
+    for sp, profile in rows:
+        if sp.preferred_transpose == 0:
+            continue
+        txt = profile.name
+        if sp.preferred_key:
+            txt += f' woli {sp.preferred_key}'
+        else:
+            t = sp.preferred_transpose
+            txt += f' woli {"+" if t > 0 else ""}{t}'
+        hints.setdefault(sp.song_id, []).append(txt)
+    return hints
