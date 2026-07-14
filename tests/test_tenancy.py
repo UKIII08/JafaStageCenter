@@ -59,8 +59,9 @@ def test_two_churches_are_isolated(app, client):
     assert client.get(f'/c/{id_a}/team').status_code == 403
     assert client.post(f'/c/{id_a}/team/invite',
                        data={'role': 'muzyk'}).status_code == 403
-    # B widzi swoją
-    assert client.get(f'/c/{id_b}').status_code == 200
+    # B widzi swoją (pulpit przekierowuje do widoku domyślnego roli)
+    assert client.get(f'/c/{id_b}',
+                      follow_redirects=True).status_code == 200
 
 
 def test_join_flow_and_roles(app, client):

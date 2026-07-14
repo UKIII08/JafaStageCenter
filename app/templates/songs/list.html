@@ -5,16 +5,7 @@
     <div class="panel-header">
         <h2>Piosenki <span class="muted">({{ songs|length }})</span></h2>
         {% if membership.role != 'muzyk' %}
-        <div style="display:flex; gap:var(--s2);">
-            <a class="btn" href="{{ url_for('songs.song_new', church_id=church.id) }}">Dodaj piosenkę</a>
-            <form method="POST" action="{{ url_for('songs.songs_import', church_id=church.id) }}"
-                  enctype="multipart/form-data" style="display:inline;">
-                <label class="btn-ghost btn" style="cursor:pointer; margin:0;">
-                    Import .txt <input type="file" name="files" accept=".txt" multiple hidden
-                                       onchange="this.form.submit()">
-                </label>
-            </form>
-        </div>
+        <a class="btn" href="{{ url_for('studio.control', church_id=church.id) }}">Zarządzaj w Studiu</a>
         {% endif %}
     </div>
     <form method="GET"><input name="q" value="{{ q }}" placeholder="Szukaj po tytule lub tekście"></form>

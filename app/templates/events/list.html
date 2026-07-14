@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Granie — {{ church.name }}{% endblock %}
+{% block content %}
+{% if membership.role != 'muzyk' %}
+<div class="panel">
+    <div class="panel-header"><h2>Nowe granie</h2></div>
+    <form method="POST" class="form-row">
+        <input name="name" placeholder="Nazwa (np. Niedziela poranna)" style="flex:2; min-width:180px;">
+        <input name="date" type="date" required style="flex:1; min-width:140px;">
+        <input name="time" type="time" style="flex:0 0 110px;">
+        <input name="signup_deadline" type="date" title="Termin zgłoszeń (opcjonalnie)" style="flex:1; min-width:140px;">
+        <button type="submit" style="flex:0;">Utwórz</button>
+    </form>
+    <p class="hint" style="margin-bottom:0;">Trzecie pole to termin zgłoszeń (opcjonalny) — po nim
+    zespół nadal może zaznaczać dostępność, ale widać, że jest po terminie.</p>
+</div>
+{% endif %}
+
+<div class="panel">
+    <div class="panel-header"><h2>Nadchodzące grania</h2></div>
+    <table>
+        <tr><th>Data</th><th>Nazwa</th><th>Moja dostępność</th><th>Gram na</th><th></th></tr>
+        {% for e in upcoming %}
+        {% set s = my_signups.get(e.id) %}
+        <tr>
+            <td class="muted" style="white-space:nowrap;">{{ e.date.strftime('%d.%m.%Y') }}{{ ' ' + e.time if e.time }}</td>
+            <td><a class="row-link" href="{{ url_for('events.event_detail', church_id=church.id, eid=e.id) }}">{{ e.name }}</a></td>
+            <td>
+                {% if s is none %}<span class="badge">brak odpowiedzi</span>
+                {% elif s.available %}<span class="badge" style="background:var(--green-subtle); color:var(--green);">mogę</span>
+                {% else %}<span class="badge" style="background:var(--red-subtle); color:var(--red);">nie mogę</span>{% endif %}
+            </td>
+            <td class="muted">{{ my_assignments.get(e.id, [])|reject('equalto', '')|join(', ') or ('—' if e.id not in my_assignments else 'tak') }}</td>
+            <td style="text-align:right;">
+                <a class="btn btn-ghost btn-sm" href="{{ url_for('events.event_detail', church_id=church.id, eid=e.id) }}">Otwórz</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="muted">Brak zaplanowanych grań.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% if past %}
+<div class="panel">
+    <div class="section-title">Ostatnie grania</div>
+    <table>
+        {% for e in past %}
+        <tr>
+            <td class="muted" style="white-space:nowrap;">{{ e.date.strftime('%d.%m.%Y') }}</td>
+            <td><a class="row-link" href="{{ url_for('events.event_detail', church_id=church.id, eid=e.id) }}">{{ e.name }}</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+{% endblock %}

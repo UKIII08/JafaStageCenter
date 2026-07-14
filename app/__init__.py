@@ -39,11 +39,13 @@ def create_app(config_object='app.config.Config'):
     from app.songs.routes import songs_bp
     from app.live.routes import live_bp
     from app.studio.routes import studio_bp
+    from app.events.routes import events_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(panel_bp)
     app.register_blueprint(songs_bp)
     app.register_blueprint(live_bp)
     app.register_blueprint(studio_bp)
+    app.register_blueprint(events_bp)
 
     _register_socket_handlers(app)
 

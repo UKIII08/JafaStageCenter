@@ -110,9 +110,11 @@ def create_church():
 @panel_bp.get('/c/<church_id>')
 @require_membership('muzyk')
 def church_home(church_id, membership):
-    church = db.session.get(Church, church_id)
-    return render_template('panel/dashboard.html', church=church,
-                           membership=membership, user=current_user())
+    # Widok domyślny jak w aplikacji desktop: prowadzący ląduje w Studiu,
+    # muzyk w "Graniu" (kiedy gram, na czym, setlista do nauki).
+    if membership.role in ('prowadzacy', 'admin'):
+        return redirect(url_for('studio.control', church_id=church_id))
+    return redirect(url_for('events.events_list', church_id=church_id))
 
 
 @panel_bp.get('/c/<church_id>/team')

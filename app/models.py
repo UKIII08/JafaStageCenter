@@ -210,3 +210,52 @@ class StudioSetlist(db.Model):
     date = db.Column(db.String(30), nullable=False, default='')
     songs = db.Column(db.Text, nullable=False, default='[]')  # JSON [{id,title,key,bpm,transpose}]
     share_code = db.Column(db.String(8), unique=True, nullable=True, index=True)
+
+
+class Event(db.Model):
+    """Granie (służba): nabożeństwo/spotkanie z datą, zgłoszeniami
+    dostępności i obsadą. Organizacja zespołu wokół setlisty ze Studia."""
+    __tablename__ = 'events'
+    id = db.Column(db.Integer, primary_key=True)
+    church_id = db.Column(db.String(36), db.ForeignKey('churches.id'),
+                          nullable=False, index=True)
+    name = db.Column(db.String(200), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    time = db.Column(db.String(5), default='')        # np. "10:00"
+    signup_deadline = db.Column(db.Date, nullable=True)
+    setlist_id = db.Column(db.Integer,
+                           db.ForeignKey('studio_setlists.id'),
+                           nullable=True)
+    notes = db.Column(db.Text, default='')
+    created_by = db.Column(db.String(36), db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    deleted = db.Column(db.Boolean, default=False)
+
+
+class EventSignup(db.Model):
+    """Zgłoszenie dostępności: mogę / nie mogę (zmienialne też po
+    terminie — wspólnota, nie korporacja)."""
+    __tablename__ = 'event_signups'
+    __table_args__ = (db.UniqueConstraint('event_id', 'user_id'),)
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('events.id'),
+                         nullable=False, index=True)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'),
+                        nullable=False, index=True)
+    available = db.Column(db.Boolean, nullable=False)
+    comment = db.Column(db.String(200), default='')
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           onupdate=datetime.utcnow)
+
+
+class EventAssignment(db.Model):
+    """Obsada grania: kto gra i na czym. Ta sama osoba może mieć kilka
+    wpisów (rotacja instrumentów w mniejszych wspólnotach)."""
+    __tablename__ = 'event_assignments'
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('events.id'),
+                         nullable=False, index=True)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'),
+                        nullable=False, index=True)
+    instrument = db.Column(db.String(60), default='')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

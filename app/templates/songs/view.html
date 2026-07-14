@@ -13,7 +13,7 @@
             <b style="min-width:30px; text-align:center;">{{ '+' + transpose|string if transpose > 0 else transpose }}</b>
             <a class="btn-ghost btn btn-sm" href="{{ url_for('songs.song_view', church_id=church.id, song_id=song.id, t=transpose+1) }}">+1</a>
             {% if membership.role != 'muzyk' %}
-            <a class="btn-ghost btn" href="{{ url_for('songs.song_edit', church_id=church.id, song_id=song.id) }}">Edytuj</a>
+            <a class="btn-ghost btn" href="{{ url_for('studio.control', church_id=church.id) }}">Edytuj w Studiu</a>
             <form method="POST" action="{{ url_for('songs.song_delete', church_id=church.id, song_id=song.id) }}"
                   style="display:inline;" onsubmit="return confirm('Usunąć „{{ song.title }}”?')">
                 <button class="btn-danger btn">Usuń</button>
