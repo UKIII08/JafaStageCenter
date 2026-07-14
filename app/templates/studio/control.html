@@ -15,10 +15,21 @@
         window.JAFA_BASE = {{ base|tojson }};
         window.JAFA_MEDIA = {{ media|tojson }};
         window.CHURCH_ID = {{ church.id|tojson }};
+        window.JAFA_EVENT = {{ event_ctx|tojson }};   // tryb "setlista dla grania"
         (function () {
             var of = window.fetch.bind(window);
             window.fetch = function (u, o) {
                 if (typeof u === 'string' && u.charAt(0) === '/' && u.indexOf('//') !== 0) {
+                    // Zapis setlisty w trybie grania: dopnij event_id,
+                    // serwer podepnie setlistę pod wydarzenie.
+                    if (u === '/api/setlist-history' && o && o.method === 'POST'
+                        && window.JAFA_EVENT && typeof o.body === 'string') {
+                        try {
+                            var b = JSON.parse(o.body);
+                            b.event_id = window.JAFA_EVENT.id;
+                            o.body = JSON.stringify(b);
+                        } catch (e) { /* zostaw bez zmian */ }
+                    }
                     if (u.indexOf('/static/pads/') === 0) u = window.JAFA_MEDIA + u.slice('/static'.length);
                     else if (u.indexOf('/static/') !== 0 && u.indexOf(window.JAFA_BASE) !== 0) u = window.JAFA_BASE + u;
                 }
@@ -2011,5 +2022,84 @@
 
     <script src="{{ url_for('static', filename='js/control_logic.js') }}"></script>
     <script>initI18n();</script>
+    <script>
+    // ── Tryb "setlista dla grania" + preferowane tonacje zespołu (web) ──
+    (function () {
+        // 1. Baner grania + auto-wczytanie podpiętej setlisty
+        if (window.JAFA_EVENT) {
+            var bar = document.querySelector('.top-bar');
+            var chip = document.createElement('div');
+            chip.style.cssText = 'display:inline-flex;align-items:center;gap:8px;' +
+                'background:var(--amber-subtle, rgba(251,191,36,.1));color:var(--amber, #FBBF24);' +
+                'border:1px dashed var(--amber, #FBBF24);border-radius:var(--r-md,10px);' +
+                'padding:6px 12px;font-size:0.8rem;font-weight:700;white-space:nowrap;';
+            chip.textContent = 'Setlista dla: ' + window.JAFA_EVENT.name +
+                ' (' + window.JAFA_EVENT.date + ') — kliknij Zapisz setlistę, aby podpiąć';
+            var spacer = bar && bar.querySelector('.top-bar-spacer');
+            if (spacer) bar.insertBefore(chip, spacer);
+            if (window.JAFA_EVENT.setlist_id) {
+                window.addEventListener('load', function () {
+                    setTimeout(function () {
+                        try { loadSetlistHistory(window.JAFA_EVENT.setlist_id); } catch (e) {}
+                    }, 500);
+                });
+            }
+        }
+
+        // 2. Klik w tonację: kto z zespołu jaką tonację woli w tej piosence
+        var keyEl = document.getElementById('live-key');
+        if (!keyEl) return;
+        keyEl.style.cursor = 'pointer';
+        keyEl.title = 'Kliknij: preferowane tonacje zespołu dla tej piosenki';
+        keyEl.style.textDecoration = 'underline dotted';
+        keyEl.style.textUnderlineOffset = '3px';
+
+        var pop = null;
+        function closePop() { if (pop) { pop.remove(); pop = null; } }
+        document.addEventListener('click', function (e) {
+            if (pop && !pop.contains(e.target) && e.target !== keyEl) closePop();
+        });
+
+        keyEl.addEventListener('click', function () {
+            if (pop) { closePop(); return; }
+            var song = (typeof setlist !== 'undefined' && typeof currentSetIndex !== 'undefined')
+                ? setlist[currentSetIndex] : null;
+            if (!song) {
+                if (typeof showToast === 'function') showToast('Najpierw wybierz piosenkę z setlisty', 'error');
+                return;
+            }
+            fetch('/api/song/' + song.id + '/team-prefs')
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    closePop();
+                    pop = document.createElement('div');
+                    var rect = keyEl.getBoundingClientRect();
+                    pop.style.cssText = 'position:fixed;z-index:100000;' +
+                        'top:' + (rect.bottom + 8) + 'px;left:' + Math.max(10, rect.right - 260) + 'px;' +
+                        'width:260px;background:var(--bg-elevated, #313137);' +
+                        'border:1px solid var(--border-strong, rgba(255,255,255,.16));' +
+                        'border-radius:var(--r-md,10px);padding:12px;box-shadow:0 12px 32px rgba(0,0,0,.5);';
+                    var h = '<div style="font-size:0.7rem;font-weight:800;letter-spacing:.1em;' +
+                        'text-transform:uppercase;color:var(--text-tertiary,#7C7C87);margin-bottom:8px;">' +
+                        'Preferowane tonacje zespołu</div>';
+                    if (d.prefs && d.prefs.length) {
+                        d.prefs.forEach(function (p) {
+                            h += '<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;' +
+                                 'border-bottom:1px solid var(--border-default, rgba(255,255,255,.09));font-size:0.85rem;">' +
+                                 '<span>' + p.name + (p.instrument ? ' <span style="color:var(--text-tertiary)">(' + p.instrument + ')</span>' : '') + '</span>' +
+                                 '<b style="color:var(--accent,#4F7FFF);">' + (p.key || ((p.transpose > 0 ? '+' : '') + p.transpose)) + '</b></div>';
+                        });
+                        h += '<div style="font-size:0.72rem;color:var(--text-tertiary);margin-top:8px;">' +
+                             'Oryginalna tonacja: <b>' + (d.song_key || '—') + '</b>. Ustaw transpozycję pod osobę prowadzącą wokal.</div>';
+                    } else {
+                        h += '<div style="font-size:0.85rem;color:var(--text-secondary);">Nikt z zespołu nie zapisał ' +
+                             'jeszcze swojej tonacji dla tej piosenki (robi się to w widoku ćwiczenia: przyciski −1 / +1 „moja tonacja").</div>';
+                    }
+                    pop.innerHTML = h;
+                    document.body.appendChild(pop);
+                });
+        });
+    })();
+    </script>
 </body>
 </html>

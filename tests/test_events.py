@@ -144,3 +144,64 @@ def test_events_tenancy_and_roles(app, client):
     client.post('/church/create', data={'name': 'Zbor Y'},
                 follow_redirects=True)
     assert client.get(f'/c/{cid}/granie').status_code == 403
+
+
+def test_studio_event_mode_saves_and_attaches(app, client):
+    """Zapis setlisty w Studiu w trybie ?granie= podpina ją pod granie."""
+    cid = setup_church_with_musician(app, client)
+    login(client, 'lider@x.pl')
+    client.post(f'/c/{cid}/granie', data={
+        'name': 'Wieczór chwały',
+        'date': (date.today() + timedelta(days=5)).isoformat()},
+        follow_redirects=True)
+    with app.app_context():
+        eid = Event.query.filter_by(church_id=cid).first().id
+
+    # Studio w trybie grania: baner + kontekst w JS
+    r = client.get(f'/c/{cid}/studio?granie={eid}')
+    assert r.status_code == 200
+    assert f'window.JAFA_EVENT = {{"date"'.encode() in r.data
+    assert f'"id": {eid}'.encode() in r.data
+
+    # zapis setlisty z event_id (tak wysyła wrapper fetch w szablonie)
+    r = client.post(f'/c/{cid}/studio/api/setlist-history', json={
+        'name': 'Set X', 'date': '2026-07-20', 'event_id': eid,
+        'songs': [{'id': 'a', 'title': 'P', 'key': 'G', 'bpm': 0,
+                   'transpose': 1}]})
+    data = r.get_json()
+    assert data['attached_event'] is True
+    with app.app_context():
+        ev = db.session.get(Event, eid)
+        assert ev.setlist_id == data['id']
+
+    # cudze granie nie da się podpiąć (tenancy przez church filter)
+    client.get('/logout')
+    register(client, 'obcy2@y.pl', 'Obcy')
+    client.post('/church/create', data={'name': 'Zbor Z'},
+                follow_redirects=True)
+    with app.app_context():
+        cid_z = Church.query.filter_by(name='Zbor Z').first().id
+    r = client.post(f'/c/{cid_z}/studio/api/setlist-history', json={
+        'name': 'Hack', 'date': '', 'event_id': eid, 'songs': []})
+    assert r.get_json()['attached_event'] is False
+
+
+def test_team_prefs_endpoint(app, client):
+    cid = setup_church_with_musician(app, client)
+    # muzyk zapisuje swoja tonacje w cwiczeniu
+    login(client, 'lider@x.pl')
+    client.post(f'/c/{cid}/studio/add_song', data={
+        'title': 'Pref', 'content': '[G]La [C]la'})
+    with app.app_context():
+        from app.models import Song
+        sid = Song.query.filter_by(church_id=cid, title='Pref').first().id
+    client.get('/logout')
+    login(client, 'muzyk@x.pl')
+    client.post(f'/c/{cid}/songs/{sid}/personal', json={'transpose': 2})
+    client.get('/logout')
+    # prowadzacy widzi preferencje
+    login(client, 'lider@x.pl')
+    d = client.get(f'/c/{cid}/studio/api/song/{sid}/team-prefs').get_json()
+    assert d['song_key'] == 'G'
+    assert any(p['name'] == 'Marek' and (p['key'] == 'A'
+               or p['transpose'] == 2) for p in d['prefs'])

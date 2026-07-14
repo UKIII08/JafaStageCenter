@@ -132,9 +132,21 @@ def control(church_id):
     settings = get_settings(church)
     has_bg = os.path.exists(os.path.join(media_dir(church_id),
                                          'background.png'))
+    # Tryb "układam setlistę dla grania": ?granie=<id> — Zapisz setlistę
+    # podepnie ją pod to granie, a istniejąca wczyta się na start.
+    event_ctx = None
+    eid = request.args.get('granie', type=int)
+    if eid:
+        from app.models import Event
+        ev = Event.query.filter_by(id=eid, church_id=church_id,
+                                   deleted=False).first()
+        if ev:
+            event_ctx = {'id': ev.id, 'name': ev.name,
+                         'date': ev.date.strftime('%d.%m.%Y'),
+                         'setlist_id': ev.setlist_id}
     return render_template('studio/control.html', songs=songs,
                            settings=settings, has_bg=has_bg,
-                           church=church,
+                           church=church, event_ctx=event_ctx,
                            base=f'/c/{church_id}/studio',
                            media=media_url(church_id),
                            server_ip=request.host)
@@ -859,8 +871,20 @@ def save_setlist_history(church_id):
                       date=data.get('date', ''),
                       songs=json.dumps(data.get('songs', [])))
     db.session.add(h)
+    db.session.flush()
+    # Zapis w trybie grania (?granie=): setlista od razu podpięta
+    # pod wydarzenie — muzycy widzą ją w Graniu do ćwiczenia.
+    event_id = data.get('event_id')
+    attached = False
+    if event_id:
+        from app.models import Event
+        ev = Event.query.filter_by(id=event_id, church_id=church_id,
+                                   deleted=False).first()
+        if ev:
+            ev.setlist_id = h.id
+            attached = True
     db.session.commit()
-    return {'id': h.id, 'status': 'ok'}
+    return {'id': h.id, 'status': 'ok', 'attached_event': attached}
 
 
 @studio_bp.get('/studio/api/setlist-history/<int:hid>')
@@ -1087,3 +1111,28 @@ def delete_pad(church_id):
         if os.path.exists(p):
             os.remove(p)
     return redirect(url_for('panel.church_settings', church_id=church_id))
+
+
+@studio_bp.get('/studio/api/song/<sid>/team-prefs')
+@studio_auth('prowadzacy')
+def song_team_prefs(church_id, sid):
+    """Preferowane tonacje zespołu dla piosenki — do układania setlisty
+    ("Wiktoria (wokal) woli Dm" -> ustawiasz transpozycję pod wokal)."""
+    song = Song.query.filter_by(id=sid, church_id=church_id,
+                                deleted=False).first()
+    if not song:
+        return {'error': 'not found'}, 404
+    rows = db.session.query(SongPersonal, Profile) \
+        .join(Profile, Profile.id == SongPersonal.profile_id) \
+        .filter(SongPersonal.song_id == sid,
+                Profile.church_id == church_id,
+                Profile.deleted.is_(False)) \
+        .all()
+    prefs = []
+    for sp, prof in rows:
+        if sp.preferred_key or sp.preferred_transpose:
+            prefs.append({'name': prof.name,
+                          'instrument': prof.instrument or '',
+                          'key': sp.preferred_key or '',
+                          'transpose': sp.preferred_transpose or 0})
+    return {'song_key': song.key or '', 'prefs': prefs}

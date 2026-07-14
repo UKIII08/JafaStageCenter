@@ -78,7 +78,15 @@
 
 {% if membership.role != 'muzyk' %}
 <div class="panel">
-    <div class="section-title">Setlista ze Studia</div>
+    <div class="panel-header">
+        <div class="section-title" style="margin:0;">Setlista ze Studia</div>
+        <a class="btn" href="{{ url_for('studio.control', church_id=church.id, granie=ev.id) }}">
+            {{ 'Edytuj setlistę w Studiu' if ev.setlist_id else 'Ułóż setlistę w Studiu' }}
+        </a>
+    </div>
+    <p class="hint">Przycisk otwiera Studio w trybie tego grania: układasz piosenki,
+    kolejność i tonacje, klikasz „Zapisz setlistę" — i setlista sama podpina się tutaj.
+    Możesz też podpiąć wcześniej zapisaną:</p>
     <form method="POST" action="{{ url_for('events.event_setlist', church_id=church.id, eid=ev.id) }}"
           class="form-row">
         <select name="setlist_id" style="flex:1;">
@@ -89,10 +97,8 @@
             </option>
             {% endfor %}
         </select>
-        <button type="submit" style="flex:0;">Podepnij</button>
+        <button type="submit" class="btn-ghost btn" style="flex:0;">Podepnij wybraną</button>
     </form>
-    <p class="hint" style="margin-bottom:0;">Setlistę zapisujesz w Studiu przyciskiem „Zapisz setlistę" —
-    pojawi się na tej liście.</p>
 </div>
 {% endif %}
 
