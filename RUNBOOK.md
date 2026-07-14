@@ -102,3 +102,14 @@ Załóż konto https://www.backblaze.com/b2 (free 10 GB), utwórz bucket
 ### Później (nie teraz)
 - **M4:** konto Lemon Squeezy (płatności) + 1 h z księgowym.
 - **M6:** konto Microsoft Partner Center (~100 zł jednorazowo) pod Store.
+
+## Backup — włączenie (po kroku 4)
+
+Na serwerze, jako `deploy`:
+```bash
+crontab -e
+# dodaj linię (backup codziennie 03:15):
+15 3 * * * /srv/jafastage/deploy/backup.sh >> /srv/backups/backup.log 2>&1
+```
+Do `deploy/.env` dopisz `BACKUP_PASSPHRASE` (długie losowe zdanie — ZAPISZ JE
+w bezpiecznym miejscu; bez niego backup jest nie do odczytania) oraz dane B2.

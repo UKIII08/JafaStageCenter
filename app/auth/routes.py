@@ -8,7 +8,7 @@ from flask import (Blueprint, render_template, request, redirect,
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from app import db
+from app import db, limiter
 from app.emails import send_email
 from app.models import User, Membership
 
@@ -34,6 +34,7 @@ def login_required(f):
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
+@limiter.limit('10 per hour', methods=['POST'])
 def register():
     if request.method == 'POST':
         email = (request.form.get('email') or '').strip().lower()
@@ -59,6 +60,7 @@ def register():
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit('10 per minute;50 per hour', methods=['POST'])
 def login():
     if request.method == 'POST':
         email = (request.form.get('email') or '').strip().lower()
@@ -67,12 +69,100 @@ def login():
         if not user or not check_password_hash(user.password_hash, password):
             flash('Nieprawidłowy e-mail lub hasło.')
             return render_template('auth/login.html')
+        if user.totp_secret:
+            # 2FA: hasło OK, ale sesja dopiero po kodzie z aplikacji
+            session['pending_2fa'] = user.id
+            return redirect(url_for('auth.login_2fa',
+                                    next=request.args.get('next') or ''))
         user.last_login_at = datetime.utcnow()
         db.session.commit()
         session['user_id'] = user.id
         nxt = request.args.get('next')
         return redirect(nxt or url_for('panel.dashboard'))
     return render_template('auth/login.html')
+
+
+@auth_bp.route('/login/2fa', methods=['GET', 'POST'])
+@limiter.limit('10 per minute', methods=['POST'])
+def login_2fa():
+    import pyotp
+    uid = session.get('pending_2fa')
+    if not uid:
+        return redirect(url_for('auth.login'))
+    user = db.session.get(User, uid)
+    if request.method == 'POST':
+        code = (request.form.get('code') or '').strip()
+        if user and pyotp.TOTP(user.totp_secret).verify(code, valid_window=1):
+            session.pop('pending_2fa', None)
+            session['user_id'] = user.id
+            user.last_login_at = datetime.utcnow()
+            db.session.commit()
+            nxt = request.args.get('next')
+            return redirect(nxt or url_for('panel.dashboard'))
+        flash('Nieprawidłowy kod — spróbuj ponownie.')
+    return render_template('auth/login_2fa.html')
+
+
+# ── Konto: bezpieczeństwo (2FA) ──
+@auth_bp.route('/account', methods=['GET'])
+@login_required
+def account():
+    return render_template('auth/account.html', user=current_user())
+
+
+@auth_bp.post('/account/2fa/enable')
+@login_required
+def twofa_enable():
+    import pyotp
+    user = current_user()
+    if user.totp_secret:
+        return redirect(url_for('auth.account'))
+    session['totp_setup'] = pyotp.random_base32()
+    return redirect(url_for('auth.twofa_confirm'))
+
+
+@auth_bp.route('/account/2fa/confirm', methods=['GET', 'POST'])
+@login_required
+def twofa_confirm():
+    import base64
+    import io
+    import pyotp
+    import qrcode
+    import qrcode.image.svg
+    user = current_user()
+    secret = session.get('totp_setup')
+    if not secret:
+        return redirect(url_for('auth.account'))
+    if request.method == 'POST':
+        code = (request.form.get('code') or '').strip()
+        if pyotp.TOTP(secret).verify(code, valid_window=1):
+            user.totp_secret = secret
+            db.session.commit()
+            session.pop('totp_setup', None)
+            flash('Weryfikacja dwuetapowa włączona.')
+            return redirect(url_for('auth.account'))
+        flash('Kod się nie zgadza — zeskanuj QR jeszcze raz i spróbuj.')
+    uri = pyotp.TOTP(secret).provisioning_uri(
+        name=user.email, issuer_name='JafaStage')
+    img = qrcode.make(uri, image_factory=qrcode.image.svg.SvgPathImage)
+    buf = io.BytesIO(); img.save(buf)
+    qr_svg = base64.b64encode(buf.getvalue()).decode()
+    return render_template('auth/twofa_confirm.html', qr_svg=qr_svg,
+                           secret=secret, user=user)
+
+
+@auth_bp.post('/account/2fa/disable')
+@login_required
+def twofa_disable():
+    user = current_user()
+    if not check_password_hash(user.password_hash,
+                               request.form.get('password') or ''):
+        flash('Błędne hasło — 2FA pozostaje włączone.')
+        return redirect(url_for('auth.account'))
+    user.totp_secret = None
+    db.session.commit()
+    flash('Weryfikacja dwuetapowa wyłączona.')
+    return redirect(url_for('auth.account'))
 
 
 @auth_bp.get('/logout')
@@ -87,6 +177,7 @@ def _reset_serializer():
 
 
 @auth_bp.route('/reset', methods=['GET', 'POST'])
+@limiter.limit('5 per hour', methods=['POST'])
 def reset_request():
     if request.method == 'POST':
         email = (request.form.get('email') or '').strip().lower()

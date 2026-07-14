@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card" style="max-width:420px; margin:40px auto;">
+    <h2>Weryfikacja dwuetapowa</h2>
+    <p class="muted">Wpisz 6-cyfrowy kod z aplikacji (Google Authenticator itp.).</p>
+    <form method="POST">
+        <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autofocus>
+        <button type="submit">Zaloguj</button>
+    </form>
+</div>
+{% endblock %}

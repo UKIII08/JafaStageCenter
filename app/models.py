@@ -19,6 +19,7 @@ class User(db.Model):
     email_verified_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login_at = db.Column(db.DateTime, nullable=True)
+    totp_secret = db.Column(db.String(32), nullable=True)   # 2FA (opcjonalne)
 
     memberships = db.relationship('Membership', back_populates='user')
 

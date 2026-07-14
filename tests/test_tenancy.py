@@ -167,3 +167,45 @@ def test_password_reset_flow(app, client):
     r = client.post('/login', data={'email': 'r@r.pl',
                     'password': 'nowehaslo1'}, follow_redirects=True)
     assert 'Nieprawid'.encode() not in r.data
+
+
+def test_2fa_full_cycle(app, client):
+    import pyotp
+    register(client, 'tfa@t.pl', 'Tefa')
+    create_church(client, 'Zbor T')
+    # włącz 2FA
+    client.post('/account/2fa/enable', follow_redirects=True)
+    with client.session_transaction() as s:
+        secret = s['totp_setup']
+    code = pyotp.TOTP(secret).now()
+    r = client.post('/account/2fa/confirm', data={'code': code},
+                    follow_redirects=True)
+    assert 'włączona'.encode() in r.data
+    # wyloguj i zaloguj: hasło NIE wystarcza
+    client.get('/logout')
+    r = client.post('/login', data={'email': 'tfa@t.pl',
+                    'password': 'haslo1234'}, follow_redirects=False)
+    assert '/login/2fa' in r.headers['Location']
+    # bez kodu brak dostępu
+    assert client.get('/').status_code == 302
+    # poprawny kod wpuszcza
+    code = pyotp.TOTP(secret).now()
+    r = client.post('/login/2fa', data={'code': code}, follow_redirects=True)
+    assert r.status_code == 200
+    assert client.get('/').status_code in (200, 302)  # dashboard/redirect do zboru
+
+
+def test_2fa_wrong_code_rejected(app, client):
+    import pyotp
+    register(client, 'tfa2@t.pl')
+    client.post('/account/2fa/enable')
+    with client.session_transaction() as s:
+        secret = s['totp_setup']
+    client.post('/account/2fa/confirm', data={'code': pyotp.TOTP(secret).now()})
+    client.get('/logout')
+    client.post('/login', data={'email': 'tfa2@t.pl', 'password': 'haslo1234'})
+    r = client.post('/login/2fa', data={'code': '000000'},
+                    follow_redirects=True)
+    assert 'Nieprawidłowy kod'.encode() in r.data
+    with client.session_transaction() as s:
+        assert 'user_id' not in s

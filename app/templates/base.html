@@ -37,7 +37,7 @@
     <div class="topbar">
         <div class="brand">Jafa<span>Stage</span> Cloud</div>
         <div>
-            {% if user %}<span class="muted">{{ user.display_name }}</span>
+            {% if user %}<a class="muted" style="text-decoration:none;" href="{{ url_for('auth.account') }}">{{ user.display_name }}</a>
             &nbsp;<a class="btn-ghost btn" href="{{ url_for('auth.logout') }}">Wyloguj</a>{% endif %}
         </div>
     </div>
