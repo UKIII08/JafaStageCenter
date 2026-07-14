@@ -12,6 +12,11 @@ from flask import (Blueprint, render_template, request, redirect,
 
 from app import db
 from app.models import Church, Membership, Profile, Invitation, ROLES
+
+NOTATIONS = ('international', 'polish')
+ENGINES = ('v2', 'v3', 'v4')
+INSTRUMENTS = ('', 'wokal', 'gitara', 'gitara elektryczna', 'bas',
+               'klawisze', 'perkusja', 'skrzypce', 'inny')
 from app.auth.routes import current_user, login_required
 
 panel_bp = Blueprint('panel', __name__)
@@ -164,3 +169,94 @@ def join(code):
         db.session.commit()
         flash('Dołączyłeś do zespołu! Ustaw swój instrument i preferencje.')
     return redirect(url_for('panel.team', church_id=inv.church_id))
+
+
+# ── Mój profil w tej wspólnocie (instrument + preferencje wyświetlania) ──
+@panel_bp.route('/c/<church_id>/profile', methods=['GET', 'POST'])
+@require_membership('muzyk')
+def my_profile(church_id, membership):
+    user = current_user()
+    profile = Profile.query.filter_by(
+        church_id=church_id, user_id=user.id, deleted=False).first()
+    if not profile:
+        profile = Profile(church_id=church_id, user_id=user.id,
+                          name=user.display_name)
+        db.session.add(profile)
+        db.session.commit()
+    if request.method == 'POST':
+        profile.name = (request.form.get('name') or profile.name).strip()
+        inst = request.form.get('instrument', '')
+        profile.instrument = inst if inst in INSTRUMENTS else ''
+        prefs = dict(profile.prefs or {})
+        prefs['notation'] = (request.form.get('notation')
+                             if request.form.get('notation') in NOTATIONS
+                             else 'international')
+        prefs['show_chords'] = bool(request.form.get('show_chords'))
+        prefs['lowercase_minor'] = bool(request.form.get('lowercase_minor'))
+        prefs['beginner_mode'] = bool(request.form.get('beginner_mode'))
+        try:
+            prefs['capo_default'] = max(0, min(11, int(request.form.get('capo_default') or 0)))
+        except ValueError:
+            prefs['capo_default'] = 0
+        profile.prefs = prefs
+        db.session.commit()
+        flash('Zapisano profil.')
+        return redirect(url_for('panel.my_profile', church_id=church_id))
+    return render_template('panel/profile.html', church=db.session.get(Church, church_id),
+                           profile=profile, membership=membership,
+                           instruments=INSTRUMENTS, user=user)
+
+
+# ── Zarządzanie zespołem (admin): zmiana roli, usuwanie ──
+@panel_bp.post('/c/<church_id>/team/<int:member_id>/role')
+@require_membership('admin')
+def team_change_role(church_id, member_id, membership):
+    m = Membership.query.filter_by(id=member_id, church_id=church_id).first()
+    new_role = request.form.get('role')
+    if not m or new_role not in ROLES:
+        abort(404)
+    church = db.session.get(Church, church_id)
+    if m.user_id == church.owner_user_id and new_role != 'admin':
+        flash('Założyciel wspólnoty pozostaje administratorem.')
+        return redirect(url_for('panel.team', church_id=church_id))
+    m.role = new_role
+    db.session.commit()
+    return redirect(url_for('panel.team', church_id=church_id))
+
+
+@panel_bp.post('/c/<church_id>/team/<int:member_id>/remove')
+@require_membership('admin')
+def team_remove(church_id, member_id, membership):
+    m = Membership.query.filter_by(id=member_id, church_id=church_id).first()
+    if not m:
+        abort(404)
+    church = db.session.get(Church, church_id)
+    if m.user_id == church.owner_user_id:
+        flash('Nie można usunąć założyciela wspólnoty.')
+        return redirect(url_for('panel.team', church_id=church_id))
+    m.status = 'removed'
+    db.session.commit()
+    flash('Usunięto z zespołu.')
+    return redirect(url_for('panel.team', church_id=church_id))
+
+
+# ── Ustawienia wspólnoty (admin) ──
+@panel_bp.route('/c/<church_id>/settings', methods=['GET', 'POST'])
+@require_membership('admin')
+def church_settings(church_id, membership):
+    church = db.session.get(Church, church_id)
+    if request.method == 'POST':
+        name = (request.form.get('name') or '').strip()
+        if len(name) >= 3:
+            church.name = name
+        settings = dict(church.settings or {})
+        if request.form.get('default_notation') in NOTATIONS:
+            settings['default_notation'] = request.form.get('default_notation')
+        if request.form.get('transition_engine') in ENGINES:
+            settings['transition_engine'] = request.form.get('transition_engine')
+        church.settings = settings
+        db.session.commit()
+        flash('Zapisano ustawienia.')
+        return redirect(url_for('panel.church_settings', church_id=church_id))
+    return render_template('panel/settings.html', church=church,
+                           membership=membership, user=current_user())

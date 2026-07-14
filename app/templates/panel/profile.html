@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card" style="max-width:560px;">
+    <h2>Mój profil — {{ church.name }}</h2>
+    <p class="muted">Te ustawienia zapamiętują się na Twoim koncie i zastosują
+    automatycznie w widoku muzyka (live i ćwiczenie) na każdym urządzeniu.</p>
+    <form method="POST">
+        <label>Imię / pseudonim (widoczne dla zespołu)</label>
+        <input name="name" value="{{ profile.name }}" required>
+        <label>Instrument</label>
+        <select name="instrument">
+            {% for i in instruments %}
+            <option value="{{ i }}" {% if profile.instrument == i %}selected{% endif %}>{{ i or '—' }}</option>
+            {% endfor %}
+        </select>
+        <label>Notacja akordów</label>
+        <select name="notation">
+            <option value="international" {% if profile.prefs.get('notation','international') == 'international' %}selected{% endif %}>Międzynarodowa (Bb, B)</option>
+            <option value="polish" {% if profile.prefs.get('notation') == 'polish' %}selected{% endif %}>Polska (B, H, Cis, Fis)</option>
+        </select>
+        <label>Domyślne capo (progi)</label>
+        <input name="capo_default" type="number" min="0" max="11" value="{{ profile.prefs.get('capo_default', 0) }}">
+        <label><input type="checkbox" name="show_chords" style="width:auto" {% if profile.prefs.get('show_chords', True) %}checked{% endif %}> Pokazuj akordy</label><br>
+        <label><input type="checkbox" name="lowercase_minor" style="width:auto" {% if profile.prefs.get('lowercase_minor') %}checked{% endif %}> Małe litery = moll</label><br>
+        <label><input type="checkbox" name="beginner_mode" style="width:auto" {% if profile.prefs.get('beginner_mode') %}checked{% endif %}> Tryb początkującego (upraszczaj akordy)</label><br><br>
+        <button type="submit">Zapisz</button>
+    </form>
+</div>
+{% endblock %}

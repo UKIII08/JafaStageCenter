@@ -10,6 +10,7 @@
         <input name="password" type="password" required>
         <button type="submit">Zaloguj</button>
     </form>
-    <p class="muted">Nowy tutaj? <a href="{{ url_for('auth.register') }}" style="color:#5b7cfa;">Załóż konto</a></p>
+    <p class="muted">Nowy tutaj? <a href="{{ url_for('auth.register') }}" style="color:#5b7cfa;">Załóż konto</a>
+    &nbsp;·&nbsp; <a href="{{ url_for('auth.reset_request') }}" style="color:#5b7cfa;">Nie pamiętam hasła</a></p>
 </div>
 {% endblock %}

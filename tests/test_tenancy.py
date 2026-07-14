@@ -99,3 +99,71 @@ def test_invalid_invite_code(client):
 def test_anonymous_redirected_to_login(client):
     r = client.get('/', follow_redirects=False)
     assert r.status_code == 302 and '/login' in r.headers['Location']
+
+
+def test_profile_prefs_roundtrip(app, client):
+    register(client, 'p@p.pl', 'Piotr')
+    create_church(client, 'Zbor P')
+    cid = church_id_by_name(app, 'Zbor P')
+    r = client.post(f'/c/{cid}/profile', data={
+        'name': 'Piotrek', 'instrument': 'gitara', 'notation': 'polish',
+        'capo_default': '2', 'show_chords': 'on', 'lowercase_minor': 'on'},
+        follow_redirects=True)
+    assert r.status_code == 200
+    with app.app_context():
+        from app.models import Profile
+        p = Profile.query.filter_by(church_id=cid).first()
+        assert p.instrument == 'gitara'
+        assert p.prefs['notation'] == 'polish'
+        assert p.prefs['capo_default'] == 2
+        assert p.prefs['lowercase_minor'] is True
+        assert p.prefs['beginner_mode'] is False
+
+
+def test_owner_cannot_be_demoted_or_removed(app, client):
+    register(client, 'owner@o.pl', 'Owner')
+    create_church(client, 'Zbor O')
+    cid = church_id_by_name(app, 'Zbor O')
+    with app.app_context():
+        m = Membership.query.filter_by(church_id=cid).first()
+        mid = m.id
+    client.post(f'/c/{cid}/team/{mid}/role', data={'role': 'muzyk'},
+                follow_redirects=True)
+    client.post(f'/c/{cid}/team/{mid}/remove', follow_redirects=True)
+    with app.app_context():
+        m = db.session.get(Membership, mid)
+        assert m.role == 'admin' and m.status == 'active'
+
+
+def test_member_management_cross_tenant_denied(app, client):
+    register(client, 'adm1@x.pl'); create_church(client, 'Zbor 1')
+    id1 = church_id_by_name(app, 'Zbor 1')
+    with app.app_context():
+        mid1 = Membership.query.filter_by(church_id=id1).first().id
+    client.get('/logout')
+    register(client, 'adm2@x.pl'); create_church(client, 'Zbor 2')
+    # admin zboru 2 nie może zarządzać członkiem zboru 1
+    assert client.post(f'/c/{id1}/team/{mid1}/role',
+                       data={'role': 'muzyk'}).status_code == 403
+    assert client.post(f'/c/{id1}/team/{mid1}/remove').status_code == 403
+
+
+def test_password_reset_flow(app, client):
+    register(client, 'r@r.pl', 'Renia')
+    client.get('/logout')
+    r = client.post('/reset', data={'email': 'r@r.pl'}, follow_redirects=True)
+    assert 'wysłaliśmy link'.encode() in r.data or b'wys' in r.data
+    # token generowany tak jak w aplikacji
+    with app.app_context():
+        from app.auth.routes import _reset_serializer
+        from app.models import User
+        uid = User.query.filter_by(email='r@r.pl').first().id
+        token = _reset_serializer().dumps(uid)
+    r = client.post(f'/reset/{token}', data={'password': 'nowehaslo1'},
+                    follow_redirects=True)
+    assert r.status_code == 200
+    r = login(client, 'r@r.pl')   # stare hasło już nie działa
+    assert 'Nieprawid'.encode() in r.data
+    r = client.post('/login', data={'email': 'r@r.pl',
+                    'password': 'nowehaslo1'}, follow_redirects=True)
+    assert 'Nieprawid'.encode() not in r.data

@@ -7,7 +7,20 @@
         {% for m in members %}
         <tr>
             <td>{{ m.user.display_name }} <span class="muted">{{ m.user.email }}</span></td>
-            <td>{{ m.role }}</td>
+            <td>
+              {% if membership.role == 'admin' and m.user_id != church.owner_user_id %}
+              <form method="POST" action="{{ url_for('panel.team_change_role', church_id=church.id, member_id=m.id) }}" style="display:inline">
+                  <select name="role" onchange="this.form.submit()" style="width:auto; margin:0;">
+                      <option value="muzyk" {% if m.role=='muzyk' %}selected{% endif %}>muzyk</option>
+                      <option value="prowadzacy" {% if m.role=='prowadzacy' %}selected{% endif %}>prowadzący</option>
+                      <option value="admin" {% if m.role=='admin' %}selected{% endif %}>admin</option>
+                  </select>
+              </form>
+              <form method="POST" action="{{ url_for('panel.team_remove', church_id=church.id, member_id=m.id) }}" style="display:inline" onsubmit="return confirm('Usunąć z zespołu?')">
+                  <button class="btn-ghost btn" style="padding:4px 10px;">×</button>
+              </form>
+              {% else %}{{ m.role }}{% endif %}
+            </td>
             <td>
               {% for p in profiles %}{% if p.user_id == m.user_id %}{{ p.instrument or '—' }}{% endif %}{% endfor %}
             </td>
