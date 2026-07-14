@@ -324,3 +324,47 @@ przy M6.
 **Potwierdzone założenia:** 1 aktywny pokój live na wspólnotę (start);
 desktop bez logowania — tylko kod parowania; strona = przygotowanie,
 apka = granie (komunikowane w UI).
+
+## 9. Role po wdrożeniu Studia + narzędzia muzyka (plan, do wdrożenia po kolei)
+
+### 9.1 Stan obecny — kto co widzi (zweryfikowane w kodzie)
+
+| Funkcja                                        | muzyk | prowadzący | admin |
+|------------------------------------------------|:-----:|:----------:|:-----:|
+| Pulpit, przegląd piosenek, ćwiczenie            |  TAK  |    TAK     |  TAK  |
+| Moje tonacje / capo / notatki (o sobie)         |  TAK  |    TAK     |  TAK  |
+| Widok Live (telefon: akordy, profile, presety)  |  TAK  |    TAK     |  TAK  |
+| STUDIO (setlisty, slajdy, LIVE, przejścia, PDF) |  nie  |    TAK     |  TAK  |
+| Dodawanie/edycja/usuwanie piosenek              |  nie  |    TAK     |  TAK  |
+| Logo, tło, prezentacje, ustawienia wyświetlania |  nie  |    TAK     |  TAK  |
+| Ekrany (tokeny rzutnika/TV), odwoływanie        |  nie  |    nie     |  TAK  |
+| Zespół: role, usuwanie, zaproszenia             |  nie  |    nie     |  TAK  |
+| Ustawienia wspólnoty                            |  nie  |    nie     |  TAK  |
+
+### 9.2 Porządki w rolach (małe zmiany)
+- Branding (logo, tło rzutnika) przenieść z "prowadzący" na "admin"
+  (prowadzący prowadzi nabożeństwo, admin zarządza tożsamością wspólnoty).
+- Muzyk: zakładka "Najbliższe granie" — ostatnia setlista z historii Studia
+  jako lista przygotowania: piosenka -> moja tonacja/capo -> link do ćwiczenia.
+- Admin: prosta karta "Wygląd wspólnoty" w Ustawieniach (logo/tło/kolory) —
+  to samo co w Studiu, ale w stałym, oczywistym miejscu.
+
+### 9.3 Narzędzia muzyka w przeglądarce (przewaga wersji web)
+1. TUNER chromatyczny — mikrofon + Web Audio API (autokorelacja), wskazówka
+   w centach, wybór stroju (440 Hz +/- 5). Miejsca: panel ustawień w widoku
+   Live + widok ćwiczenia. Wymaga HTTPS (już jest). Zero kosztów serwera —
+   wszystko liczy się w telefonie muzyka.
+2. Metronom PRO w ćwiczeniu: tap-tempo, akcent 1. miary, auto-BPM z piosenki,
+   wibracja telefonu na raz (Vibration API).
+3. Zapętlanie sekcji w ćwiczeniu ("ćwicz refren aż wyjdzie").
+4. Sygnał "prowadzący rozpoczął LIVE": baner + dźwięk w otwartej karcie,
+   docelowo Web Push (za darmo, bez appki).
+5. Pady atmosfery: upload mp3 per tonacja (admin/prowadzący) -> odtwarzanie
+   w Studiu jak w desktopie; pliki na woluminie uploads.
+
+### 9.4 Kolejność wdrożenia (propozycja)
+1. Tuner (największy efekt "wow" dla muzyków, czysty frontend).
+2. Upload padów (Studio ma już UI odtwarzacza — brakuje tylko plików).
+3. "Najbliższe granie" dla muzyka + baner LIVE.
+4. Branding do admina + karta "Wygląd wspólnoty".
+5. Metronom PRO + zapętlanie sekcji.
