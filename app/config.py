@@ -9,6 +9,8 @@ class Config:
     REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
+    # Prod (HTTPS przez Caddy): cookie tylko po HTTPS.
+    SESSION_COOKIE_SECURE = os.environ.get('BEHIND_PROXY') == '1'
 
 
 class TestConfig(Config):

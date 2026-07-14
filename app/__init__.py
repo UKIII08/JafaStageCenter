@@ -6,6 +6,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_socketio import SocketIO, join_room
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 db = SQLAlchemy()
 socketio = SocketIO()
@@ -20,6 +21,10 @@ def create_app(config_object='app.config.Config'):
     app = Flask(__name__, template_folder='templates',
                 static_folder='../static')
     app.config.from_object(config_object)
+    if os.environ.get('BEHIND_PROXY') == '1':
+        # Za Caddy: prawdziwy protokół/host z nagłówków X-Forwarded-*
+        # (inaczej linki _external i cookies myślą, że jesteśmy na http).
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     db.init_app(app)
     limiter.init_app(app)
     socketio.init_app(app, cors_allowed_origins=[],
