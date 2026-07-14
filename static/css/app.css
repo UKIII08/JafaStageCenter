@@ -278,3 +278,21 @@ td a.row-link:hover { color: var(--accent); }
     .top-btn span { display: none; }       /* na telefonie same ikony */
     .top-btn { padding: var(--s2) var(--s3); }
 }
+
+/* ── Telefony: nic nie wychodzi z ramek ── */
+.badge { white-space: nowrap; }
+.panel { min-width: 0; }
+@media (max-width: 700px) {
+    .shell { padding: var(--s4) var(--s3); }
+    .panel { padding: var(--s4); overflow-x: auto; }   /* szeroka tabela = przewijanie w panelu */
+    .panel-header { gap: var(--s2); }
+    .panel h2 { font-size: 1.1rem; }
+    th, td { padding: var(--s2); }
+    th { letter-spacing: 0.06em; white-space: nowrap; }
+    .form-row { gap: var(--s2); }
+    .form-row > * { flex: 1 1 100% !important; min-width: 0 !important; }
+    .form-row button, .form-row .btn { flex: 1 1 auto !important; }
+    .invite-code { font-size: 1.1rem; letter-spacing: 0.16em; }
+    .topbar.topbar-studio { padding: 10px var(--s3); gap: var(--s2); }
+    .brand { font-size: 0.95rem; }
+}

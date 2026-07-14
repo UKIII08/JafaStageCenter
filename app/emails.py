@@ -12,7 +12,7 @@ def send_email(to, subject, body):
         print(f'[MAIL-DEV] to={to} subject={subject}\n{body}')
         return False
     msg = EmailMessage()
-    msg['From'] = os.environ.get('SMTP_FROM', 'JafaStage <no-reply@localhost>')
+    msg['From'] = os.environ.get('SMTP_FROM', 'Jonathan App <no-reply@localhost>')
     msg['To'] = to
     msg['Subject'] = subject
     msg.set_content(body)

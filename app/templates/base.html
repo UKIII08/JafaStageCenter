@@ -3,14 +3,14 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}JafaStage{% endblock %}</title>
+    <title>{% block title %}Jonathan App{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/song-render.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
 <div class="topbar topbar-studio">
-    <a class="brand" href="{{ url_for('panel.dashboard') if user else url_for('auth.login') }}">Jafa<span>Stage</span></a>
+    <a class="brand" href="{{ url_for('panel.dashboard') if user else url_for('auth.login') }}">Jonathan<span> App</span></a>
     {% if church is defined and church and membership is defined and membership %}
     <nav class="topbar-nav">
         {% if membership.role in ('prowadzacy', 'admin') %}

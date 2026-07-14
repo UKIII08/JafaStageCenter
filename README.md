@@ -1,4 +1,4 @@
-# JafaStage Cloud (gałąź `web`)
+# Jonathan App — webowa aplikacja dla zespołów uwielbienia
 
 Webowa (SaaS) część systemu JafaStage — hybrydowego narzędzia dla zespołów
 uwielbienia. **Układ gałęzi w tym repozytorium:**

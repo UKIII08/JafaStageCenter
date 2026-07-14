@@ -1,4 +1,4 @@
-# JafaStage Cloud — fabryka aplikacji (M0)
+# Jonathan App (dawniej JafaStage Cloud) — fabryka aplikacji
 import os
 
 from flask import Flask, request, session
