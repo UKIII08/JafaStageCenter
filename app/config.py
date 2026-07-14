@@ -7,6 +7,8 @@ class Config:
         'DATABASE_URL', 'sqlite:///jafastage_dev.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+    # Limit uploadu (pady MP3 wgrywane hurtem + prezentacje PDF)
+    MAX_CONTENT_LENGTH = 256 * 1024 * 1024
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     # Prod (HTTPS przez Caddy): cookie tylko po HTTPS.

@@ -260,5 +260,7 @@ def church_settings(church_id, membership):
         db.session.commit()
         flash('Zapisano ustawienia.')
         return redirect(url_for('panel.church_settings', church_id=church_id))
+    from app.studio.routes import pads_status
     return render_template('panel/settings.html', church=church,
+                           pads=pads_status(church_id),
                            membership=membership, user=current_user())

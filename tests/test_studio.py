@@ -178,3 +178,24 @@ def test_transition_endpoint(app, client):
     data = r.get_json()
     assert data['status'] == 'ok' and len(data['chords_list']) >= 2
     assert data['engine_used'] == 'v4'
+
+
+def test_pads_upload_and_serving(app, client):
+    import io
+    cid = make_church(app, client, 'a@a.pl', 'Zbor A')
+    # upload: poprawny C.mp3, bemol Eb.mp3 (alias D#), zła nazwa X.mp3
+    r = client.post(f'/c/{cid}/studio/pads/upload', data={
+        'pad_files': [
+            (io.BytesIO(b'ID3fakemp3'), 'C.mp3'),
+            (io.BytesIO(b'ID3fakemp3'), 'Eb.mp3'),
+            (io.BytesIO(b'ID3fakemp3'), 'X.mp3'),
+        ]}, content_type='multipart/form-data', follow_redirects=True)
+    assert r.status_code == 200
+    assert 'Wgrano pady: C, D#'.encode() in r.data
+    # serwowanie przez media (tak ładuje je Studio)
+    assert client.get(f'/c/{cid}/media/pads/C.mp3').status_code == 200
+    assert client.get(f'/c/{cid}/media/pads/D%23.mp3').status_code == 200
+    assert client.get(f'/c/{cid}/media/pads/X.mp3').status_code == 404
+    # usunięcie
+    client.post(f'/c/{cid}/studio/pads/delete', data={'key': 'C'})
+    assert client.get(f'/c/{cid}/media/pads/C.mp3').status_code == 404
