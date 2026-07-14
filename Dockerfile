@@ -4,4 +4,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 EXPOSE 8000
-CMD ["gunicorn", "-k", "eventlet", "-w", "1", "-b", "0.0.0.0:8000", "run:app"]
+# Socket.IO w trybie threading + simple-websocket (eventlet jest porzucony
+# i nowy gunicorn go nie obsługuje). 1 worker, dużo wątków.
+CMD ["gunicorn", "-w", "1", "--threads", "100", "-b", "0.0.0.0:8000", "run:app"]

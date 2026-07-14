@@ -30,7 +30,7 @@ def create_app(config_object='app.config.Config'):
     socketio.init_app(app, cors_allowed_origins=[],
                       message_queue=os.environ.get('REDIS_URL')
                       if not app.config.get('TESTING') else None,
-                      async_mode='threading' if app.config.get('TESTING') else None)
+                      async_mode='threading')
     if app.config.get('TESTING'):
         limiter.enabled = False
 
