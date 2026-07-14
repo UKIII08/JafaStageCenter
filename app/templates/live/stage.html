@@ -4,27 +4,29 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ekran sceny</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/song-render.css') }}">
     <style>
-        body { background:#0b0d12; color:#eef0f4; margin:0; height:100vh;
+        body { background:var(--bg-app); color:var(--text-primary); margin:0; height:100vh;
                display:flex; flex-direction:column; font-family:'Sen',system-ui,sans-serif;
                overflow:hidden; }
         #main { flex:1; display:flex; align-items:center; justify-content:center;
                 text-align:center; font-size:6.5vh; line-height:1.45; padding:1vh 3vw; overflow:hidden; }
-        #next-wrap { height:26vh; border-top:1px solid rgba(255,255,255,.1);
+        #next-wrap { height:26vh; border-top:1px solid var(--border-default);
                      padding:1vh 3vw; overflow:hidden; }
-        #next-label { color:#e85d75; font-size:1.8vh; font-weight:800; letter-spacing:.08em; }
-        #next { font-size:3vh; line-height:1.45; color:#9aa3b2; text-align:left; }
-        #clock { position:fixed; top:1.5vh; right:2vw; color:#59606e; font-family:monospace; font-size:2.6vh; }
-        #keybpm { position:fixed; top:5vh; right:2vw; color:#2dd4a7; font-size:2.4vh; text-align:right; }
-        .song-render .chord-pair .chord { color:#6d8cff; }
+        #next-label { color:var(--red); font-size:1.8vh; font-weight:800;
+                      letter-spacing:.1em; text-transform:uppercase; }
+        #next { font-size:3vh; line-height:1.45; color:var(--text-secondary); text-align:left; }
+        #clock { position:fixed; top:1.5vh; right:2vw; color:var(--text-tertiary); font-family:monospace; font-size:2.6vh; }
+        #keybpm { position:fixed; top:5vh; right:2vw; color:var(--teal); font-size:2.4vh; text-align:right; }
+        .song-render .chord-pair .chord { color:var(--accent); }
     </style>
 </head>
 <body>
 <div id="clock"></div>
 <div id="keybpm"></div>
 <div id="main"></div>
-<div id="next-wrap"><div id="next-label">NASTĘPNIE</div><div id="next" class="song-render"></div></div>
+<div id="next-wrap"><div id="next-label">Następnie</div><div id="next" class="song-render"></div></div>
 <script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>
 <script>
 const CHURCH = '{{ church_id }}';

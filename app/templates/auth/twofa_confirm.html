@@ -1,16 +1,16 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card" style="max-width:480px; margin:40px auto;">
+<div class="panel" style="max-width:520px;">
     <h2>Skonfiguruj 2FA</h2>
-    <p class="muted">1. Zeskanuj kod aplikacją (Google/Microsoft Authenticator, Aegis).<br>
-       2. Wpisz 6-cyfrowy kod, żeby potwierdzić.</p>
-    <div style="background:#fff; border-radius:12px; padding:16px; width:fit-content;">
-        <img src="data:image/svg+xml;base64,{{ qr_svg }}" width="220" height="220" alt="QR 2FA">
+    <p class="hint">1. Zeskanuj kod aplikacją uwierzytelniającą.<br>
+       2. Wpisz 6-cyfrowy kod, aby potwierdzić.</p>
+    <div class="qr-box">
+        <img src="data:image/svg+xml;base64,{{ qr_svg }}" width="200" height="200" alt="Kod QR 2FA">
     </div>
     <p class="muted">Nie możesz zeskanować? Wpisz ręcznie: <code>{{ secret }}</code></p>
     <form method="POST">
         <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
-        <button type="submit">Potwierdź i włącz</button>
+        <div style="margin-top:var(--s3);"><button type="submit">Potwierdź i włącz</button></div>
     </form>
 </div>
 {% endblock %}

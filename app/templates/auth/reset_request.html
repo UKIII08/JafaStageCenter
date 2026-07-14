@@ -1,11 +1,13 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card" style="max-width:420px; margin:40px auto;">
-    <h2>Reset hasła</h2>
-    <form method="POST">
-        <label>E-mail konta</label>
-        <input name="email" type="email" required>
-        <button type="submit">Wyślij link resetujący</button>
-    </form>
+<div class="shell-narrow">
+    <div class="panel">
+        <h2>Reset hasła</h2>
+        <form method="POST">
+            <label>E-mail konta</label>
+            <input name="email" type="email" required autofocus>
+            <div style="margin-top:var(--s4);"><button type="submit">Wyślij link resetujący</button></div>
+        </form>
+    </div>
 </div>
 {% endblock %}

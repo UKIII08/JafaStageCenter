@@ -1,30 +1,30 @@
 {% extends 'base.html' %}
+{% block title %}Setlisty — {{ church.name }}{% endblock %}
 {% block content %}
-<div class="card">
-    <h2>Setlisty / nabożeństwa</h2>
+<div class="panel">
+    <div class="panel-header"><h2>Setlisty</h2></div>
     {% if membership.role != 'muzyk' %}
-    <form method="POST" style="display:flex; gap:10px; flex-wrap:wrap;">
+    <form method="POST" class="form-row" style="margin-bottom:var(--s4);">
         <input name="name" placeholder="Nazwa (np. Niedziela poranna)" style="flex:2; min-width:200px;">
         <input name="service_date" type="date" style="flex:1; min-width:140px;">
-        <button type="submit">+ Nowa setlista</button>
+        <button type="submit">Nowa setlista</button>
     </form>
     {% endif %}
     <table>
         <tr><th>Nazwa</th><th>Data</th><th>Piosenek</th><th></th></tr>
         {% for sl in setlists %}
         <tr>
-            <td><a href="{{ url_for('songs.setlist_edit', church_id=church.id, setlist_id=sl.id) }}"
-                   style="color:inherit; font-weight:700; text-decoration:none;">{{ sl.name }}</a></td>
+            <td><a class="row-link" href="{{ url_for('songs.setlist_edit', church_id=church.id, setlist_id=sl.id) }}">{{ sl.name }}</a></td>
             <td class="muted">{{ sl.service_date.strftime('%d.%m.%Y') if sl.service_date else '—' }}</td>
             <td class="muted">{{ (sl.items or [])|length }}</td>
-            <td>
+            <td style="text-align:right;">
                 {% if membership.role != 'muzyk' %}
                 <form method="POST" action="{{ url_for('songs.setlist_duplicate', church_id=church.id, setlist_id=sl.id) }}" style="display:inline;">
-                    <button class="btn-ghost btn" style="padding:4px 10px;">Duplikuj</button>
+                    <button class="btn-ghost btn btn-sm">Duplikuj</button>
                 </form>
                 <form method="POST" action="{{ url_for('songs.setlist_delete', church_id=church.id, setlist_id=sl.id) }}"
                       style="display:inline;" onsubmit="return confirm('Usunąć setlistę?')">
-                    <button class="btn-ghost btn" style="padding:4px 10px;">×</button>
+                    <button class="btn-danger btn btn-sm">Usuń</button>
                 </form>
                 {% endif %}
             </td>

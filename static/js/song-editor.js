@@ -42,10 +42,10 @@
         }).then(function (r) { return r.json(); }).then(function (d) {
             if (d.changed) { ta.value = d.text; analyze(); }
             btn.textContent = d.changed
-                ? '✓ Przekonwertowano — sprawdź wynik'
+                ? 'Przekonwertowano — sprawdź wynik'
                 : 'Nie wykryto akordów nad tekstem';
             setTimeout(function () {
-                btn.textContent = '⇄ Konwertuj akordy nad tekstem';
+                btn.textContent = 'Konwertuj akordy nad tekstem';
             }, 2500);
         });
     });

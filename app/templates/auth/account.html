@@ -1,20 +1,20 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card" style="max-width:560px;">
+<div class="panel" style="max-width:560px;">
     <h2>Moje konto</h2>
     <p>{{ user.display_name }} <span class="muted">{{ user.email }}</span></p>
-    <h3>Weryfikacja dwuetapowa (2FA)</h3>
+    <div class="section-title" style="margin-top:var(--s5);">Weryfikacja dwuetapowa</div>
     {% if user.totp_secret %}
-        <p>✅ Włączona — logowanie wymaga kodu z aplikacji.</p>
+        <p class="hint">Włączona — logowanie wymaga kodu z aplikacji.</p>
         <form method="POST" action="{{ url_for('auth.twofa_disable') }}">
             <label>Potwierdź hasłem, aby wyłączyć</label>
             <input name="password" type="password" required>
-            <button class="btn-ghost btn" type="submit">Wyłącz 2FA</button>
+            <div style="margin-top:var(--s3);"><button class="btn-danger btn" type="submit">Wyłącz 2FA</button></div>
         </form>
     {% else %}
-        <p class="muted">Dodatkowa warstwa ochrony konta — zalecana zwłaszcza
-        dla administratorów wspólnot. Potrzebna darmowa aplikacja
-        (Google Authenticator, Microsoft Authenticator, Aegis...).</p>
+        <p class="hint">Dodatkowa warstwa ochrony konta — zalecana zwłaszcza dla
+        administratorów. Potrzebna darmowa aplikacja (Google Authenticator,
+        Microsoft Authenticator, Aegis).</p>
         <form method="POST" action="{{ url_for('auth.twofa_enable') }}">
             <button type="submit">Włącz 2FA</button>
         </form>

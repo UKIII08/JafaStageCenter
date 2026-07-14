@@ -7,19 +7,20 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/song-render.css') }}">
     <style>
-        body { background:#0b0d12; color:#eef0f4; font-family:'Sen',system-ui,sans-serif;
+        body { background:var(--bg-app); color:var(--text-primary); font-family:'Sen',system-ui,sans-serif;
                margin:0; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
         #top { display:flex; justify-content:space-between; padding:10px 14px;
-               font-size:.85rem; color:#8b93a3; border-bottom:1px solid rgba(255,255,255,.08); }
+               font-size:.85rem; color:var(--text-secondary); border-bottom:1px solid var(--border-default); }
         #main { flex:1; display:flex; align-items:center; justify-content:center;
                 text-align:center; padding:8px 14px; overflow:hidden;
                 font-size:5.5vh; line-height:1.45; }
-        #next-wrap { border-top:1px solid rgba(255,255,255,.08); padding:8px 14px 12px;
+        #next-wrap { border-top:1px solid var(--border-default); padding:8px 14px 12px;
                      max-height:30vh; overflow:hidden; }
-        #next-label { color:#e85d75; font-size:.7rem; font-weight:800; letter-spacing:.08em; }
-        #next { font-size:2.4vh; line-height:1.45; color:#9aa3b2; text-align:left; }
-        .song-render .chord-pair .chord { color:#6d8cff; }
-        #waiting { color:#59606e; font-size:3vh; }
+        #next-label { color:var(--red); font-size:.7rem; font-weight:800;
+                      letter-spacing:.1em; text-transform:uppercase; }
+        #next { font-size:2.4vh; line-height:1.45; color:var(--text-secondary); text-align:left; }
+        .song-render .chord-pair .chord { color:var(--accent); }
+        #waiting { color:var(--text-tertiary); font-size:3vh; }
     </style>
 </head>
 <body>
@@ -29,7 +30,7 @@
 </div>
 <div id="main"><div id="waiting">Oczekiwanie na sesję LIVE…</div></div>
 <div id="next-wrap" style="display:none;">
-    <div id="next-label">NASTĘPNIE</div>
+    <div id="next-label">Następnie</div>
     <div id="next" class="song-render"></div>
 </div>
 <script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>

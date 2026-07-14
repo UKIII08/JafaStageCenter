@@ -1,16 +1,21 @@
 {% extends 'base.html' %}
 {% block title %}Logowanie — JafaStage{% endblock %}
 {% block content %}
-<div class="card" style="max-width:420px; margin:40px auto;">
-    <h2>Zaloguj się</h2>
-    <form method="POST">
-        <label>E-mail</label>
-        <input name="email" type="email" required>
-        <label>Hasło</label>
-        <input name="password" type="password" required>
-        <button type="submit">Zaloguj</button>
-    </form>
-    <p class="muted">Nowy tutaj? <a href="{{ url_for('auth.register') }}" style="color:#5b7cfa;">Załóż konto</a>
-    &nbsp;·&nbsp; <a href="{{ url_for('auth.reset_request') }}" style="color:#5b7cfa;">Nie pamiętam hasła</a></p>
+<div class="shell-narrow">
+    <div class="panel">
+        <h2>Zaloguj się</h2>
+        <form method="POST">
+            <label>E-mail</label>
+            <input name="email" type="email" required autofocus>
+            <label>Hasło</label>
+            <input name="password" type="password" required>
+            <div style="margin-top:var(--s4);"><button type="submit">Zaloguj</button></div>
+        </form>
+        <p class="muted" style="margin-bottom:0;">
+            <a href="{{ url_for('auth.register') }}" style="color:var(--accent);">Załóż konto</a>
+            &nbsp;·&nbsp;
+            <a href="{{ url_for('auth.reset_request') }}" style="color:var(--accent);">Nie pamiętam hasła</a>
+        </p>
+    </div>
 </div>
 {% endblock %}

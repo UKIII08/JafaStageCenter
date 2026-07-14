@@ -1,7 +1,8 @@
 {% extends 'base.html' %}
+{% block title %}Ustawienia — {{ church.name }}{% endblock %}
 {% block content %}
-<div class="card" style="max-width:560px;">
-    <h2>Ustawienia — {{ church.name }}</h2>
+<div class="panel" style="max-width:560px;">
+    <h2>Ustawienia wspólnoty</h2>
     <form method="POST">
         <label>Nazwa wspólnoty</label>
         <input name="name" value="{{ church.name }}" minlength="3" required>
@@ -16,7 +17,7 @@
             <option value="v3" {% if church.settings.get('transition_engine') == 'v3' %}selected{% endif %}>Pivot Pro</option>
             <option value="v2" {% if church.settings.get('transition_engine') == 'v2' %}selected{% endif %}>Advanced</option>
         </select>
-        <button type="submit">Zapisz</button>
+        <div style="margin-top:var(--s4);"><button type="submit">Zapisz</button></div>
     </form>
 </div>
 {% endblock %}

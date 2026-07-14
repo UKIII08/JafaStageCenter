@@ -1,28 +1,34 @@
 {% extends 'base.html' %}
+{% block title %}Zespół — {{ church.name }}{% endblock %}
 {% block content %}
-<div class="card">
-    <h2>Zespół — {{ church.name }}</h2>
+<div class="panel">
+    <div class="panel-header"><h2>Zespół</h2></div>
     <table>
-        <tr><th>Osoba</th><th>Rola</th><th>Profil / instrument</th></tr>
+        <tr><th>Osoba</th><th>Rola</th><th>Instrument</th><th></th></tr>
         {% for m in members %}
         <tr>
             <td>{{ m.user.display_name }} <span class="muted">{{ m.user.email }}</span></td>
             <td>
               {% if membership.role == 'admin' and m.user_id != church.owner_user_id %}
               <form method="POST" action="{{ url_for('panel.team_change_role', church_id=church.id, member_id=m.id) }}" style="display:inline">
-                  <select name="role" onchange="this.form.submit()" style="width:auto; margin:0;">
+                  <select name="role" onchange="this.form.submit()" style="width:auto;">
                       <option value="muzyk" {% if m.role=='muzyk' %}selected{% endif %}>muzyk</option>
                       <option value="prowadzacy" {% if m.role=='prowadzacy' %}selected{% endif %}>prowadzący</option>
                       <option value="admin" {% if m.role=='admin' %}selected{% endif %}>admin</option>
                   </select>
               </form>
-              <form method="POST" action="{{ url_for('panel.team_remove', church_id=church.id, member_id=m.id) }}" style="display:inline" onsubmit="return confirm('Usunąć z zespołu?')">
-                  <button class="btn-ghost btn" style="padding:4px 10px;">×</button>
-              </form>
               {% else %}{{ m.role }}{% endif %}
             </td>
-            <td>
+            <td class="muted">
               {% for p in profiles %}{% if p.user_id == m.user_id %}{{ p.instrument or '—' }}{% endif %}{% endfor %}
+            </td>
+            <td style="text-align:right;">
+              {% if membership.role == 'admin' and m.user_id != church.owner_user_id %}
+              <form method="POST" action="{{ url_for('panel.team_remove', church_id=church.id, member_id=m.id) }}"
+                    style="display:inline" onsubmit="return confirm('Usunąć z zespołu?')">
+                  <button class="btn-danger btn btn-sm">Usuń</button>
+              </form>
+              {% endif %}
             </td>
         </tr>
         {% endfor %}
@@ -32,20 +38,20 @@
     {% endif %}{% endfor %}
 </div>
 {% if membership.role == 'admin' %}
-<div class="card">
-    <h3>Zaproś do zespołu</h3>
+<div class="panel">
+    <div class="section-title">Zaproś do zespołu</div>
     {% if invite %}
-        <p>Link dołączenia (ważny do {{ invite.expires_at.strftime('%d.%m.%Y') }}):</p>
+        <p class="hint">Link dołączenia, ważny do {{ invite.expires_at.strftime('%d.%m.%Y') }} —
+        wyślij zespołowi (np. na grupie):</p>
         <p class="invite-code">{{ invite.code }}</p>
-        <p class="muted">Wyślij zespołowi: {{ url_for('panel.join', code=invite.code, _external=True) }}</p>
+        <p class="mono-url">{{ url_for('panel.join', code=invite.code, _external=True) }}</p>
     {% endif %}
-    <form method="POST" action="{{ url_for('panel.team_invite', church_id=church.id) }}">
-        <label>Rola dla dołączających</label>
+    <form method="POST" action="{{ url_for('panel.team_invite', church_id=church.id) }}" class="form-row" style="max-width:480px;">
         <select name="role">
-            <option value="muzyk">Muzyk</option>
-            <option value="prowadzacy">Prowadzący</option>
+            <option value="muzyk">Rola: muzyk</option>
+            <option value="prowadzacy">Rola: prowadzący</option>
         </select>
-        <button type="submit">{{ 'Wygeneruj nowy link' if invite else 'Wygeneruj link zaproszenia' }}</button>
+        <button type="submit">{{ 'Wygeneruj nowy link' if invite else 'Wygeneruj link' }}</button>
     </form>
 </div>
 {% endif %}

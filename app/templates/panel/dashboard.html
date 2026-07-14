@@ -1,23 +1,33 @@
 {% extends 'base.html' %}
+{% block title %}{{ church.name }} — JafaStage{% endblock %}
 {% block content %}
-<div class="card">
-    <h2>{{ church.name }}</h2>
-    <p class="muted">Panel wspólnoty — fundament M0. Kolejne moduły wg PLAN.md:
-    Piosenki i Setlisty (M1), LIVE (M2), Ćwiczenie i moje tonacje (M3).</p>
-    <div id="live-banner" style="display:none; margin-bottom:14px;">
-        <a class="btn" style="background:#e85d75;" href="{{ url_for('live.band', church_id=church.id) }}">🔴 LIVE trwa — dołącz jako muzyk</a>
-        {% if membership.role != 'muzyk' %}
-        <a class="btn-ghost btn" href="{{ url_for('live.leader', church_id=church.id) }}">Panel prowadzącego</a>
-        {% endif %}
+<div id="live-banner" class="panel" style="display:none; border-color:rgba(248,113,113,.4);">
+    <div class="panel-header" style="margin-bottom:0;">
+        <div>
+            <span class="badge badge-live">Na żywo</span>
+            <b style="margin-left:var(--s2);">Trwa sesja LIVE</b>
+        </div>
+        <div>
+            <a class="btn btn-live" href="{{ url_for('live.band', church_id=church.id) }}">Dołącz jako muzyk</a>
+            {% if membership.role != 'muzyk' %}
+            <a class="btn-ghost btn" href="{{ url_for('live.leader', church_id=church.id) }}">Panel prowadzącego</a>
+            {% endif %}
+        </div>
     </div>
-    <a class="btn" href="{{ url_for('songs.songs_list', church_id=church.id) }}">Piosenki</a>
-    <a class="btn" href="{{ url_for('songs.setlists', church_id=church.id) }}">Setlisty</a>
-    <a class="btn" href="{{ url_for('panel.team', church_id=church.id) }}">Zespół</a>
-    <a class="btn-ghost btn" href="{{ url_for('panel.my_profile', church_id=church.id) }}">Mój profil</a>
-    {% if membership.role == 'admin' %}
-    <a class="btn-ghost btn" href="{{ url_for('live.screens', church_id=church.id) }}">Ekrany</a>
-    <a class="btn-ghost btn" href="{{ url_for('panel.church_settings', church_id=church.id) }}">Ustawienia</a>
-    {% endif %}
+</div>
+<div class="panel">
+    <div class="panel-header">
+        <h2>{{ church.name }}</h2>
+        <span class="muted">Twoja rola: {{ membership.role }}</span>
+    </div>
+    <p class="hint">Przygotuj piosenki i setlistę, zaproś zespół, a w niedzielę
+    rozpocznij sesję LIVE z wybranej setlisty — telefony zespołu i ekrany
+    zsynchronizują się same.</p>
+    <div style="display:flex; gap:var(--s3); flex-wrap:wrap;">
+        <a class="btn" href="{{ url_for('songs.songs_list', church_id=church.id) }}">Piosenki</a>
+        <a class="btn" href="{{ url_for('songs.setlists', church_id=church.id) }}">Setlisty</a>
+        <a class="btn-ghost btn" href="{{ url_for('panel.team', church_id=church.id) }}">Zespół</a>
+    </div>
     <script>
     fetch('/api/live/current/{{ church.id }}').then(r => r.json()).then(d => {
         if (d.active) document.getElementById('live-banner').style.display = '';

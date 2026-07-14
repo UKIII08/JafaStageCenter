@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card" style="max-width:760px;">
+<div class="panel" style="max-width:780px;">
     <h2>{{ 'Dodaj piosenkę' if is_new else 'Edytuj: ' + song.title }}</h2>
     <form method="POST">
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <div class="form-row">
             <input name="title" placeholder="Tytuł" required style="flex:3; min-width:220px;"
                    value="{{ song.title if song else '' }}">
             <input name="key" id="song-key" placeholder="Tonacja" style="flex:1; min-width:90px;"
@@ -16,18 +16,21 @@
             <option value="international">Międzynarodowa (Bb, B)</option>
             <option value="polish">Polska (B, H, Cis, Fis)</option>
         </select>
-        <div class="muted" style="margin:8px 0; line-height:1.6;">
-            Akordy w nawiasach: <code>[Am]tekst [G]dalej</code>. Sekcje (Zwrotka, Refren)
-            oddzielaj pustą linią.<br>📋 Wkleiłeś piosenkę z akordami <b>nad tekstem</b>
-            (np. z Ultimate Guitar)? Kliknij przycisk poniżej.
-        </div>
-        <button type="button" class="btn-ghost btn" id="convert-format-btn">⇄ Konwertuj akordy nad tekstem</button>
+        <p class="hint" style="margin:var(--s3) 0 var(--s2);">
+            Akordy w nawiasach kwadratowych: <code>[Am]tekst [G]dalej</code>.
+            Sekcje (Zwrotka, Refren) oddzielaj pustą linią.
+            Wkleiłeś piosenkę z akordami <b>nad tekstem</b> (np. z serwisu z chwytami)?
+            Użyj przycisku konwersji.
+        </p>
+        <button type="button" class="btn-ghost btn" id="convert-format-btn">Konwertuj akordy nad tekstem</button>
         <textarea name="content" id="song-content" rows="14"
-                  style="font-family:monospace; margin-top:10px;"
+                  style="font-family:monospace; margin-top:var(--s3);"
                   placeholder="Zwrotka 1&#10;[C]Tekst piosenki [Am]z akordami&#10;&#10;Refren&#10;[F]Tekst refrenu [C]dalej">{{ song.content if song else '' }}</textarea>
-        <div id="chord-status" class="muted" style="min-height:1.3em;"></div>
-        <button type="submit">{{ 'Zapisz do biblioteki' if is_new else 'Zapisz zmiany' }}</button>
-        <a class="btn-ghost btn" href="{{ url_for('songs.songs_list', church_id=church.id) }}">Anuluj</a>
+        <div id="chord-status" class="muted" style="min-height:1.3em; margin-top:var(--s1);"></div>
+        <div style="margin-top:var(--s3); display:flex; gap:var(--s2);">
+            <button type="submit">{{ 'Zapisz do biblioteki' if is_new else 'Zapisz zmiany' }}</button>
+            <a class="btn-ghost btn" href="{{ url_for('songs.songs_list', church_id=church.id) }}">Anuluj</a>
+        </div>
     </form>
 </div>
 <script src="{{ url_for('static', filename='js/song-editor.js') }}"></script>

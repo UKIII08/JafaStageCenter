@@ -1,11 +1,17 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card">
+<div class="panel" style="max-width:560px;">
     <h2>Twoje wspólnoty</h2>
-    {% for m in memberships %}
-        <p><a class="btn" href="{{ url_for('panel.church_home', church_id=m.church_id) }}">{{ m.church.name }}</a>
-           <span class="muted">({{ m.role }})</span></p>
-    {% endfor %}
-    <a class="btn-ghost btn" href="{{ url_for('panel.create_church') }}">+ Nowa wspólnota</a>
+    <table>
+        {% for m in memberships %}
+        <tr>
+            <td><a class="row-link" href="{{ url_for('panel.church_home', church_id=m.church_id) }}">{{ m.church.name }}</a></td>
+            <td class="muted" style="text-align:right;">{{ m.role }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <div style="margin-top:var(--s4);">
+        <a class="btn-ghost btn" href="{{ url_for('panel.create_church') }}">Nowa wspólnota</a>
+    </div>
 </div>
 {% endblock %}

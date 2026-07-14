@@ -1,32 +1,36 @@
 {% extends 'base.html' %}
+{% block title %}Ekrany — {{ church.name }}{% endblock %}
 {% block content %}
-<div class="card">
-    <h2>Ekrany — {{ church.name }}</h2>
-    <p class="muted">Rzutnik (tekst dla zboru) i ekran sceny (akordy dla zespołu).
+<div class="panel">
+    <div class="panel-header">
+        <h2>Ekrany</h2>
+    </div>
+    <p class="hint">Rzutnik (tekst dla zboru) i ekran sceny (akordy dla zespołu).
     Otwórz link na urządzeniu raz — zapamięta się i sam podejmie każdą sesję LIVE.</p>
-    <form method="POST" style="display:flex; gap:10px; flex-wrap:wrap;">
+    <form method="POST" class="form-row" style="margin-top: var(--s4);">
         <input name="name" placeholder="Nazwa (np. Rzutnik sala główna)" style="flex:2; min-width:200px;">
         <select name="type" style="flex:1; min-width:150px;">
             <option value="projector">Rzutnik (tekst)</option>
             <option value="stage">Ekran sceny (akordy)</option>
         </select>
-        <button type="submit">+ Dodaj ekran</button>
+        <button type="submit" style="flex:0;">Dodaj ekran</button>
     </form>
-    {% for it in items %}
-    <div style="display:flex; gap:18px; align-items:center; border-top:1px solid var(--border-default); padding:14px 0;">
-        <div style="background:#fff; border-radius:10px; padding:8px;">
-            <img src="data:image/svg+xml;base64,{{ it.qr }}" width="110" height="110" alt="QR">
-        </div>
-        <div style="flex:1; min-width:0;">
-            <b>{{ it.t.name or ('Rzutnik' if it.t.type == 'projector' else 'Ekran sceny') }}</b>
-            <span class="muted">({{ 'tekst' if it.t.type == 'projector' else 'akordy' }})</span><br>
-            <span class="muted" style="word-break:break-all;">{{ it.url }}</span>
-        </div>
-        <form method="POST" action="{{ url_for('live.screen_revoke', church_id=church.id, sid=it.t.id) }}"
-              onsubmit="return confirm('Odłączyć ten ekran?')">
-            <button class="btn-ghost btn">Odłącz</button>
-        </form>
-    </div>
-    {% endfor %}
 </div>
+{% for it in items %}
+<div class="panel" style="display:flex; gap:var(--s5); align-items:center; flex-wrap:wrap;">
+    <div class="qr-box">
+        <img src="data:image/svg+xml;base64,{{ it.qr }}" width="110" height="110" alt="QR">
+    </div>
+    <div style="flex:1; min-width:220px;">
+        <div style="font-weight:700;">{{ it.t.name or ('Rzutnik' if it.t.type == 'projector' else 'Ekran sceny') }}
+            <span class="badge">{{ 'tekst' if it.t.type == 'projector' else 'akordy' }}</span>
+        </div>
+        <div class="mono-url" style="margin-top: var(--s1);">{{ it.url }}</div>
+    </div>
+    <form method="POST" action="{{ url_for('live.screen_revoke', church_id=church.id, sid=it.t.id) }}"
+          onsubmit="return confirm('Odłączyć ten ekran?')">
+        <button class="btn btn-danger btn-sm">Odłącz</button>
+    </form>
+</div>
+{% endfor %}
 {% endblock %}
