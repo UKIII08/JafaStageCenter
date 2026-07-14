@@ -1379,11 +1379,16 @@ function addToSetlist(id, btnElement) {
 }
 function removeFromSetlist(i){
     setlist.splice(i,1);
-    if(currentSetIndex===i){
+    // (web) korekta wskaźnika po usunięciu wcześniejszej pozycji — bez niej
+    // po skasowaniu wszystkich piosenek panel LIVE pokazywał starą piosenkę
+    if(currentSetIndex===i || setlist.length===0){
         var lh2 = document.getElementById('live-header'); if (lh2) lh2.style.display='none';
         var sc2 = document.getElementById('slides-container'); if (sc2) sc2.innerHTML='';
+        var ct2 = document.getElementById('current-title'); if (ct2) ct2.innerText='';
         currentSetIndex=-1;
         fadeOutAllPads(); 
+    } else if (currentSetIndex > i) {
+        currentSetIndex--;
     }
     renderSetlist();
     updateServerState(); 
@@ -1813,9 +1818,15 @@ function clearLogoActive(){
 function saveSetlistHistory() {
     if (!setlist.length) { showToast(t('alert_empty_setlist'), 'error'); return; }
     var dateStr = new Date().toLocaleDateString('pl-PL');
-    var name = prompt(t('setlist_history_name') || 'Nazwa setlisty:', dateStr);
-    if (name === null) return;
-    if (!name.trim()) name = dateStr;
+    var name;
+    if (window.JAFA_EVENT) {
+        // (web) tryb grania: setlista dziedziczy nazwę grania
+        name = window.JAFA_EVENT.name;
+    } else {
+        name = prompt(t('setlist_history_name') || 'Nazwa setlisty:', dateStr);
+        if (name === null) return;
+        if (!name.trim()) name = dateStr;
+    }
     var songs = setlist.map(function(s) {
         var item = { id: s.id, title: s.title, key: s.key || '', bpm: s.bpm || 0, transpose: s.transpose || 0 };
         if (s.customSections) item.customSections = s.customSections;
