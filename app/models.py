@@ -176,3 +176,37 @@ class SongPersonal(db.Model):
     note = db.Column(db.Text, default='')
     updated_at = db.Column(db.DateTime, default=datetime.utcnow,
                            onupdate=datetime.utcnow)
+    # Studio (port panelu desktop): capo per piosenka + notatki per sekcja
+    capo_fret = db.Column(db.Integer, nullable=True)
+    section_notes = db.Column(db.Text, default='{}')   # JSON {"0": "...", ...}
+
+
+class BandPreset(db.Model):
+    """Presety widoku członka zespołu (port BandPreset z desktopu),
+    per wspólnota."""
+    __tablename__ = 'band_presets'
+    id = db.Column(db.Integer, primary_key=True)
+    church_id = db.Column(db.String(36), db.ForeignKey('churches.id'),
+                          nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False)
+    show_chords = db.Column(db.Boolean, default=True)
+    nashville_mode = db.Column(db.Boolean, default=False)
+    chord_notation = db.Column(db.String(15), default='international')
+    lowercase_minor = db.Column(db.Boolean, default=False)
+    capo_fret = db.Column(db.Integer, default=0)
+    beginner_mode = db.Column(db.Boolean, default=False)
+    diagram_instrument = db.Column(db.String(10), default='guitar')
+    font_size = db.Column(db.Integer, default=6)
+
+
+class StudioSetlist(db.Model):
+    """Historia setlist Studia (port SetlistHistory z desktopu) — snapshot
+    piosenek z transpozycjami + opcjonalny kod udostępniania."""
+    __tablename__ = 'studio_setlists'
+    id = db.Column(db.Integer, primary_key=True)
+    church_id = db.Column(db.String(36), db.ForeignKey('churches.id'),
+                          nullable=False, index=True)
+    name = db.Column(db.String(200), default='')
+    date = db.Column(db.String(30), nullable=False, default='')
+    songs = db.Column(db.Text, nullable=False, default='[]')  # JSON [{id,title,key,bpm,transpose}]
+    share_code = db.Column(db.String(8), unique=True, nullable=True, index=True)

@@ -39,3 +39,19 @@ def clear_state(church_id):
         _redis.delete(_key(church_id))
     else:
         _memory.pop(church_id, None)
+
+
+# --- Studio (port protokołu desktopu): drobny magazyn K/V per wspólnota ---
+def studio_get(church_id, name, default=None):
+    if _redis:
+        raw = _redis.get(f'studio:{name}:{church_id}')
+        return json.loads(raw) if raw else default
+    return _memory.get(f'{name}:{church_id}', default)
+
+
+def studio_set(church_id, name, value):
+    if _redis:
+        _redis.set(f'studio:{name}:{church_id}', json.dumps(value),
+                   ex=60 * 60 * 24)
+    else:
+        _memory[f'{name}:{church_id}'] = value

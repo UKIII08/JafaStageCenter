@@ -38,15 +38,18 @@ def create_app(config_object='app.config.Config'):
     from app.panel.routes import panel_bp
     from app.songs.routes import songs_bp
     from app.live.routes import live_bp
+    from app.studio.routes import studio_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(panel_bp)
     app.register_blueprint(songs_bp)
     app.register_blueprint(live_bp)
+    app.register_blueprint(studio_bp)
 
     _register_socket_handlers(app)
 
     with app.app_context():
         db.create_all()   # M0: create_all; migracje Alembic dojdą w M1
+        _ensure_columns()   # drobne ALTER-y dla kolumn dodanych po M3
 
     @app.get('/healthz')
     def healthz():
@@ -55,33 +58,123 @@ def create_app(config_object='app.config.Config'):
     return app
 
 
+def _ensure_columns():
+    """Mini-migracja: dodaje brakujące kolumny do istniejących tabel
+    (create_all tworzy tylko nowe tabele). Bezpieczne przy każdym starcie."""
+    from sqlalchemy import inspect, text
+    insp = inspect(db.engine)
+    wanted = {
+        'song_personal': [
+            ('capo_fret', 'INTEGER'),
+            ('section_notes', "TEXT DEFAULT '{}'"),
+        ],
+    }
+    for table, cols in wanted.items():
+        if table not in insp.get_table_names():
+            continue
+        existing = {c['name'] for c in insp.get_columns(table)}
+        for name, ddl in cols:
+            if name not in existing:
+                db.session.execute(text(
+                    f'ALTER TABLE {table} ADD COLUMN {name} {ddl}'))
+    db.session.commit()
+
+
 def _register_socket_handlers(app):
-    """join_live: autoryzacja (członek wspólnoty LUB ważny token ekranu),
-    dołączenie do pokoju wspólnoty i natychmiastowy snapshot stanu —
-    spóźnieni widzą bieżący slajd od razu."""
+    """Protokół LIVE = protokół aplikacji desktop (sync_state_to_client /
+    update_slide / timer_update / silent_md), zawężony do pokoju wspólnoty.
+    join_live: autoryzacja (członek wspólnoty LUB ważny token ekranu),
+    dołączenie do pokoju i natychmiastowy snapshot stanu — spóźnieni widzą
+    bieżący slajd od razu."""
     from flask_socketio import emit
     from app.live import state as live_state
     from app.models import Membership, ScreenToken
 
-    @socketio.on('join_live')
-    def join_live(data):
-        data = data or {}
-        church_id = data.get('church_id')
+    def _authorized(data):
+        church_id = (data or {}).get('church_id')
         if not church_id:
-            return
-        authorized = False
+            return None
         uid = session.get('user_id')
         if uid and Membership.query.filter_by(
                 user_id=uid, church_id=church_id, status='active').first():
-            authorized = True
-        elif data.get('token'):
-            if ScreenToken.query.filter_by(church_id=church_id,
-                                           token=data['token'],
-                                           revoked_at=None).first():
-                authorized = True
-        if not authorized:
+            return church_id
+        if data.get('token') and ScreenToken.query.filter_by(
+                church_id=church_id, token=data['token'],
+                revoked_at=None).first():
+            return church_id
+        return None
+
+    def _leader(data):
+        """Zapis stanu tylko dla prowadzącego/admina zalogowanego w panelu."""
+        church_id = (data or {}).get('church_id')
+        uid = session.get('user_id')
+        if not (church_id and uid):
+            return None
+        m = Membership.query.filter_by(user_id=uid, church_id=church_id,
+                                       status='active').first()
+        if m and m.role in ('prowadzacy', 'admin'):
+            return church_id
+        return None
+
+    @socketio.on('join_live')
+    def join_live(data):
+        church_id = _authorized(data)
+        if not church_id:
             return
         join_room(f'live:{church_id}')
-        st = live_state.get_state(church_id)
-        if st:
-            emit('update_slide', st)
+        # Snapshot jak w desktopowym handle_connect
+        emit('sync_state_to_client',
+             live_state.studio_get(church_id, 'server_state',
+                                   {'setlist': [], 'current_index': -1,
+                                    'is_blackout': False}))
+        last = live_state.studio_get(church_id, 'last_slide')
+        if last:
+            emit('update_slide', last)
+        emit('timer_update',
+             live_state.studio_get(church_id, 'conf_timer',
+                                   {'timer': '00:00',
+                                    'timer_color': 'white', 'message': ''}))
+        smd = live_state.studio_get(church_id, 'silent_md')
+        if smd and smd.get('active'):
+            emit('silent_md', smd)
+
+    @socketio.on('client_update_state')
+    def client_update_state(data):
+        church_id = _leader(data)
+        if not church_id:
+            return
+        st = live_state.studio_get(church_id, 'server_state',
+                                   {'setlist': [], 'current_index': -1,
+                                    'is_blackout': False})
+        st['setlist'] = data.get('setlist', [])
+        st['current_index'] = data.get('current_index', -1)
+        live_state.studio_set(church_id, 'server_state', st)
+        emit('sync_state_to_client', st, room=f'live:{church_id}')
+
+    @socketio.on('request_current_slide')
+    def request_current_slide(data):
+        church_id = _authorized(data)
+        if not church_id:
+            return
+        last = live_state.studio_get(church_id, 'last_slide')
+        if last:
+            emit('update_slide', last)
+
+    @socketio.on('silent_md')
+    def silent_md(data):
+        church_id = _leader(data)
+        if not church_id:
+            return
+        st = {'active': bool(data.get('active')),
+              'current': data.get('current'),
+              'history': (data.get('history') or [])[-4:]}
+        live_state.studio_set(church_id, 'silent_md', st)
+        emit('silent_md', st, room=f'live:{church_id}')
+
+    @socketio.on('set_language')
+    def set_language(data):
+        church_id = _leader(data)
+        if not church_id:
+            return
+        emit('apply_settings', {'lang': (data or {}).get('lang', 'pl')},
+             room=f'live:{church_id}')

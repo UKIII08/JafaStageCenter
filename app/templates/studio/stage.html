@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Zespół</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+    <script>
+        // Web: zawężenie do wspólnoty — patrz studio/control.html
+        window.JAFA_BASE = {{ base|tojson }};
+        window.JAFA_MEDIA = {{ media|tojson }};
+        window.CHURCH_ID = {{ church_id|tojson }};
+        window.SCREEN_TOKEN = {{ screen_token|tojson }};
+        (function () {
+            var of = window.fetch.bind(window);
+            window.fetch = function (u, o) {
+                if (typeof u === 'string' && u.charAt(0) === '/' && u.indexOf('//') !== 0) {
+                    if (u.indexOf('/static/pads/') === 0) u = window.JAFA_MEDIA + u.slice('/static'.length);
+                    else if (u.indexOf('/static/') !== 0 && u.indexOf(window.JAFA_BASE) !== 0) {
+                        u = window.JAFA_BASE + u;
+                        if (window.SCREEN_TOKEN) u += (u.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(window.SCREEN_TOKEN);
+                    }
+                }
+                return of(u, o);
+            };
+        })();
+    </script>
+    <script src="{{ url_for('static', filename='socket.io.js') }}"></script>
+    <script>
+        (function () {
+            var orig = window.io;
+            window.io = function () {
+                var s = orig.apply(null, arguments);
+                var oe = s.emit.bind(s);
+                s.emit = function (ev, data) {
+                    var rest = Array.prototype.slice.call(arguments, 2);
+                    if (data === undefined || data === null) data = {};
+                    if (typeof data === 'object' && !Array.isArray(data)) {
+                        data.church_id = window.CHURCH_ID;
+                        if (window.SCREEN_TOKEN) data.token = window.SCREEN_TOKEN;
+                    }
+                    return oe.apply(null, [ev, data].concat(rest));
+                };
+                s.on('connect', function () { oe('join_live', {church_id: window.CHURCH_ID, token: window.SCREEN_TOKEN || null}); });
+                return s;
+            };
+        })();
+    </script>
+    <style>
+        body {
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            font-family: 'Sen', sans-serif;
+            margin: 0; padding: 0;
+            height: 100vh; width: 100vw;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* PRZYCISK FULLSCREEN (DYSKRETNY) */
+        #fs-btn, #qr-btn {
+            position: absolute;
+            top: var(--s3);
+            background: var(--glass-bg);
+            border: 1px solid var(--border-default);
+            color: var(--text-primary);
+            font-size: 2vh;
+            padding: var(--s2) var(--s3);
+            cursor: pointer;
+            z-index: 9999;
+            border-radius: var(--r-md);
+            opacity: 0.4;
+            transition: opacity var(--duration-fast) var(--ease-in-out);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            backdrop-filter: blur(8px);
+        }
+        #fs-btn { right: var(--s3); }
+        #qr-btn { right: 60px; }
+        #fs-btn:hover, #fs-btn:active,
+        #qr-btn:hover, #qr-btn:active { opacity: 1; }
+
+        /* --- WIDOK UWIELBIENIA --- */
+        #worship-view {
+            display: flex; /* ZMIANA: Widoczne od razu */
+            flex-direction: column;
+            height: 100%; width: 100%;
+        }
+
+        /* GÓRA (70%) */
+        #current-slide {
+            height: 70vh;
+            width: 100%;
+            padding: 2vh 20px 1vh; box-sizing: border-box;
+            border-bottom: 1px solid var(--border-default);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+
+            font-size: 8vh;
+            line-height: 1.4; /* pary akord+sylaba same rezerwują wiersz na akordy */
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Logo wewnątrz górnej sekcji */
+        #stage-logo {
+            max-width: 60%;
+            max-height: 80%;
+            object-fit: contain;
+            display: block; /* Domyślnie widoczne na start */
+            opacity: 0.4;
+        }
+
+        /* Tekst wewnątrz górnej sekcji */
+        #current-content {
+            display: none; /* Domyślnie ukryty, dopóki nie przyjdzie tekst */
+            width: 100%;
+            transition: opacity 0.3s ease;
+        }
+
+        /* DÓŁ (30%) - Kontener "Następnie" */
+        #next-slide-container {
+            height: 30vh;
+            width: 100%;
+            background-color: var(--bg-panel);
+            padding: 10px 40px; box-sizing: border-box;
+            border-top: 1px solid var(--border-default);
+
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* KONTENER NA INFORMACJE (Zegar, Key, BPM) */
+        .meta-info-container {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            text-align: right;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+        #realtime-clock {
+            font-size: 2.8vh;
+            color: var(--text-tertiary);
+            font-family: monospace;
+            font-weight: 400;
+        }
+
+        #key-display {
+            font-size: 2.8vh;
+            color: var(--teal);
+            font-weight: 600;
+            display: none;
+        }
+
+        #bpm-display {
+            font-size: 2.5vh;
+            color: var(--amber);
+            font-weight: 600;
+            font-family: monospace;
+            letter-spacing: 0.04em;
+            display: none;
+        }
+
+        #next-label {
+            font-size: var(--font-xs);
+            color: var(--red);
+            font-weight: 700;
+            margin-bottom: var(--s1);
+            flex-shrink: 0;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        #next-content {
+            flex-grow: 1;
+            color: var(--text-muted);
+            font-size: 4vh;
+            line-height: 1.4;
+            text-align: left;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-start;
+            padding-top: 15px;
+            padding-right: 180px;
+        }
+
+        .text-wrapper { width: 100%; }
+
+        /* AKORDY — pary akord+sylaba: akord zajmuje prawdziwy wiersz nad sylabą,
+           więc nic nie nachodzi, a przy zawijaniu akord wędruje ze swoją sylabą. */
+        .chord-pair { display: inline-block; vertical-align: baseline; text-align: left; }
+        .chord-pair .chord {
+            display: block;
+            color: var(--accent-primary); font-weight: 700; font-size: 0.62em;
+            line-height: 1.3; white-space: nowrap; padding-right: 0.4em;
+            text-shadow: 1px 1px 2px #000;
+        }
+        .chord-pair .chord-syl { display: block; white-space: nowrap; }
+        /* pusta sylaba (kolejny akord obok / koniec linii) trzyma wysokość wiersza */
+        .chord-pair .chord-syl:empty::before { content: "\200B"; }
+        /* Dodatek dla basistów */
+        .bass-slash {
+            color: var(--text-muted);
+            opacity: 0.8;
+        }
+
+        .bass-note {
+            color: var(--accent-secondary);
+            font-weight: 800;
+            font-size: 0.95em;
+        }
+        #next-slide-container .chord-pair .chord { font-size: 0.6em; font-weight: bold; }
+
+        /* --- WIDOK KONFERENCJI --- */
+        #conference-view {
+            display: none; height: 100%; width: 100%;
+            background: var(--bg-app);
+            flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
+        #conf-timer { font-size: 25vh; font-weight: bold; font-family: monospace; color: var(--text-main); margin-bottom: 5vh; }
+        #conf-message { font-size: 8vh; color: var(--accent-warning); padding: 20px; max-width: 90%; }
+
+        #qr-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(8,11,20,0.96);
+            backdrop-filter: blur(16px);
+            z-index: 10000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: var(--s8);
+        }
+
+        #qr-overlay .qr-close {
+            position: absolute;
+            top: var(--s5);
+            right: var(--s8);
+            color: var(--text-primary);
+            font-size: 4vh;
+            cursor: pointer;
+        }
+
+        #qr-overlay .qr-title {
+            color: var(--text-primary);
+            font-size: 3vh;
+            font-weight: 700;
+        }
+
+        #qr-control-img {
+            width: 220px;
+            height: 220px;
+            background: white;
+            border-radius: var(--r-xl);
+            border: 1px solid var(--border-default);
+            padding: var(--s3);
+            box-shadow: var(--shadow-lg);
+        }
+
+        #qr-url-text {
+            color: var(--text-tertiary);
+            font-size: var(--font-sm);
+        }
+
+        /* --- LIGHT THEME OVERRIDES --- */
+        [data-theme="light"] body {
+            background-color: var(--bg-app);
+            color: var(--text-main);
+        }
+
+        [data-theme="light"] #fs-btn,
+        [data-theme="light"] #qr-btn {
+            background: rgba(0,0,0,0.08);
+            border-color: rgba(0,0,0,0.15);
+            color: var(--text-main);
+        }
+        [data-theme="light"] #fs-btn:hover,
+        [data-theme="light"] #fs-btn:active,
+        [data-theme="light"] #qr-btn:hover,
+        [data-theme="light"] #qr-btn:active {
+            background: rgba(0,0,0,0.15);
+        }
+
+        [data-theme="light"] #current-slide .chord {
+            text-shadow: none;
+        }
+
+        [data-theme="light"] #qr-overlay {
+            background: rgba(245,245,250,0.96);
+        }
+
+        [data-theme="light"] #conf-message {
+            color: var(--accent-warning);
+        }
+
+        /* Silent Music Director — nakładka z akordami na żywo */
+        #silent-md-overlay {
+            position: fixed; inset: 0; z-index: 5000;
+            display: none;
+            align-items: center; justify-content: center;
+            background:
+                radial-gradient(120% 90% at 50% 30%, rgba(34,211,238,0.08), transparent 60%),
+                var(--bg-app, #06060a);
+        }
+        #silent-md-overlay.show { display: flex; }
+        .smd-inner { text-align: center; width: 100%; padding: 4vh 4vw; }
+        .smd-history {
+            display: flex; align-items: baseline; justify-content: center;
+            gap: clamp(16px, 4vw, 64px);
+            min-height: 10vh; margin-bottom: 2vh;
+        }
+        .smd-history span {
+            font-weight: 800; font-size: clamp(2rem, 8vh, 5rem);
+            color: #56627A; opacity: 0.5;
+        }
+        .smd-history span:last-child { opacity: 0.8; color: #94A2B8; }
+        .smd-current {
+            font-weight: 800; font-size: clamp(6rem, 34vh, 26rem); line-height: 1;
+            color: #22D3EE; text-shadow: 0 0 80px rgba(34,211,238,0.45);
+            letter-spacing: -0.02em;
+        }
+        .smd-tag {
+            margin-top: 4vh; font-size: clamp(0.8rem, 2vh, 1.3rem);
+            letter-spacing: 0.24em; text-transform: uppercase; color: #56627A;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="fs-btn" onclick="toggleFullscreen()">⛶</button>
+    <button id="qr-btn" onclick="toggleQrOverlay()">QR</button>
+
+    <div id="silent-md-overlay">
+        <div class="smd-inner">
+            <div class="smd-history" id="smd-history"></div>
+            <div class="smd-current" id="smd-current">—</div>
+            <div class="smd-tag" data-t="smd_tag">SILENT MODE · pianino prowadzi</div>
+        </div>
+    </div>
+
+    <div id="qr-overlay">
+        <span class="qr-close" onclick="toggleQrOverlay()">✕</span>
+        <div class="qr-title" data-t="stage_control_link">Panel sterowania</div>
+        <img id="qr-control-img">
+        <div id="qr-url-text"></div>
+    </div>
+
+    <div id="worship-view">
+        <div id="current-slide">
+            <img id="stage-logo" src="{{ media }}/logo.png">
+            <div id="current-content" class="text-wrapper"></div>
+        </div>
+
+        <div id="next-slide-container">
+            <div class="meta-info-container">
+                <div id="realtime-clock">00:00</div>
+                <div id="key-display"></div>
+                <div id="bpm-display"></div>
+            </div>
+
+            <div id="next-label" data-t="stage_next">NASTĘPNIE:</div>
+            <div id="next-content">
+                <div id="next-text-inner" class="text-wrapper"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="conference-view">
+        <div id="conf-timer">00:00</div>
+        <div id="conf-message"></div>
+    </div>
+
+    <script>
+        var socket = io();
+        const worshipView = document.getElementById('worship-view');
+        const confView = document.getElementById('conference-view');
+
+        const currentContent = document.getElementById('current-content');
+        const stageLogo = document.getElementById('stage-logo');
+
+        // ZAAWANSOWANA OBSŁUGA FULLSCREEN
+        function toggleFullscreen() {
+            var doc = window.document;
+            var docEl = doc.documentElement;
+            var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                if (requestFullScreen) {
+                    requestFullScreen.call(docEl).catch(err => {
+                        alert("Na iPhone/iPad: Aby uzyskać pełny ekran, kliknij 'Udostępnij' i wybierz 'Do ekranu początkowego'.");
+                    });
+                } else {
+                    alert("Na iPhone/iPad: Aby uzyskać pełny ekran, kliknij 'Udostępnij' i wybierz 'Do ekranu początkowego'.");
+                }
+            } else {
+                if (cancelFullScreen) {
+                    cancelFullScreen.call(doc);
+                }
+            }
+        }
+
+        // Zegar
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('realtime-clock').innerText =
+                now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // fixChordOverlap usunięty — pary akord+sylaba (server-side) fizycznie
+        // uniemożliwiają nachodzenie akordów, JS-owe rozsuwanie jest zbędne.
+
+        // Auto-Scale
+        // Zmiana rozmiaru okna: przelicz dopasowanie tekstu.
+        let _fitResizeTimer;
+        window.addEventListener('resize', function () {
+            clearTimeout(_fitResizeTimer);
+            _fitResizeTimer = setTimeout(function () {
+                fitText('current-slide', 'current-content', 12, 4);
+                fitText('next-content', 'next-text-inner', 4.5, 2.5);
+            }, 150);
+        });
+
+        function fitText(containerId, contentId, maxVh, minVh) {
+            const container = document.getElementById(containerId);
+            const content = document.getElementById(contentId);
+            // Jeśli kontener lub treść jest ukryta, nie skaluj
+            if (container.style.display === 'none' || content.style.display === 'none') return;
+
+            const cs = getComputedStyle(container);
+            const avail = container.clientHeight
+                - (parseFloat(cs.paddingTop) || 0)
+                - (parseFloat(cs.paddingBottom) || 0);
+            let size = maxVh;
+            content.style.fontSize = size + 'vh';
+            while (content.scrollHeight > avail && size > minVh) {
+                size -= 0.2;
+                content.style.fontSize = size + 'vh';
+            }
+        }
+
+        // Notation conversion for stage view
+        const NOTES_INT = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+        const NOTES_PL = ['C', 'Cis', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H'];
+        const NOTE_MAP = {};
+        NOTES_INT.forEach((n, i) => NOTE_MAP[n] = i);
+        Object.assign(NOTE_MAP, {'Db':1,'D#':3,'E#':5,'Fb':4,'Gb':6,'G#':8,'A#':10,'B#':0,'Cb':11,'H':11,'Cis':1,'Dis':3,'Es':3,'Fis':6,'Gis':8,'As':8,'Ais':10,'His':0});
+        const STAGE_CHORD_RE = /^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$/;
+
+        let stageNotation = 'international';
+        let stageMinorDisplay = 'uppercase';
+        let stageCurrentKey = '';
+
+        function stageParseRoot(str) {
+            const m = str.match(STAGE_CHORD_RE);
+            return m ? { root: m[1], suffix: m[2] } : null;
+        }
+
+        function stageRootToPitch(root) {
+            let r = root.charAt(0).toUpperCase() + root.slice(1);
+            if (NOTE_MAP[r] !== undefined) return NOTE_MAP[r];
+            return null;
+        }
+
+        function stageConvertChord(chord) {
+            if (chord.includes('/')) {
+                const parts = chord.split('/');
+                return stageConvertChord(parts[0]) + '/' + stageConvertChord(parts.slice(1).join('/'));
+            }
+            const m = chord.match(STAGE_CHORD_RE);
+            if (!m) return chord;
+            const root = m[1], suffix = m[2];
+            const r = root.charAt(0).toUpperCase() + root.slice(1);
+            let pc = NOTE_MAP[r];
+            if (pc === undefined) return chord;
+            // zachowaj enharmonię źródła: międzynarodowa = passthrough,
+            // polska = bezpośrednia mapa nazw (G#->Gis, nie As)
+            const INT_TO_PL = { 'C#':'Cis','Db':'Des','D#':'Dis','Eb':'Es','F#':'Fis','Gb':'Ges',
+                                'G#':'Gis','Ab':'As','A#':'Ais','Bb':'B','B':'H','Cb':'H','E#':'F','Fb':'E','B#':'C' };
+            let newRoot = stageNotation === 'polish' ? (INT_TO_PL[r] || r) : r;
+            let newSuffix = suffix;
+            const isMinor = /^m(?!aj)/i.test(suffix);
+            if (stageMinorDisplay === 'lowercase' && isMinor) {
+                newRoot = newRoot[0].toLowerCase() + newRoot.slice(1);
+                newSuffix = suffix.replace(/^m/i, '');
+            }
+            return newRoot + newSuffix;
+        }
+
+        function stageToNashville(chord, keyRoot) {
+            if (chord.includes('/')) {
+                const parts = chord.split('/');
+                return stageToNashville(parts[0], keyRoot) + '/' + stageToNashville(parts.slice(1).join('/'), keyRoot);
+            }
+            const p = stageParseRoot(chord);
+            if (!p) return chord;
+            const pc = stageRootToPitch(p.root);
+            const kpc = stageRootToPitch(keyRoot);
+            if (pc === null || kpc === null) return chord;
+            const interval = ((pc - kpc) % 12 + 12) % 12;
+            const NASH = {0:'1',1:'♭2',2:'2',3:'♭3',4:'3',5:'4',6:'♭5',7:'5',8:'♭6',9:'6',10:'♭7',11:'7'};
+            let num = NASH[interval];
+            let suffix = p.suffix;
+            if (/^m(?!aj)/i.test(suffix)) { suffix = suffix.replace(/^m/i, ''); num += 'm'; }
+            if (suffix) num += suffix;
+            return num;
+        }
+
+        function applyLowercaseMinorNashville(nashStr) {
+            if (nashStr.includes('/')) {
+                const parts = nashStr.split('/');
+                return applyLowercaseMinorNashville(parts[0]) + '/' + applyLowercaseMinorNashville(parts.slice(1).join('/'));
+            }
+            const m = nashStr.match(/^([♭#]*\d+)(m)(.*)$/);
+            if (m) return m[1].toLowerCase() + m[3];
+            return nashStr;
+        }
+
+        function transformStageHtml(html) {
+            const isNashville = stageNotation === 'nashville';
+            if (!html || (!isNashville && stageNotation === 'international' && stageMinorDisplay === 'uppercase')) return html;
+            const container = document.createElement('div');
+            container.innerHTML = html;
+            const keyRoot = stageCurrentKey ? stageCurrentKey.replace(/m$/, '') : '';
+            container.querySelectorAll('.chord').forEach(el => {
+                const raw = el.textContent;
+                let converted;
+                if (isNashville && keyRoot) {
+                    converted = stageToNashville(raw, keyRoot);
+                    if (stageMinorDisplay === 'lowercase') {
+                        converted = applyLowercaseMinorNashville(converted);
+                    }
+                } else {
+                    converted = stageConvertChord(raw);
+                }
+                if (converted.includes('/')) {
+                    // Buduj DOM-em, nie innerHTML — treść akordu pochodzi z pieśni
+                    // (textContent ODKODOWUJE encje serwera), więc sklejanie stringów
+                    // w innerHTML otwierało z powrotem drogę do wstrzyknięcia HTML.
+                    const parts = converted.split('/');
+                    el.textContent = '';
+                    el.appendChild(document.createTextNode(parts[0]));
+                    const slash = document.createElement('span');
+                    slash.className = 'bass-slash'; slash.textContent = '/';
+                    el.appendChild(slash);
+                    const bass = document.createElement('span');
+                    bass.className = 'bass-note'; bass.textContent = parts.slice(1).join('/');
+                    el.appendChild(bass);
+                } else {
+                    el.textContent = converted;
+                }
+            });
+            return container.innerHTML;
+        }
+
+        socket.on('apply_settings', function(sdata) {
+            if (sdata.chord_notation) stageNotation = sdata.chord_notation;
+            if (sdata.minor_display) stageMinorDisplay = sdata.minor_display;
+            if (sdata.lang) initI18n(sdata.lang);
+        });
+
+        socket.on('update_slide', function(data) {
+            if (data.lang) initI18n(data.lang);
+
+            if (data.mode === 'logo') {
+                // Pokaż widok uwielbienia, ale w górnej sekcji wyświetl logo zamiast tekstu
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+
+                currentContent.style.display = 'none';
+                stageLogo.style.display = 'block';
+
+                // Wyczyść dolną sekcję
+                document.getElementById('next-text-inner').innerHTML = "";
+                document.getElementById('next-label').style.display = 'none';
+            }
+            else if (data.mode === 'blackout') {
+                // BLACKOUT DLA ZESPOŁU: Zostawiamy tekst na górze (jeśli był), czyścimy dół
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+
+                // Czyścimy tylko "Następnie"
+                document.getElementById('next-text-inner').innerHTML = "";
+                document.getElementById('next-label').style.display = 'none';
+            }
+            else if (data.mode === 'conference' || data.mode === 'presentation' || data.mode === 'canva') {
+                // Tryb konferencyjny (także gdy na projektor idzie prezentacja/Canva):
+                // ekran ZESPOŁU pokazuje wyłącznie zegar i wiadomość do mówcy —
+                // slajdy trafiają tylko na projektor/prezentera, nie na scenę.
+                worshipView.style.display = 'none';
+                confView.style.display = 'flex';
+
+                if (data.timer !== undefined) {
+                    document.getElementById('conf-timer').innerText = data.timer;
+                    document.getElementById('conf-timer').style.color = data.timer_color;
+                }
+                if (data.message !== undefined) {
+                    document.getElementById('conf-message').innerText = data.message;
+                }
+            }
+            else {
+                // WORSHIP MODE (Tekst piosenki)
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+
+                // Ukryj logo, pokaż tekst
+                stageLogo.style.display = 'none';
+                currentContent.style.display = 'block';
+
+                // 1. Wyświetlanie TONACJI
+                const keyBox = document.getElementById('key-display');
+                if (data.current_key && data.current_key !== 'N/A' && data.current_key.trim() !== '-') {
+                    stageCurrentKey = data.current_key;
+                    // For key display, always show the note name (not Nashville number)
+                    let displayKey = (stageNotation === 'nashville') ? data.current_key : stageConvertChord(data.current_key);
+                    keyBox.innerText = t('stage_key') + ' ' + displayKey;
+                    keyBox.style.display = 'block';
+                } else {
+                    keyBox.style.display = 'none';
+                }
+
+                // 2. Wyświetlanie BPM
+                const bpmBox = document.getElementById('bpm-display');
+                if (data.current_bpm && data.current_bpm > 0) {
+                    bpmBox.innerText = data.current_bpm + ' BPM';
+                    bpmBox.style.display = 'block';
+                } else {
+                    bpmBox.style.display = 'none';
+                }
+
+                // 3. Notation settings from server
+                if (data.notation) stageNotation = data.notation;
+                if (data.minor_display) stageMinorDisplay = data.minor_display;
+
+                // 4. Wyświetlanie treści
+                if(data.band !== undefined) {
+                    currentContent.innerHTML = transformStageHtml(data.band);
+                    setTimeout(() => { fitText('current-slide', 'current-content', 12, 4); }, 0);
+
+                    if (data.band_next && data.band_next.trim() !== "") {
+                        let rawLines = data.band_next.split('<br>');
+                        let finalText = "";
+                        if (rawLines.length > 4) {
+                            finalText = rawLines.slice(0, 4).join('<br>') + '<br><span style="opacity:0.6; font-size:0.8em;">(...)</span>';
+                        } else {
+                            finalText = data.band_next;
+                        }
+
+                        document.getElementById('next-text-inner').innerHTML = transformStageHtml(finalText);
+                        document.getElementById('next-label').style.display = 'block';
+                        setTimeout(() => { fitText('next-content', 'next-text-inner', 4.5, 2.5); }, 0);
+
+                    } else {
+                        document.getElementById('next-text-inner').innerHTML = "";
+                        document.getElementById('next-label').style.display = 'none';
+                    }
+                }
+            }
+        });
+
+        // Osobny kanał zegara mówcy — scena (ZESPÓŁ) pokazuje odliczanie.
+        socket.on('timer_update', function(data) {
+            if (data.timer !== undefined) {
+                var tEl = document.getElementById('conf-timer');
+                if (tEl) { tEl.innerText = data.timer; tEl.style.color = data.timer_color; }
+            }
+            if (data.message !== undefined) {
+                var mEl = document.getElementById('conf-message');
+                if (mEl) mEl.innerText = data.message;
+            }
+        });
+
+        socket.on('sync_state_to_client', function(state) {
+            if (state.is_blackout) {
+                document.getElementById('next-text-inner').innerHTML = "";
+                document.getElementById('next-label').style.display = 'none';
+            }
+        });
+
+        socket.on('refresh_logo', function() {
+            location.reload();
+        });
+
+        // Silent Music Director — akordy na żywo z pianina
+        socket.on('silent_md', function(d) {
+            var ov = document.getElementById('silent-md-overlay');
+            if (!ov) return;
+            if (d && d.active) {
+                document.getElementById('smd-current').textContent = d.current || '—';
+                var hist = document.getElementById('smd-history');
+                hist.innerHTML = '';
+                (d.history || []).forEach(function(name) {
+                    var s = document.createElement('span');
+                    s.textContent = name;
+                    hist.appendChild(s);
+                });
+                ov.classList.add('show');
+            } else {
+                ov.classList.remove('show');
+            }
+        });
+
+        function toggleQrOverlay() {
+            const overlay = document.getElementById('qr-overlay');
+            if (overlay.style.display === 'flex') {
+                overlay.style.display = 'none';
+            } else {
+                overlay.style.display = 'flex';
+                const img = document.getElementById('qr-control-img');
+                img.src = '/qr_code/control?v=' + Date.now();
+                const host = location.protocol + '//' + location.hostname + ':' + location.port;
+                document.getElementById('qr-url-text').innerText = host + '/control';
+            }
+        }
+
+        initI18n();
+    </script>
+</body>
+</html>

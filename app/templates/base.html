@@ -16,10 +16,16 @@
         <nav class="nav">
             <a href="{{ url_for('panel.church_home', church_id=church.id) }}"
                class="{{ 'active' if request.endpoint == 'panel.church_home' }}">Pulpit</a>
+            {% if membership.role in ('prowadzacy', 'admin') %}
+            <a href="{{ url_for('studio.control', church_id=church.id) }}">Studio</a>
+            {% endif %}
             <a href="{{ url_for('songs.songs_list', church_id=church.id) }}"
                class="{{ 'active' if request.endpoint and request.endpoint.startswith('songs.song') }}">Piosenki</a>
+            {% if membership.role == 'muzyk' %}
             <a href="{{ url_for('songs.setlists', church_id=church.id) }}"
                class="{{ 'active' if request.endpoint and request.endpoint.startswith('songs.setlist') }}">Setlisty</a>
+            {% endif %}
+            <a href="{{ url_for('live.band', church_id=church.id) }}">Live</a>
             <a href="{{ url_for('panel.team', church_id=church.id) }}"
                class="{{ 'active' if request.endpoint == 'panel.team' }}">Zespół</a>
             {% if membership.role == 'admin' %}

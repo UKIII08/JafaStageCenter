@@ -119,21 +119,11 @@ def live_end(church_id, membership):
     return redirect(url_for('panel.church_home', church_id=church_id))
 
 
-# ── Panel prowadzącego ──
+# ── Panel prowadzącego = Studio (port panelu desktop) ──
 @live_bp.get('/c/<church_id>/live')
 @require_membership('prowadzacy')
 def leader(church_id, membership):
-    session_obj = _active_session(church_id)
-    if not session_obj:
-        flash('Brak aktywnej sesji — rozpocznij LIVE z wybranej setlisty.')
-        return redirect(url_for('songs.setlists', church_id=church_id))
-    sl = db.session.get(Setlist, session_obj.setlist_id)
-    rows = _setlist_rows(church_id, sl)
-    church = db.session.get(Church, church_id)
-    engine = (church.settings or {}).get('transition_engine', 'v4')
-    return render_template('live/leader.html', church=church, sl=sl,
-                           rows=rows, engine=engine,
-                           membership=membership, user=current_user())
+    return redirect(url_for('studio.control', church_id=church_id))
 
 
 # ── Sterowanie slajdami (REST od prowadzącego) ──
@@ -244,28 +234,36 @@ def api_current(church_id):
                     'state': live_state.get_state(church_id)})
 
 
-# ── Widok muzyka ──
+def _studio_screen_ctx(church_id, token=None):
+    from app.studio.routes import get_settings, media_url
+    church = db.session.get(Church, church_id)
+    return {'base': f'/c/{church_id}/studio',
+            'media': media_url(church_id),
+            'church_id': church_id,
+            'screen_token': token,
+            'settings': get_settings(church)}
+
+
+# ── Widok muzyka (port band_member.html z desktopu) ──
 @live_bp.get('/c/<church_id>/live/band')
 @require_membership('muzyk')
 def band(church_id, membership):
-    profile = Profile.query.filter_by(church_id=church_id,
-                                      user_id=current_user().id,
-                                      deleted=False).first()
-    return render_template('live/band.html',
-                           church=db.session.get(Church, church_id),
-                           prefs=(profile.prefs if profile else {}) or {},
-                           membership=membership, user=current_user())
+    return render_template('studio/band_member.html',
+                           **_studio_screen_ctx(church_id))
 
 
-# ── Ekrany (rzutnik / TV sceny) ──
+# ── Ekrany (rzutnik / TV sceny / telefon zespołu) ──
 @live_bp.get('/screen/<token>')
 def screen(token):
     st = ScreenToken.query.filter_by(token=token, revoked_at=None).first()
     if not st:
         abort(404)
-    template = ('live/projector.html' if st.type == 'projector'
-                else 'live/stage.html')
-    return render_template(template, church_id=st.church_id, token=token)
+    template = {'projector': 'studio/projector.html',
+                'stage': 'studio/stage.html',
+                'band': 'studio/band_member.html'}.get(
+        st.type, 'studio/projector.html')
+    return render_template(template,
+                           **_studio_screen_ctx(st.church_id, token))
 
 
 @live_bp.route('/c/<church_id>/screens', methods=['GET', 'POST'])
@@ -273,7 +271,7 @@ def screen(token):
 def screens(church_id, membership):
     if request.method == 'POST':
         stype = request.form.get('type')
-        if stype not in ('projector', 'stage'):
+        if stype not in ('projector', 'stage', 'band'):
             stype = 'projector'
         db.session.add(ScreenToken(
             church_id=church_id, token=secrets.token_urlsafe(24),

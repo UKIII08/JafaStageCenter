@@ -1,0 +1,2006 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Worship Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#080b14">
+
+    <script>
+        // Studio (web): przekierowanie desktopowych ścieżek API na prefiks
+        // wspólnoty + dopięcie church_id do zdarzeń socket — logika panelu
+        // (control_logic.js) pozostaje 1:1 z aplikacją desktop.
+        window.JAFA_BASE = {{ base|tojson }};
+        window.JAFA_MEDIA = {{ media|tojson }};
+        window.CHURCH_ID = {{ church.id|tojson }};
+        (function () {
+            var of = window.fetch.bind(window);
+            window.fetch = function (u, o) {
+                if (typeof u === 'string' && u.charAt(0) === '/' && u.indexOf('//') !== 0) {
+                    if (u.indexOf('/static/pads/') === 0) u = window.JAFA_MEDIA + u.slice('/static'.length);
+                    else if (u.indexOf('/static/') !== 0 && u.indexOf(window.JAFA_BASE) !== 0) u = window.JAFA_BASE + u;
+                }
+                return of(u, o);
+            };
+        })();
+    </script>
+    <script src="{{ url_for('static', filename='socket.io.js') }}"></script>
+    <script>
+        (function () {
+            var orig = window.io;
+            window.io = function () {
+                var s = orig.apply(null, arguments);
+                var oe = s.emit.bind(s);
+                s.emit = function (ev, data) {
+                    var rest = Array.prototype.slice.call(arguments, 2);
+                    if (data === undefined || data === null) data = {};
+                    if (typeof data === 'object' && !Array.isArray(data)) data.church_id = window.CHURCH_ID;
+                    return oe.apply(null, [ev, data].concat(rest));
+                };
+                s.on('connect', function () { oe('join_live', {church_id: window.CHURCH_ID, token: window.SCREEN_TOKEN || null}); });
+                return s;
+            };
+        })();
+    </script>
+    <script src="{{ url_for('static', filename='js/Sortable.min.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chord_detect.js') }}"></script>
+
+    <style>
+    /* ═══════════════════════════════════════════════════════════
+       CONTROL PANEL — Premium redesign
+       Layered dark UI · electric-cyan identity · LED controls
+       Benchmarks: Linear · Raycast · Ableton Live
+       (Layout/responsive mechanics preserved; visual layer rebuilt)
+       ═══════════════════════════════════════════════════════════ */
+
+    /* ── Scoped palette: electric cyan on layered near-black-blue.
+          Overrides design-system tokens for THIS page only. ── */
+    :root {
+        --bg-app:          #141416;
+        --bg-panel:        #1B1B1E;
+        --bg-surface:      #222226;
+        --bg-surface-hover:#2A2A2F;
+        --bg-elevated:     #313137;
+        --bg-input:        #0F0F11;
+        --bg-preview:      #050506;
+        --bg-inset:        #0C0C0E;
+
+        --border-subtle: rgba(255,255,255,0.045);
+        --border-default: rgba(255,255,255,0.075);
+        --border-strong: rgba(255,255,255,0.12);
+
+        --text-primary:   #ECECEF;
+        --text-secondary: #9A9AA4;
+        --text-tertiary:  #61616B;
+
+        /* Calm blue — one restrained accent (premium, not neon) */
+        --accent:         #4F8DFB;
+        --accent-hover:   #6BA0FC;
+        --accent-strong:  #3B7BF0;
+        --accent-subtle:  rgba(79,141,251,0.12);
+        --accent-glow:    rgba(79,141,251,0.00);
+        --accent-line:    rgba(79,141,251,0.22);
+
+        --chord-color:    #6BA0FC;
+
+        --green:  #34D399;  --green-subtle: rgba(52,211,153,0.10);
+        --red:    #FB7185;  --red-subtle:   rgba(251,113,133,0.10);
+        --amber:  #FBBF24;  --amber-subtle: rgba(251,191,36,0.10);
+
+        --shadow-sm:  0 1px 2px rgba(0,0,0,0.5);
+        --shadow-md:  0 6px 22px rgba(0,0,0,0.5);
+        --shadow-lg:  0 20px 55px rgba(0,0,0,0.6);
+        --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.04);
+        --glass-bg: rgba(11,15,24,0.72);
+
+        /* legacy compat aliases used across templates */
+        --bg-element: var(--bg-surface);
+        --bg-element-hover: var(--bg-surface-hover);
+        --accent-primary: var(--accent);
+        --accent-success: var(--green);
+        --accent-danger: var(--red);
+        --text-main: var(--text-primary);
+        --text-muted: var(--text-secondary);
+        --glow-primary: var(--accent-glow);
+    }
+
+    [data-theme="light"] {
+        --bg-app:          #EEF1F6;
+        --bg-panel:        #FFFFFF;
+        --bg-surface:      #F4F6FA;
+        --bg-surface-hover:#E9EDF3;
+        --bg-elevated:     #FFFFFF;
+        --bg-input:        #F1F4F9;
+        --bg-preview:      #0B0F18;
+        --bg-inset:        #E8ECF2;
+
+        --border-subtle: rgba(15,23,42,0.05);
+        --border-default: rgba(15,23,42,0.10);
+        --border-strong: rgba(15,23,42,0.16);
+
+        --text-primary:   #0E1726;
+        --text-secondary: #55607A;
+        --text-tertiary:  #8A93A6;
+
+        --accent:         #0071E3;
+        --accent-hover:   #0060C0;
+        --accent-strong:  #0060C0;
+        --accent-subtle:  rgba(0,113,227,0.08);
+        --accent-glow:    rgba(0,113,227,0.00);
+        --accent-line:    rgba(0,113,227,0.22);
+        --chord-color:    #0071E3;
+
+        --glass-bg: rgba(255,255,255,0.82);
+        --shadow-sm: 0 1px 2px rgba(15,23,42,0.05);
+        --shadow-md: 0 6px 22px rgba(15,23,42,0.08);
+        --shadow-lg: 0 20px 55px rgba(15,23,42,0.12);
+        --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+
+    /* ── App shell: locked viewport, only panels scroll (Ableton-style) ── */
+    html, body { overscroll-behavior: none; }
+    body {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--bg-app);
+    }
+
+    .scrollable { overflow-y: auto; overflow-x: hidden; }
+    .scrollable::-webkit-scrollbar { width: 6px; }
+    .scrollable::-webkit-scrollbar-thumb {
+        background: var(--border-strong); border-radius: 99px;
+    }
+    .scrollable::-webkit-scrollbar-thumb:hover { background: var(--accent-line); }
+
+    /* ── Top bar ── */
+    .top-bar {
+        display: flex;
+        align-items: center;
+        gap: var(--s3);
+        padding: max(12px, env(safe-area-inset-top)) var(--s6) 12px;
+        min-height: 60px;
+        background: var(--bg-panel);
+        border-bottom: 1px solid var(--border-default);
+        backdrop-filter: blur(12px);
+        z-index: 40;
+    }
+    .top-bar-spacer { flex: 1; }
+    .top-bar .segmented-control { margin-right: auto; }
+
+    .top-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--s2);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        color: var(--text-secondary);
+        border-radius: var(--r-md);
+        padding: var(--s2) var(--s4);
+        font-family: inherit;
+        font-size: var(--font-sm);
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background var(--duration-fast) var(--ease-out),
+                    border-color var(--duration-fast) var(--ease-out),
+                    color var(--duration-fast) var(--ease-out),
+                    transform var(--duration-fast) var(--ease-out);
+    }
+    .top-btn:hover {
+        background: var(--bg-surface-hover);
+        border-color: var(--border-strong);
+        color: var(--text-primary);
+    }
+    .top-btn:active { transform: scale(0.97); }
+    .top-btn svg { stroke: currentColor; }
+
+    .top-btn-accent {
+        background: var(--accent);
+        border-color: transparent;
+        color: #fff;
+        font-weight: 700;
+        box-shadow: var(--shadow-sm);
+    }
+    .top-btn-accent:hover {
+        background: var(--accent-hover);
+        color: #fff;
+        border-color: transparent;
+    }
+    .top-btn-accent:active { transform: scale(0.955); }
+    .top-btn-accent svg { stroke: #fff; }
+
+    /* Segmented control (mode switch) — refined pill */
+    .segmented-control {
+        display: inline-flex;
+        background: var(--bg-inset);
+        border: 1px solid var(--border-default);
+        border-radius: var(--r-full);
+        padding: 4px;
+        gap: 2px;
+    }
+    .segmented-control button {
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        font-family: inherit;
+        font-size: var(--font-sm);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: var(--s2) var(--s5);
+        border-radius: var(--r-full);
+        cursor: pointer;
+        transition: color var(--duration-fast) var(--ease-out),
+                    background var(--duration-normal) var(--ease-out);
+    }
+    .segmented-control button:hover { color: var(--text-primary); }
+    .segmented-control button.active {
+        background: var(--text-primary);
+        color: var(--bg-app);
+        box-shadow: var(--shadow-sm);
+    }
+    .segmented-control button:active { transform: scale(0.97); }
+
+    /* ── Mode containers ── */
+    .mode-container { display: none; flex: 1; min-height: 0; }
+    .mode-container.active { display: flex; }
+    #worship-mode {
+        display: none;
+        flex: 1;
+        min-height: 0;
+        gap: 1px;
+        background: var(--border-subtle);
+    }
+    #worship-mode.active { display: flex; }
+    #conference-mode { display: none; flex: 1; min-height: 0; overflow-y: auto; padding: var(--s5) var(--s6); }
+    #conference-mode.active { display: flex; }
+
+    /* ── Columns ── */
+    .col {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        background: var(--bg-panel);
+        padding: var(--s5) var(--s5) var(--s4);
+        /* wyraźna granica między kolumnami — wcześniej wszystko zlewało się w jedną czerń */
+        border-right: 1px solid var(--border-default);
+    }
+    #col-library { width: 300px; flex-shrink: 0; transition: width var(--duration-normal) var(--ease-out), padding var(--duration-normal) var(--ease-out); }
+    #col-setlist { width: 340px; flex-shrink: 0; }
+    #col-live    { flex: 1; min-width: 0; padding: var(--s6); background: var(--bg-app); border-right: none; }
+
+    .col-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s2);
+        margin-bottom: var(--s4);
+        min-height: 30px;
+    }
+    .col-header-left { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+    .col-title {
+        margin: 0;
+        font-size: var(--font-xs);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        white-space: nowrap;
+    }
+
+    /* Library collapse toggle */
+    .lib-collapse-btn {
+        display: flex; align-items: center; justify-content: center;
+        width: 26px; height: 26px; flex-shrink: 0;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--border-default);
+        background: var(--bg-surface);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .lib-collapse-btn:hover { border-color: var(--accent-line); color: var(--accent); background: var(--accent-subtle); }
+    .lib-collapse-btn svg { transition: transform var(--duration-normal) var(--ease-out); }
+
+    /* ── Library ── */
+    .plus-container { position: relative; }
+    .plus-btn {
+        width: 30px; height: 30px;
+        border-radius: var(--r-md);
+        border: 1px solid var(--border-default);
+        background: var(--bg-surface);
+        color: var(--text-secondary);
+        font-size: 1.15rem; line-height: 1;
+        cursor: pointer;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .plus-btn:hover {
+        background: var(--accent-subtle);
+        border-color: var(--accent-line);
+        color: var(--accent);
+        transform: rotate(90deg);
+    }
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        right: 0; top: calc(100% + 6px);
+        min-width: 190px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-default);
+        border-radius: var(--r-lg);
+        box-shadow: var(--shadow-lg);
+        padding: var(--s1);
+        z-index: 60;
+    }
+    .dropdown-menu.show { display: block; animation: popIn var(--duration-fast) var(--ease-out); }
+    .dropdown-item {
+        padding: var(--s3) var(--s4);
+        border-radius: var(--r-sm);
+        font-size: var(--font-sm);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+    }
+    .dropdown-item:hover { background: var(--accent-subtle); color: var(--accent); }
+
+    #searchBox {
+        margin-bottom: var(--s4);
+        background: var(--bg-input);
+        border: 1px solid var(--border-default);
+        border-radius: var(--r-md);
+        padding: var(--s3) var(--s4);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: var(--font-sm);
+        box-shadow: var(--shadow-inset);
+        transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+    }
+    #searchBox:focus {
+        outline: none;
+        border-color: var(--accent-line);
+        box-shadow: 0 0 0 3px var(--accent-subtle);
+    }
+
+    #library-list { flex: 1; margin: 0 calc(var(--s5) * -1); padding: 0 var(--s3); }
+
+    .lib-item {
+        border-radius: var(--r-md);
+        margin-bottom: 2px;
+        transition: background var(--duration-fast) var(--ease-out);
+    }
+    .lib-item[open] { background: var(--bg-surface); }
+    .lib-summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s2);
+        padding: var(--s3);
+        border-radius: var(--r-md);
+        cursor: pointer;
+        list-style: none;
+        color: var(--text-primary);
+        font-size: var(--font-sm);
+        font-weight: 600;
+        transition: background var(--duration-fast) var(--ease-out);
+    }
+    .lib-summary::-webkit-details-marker { display: none; }
+    .lib-summary:hover { background: var(--bg-surface-hover); }
+    .lib-title-row { display: flex; align-items: center; gap: var(--s2); min-width: 0; flex: 1; }
+    .lib-title-row b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lib-summary > div:last-child { flex-shrink: 0; display: flex; gap: 5px; align-items: center; }
+
+    .lib-key-badge {
+        flex-shrink: 0;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        font-family: ui-monospace, 'SFMono-Regular', 'IBM Plex Mono', Menlo, monospace;
+        color: var(--text-tertiary);
+        background: none;
+        border: none;
+        padding: 0;
+    }
+    .lib-content-preview {
+        margin: 0 var(--s2) var(--s2);
+        padding: var(--s3) var(--s4);
+        background: var(--bg-inset);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--r-sm);
+        font-size: var(--font-xs);
+        line-height: 1.5;
+        color: var(--text-secondary);
+        white-space: pre-wrap;
+    }
+    .btn-icon {
+        background: none; border: none; cursor: pointer;
+        color: var(--text-tertiary);
+        padding: 4px;
+        border-radius: var(--r-sm);
+        transition: color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
+    }
+    .btn-icon:hover { color: var(--accent); background: var(--accent-subtle); }
+
+    .btn-sm {
+        padding: var(--s1) var(--s3);
+        border-radius: var(--r-sm);
+        border: 1px solid var(--border-default);
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: var(--font-xs);
+        font-weight: 700;
+        cursor: pointer;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .btn-sm:hover { background: var(--bg-surface-hover); }
+    .lib-add-btn {
+        background: var(--bg-surface);
+        color: var(--text-secondary);
+        border-color: var(--border-default);
+    }
+    .lib-add-btn:hover {
+        background: var(--accent);
+        color: #fff;
+        border-color: transparent;
+    }
+
+    .branding-area {
+        margin-top: var(--s4);
+        padding-top: var(--s4);
+        border-top: 1px solid var(--border-subtle);
+        text-align: center;
+        opacity: 0.5;
+    }
+    .branding-img { max-width: 88px; height: auto; opacity: 0.9; }
+    .version-text { font-size: 0.62rem; color: var(--text-tertiary); letter-spacing: 0.08em; margin-top: var(--s1); }
+
+    /* ── Setlist ── */
+    #setlist-container { flex: 1; margin: 0 calc(var(--s5) * -1); padding: 0 var(--s3); }
+    .empty-setlist { text-align: center; color: var(--text-tertiary); margin-top: var(--s10); font-size: var(--font-sm); }
+
+    .setlist-item {
+        display: flex;
+        align-items: center;
+        gap: var(--s2);
+        padding: var(--s3);
+        margin-bottom: var(--s2);
+        border-radius: var(--r-md);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        cursor: pointer;
+        transition: background var(--duration-fast) var(--ease-out),
+                    border-color var(--duration-fast) var(--ease-out),
+                    transform var(--duration-fast) var(--ease-out);
+    }
+    .setlist-item:hover { background: var(--bg-surface-hover); border-color: var(--border-default); }
+    .setlist-item.active {
+        background: var(--accent-subtle);
+        border-color: var(--accent);
+    }
+    .setlist-item.active .setlist-content { color: var(--text-primary); }
+    .setlist-remove { border-radius: var(--r-sm); transition: color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out); }
+    .setlist-remove:hover { color: var(--red) !important; background: var(--red-subtle) !important; }
+    .drag-handle {
+        color: var(--text-tertiary);
+        cursor: grab;
+        font-size: 1rem;
+        padding: 0 var(--s1);
+        transition: color var(--duration-fast) var(--ease-out);
+    }
+    .setlist-item:hover .drag-handle { color: var(--accent); }
+    .setlist-content { flex: 1; min-width: 0; font-size: var(--font-sm); font-weight: 600; color: var(--text-secondary); }
+    .setlist-content > span:first-child { color: var(--accent); font-weight: 800; }
+    .sortable-ghost, .slide-ghost { opacity: 0.4; background: var(--accent-subtle) !important; }
+
+    .setlist-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--s2);
+        margin-top: var(--s4);
+        padding-top: var(--s4);
+        border-top: 1px solid var(--border-subtle);
+    }
+    .setlist-actions .top-btn { justify-content: center; }
+
+    /* ── Live panel ── */
+    .live-top-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--s2);
+    }
+    .live-top-header h2 {
+        margin: 0;
+        font-size: var(--font-xs);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+    }
+    #current-title {
+        margin: 0 0 var(--s5);
+        font-size: var(--font-2xl);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+    }
+
+    .live-split-wrapper { display: flex; gap: var(--s5); margin-bottom: var(--s6); align-items: stretch; }
+
+    #live-preview-box {
+        flex: 1;
+        aspect-ratio: 16/9;
+        /* Always mirrors the projector: dark background + light text, even in
+           light mode — the audience screen never turns light. */
+        background: #04060B;
+        border: 1px solid var(--border-default);
+        border-radius: var(--r-lg);
+        box-shadow: var(--shadow-md), var(--shadow-inset);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: var(--s5);
+        color: #EAF1F9;
+        font-size: clamp(0.85rem, 1.5vw, 1.35rem);
+        line-height: 1.45;
+        white-space: pre-wrap;
+        overflow: hidden;
+        position: relative;
+        transition: border-color var(--duration-normal) var(--ease-out);
+    }
+    #live-preview-box::before {
+        content: '';
+        position: absolute;
+        left: var(--s4); top: var(--s4);
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: var(--red);
+        box-shadow: 0 0 10px var(--red);
+        animation: led-pulse 2s ease-in-out infinite;
+    }
+    #live-preview-box:hover { border-color: var(--accent-line); }
+    #live-preview-box .preview-fit {
+        white-space: pre-wrap; max-width: 100%; line-height: 1.4;
+    }
+    .preview-info-label {
+        color: var(--text-tertiary);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        border: 1px dashed var(--border-strong);
+        padding: var(--s2) var(--s5);
+        border-radius: var(--r-md);
+        font-size: var(--font-sm);
+    }
+
+    .live-side-controls { display: flex; flex-direction: column; gap: var(--s4); width: 320px; flex-shrink: 0; }
+
+    /* Cards in the side controls */
+    .pad-panel-box, .music-info-box {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: var(--r-lg);
+        padding: var(--s5);
+        box-shadow: var(--shadow-inset);
+    }
+    .pad-row-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s4); }
+    .pad-label { font-size: var(--font-xs); font-weight: 800; letter-spacing: 0.1em; color: var(--text-tertiary); }
+    .pad-status {
+        font-size: var(--font-xs); font-weight: 800; letter-spacing: 0.06em;
+        color: var(--text-tertiary);
+        padding: 2px 10px; border-radius: var(--r-full);
+        background: var(--bg-inset); border: 1px solid var(--border-subtle);
+    }
+
+    .pad-center { display: flex; justify-content: center; margin-bottom: var(--s4); }
+    /* Pad play/stop — minimalny, czysty przycisk (bez gradientu i poświaty) */
+    .pad-btn {
+        width: 56px; height: 56px;
+        border-radius: 50%;
+        border: 1px solid var(--border-default);
+        background: var(--bg-surface);
+        color: var(--text-secondary);
+        font-size: 1.4rem;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: background var(--duration-fast) var(--ease-out),
+                    border-color var(--duration-fast) var(--ease-out),
+                    color var(--duration-fast) var(--ease-out),
+                    transform var(--duration-fast) var(--ease-out);
+    }
+    .pad-btn:hover { background: var(--bg-surface-hover); color: var(--text-primary); }
+    .pad-btn:active { transform: scale(0.955); }
+    .pad-btn.active {
+        color: #fff;
+        background: var(--accent);
+        border-color: transparent;
+    }
+
+    .pad-volume-row { display: flex; align-items: center; gap: var(--s3); }
+    .vol-label { font-size: var(--font-xs); font-weight: 700; color: var(--text-tertiary); }
+    .vol-value { font-size: var(--font-xs); font-weight: 700; color: var(--text-secondary); min-width: 34px; text-align: right; }
+    .pad-slider {
+        flex: 1;
+        -webkit-appearance: none; appearance: none;
+        height: 5px; border-radius: 99px;
+        background: var(--bg-inset);
+        cursor: pointer;
+    }
+    .pad-slider::-webkit-slider-thumb {
+        -webkit-appearance: none; appearance: none;
+        width: 16px; height: 16px; border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 0 4px var(--accent-subtle), 0 0 12px var(--accent-glow);
+        cursor: pointer;
+    }
+    .pad-slider::-moz-range-thumb {
+        width: 16px; height: 16px; border: none; border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 0 4px var(--accent-subtle);
+    }
+
+    .music-info-box { display: flex; flex-direction: column; gap: var(--s3); }
+    .music-info-row { display: flex; align-items: center; justify-content: space-between; }
+    .info-label { font-size: var(--font-xs); font-weight: 800; letter-spacing: 0.08em; color: var(--text-tertiary); }
+    .info-value { font-size: var(--font-lg); font-weight: 800; color: var(--text-primary); }
+    .info-value-accent {
+        color: var(--accent);
+    }
+    .info-value-red { color: var(--text-primary); }
+
+    .trans-controls { display: flex; align-items: center; gap: var(--s2); }
+    .trans-btn {
+        width: 34px; height: 30px;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--border-default);
+        background: var(--bg-inset);
+        color: var(--text-secondary);
+        font-family: inherit; font-weight: 800; font-size: var(--font-sm);
+        cursor: pointer;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .trans-btn:hover { border-color: var(--accent-line); color: var(--accent); background: var(--accent-subtle); }
+    .trans-btn:active { transform: scale(0.94); }
+    .trans-value { min-width: 26px; text-align: center; font-weight: 800; font-size: var(--font-base); color: var(--text-primary); }
+
+    /* ── Section tiles ── */
+    #slides-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: var(--s3);
+        align-content: start;
+    }
+    .slide-btn {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: var(--s2);
+        min-height: 92px;
+        padding: var(--s4);
+        border-radius: var(--r-md);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-secondary);
+        font-size: var(--font-sm);
+        cursor: pointer;
+        overflow: hidden;
+        transition: background var(--duration-fast) var(--ease-out),
+                    border-color var(--duration-fast) var(--ease-out),
+                    transform var(--duration-fast) var(--ease-out);
+    }
+    .slide-btn:hover { background: var(--bg-surface-hover); border-color: var(--border-default); color: var(--text-primary); transform: translateY(-2px); }
+    .slide-btn span:not(.slide-label):not(.slide-actions) {
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        overflow: hidden; text-overflow: ellipsis; line-height: 1.4;
+    }
+    .slide-label {
+        font-size: 0.64rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--text-tertiary); cursor: grab;
+    }
+    .slide-btn.active {
+        background: linear-gradient(135deg, var(--accent-subtle), transparent 65%);
+        border-color: var(--accent-line);
+        color: var(--text-primary);
+        box-shadow: 0 0 0 1px var(--accent-line), 0 6px 24px var(--accent-glow);
+    }
+    .slide-btn.active::after {
+        content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+        width: 3px; background: var(--accent);
+        box-shadow: 0 0 12px var(--accent);
+    }
+    .slide-btn.active .slide-label { color: var(--accent); }
+    /* Uzbrojony (hands-free): metronom gra, tekst jeszcze ukryty */
+    .slide-btn.armed {
+        background: linear-gradient(135deg, var(--amber-subtle), transparent 65%);
+        border-color: var(--amber);
+        box-shadow: 0 0 0 1px var(--amber), 0 6px 24px var(--amber-subtle);
+        animation: armedPulse 1s ease-in-out infinite;
+    }
+    .slide-btn.armed::after { background: var(--amber); box-shadow: 0 0 12px var(--amber); }
+    .slide-btn.armed .slide-label { color: var(--amber); }
+    .slide-btn.armed .slide-label::after {
+        content: ' · INTRO'; font-size: 0.85em; opacity: 0.8;
+    }
+    @keyframes armedPulse { 0%,100% { box-shadow: 0 0 0 1px var(--amber), 0 0 10px var(--amber-subtle); } 50% { box-shadow: 0 0 0 1px var(--amber), 0 0 26px var(--amber-subtle); } }
+    .slide-actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 3px; opacity: 0; transition: opacity var(--duration-fast) var(--ease-out); }
+    .slide-btn:hover .slide-actions { opacity: 1; }
+    .slide-dup-btn, .slide-del-btn {
+        width: 22px; height: 22px;
+        border: none; border-radius: var(--r-sm);
+        font-size: 13px; line-height: 1; cursor: pointer; padding: 0;
+        display: flex; align-items: center; justify-content: center;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .slide-dup-btn { background: var(--accent-subtle); color: var(--accent); }
+    .slide-dup-btn:hover { background: var(--accent); color: #04121A; }
+    .slide-del-btn { background: var(--red-subtle); color: var(--red); }
+    .slide-del-btn:hover { background: var(--red); color: #140406; }
+
+    .transition-tile {
+        border-style: dashed;
+        border-color: var(--border-strong);
+        background: repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.015) 8px, rgba(255,255,255,0.015) 16px), var(--bg-inset);
+    }
+    .transition-tile:hover { border-color: var(--amber); }
+    .transition-tile.active {
+        border-color: var(--amber);
+        box-shadow: 0 0 0 1px var(--amber), 0 6px 24px var(--amber-subtle);
+    }
+    .transition-tile.active::after { background: var(--amber); box-shadow: 0 0 12px var(--amber); }
+
+    /* ── Bottom controls: LED action buttons ── */
+    .bottom-controls { display: flex; gap: var(--s3); margin-top: var(--s6); }
+    .silent-md-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); }
+    .silent-md-btn svg { stroke: currentColor; }
+    .silent-md-btn.active {
+        background: var(--text-primary);
+        border-color: transparent;
+        color: var(--bg-app);
+        box-shadow: var(--shadow-sm);
+    }
+    .silent-md-btn.active svg { stroke: var(--bg-app); }
+
+    /* Metronom — mały przycisk przy BPM */
+    .bpm-metro-group { display: inline-flex; align-items: center; gap: var(--s3); }
+    .metro-btn {
+        width: 28px; height: 28px; flex-shrink: 0;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--border-default);
+        background: var(--bg-inset);
+        color: var(--text-secondary);
+        font-size: 0.8rem; line-height: 1; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .metro-btn:hover { border-color: var(--accent-line); color: var(--accent); }
+    .metro-btn.active {
+        background: var(--accent); color: #04121A; border-color: transparent;
+        box-shadow: 0 0 14px var(--accent-glow);
+        animation: metroPulse 0.5s ease-in-out infinite;
+    }
+    @keyframes metroPulse { 0%,100% { box-shadow: 0 0 8px var(--accent-glow); } 50% { box-shadow: 0 0 20px var(--accent-glow); } }
+    .metro-cfg-btn {
+        width: 26px; height: 26px; flex-shrink: 0;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--border-default);
+        background: var(--bg-inset);
+        color: var(--text-tertiary);
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .metro-cfg-btn:hover { border-color: var(--accent-line); color: var(--accent); }
+    .metro-cfg-btn svg { stroke: currentColor; }
+
+    /* Popover metronomu */
+    .metro-popover {
+        display: none;
+        position: fixed;
+        z-index: 9500;
+        width: 220px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-default);
+        border-radius: var(--r-lg);
+        box-shadow: var(--shadow-lg);
+        padding: var(--s5);
+    }
+    .metro-popover.show { display: block; animation: popIn var(--duration-fast) var(--ease-out); }
+    .metro-pop-title {
+        font-size: var(--font-xs); font-weight: 800; letter-spacing: 0.12em;
+        color: var(--accent); margin-bottom: var(--s4);
+    }
+    .metro-pop-label {
+        display: block; font-size: var(--font-xs); color: var(--text-tertiary);
+        margin: var(--s3) 0 var(--s1); font-weight: 700;
+    }
+    .metro-popover select, .metro-popover input[type="range"] { width: 100%; }
+    button.danger, button.secondary {
+        flex: 1;
+        display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
+        padding: var(--s4);
+        border-radius: var(--r-md);
+        font-family: inherit; font-weight: 800; font-size: var(--font-sm);
+        letter-spacing: 0.06em;
+        cursor: pointer;
+        transition: transform var(--duration-fast) var(--ease-out),
+                    background var(--duration-fast) var(--ease-out),
+                    border-color var(--duration-fast) var(--ease-out),
+                    color var(--duration-fast) var(--ease-out);
+    }
+    button.danger:active, button.secondary:active { transform: scale(0.955); }
+    /* Blackout — calm ghost; the only colour is a small red status dot.
+       When active (screen blacked out) it inverts to solid text-on-bg. */
+    button.danger {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        color: var(--text-primary);
+    }
+    button.danger[onclick="blackout()"]::before {
+        content: ""; width: 7px; height: 7px; border-radius: 50%;
+        background: var(--red); opacity: 0.7; flex-shrink: 0;
+    }
+    button.danger:hover { background: var(--bg-surface-hover); }
+    button.danger.active {
+        background: var(--text-primary);
+        border-color: transparent;
+        color: var(--bg-app);
+    }
+    button.danger.active::before { opacity: 1; }
+    button.secondary {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        color: var(--text-primary);
+    }
+    button.secondary:hover {
+        background: var(--bg-surface-hover);
+        border-color: var(--border-strong);
+    }
+    /* Toggled on (e.g. LOGO active) — invert, like the other active states. */
+    button.secondary.active {
+        background: var(--text-primary);
+        border-color: transparent;
+        color: var(--bg-app);
+    }
+    .next-song-btn-landscape { display: none; }
+
+    /* Modals hidden by default; JS toggles inline style.display to flex. */
+    .modal { display: none; }
+    .modal-content {
+        width: min(560px, 92vw);
+        background: var(--bg-panel);
+        border: 1px solid var(--border-default);
+        border-radius: var(--r-xl);
+        box-shadow: var(--shadow-lg);
+    }
+    .modal-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s6); }
+    .modal-title { font-size: var(--font-lg); font-weight: 800; letter-spacing: -0.01em; }
+    .modal-x {
+        width: 34px; height: 34px; border-radius: var(--r-full);
+        border: none; background: var(--bg-surface); color: var(--text-secondary);
+        font-size: 1.1rem; cursor: pointer;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .modal-x:hover { background: var(--red-subtle); color: var(--red); }
+
+    .form-row { display: flex; gap: var(--s3); margin-bottom: var(--s4); }
+    .input-title { flex: 1; }
+    .input-small { width: 90px; flex-shrink: 0; }
+    .tap-btn {
+        display: flex; align-items: center; justify-content: center;
+        padding: 0 var(--s4);
+        border-radius: var(--r-md);
+        background: var(--accent-subtle);
+        border: 1px solid var(--accent-line);
+        color: var(--accent);
+        font-weight: 800; font-size: var(--font-xs);
+        cursor: pointer; flex-shrink: 0;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .tap-btn:hover { background: var(--accent); color: #04121A; }
+    .tap-btn:active { transform: scale(0.95); }
+
+    .notation-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); margin-bottom: var(--s4); }
+    .notation-row label { font-size: var(--font-sm); color: var(--text-secondary); }
+    .notation-row select { width: 55%; }
+
+    .chord-hint-box {
+        background: var(--bg-inset);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--r-md);
+        padding: var(--s3) var(--s4);
+        margin-bottom: var(--s4);
+        font-size: var(--font-xs);
+        line-height: 1.6;
+        color: var(--text-secondary);
+    }
+    .chord-hint-box code {
+        background: var(--bg-app);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--r-sm);
+        padding: 1px 6px;
+        color: var(--accent);
+        font-size: 0.72rem;
+    }
+    .form-actions { margin-top: var(--s5); }
+    .form-actions-between { display: flex; justify-content: space-between; gap: var(--s3); margin-top: var(--s5); }
+
+    .inst-divider { border: none; border-top: 1px solid var(--border-subtle); margin: var(--s4) 0; }
+
+    /* Keyboard shortcuts list */
+    .shortcuts-hint { margin: 0 0 var(--s4); font-size: var(--font-xs); line-height: 1.5; color: var(--text-tertiary); }
+    .shortcut-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: var(--s2) 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+    .shortcut-row:last-child { border-bottom: none; }
+    .shortcut-label { font-size: var(--font-sm); color: var(--text-secondary); }
+    .shortcut-key-btn {
+        background: var(--bg-inset);
+        border: 1px solid var(--border-default);
+        border-radius: var(--r-sm);
+        padding: var(--s1) var(--s3);
+        cursor: pointer;
+        min-width: 64px;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .shortcut-key-btn:hover { border-color: var(--accent-line); }
+    .shortcut-key-btn kbd {
+        font-family: inherit; font-weight: 700; font-size: var(--font-sm);
+        color: var(--text-primary); letter-spacing: 0.02em;
+    }
+    .shortcut-key-btn.capturing {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-subtle), 0 0 16px var(--accent-glow);
+    }
+    .shortcut-key-btn.capturing { color: var(--accent); font-weight: 800; font-size: var(--font-xs); }
+    .shortcut-key-btn.capturing kbd { color: var(--accent); font-weight: 800; }
+    .shortcut-key-btn.capture-warn {
+        border-color: var(--amber);
+        box-shadow: 0 0 0 3px var(--amber-subtle), 0 0 16px var(--amber-subtle);
+        color: var(--amber);
+    }
+
+    /* Settings extras */
+    .system-section .system-actions { display: flex; gap: var(--s3); }
+    .backup-btn {
+        flex: 1;
+        padding: var(--s3);
+        border-radius: var(--r-md);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        color: var(--text-primary);
+        font-family: inherit; font-weight: 700; font-size: var(--font-sm);
+        cursor: pointer;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .backup-btn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+    .color-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s3); margin-top: var(--s3); }
+    .color-item { display: flex; flex-direction: column; gap: var(--s2); align-items: center; }
+    .color-item label { font-size: var(--font-xs); color: var(--text-secondary); }
+    .color-item input[type="color"] {
+        width: 100%; height: 40px; padding: 3px;
+        border-radius: var(--r-md); border: 1px solid var(--border-default);
+        background: var(--bg-input); cursor: pointer;
+    }
+
+    /* QR modal */
+    .qr-modal-content { width: min(760px, 94vw); }
+    .qr-server-ip {
+        text-align: center; margin-bottom: var(--s5);
+        font-size: var(--font-sm); font-weight: 700; letter-spacing: 0.04em;
+        color: var(--accent);
+    }
+    .qr-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s4); }
+    .qr-box {
+        text-align: center;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: var(--r-lg);
+        padding: var(--s4);
+    }
+    .qr-box h3 { margin: 0 0 var(--s3); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); }
+    .qr-box img { width: 100%; max-width: 130px; border-radius: var(--r-md); background: #fff; padding: var(--s2); }
+    .qr-open-btn {
+        margin-top: var(--s3); width: 100%;
+        padding: var(--s2);
+        border-radius: var(--r-sm);
+        border: 1px solid var(--border-default);
+        background: var(--bg-inset); color: var(--text-secondary);
+        font-family: inherit; font-size: var(--font-xs); font-weight: 700; cursor: pointer;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .qr-open-btn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+    /* ── Conference mode ── */
+    .conf-panel { max-width: 1300px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; min-height: 0; flex: 1; }
+    .conf-header { font-size: var(--font-xl); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 var(--s4); flex-shrink: 0; }
+    .conf-grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: var(--s5); flex: 1; min-height: 0; }
+    .conf-card {
+        display: flex; flex-direction: column;
+        min-height: 0; overflow: hidden;
+        background: var(--bg-panel);
+        border: 1px solid var(--border-default);
+        border-radius: var(--r-xl);
+        padding: var(--s5);
+    }
+    .conf-card-header {
+        display: flex; align-items: center; gap: var(--s3);
+        font-size: var(--font-xs); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--text-tertiary);
+        padding-bottom: var(--s4); margin: 0 0 var(--s5);
+        border-bottom: 1px solid var(--border-subtle);
+    }
+    .conf-card-header svg { stroke: var(--accent); }
+    .conf-time-label, .conf-msg-label, .conf-sub-label, .slides-control-label {
+        display: block; font-size: var(--font-xs); font-weight: 700; color: var(--text-secondary); margin-bottom: var(--s2);
+    }
+    .conf-time-row { display: flex; gap: var(--s3); justify-content: center; }
+    .conf-timer-input { width: 120px; text-align: center; font-size: var(--font-lg); font-weight: 800; }
+    .conf-set-btn, .conf-add-btn, .conf-upload-btn, .conf-show-btn, .conf-presenter-btn {
+        border-radius: var(--r-md); border: 1px solid var(--border-default);
+        background: var(--bg-surface); color: var(--text-primary);
+        font-family: inherit; font-weight: 700; font-size: var(--font-sm);
+        padding: var(--s3) var(--s5); cursor: pointer;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .conf-set-btn:hover, .conf-add-btn:hover, .conf-upload-btn:hover { border-color: var(--accent-line); color: var(--accent); }
+    .conf-timer-display {
+        text-align: center; font-family: 'Courier New', monospace;
+        font-size: 2.8rem; font-weight: 800; letter-spacing: 0.04em;
+        color: var(--text-primary); margin: var(--s2) 0;
+    }
+    .conf-btn-row { display: flex; gap: var(--s3); }
+    .conf-action-btn {
+        flex: 1; padding: var(--s3);
+        border-radius: var(--r-md); border: 1px solid var(--border-default);
+        background: var(--bg-surface); color: var(--text-primary);
+        font-family: inherit; font-weight: 800; letter-spacing: 0.04em; cursor: pointer;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .conf-action-btn:hover { background: var(--bg-surface-hover); border-color: var(--border-strong); }
+    .conf-action-btn:active { transform: scale(0.97); }
+    .conf-msg-area { margin-bottom: var(--s3); resize: none; min-height: 56px; flex: 1; }
+    .conf-msg-actions { display: flex; gap: var(--s3); }
+    .conf-sub-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--r-lg);
+        padding: var(--s4);
+    }
+    .conf-canva-input-row, .conf-pdf-row { display: flex; gap: var(--s3); margin-bottom: var(--s3); }
+    .conf-pdf-label {
+        flex: 1; display: flex; align-items: center;
+        border: 1px dashed var(--border-strong); border-radius: var(--r-md);
+        padding: var(--s3) var(--s4); color: var(--text-tertiary); font-size: var(--font-sm); cursor: pointer;
+    }
+    .conf-pdf-label:hover { border-color: var(--accent-line); color: var(--accent); }
+    .conf-show-btn { width: 100%; margin: var(--s3) 0; background: var(--accent-subtle); border-color: var(--accent-line); color: var(--accent); }
+    .conf-show-btn:hover { background: var(--accent); color: #04121A; }
+    .slides-nav-row { display: flex; align-items: center; justify-content: center; gap: var(--s4); margin: var(--s3) 0; }
+    .conf-slide-btn {
+        width: 44px; height: 44px; border-radius: 50%;
+        border: 1px solid var(--border-default); background: var(--bg-inset); color: var(--text-primary);
+        cursor: pointer; font-size: 1rem;
+        transition: all var(--duration-fast) var(--ease-out);
+    }
+    .conf-slide-btn:hover { border-color: var(--accent-line); color: var(--accent); }
+    .slide-counter-display { font-weight: 800; font-size: var(--font-lg); min-width: 70px; text-align: center; }
+    .conf-blackout-btn { width: 100%; margin-top: var(--s3); }
+    .conf-presenter-btn { display: inline-flex; align-items: center; gap: var(--s3); }
+    /* Podpowiedzi / instrukcje w karcie multimediów */
+    .conf-hint { font-size: var(--font-xs); line-height: 1.55; color: var(--text-tertiary); margin: 2px 0 var(--s3); }
+    .conf-hint b { color: var(--text-secondary); font-weight: 700; }
+    .conf-sub-label.primary { color: var(--accent); }
+    /* Sekcja „zaawansowane" (live Canva) — zwijana */
+    details.conf-canva-adv { padding: var(--s3) var(--s4); }
+    details.conf-canva-adv > summary {
+        cursor: pointer; list-style: none; user-select: none;
+        font-size: var(--font-xs); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+        color: var(--text-tertiary); display: flex; align-items: center; gap: var(--s2);
+    }
+    details.conf-canva-adv > summary::-webkit-details-marker { display: none; }
+    details.conf-canva-adv > summary::before { content: '▸'; transition: transform var(--duration-fast) var(--ease-out); }
+    details.conf-canva-adv[open] > summary::before { transform: rotate(90deg); }
+    details.conf-canva-adv > summary:hover { color: var(--text-secondary); }
+    details.conf-canva-adv > div { margin-top: var(--s3); }
+    .conf-presenter-btn svg { stroke: currentColor; }
+    .conf-presenter-btn:hover { border-color: var(--accent-line); color: var(--accent); }
+
+    /* ── iOS install prompt ── */
+    #ios-install-prompt {
+        display: none;
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+        width: min(420px, 90vw);
+        background: var(--glass-bg); backdrop-filter: blur(20px);
+        border: 1px solid var(--border-default); border-radius: var(--r-lg);
+        padding: var(--s5); box-shadow: var(--shadow-lg); z-index: 9999;
+        font-size: var(--font-sm); color: var(--text-secondary);
+    }
+    .close-prompt { position: absolute; top: var(--s3); right: var(--s4); cursor: pointer; color: var(--text-tertiary); }
+    .icon-share { display: inline-block; width: 14px; height: 14px; }
+
+    /* ── Mobile nav (hidden on desktop) ── */
+    .mobile-nav { display: none; }
+
+    /* ═══ Desktop live panel: tiles get all free space + scroll,
+          LOGO/BLACKOUT pinned at the bottom (always visible) ═══ */
+    @media (min-width: 1286px) {
+        #col-live { min-height: 0; overflow: hidden; }
+        .live-top-header, #current-title, .live-split-wrapper { flex-shrink: 0; }
+
+        /* Compact top zone: small 16:9 preview thumbnail on the left,
+           pad + music cards side-by-side filling the rest. Frees ~130px
+           of vertical space for the section-tile grid below. */
+        .live-split-wrapper { height: clamp(168px, 22vh, 216px); align-items: stretch; margin-bottom: var(--s5); }
+        #live-preview-box {
+            flex: 0 0 auto;
+            height: 100%;
+            width: auto;
+            aspect-ratio: 16 / 9;
+            max-height: none;
+            font-size: clamp(0.75rem, 1.1vw, 1.05rem);
+            padding: var(--s4);
+        }
+        .live-side-controls { flex: 1; width: auto; flex-direction: row; gap: var(--s4); }
+        .pad-panel-box, .music-info-box { flex: 1; }
+        .pad-btn { width: 46px; height: 46px; font-size: 1.2rem; }
+        .pad-center { margin-bottom: var(--s3); }
+        .pad-row-top { margin-bottom: var(--s3); }
+        #slides-container {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            padding-right: var(--s2);
+            margin-right: calc(var(--s2) * -1);
+            margin-bottom: var(--s4);
+        }
+        .bottom-controls {
+            flex-shrink: 0;
+            margin-top: 0;
+            padding-top: var(--s4);
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        /* Collapsed library — thin rail with only the expand button.
+           The freed width flows to #col-live (flex:1) → bigger tile area. */
+        #col-library.collapsed {
+            width: 46px;
+            padding-left: var(--s2);
+            padding-right: var(--s2);
+        }
+        #col-library.collapsed .col-title,
+        #col-library.collapsed .plus-container,
+        #col-library.collapsed #searchBox,
+        #col-library.collapsed #library-list,
+        #col-library.collapsed .branding-area { display: none; }
+        #col-library.collapsed .col-header { justify-content: center; margin-bottom: 0; }
+        #col-library.collapsed .lib-collapse-btn svg { transform: rotate(180deg); }
+    }
+
+    /* ═══ Responsive — portrait phones/tablets ═══ */
+    @media (max-width: 1285px) {
+        .top-bar { display: none !important; }
+        .mode-container.active { display: block; }
+        #worship-mode { display: block; height: 100vh; background: var(--bg-app); }
+        .conf-grid { grid-template-columns: 1fr; }
+        .lib-collapse-btn { display: none; }  /* library is a full-screen tab on mobile */
+
+        .col {
+            display: none;
+            width: 100%; height: 100%;
+            padding-top: max(var(--s5), env(safe-area-inset-top));
+            padding-left: max(var(--s5), env(safe-area-inset-left));
+            padding-right: max(var(--s5), env(safe-area-inset-right));
+            padding-bottom: calc(90px + env(safe-area-inset-bottom));
+            background: var(--bg-app);
+        }
+        #col-library, #col-setlist, #col-live { width: 100%; }
+        #col-live {
+            display: flex;
+            padding-bottom: calc(80px + env(safe-area-inset-bottom));
+            padding-top: max(var(--s3), env(safe-area-inset-top));
+            overflow-y: auto;
+        }
+        .live-header { order: 1; }
+        #current-title { order: 2; font-size: var(--font-xl); }
+        .live-split-wrapper { order: 3; flex-direction: column; width: 100%; gap: var(--s3); align-items: center; margin-bottom: var(--s3); }
+        .bottom-controls { order: 4; margin-top: var(--s2); margin-bottom: var(--s4); }
+        #slides-container { order: 5; overflow-y: visible; }
+        #library-list, #setlist-container { margin: 0; padding: 0; }
+
+        #live-preview-box { width: 100%; aspect-ratio: 16/9; font-size: var(--font-base); }
+        .live-side-controls { width: 100%; flex-direction: row; flex-wrap: wrap; }
+        .pad-panel-box, .music-info-box { flex: 1; min-width: 150px; padding: var(--s4); }
+
+        .mobile-nav {
+            display: flex;
+            min-height: 58px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-default);
+            justify-content: space-around; align-items: center;
+            position: fixed; bottom: 0; width: 100%; z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom); padding-top: var(--s2);
+        }
+        .mob-tab {
+            flex: 1 1 0px; width: 0;
+            background: none; border: none; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+            font-size: var(--font-xs); font-weight: 700; color: var(--text-tertiary);
+            padding-bottom: var(--s1); position: relative;
+            transition: color var(--duration-fast) var(--ease-out);
+        }
+        .mob-tab.active { color: var(--accent); }
+        .mob-tab.active::after {
+            content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 22px; height: 2px; border-radius: 99px; background: var(--accent); box-shadow: 0 0 10px var(--accent);
+        }
+        .mob-icon { font-size: 1.4rem; }
+        .modal-content { width: 92%; max-height: 86vh; }
+    }
+
+    /* ═══ Responsive — landscape phone (on-stage) ═══ */
+    @media (max-width: 1285px) and (orientation: landscape) {
+        .mobile-nav { display: none !important; }
+        .top-bar { display: none !important; }
+        #col-live {
+            display: grid !important;
+            width: 100vw; height: 100vh;
+            padding: var(--s3);
+            padding-left: max(var(--s3), env(safe-area-inset-left));
+            padding-right: max(var(--s3), env(safe-area-inset-right));
+            padding-bottom: max(var(--s3), env(safe-area-inset-bottom));
+            grid-template-columns: 1fr 280px;
+            grid-template-rows: auto auto 1fr auto;
+            grid-template-areas: "header preview" "controls preview" "slides preview" "buttons preview";
+            gap: var(--s3);
+            background: var(--bg-app);
+        }
+        .live-split-wrapper, .live-side-controls { display: contents; }
+        .pad-panel-box {
+            grid-area: controls; background: transparent; border: none; padding: 0; box-shadow: none;
+            display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+        }
+        .music-info-box { display: none; }
+        .live-header { grid-area: header; margin-bottom: 0; }
+        .live-top-header { padding-bottom: var(--s1); }
+        .next-song-btn-landscape {
+            display: inline-block !important;
+            background: var(--green); color: #04140D; border: none;
+            border-radius: var(--r-md); padding: var(--s2) var(--s4);
+            font-family: 'Sen'; font-size: var(--font-sm); font-weight: 800; cursor: pointer; white-space: nowrap;
+        }
+        .next-song-btn-landscape:active { transform: scale(0.98); }
+        #slides-container { grid-area: slides; overflow-y: auto; padding-right: 4px; align-content: start; }
+        #live-preview-box { grid-area: preview; width: 100%; aspect-ratio: unset; height: 100%; }
+        .bottom-controls { grid-area: buttons; align-self: end; height: 52px; margin-top: 0; }
+        .bottom-controls button { padding: var(--s2); flex: 1; }
+    }
+
+    /* ── Keyframes ── */
+    @keyframes popIn { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes led-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+        .engine-desc {
+            font-size: 12px;
+            line-height: 1.55;
+            color: var(--text-tertiary, #9aa3b2);
+            background: var(--bg-inset, rgba(255,255,255,0.04));
+            border: 1px solid var(--border-default, rgba(255,255,255,0.08));
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-top: 6px;
+        }
+        .engine-desc b { color: var(--text-secondary, #c9d1de); }
+    </style>
+    <script>
+        (function() {
+            var savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            var savedLang = localStorage.getItem('appLang') || 'pl';
+            document.documentElement.setAttribute('data-lang', savedLang);
+        })();
+    </script>
+</head>
+<body>
+
+    <audio id="pad-player-a" loop></audio>
+    <audio id="pad-player-b" loop></audio>
+
+    <div id="toast-container"></div>
+
+    <!-- Popover ustawień metronomu (barwa, metrum, głośność) -->
+    <div id="metro-popover" class="metro-popover">
+        <div class="metro-pop-title" data-t="metro_title">METRONOM</div>
+        <label class="metro-pop-label" data-t="metro_timbre">Barwa</label>
+        <select id="metro-timbre-select" onchange="setMetroTimbre(this.value)">
+            <option value="beep" data-t="metro_tb_beep">Beep</option>
+            <option value="click" data-t="metro_tb_click">Klik</option>
+            <option value="wood" data-t="metro_tb_wood">Drewno</option>
+            <option value="tick" data-t="metro_tb_tick">Tik</option>
+            <option value="soft" data-t="metro_tb_soft">Miękki</option>
+        </select>
+        <label class="metro-pop-label" data-t="metro_beats">Metrum (uderzeń/takt)</label>
+        <select id="metro-beats-select" onchange="setMetroBeats(this.value)">
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4" selected>4</option>
+            <option value="6">6</option>
+        </select>
+        <label class="metro-pop-label" data-t="metro_vol">Głośność</label>
+        <input type="range" id="metro-vol-slider" min="0" max="1" step="0.01" value="0.6" oninput="setMetroVolume(this.value)">
+    </div>
+
+    <div id="ios-install-prompt">
+        <span class="close-prompt" onclick="document.getElementById('ios-install-prompt').style.display='none'">&#10005;</span>
+        <p style="font-weight:bold; color:var(--green);" data-t="ios_install">Zainstaluj jako aplikację</p>
+        <p data-t="ios_desc">Aby uruchomić na pełnym ekranie, kliknij przycisk <span class="icon-share"></span> i wybierz <strong>"Do ekranu początkowego"</strong>.</p>
+    </div>
+
+    <!-- ═══ Top Bar ═══ -->
+    <div class="top-bar">
+        <div class="segmented-control">
+            <button class="active" onclick="switchMode('worship')" data-t="worship_mode">UWIELBIENIE</button>
+            <button onclick="switchMode('conference')" data-t="conf_mode">KONFERENCJA</button>
+        </div>
+
+        <div class="top-bar-spacer"></div>
+
+        <button class="top-btn desktop-only" onclick="openSettingsModal()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span data-t="settings_btn">Ustawienia</span>
+        </button>
+        <button id="fs-btn-desktop" class="top-btn desktop-only" onclick="toggleFullscreen()" title="Pełny ekran">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        </button>
+        <button class="top-btn top-btn-accent desktop-only" onclick="openQRModal()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            <span data-t="connect_btn">Połącz ekrany</span>
+        </button>
+    </div>
+
+    <!-- ═══ Worship Mode ═══ -->
+    <div id="worship-mode" class="mode-container active">
+
+        <!-- ── Library Column ── -->
+        <div id="col-library" class="col">
+            <div class="col-header">
+                <div class="col-header-left">
+                    <button class="lib-collapse-btn" onclick="toggleLibrary()" title="Zwiń / rozwiń bibliotekę" aria-label="Zwiń bibliotekę">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    <h2 class="col-title" data-t="library_header">Biblioteka</h2>
+                </div>
+                <div class="plus-container">
+                    <button class="plus-btn" onclick="toggleAddMenu()">+</button>
+                    <div id="add-menu-dropdown" class="dropdown-menu">
+                        <div class="dropdown-item" onclick="openAddModal()">
+                            <span data-t="add_manual">Dodaj ręcznie</span>
+                        </div>
+                        <div class="dropdown-item" onclick="openImportModal()">
+                            <span data-t="import_file">Importuj z pliku</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <input type="text" id="searchBox" placeholder="Szukaj piosenki..." data-t-ph="search_ph" onkeyup="filterLibrary()">
+            <div class="scrollable" id="library-list"></div>
+
+            <div class="branding-area">
+                <img id="control-logo" src="{{ media }}/logo.png?v=2" class="branding-img" alt="Logo">
+                <div class="version-text">v1.0</div>
+            </div>
+        </div>
+
+        <!-- ── Setlist Column ── -->
+        <div id="col-setlist" class="col">
+            <div class="col-header">
+                <h2 class="col-title" data-t="setlist_header">Setlista</h2>
+            </div>
+            <div class="scrollable" id="setlist-container">
+                <div class="empty-setlist" data-t="empty_setlist">Brak piosenek w setliście.</div>
+            </div>
+            <div class="setlist-actions">
+                <button class="top-btn" onclick="exportToPDF()" data-t="download_pdf">PDF Z AKORDAMI</button>
+                <button class="top-btn" onclick="exportLyricsPDF()" data-t="download_pdf_lyrics">PDF TEKSTY</button>
+                <button class="top-btn" onclick="saveSetlistHistory()" data-t="save_setlist">Zapisz setliste</button>
+                <button class="top-btn" onclick="showSetlistHistory()" data-t="setlist_history" style="background:var(--bg-surface);">Historia</button>
+                <button class="top-btn" onclick="shareSetlist()" data-t="share_setlist" style="background:var(--bg-surface);">Udostepnij kod</button>
+                <button class="top-btn" onclick="importSetlistCode()" data-t="import_setlist" style="background:var(--bg-surface);">Importuj kod</button>
+            </div>
+        </div>
+
+        <!-- ── Live Panel ── -->
+        <div id="col-live" class="col">
+            <div class="live-header live-top-header">
+                <h2 data-t="live_panel">Panel Live</h2>
+                <button class="next-song-btn-landscape" onclick="goToNextSong()" data-t="next_btn">NASTĘPNA &#10132;</button>
+            </div>
+
+            <h3 id="current-title"></h3>
+
+            <div class="live-split-wrapper">
+                <div id="live-preview-box" data-t="screen_off">EKRAN WYGASZONY</div>
+
+                <div id="live-header" class="live-side-controls">
+                    <div class="pad-panel-box">
+                        <div class="pad-row-top">
+                            <span class="pad-label">PAD ATMOSPHERE</span>
+                            <span id="pad-status-text" class="pad-status">OFF</span>
+                        </div>
+                        <div class="pad-center">
+                            <button id="pad-toggle-btn" class="pad-btn" onclick="togglePad()">&#9835;</button>
+                        </div>
+                        <div class="pad-volume-row">
+                            <span class="vol-label">VOL</span>
+                            <input type="range" id="pad-volume-slider" class="pad-slider"
+                                   min="0" max="1" step="0.01" value="0.5"
+                                   oninput="updatePadVolume(this)">
+                            <span id="pad-vol-text" class="vol-value">50%</span>
+                        </div>
+                    </div>
+
+                    <div class="music-info-box">
+                        <div class="music-info-row">
+                            <span class="info-label">KEY</span>
+                            <span id="live-key" class="info-value info-value-accent">-</span><span id="parallel-key" style="color:var(--text-muted);font-size:0.8em;margin-left:4px;"></span>
+                        </div>
+                        <div class="music-info-row">
+                            <span class="info-label">TRANSPOSE</span>
+                            <div class="trans-controls">
+                                <button class="trans-btn" onclick="adjustLiveTrans(-1)">-1</button>
+                                <span id="current-trans" class="trans-value">0</span>
+                                <button class="trans-btn" onclick="adjustLiveTrans(1)">+1</button>
+                            </div>
+                        </div>
+                        <div class="music-info-row">
+                            <span class="info-label">BPM</span>
+                            <div class="bpm-metro-group">
+                                <button id="metro-btn" class="metro-btn" onclick="toggleMetronome()" title="Metronom (BPM piosenki)">▶</button>
+                                <button id="metro-cfg-btn" class="metro-cfg-btn" onclick="toggleMetroPopover(event)" title="Ustawienia metronomu">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                                </button>
+                                <span id="live-bpm" class="info-value info-value-red">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="slides-container" class="slides-grid"></div>
+
+            <div class="bottom-controls">
+                <button class="danger" onclick="blackout()">BLACKOUT</button>
+                <button class="secondary" onclick="showLogo()">LOGO</button>
+                <button id="silent-md-btn" class="secondary silent-md-btn" onclick="toggleSilentMD()" title="Silent Music Director — pianino MIDI">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="14"/><line x1="10" y1="10" x2="10" y2="14"/><line x1="14" y1="10" x2="14" y2="14"/><line x1="18" y1="10" x2="18" y2="14"/></svg>
+                    <span id="silent-md-label">SILENT MD</span>
+                    <span id="silent-md-status" style="font-size:0.7em;opacity:0.6;"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Mobile Nav ═══ -->
+    <div class="mobile-nav">
+        <button class="mob-tab" onclick="switchMobTab('library')">
+            <span class="mob-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+            <span data-t="mob_lib">Biblioteka</span>
+        </button>
+        <button class="mob-tab" onclick="switchMobTab('setlist')">
+            <span class="mob-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
+            <span data-t="mob_set">Setlista</span>
+        </button>
+        <button class="mob-tab active" onclick="switchMobTab('live')">
+            <span class="mob-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+            Live
+        </button>
+    </div>
+
+    <!-- ═══ Conference Mode ═══ -->
+    <div id="conference-mode" class="mode-container">
+        <div class="conf-panel">
+            <h2 class="conf-header" data-t="speaker_panel">Panel Mowcy / Konferencja</h2>
+
+            <div class="conf-grid">
+                <!-- Timer & Message Card -->
+                <div class="conf-card">
+                    <h3 class="conf-card-header" data-t="clock_msg_title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Zegar & Wiadomosc
+                    </h3>
+
+                    <div style="text-align:center; margin-bottom:var(--s5);">
+                        <label class="conf-time-label" data-t="time_label">Czas (min):</label>
+                        <div class="conf-time-row">
+                            <input type="number" id="timer-input" value="45" class="conf-timer-input">
+                            <button class="conf-set-btn" onclick="setTimer()" data-t="set_btn">USTAW</button>
+                        </div>
+                    </div>
+
+                    <div class="conf-timer-display" id="timer-val">00:00</div>
+
+                    <div class="conf-btn-row" style="margin-bottom:var(--s4);">
+                        <button class="conf-action-btn start" onclick="startTimer()">START</button>
+                        <button class="conf-action-btn stop" onclick="stopTimer()">STOP</button>
+                        <button class="conf-action-btn reset" onclick="resetTimer()">RESET</button>
+                    </div>
+
+                    <div style="flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">
+                        <label class="conf-msg-label">Wiadomosc do wyswietlenia na ekranie prezentera:</label>
+                        <textarea id="conf-msg" rows="3" placeholder="Wiadomosc do mowcy..." data-t-ph="msg_ph" class="conf-msg-area"></textarea>
+                        <div class="conf-msg-actions">
+                            <button class="secondary" style="flex:2;" onclick="sendConfMessage()" data-t="send_btn">WYSLIJ</button>
+                            <button class="danger" style="flex:1;" onclick="clearConfMessage()" data-t="clear_btn">WYCZYSC</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Multimedia Card -->
+                <div class="conf-card">
+                    <h3 class="conf-card-header" data-t="multimedia_pres_title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        Multimedia
+                    </h3>
+
+                    <div style="display:flex; flex-direction:column; gap:var(--s3); flex-grow:1; min-height:0;">
+                        <!-- GŁÓWNE: Prezentacja jako PDF (uniwersalne, tryb prezentera) -->
+                        <div class="conf-sub-card" style="flex-grow:1; display:flex; flex-direction:column;">
+                            <label class="conf-sub-label primary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                Prezentacja (PDF)
+                            </label>
+                            <div class="conf-hint" data-t="pres_pdf_hint">
+                                Sterujesz slajdami z panelu, u prezentera widzisz „następny slajd" — bez przeciągania okien.
+                                <b>Canva:</b> Udostępnij → Pobierz → PDF. &nbsp;<b>PowerPoint / Google Slides:</b> Pobierz / Zapisz jako PDF.
+                            </div>
+
+                            <div class="conf-pdf-row">
+                                <label for="pdf-upload" class="conf-pdf-label" id="pdf-file-label" data-t="pdf_ph">Wybierz plik PDF...</label>
+                                <input type="file" id="pdf-upload" accept=".pdf,.pptx,.ppt" style="display:none;" onchange="document.getElementById('pdf-file-label').innerText = this.files[0] ? this.files[0].name : translations[currentLang].pdf_ph">
+                                <button class="conf-upload-btn" onclick="uploadPdfPresentation()" data-t="upload_btn">WGRAJ</button>
+                            </div>
+
+                            <!-- Lista wgranych prezentacji — przełączanie między kilkoma PDF -->
+                            <div id="pdf-list" style="display:flex; flex-direction:column; gap:var(--s2); margin-top:var(--s2); max-height:88px; overflow-y:auto;"></div>
+
+                            <div class="conf-sub-card" style="text-align:center; margin-top:auto;">
+                                <div class="slides-control-label" data-t="slides_control_title">Sterowanie Slajdami</div>
+
+                                <button class="conf-show-btn" onclick="sendPresentationState()" data-t="show_pres_btn">Pokaz prezentacje na ekranach</button>
+
+                                <div class="slides-nav-row">
+                                    <button class="conf-slide-btn" onclick="changeSlide(-1)">&#9664;</button>
+                                    <span id="slide-counter" class="slide-counter-display">0 / 0</span>
+                                    <button class="conf-slide-btn" onclick="changeSlide(1)">&#9654;</button>
+                                </div>
+
+                                <button class="danger conf-blackout-btn blackout-toggle" onclick="blackout()" data-t="blackout_on_btn">WYGAS EKRAN RZUTNIKA</button>
+                            </div>
+                        </div>
+
+                        <!-- ZAAWANSOWANE: Canva na żywo (embed) — zwijane -->
+                        <details class="conf-sub-card conf-canva-adv">
+                            <summary data-t="canva_adv_title">Canva na żywo (embed) — zaawansowane</summary>
+                            <div>
+                                <div class="conf-hint" data-t="canva_adv_hint">
+                                    Działa tylko z <b>publicznym linkiem do osadzenia</b> (Canva: Udostępnij → Więcej → „Osadź").
+                                    Zwykły link „Edytuj" da „odmowa dostępu". Do trybu prezentera lepszy jest PDF powyżej.
+                                </div>
+                                <div class="conf-canva-input-row">
+                                    <input type="text" id="new-canva-link" placeholder="Wklej link do osadzenia (embed)..." data-t-ph="canva_link_ph">
+                                    <button class="conf-add-btn" onclick="addCanvaLink()" data-t="add_link_btn">+ DODAJ</button>
+                                </div>
+                                <div id="canva-links-list" style="display:flex; flex-direction:column; gap:var(--s2); max-height:80px; overflow-y:auto;"></div>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:var(--s3); flex-shrink:0;">
+                <button class="conf-presenter-btn" onclick="window.open(window.JAFA_BASE + '/presenter', '_blank')" data-t="open_presenter_btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    Otworz widok prezentera
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Modals ═══ -->
+
+    <!-- Import Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-top">
+                <span class="modal-title" data-t="import_header">Import Piosenek (.txt)</span>
+                <button class="modal-x" onclick="closeImportModal()">&#10005;</button>
+            </div>
+            <div class="instruction-box">
+                <div><strong data-t="opt1">OPCJA 1: Pojedyncze pliki</strong><br><span data-t="opt1_desc">Wgraj pliki np. Barka (C).txt.</span></div>
+                <hr class="inst-divider">
+                <div><strong data-t="opt2">OPCJA 2: Plik zbiorczy</strong><br><span data-t="opt2_desc">Oddzielaj ---.</span><pre>Tytuł (Key)
+[C]Tekst...
+---</pre></div>
+            </div>
+            <form action="{{ base }}/import_songs" method="POST" enctype="multipart/form-data" id="importForm" style="text-align:center;">
+                <input type="file" name="import_files" id="importInput" multiple accept=".txt" style="display:none;" onchange="document.getElementById('importForm').submit()">
+                <button type="button" class="btn-primary btn-lg" style="width:100%;" onclick="document.getElementById('importInput').click()" data-t="choose_file">Wybierz plik</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Song Modal -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-top">
+                <span class="modal-title" data-t="add_header">Dodaj Nową Piosenkę</span>
+                <button class="modal-x" onclick="closeAddModal()">&#10005;</button>
+            </div>
+            <form id="addForm" method="POST" action="{{ base }}/add_song" onsubmit="useSuggestedKey('add-key-input')">
+                <div class="form-row">
+                    <input type="text" name="title" id="add-title" class="input-title" required placeholder="Tytuł" data-t-ph="title_ph" oninput="checkDuplicateTitle()">
+                    <input type="text" name="key" id="add-key-input" class="input-small" placeholder="Key">
+                    <input type="number" name="bpm" id="add-bpm-input" class="input-small" placeholder="BPM">
+                    <div class="tap-btn" onclick="tapTempo('add-bpm-input')">TAP</div>
+                </div>
+                <div id="add-title-warn" style="display:none; font-size:var(--font-xs); color:var(--amber, #f0a832); margin:2px 0 0 2px;"></div>
+                <div class="notation-row">
+                    <label data-t="input_notation_label">Notacja wejściowa:</label>
+                    <select name="input_notation">
+                        <option value="international" data-t="notation_international">Międzynarodowa (Bb, B)</option>
+                        <option value="polish" data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
+                    </select>
+                </div>
+                <div class="chord-hint-box">
+                    <span data-t="chord_format_hint">Akordy wpisuj w nawiasach kwadratowych:</span> <code>[Am]tekst [G]dalej</code><br>
+                    <span data-t="chord_format_hint2">Sekcje (Zwrotka, Refren) oddzielaj pustą linią. Obsługiwane formaty:</span>
+                    <code>C, Am, F#m, Bb, Csus4, G/B, E7, Dmaj7, Asus2</code><br>
+                    <span data-t="chord_format_hint3">📋 Wkleiłeś piosenkę z akordami <b>nad tekstem</b> (np. z Ultimate Guitar)? Użyj przycisku poniżej — program przepisze ją do formatu [akord]tekst.</span><br>
+                    <button type="button" class="btn-secondary" style="margin-top:var(--s2); font-size:var(--font-xs);" onclick="convertPastedFormat('add-content','add-chord-status','add-key-input')" data-t="convert_format_btn">⇄ Konwertuj akordy nad tekstem</button>
+                </div>
+                <textarea name="content" id="add-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('add-content', 'add-key-input'); validateChords('add-content', 'add-chord-status')" placeholder="Zwrotka 1&#10;[C]Tekst piosenki [Am]z akordami&#10;[F]Kolejna linia [G]tekstu&#10;&#10;Refren&#10;[F]Tekst refrenu [C]z akordami" data-t-ph="paste_ph"></textarea>
+                <div id="add-chord-status" style="font-size:var(--font-xs); margin-top:var(--s1); min-height:1.2em;"></div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary btn-lg" data-t="save_db_btn">ZAPISZ DO BAZY</button>
+                </div>
+            </form>
+            <form id="deleteFormAdd" method="POST" style="display:none;"></form>
+        </div>
+    </div>
+
+    <!-- Edit Song Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-top">
+                <span class="modal-title" data-t="edit_header">Edycja</span>
+                <button class="modal-x" onclick="closeEditModal()">&#10005;</button>
+            </div>
+            <form id="editForm" method="POST" onsubmit="useSuggestedKey('edit-key-input')">
+                <div class="form-row">
+                    <input type="text" name="title" id="edit-title" class="input-title" required>
+                    <input type="text" name="key" id="edit-key-input" class="input-small" placeholder="Key">
+                    <input type="number" name="bpm" id="edit-bpm-input" class="input-small" placeholder="BPM">
+                    <div class="tap-btn" onclick="tapTempo('edit-bpm-input')">TAP</div>
+                </div>
+                <div class="notation-row">
+                    <label data-t="input_notation_label">Notacja wejściowa:</label>
+                    <select name="input_notation">
+                        <option value="international" data-t="notation_international">Międzynarodowa (Bb, B)</option>
+                        <option value="polish" data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
+                    </select>
+                </div>
+                <div class="chord-hint-box">
+                    <span data-t="chord_format_hint">Akordy wpisuj w nawiasach kwadratowych:</span> <code>[Am]tekst [G]dalej</code><br>
+                    <span data-t="chord_format_hint2">Sekcje (Zwrotka, Refren) oddzielaj pustą linią. Obsługiwane formaty:</span>
+                    <code>C, Am, F#m, Bb, Csus4, G/B, E7, Dmaj7, Asus2</code><br>
+                    <span data-t="chord_format_hint3">📋 Wkleiłeś piosenkę z akordami <b>nad tekstem</b> (np. z Ultimate Guitar)? Użyj przycisku poniżej — program przepisze ją do formatu [akord]tekst.</span><br>
+                    <button type="button" class="btn-secondary" style="margin-top:var(--s2); font-size:var(--font-xs);" onclick="convertPastedFormat('edit-content','edit-chord-status','edit-key-input')" data-t="convert_format_btn">⇄ Konwertuj akordy nad tekstem</button>
+                </div>
+                <textarea name="content" id="edit-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('edit-content', 'edit-key-input'); validateChords('edit-content', 'edit-chord-status')"></textarea>
+                <div id="edit-chord-status" style="font-size:var(--font-xs); margin-top:var(--s1); min-height:1.2em;"></div>
+                <div class="form-actions-between">
+                    <button type="button" onclick="deleteCurrentSong()" class="btn-danger" data-t="delete_btn">USUŃ</button>
+                    <button type="submit" class="btn-primary btn-lg" data-t="save_btn">ZAPISZ</button>
+                </div>
+            </form>
+            <form id="deleteForm" method="POST" style="display:none;"></form>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-top">
+                <span class="modal-title" data-t="settings_header">Ustawienia</span>
+                <button class="modal-x" onclick="closeSettingsModal()">&#10005;</button>
+            </div>
+
+            <form action="{{ base }}/update_settings" method="POST" onsubmit="closeSettingsModal(); return true;">
+
+                <div class="settings-section">
+                    <h4 data-t="general_settings">Ogólne</h4>
+                    <div class="settings-row">
+                        <label>Język / Language:</label>
+                        <select id="lang-select" name="language" onchange="setLanguage(this.value)" style="width:50%;">
+                            <option value="pl">Polski</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4 data-t="appearance">Wygląd</h4>
+                    <div class="settings-row">
+                        <label data-t="dark_mode">Tryb ciemny:</label>
+                        <label class="switch">
+                            <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4 data-t="smart_features">Inteligentne funkcje</h4>
+                    <div class="settings-row">
+                        <label data-t="auto_trans">Automatyczne przejścia:</label>
+                        <label class="switch">
+                            <input type="checkbox" id="trans-toggle" onchange="toggleTransitions()" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="settings-row">
+                        <label data-t="key_suggest">Sugerowanie tonacji:</label>
+                        <label class="switch">
+                            <input type="checkbox" id="key-detect-toggle" onchange="toggleKeyDetection()" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <!-- Przełącznik HTTPS (stroik na telefonie) wycofany — stroik działa
+                         na komputerze (localhost = bezpieczny kontekst). Backend
+                         /toggle_https i /mic_help zostają na przyszłość. -->
+                    <div class="settings-row">
+                        <label data-t="trans_engine">Silnik przejść muzycznych:</label>
+                        <select name="transition_engine" id="trans-engine-select" style="width:50%;" onchange="updateEngineDesc()">
+                            <option value="v4" {% if not settings or settings.transition_engine not in ('v2','v3') %}selected{% endif %} data-t="engine_opt_v4">Kontekstowy (V4) – zalecany</option>
+                            <option value="v3" {% if settings and settings.transition_engine == 'v3' %}selected{% endif %} data-t="engine_opt_v3">Pivot Pro (V3)</option>
+                            <option value="v2" {% if settings and settings.transition_engine == 'v2' %}selected{% endif %} data-t="engine_opt_v2">Advanced (V2)</option>
+                        </select>
+                    </div>
+                    <div class="settings-row" style="display:block;">
+                        <div class="engine-desc" id="engine-desc-v4" data-t="engine_desc_v4"></div>
+                        <div class="engine-desc" id="engine-desc-v3" data-t="engine_desc_v3" style="display:none;"></div>
+                        <div class="engine-desc" id="engine-desc-v2" data-t="engine_desc_v2" style="display:none;"></div>
+                    </div>
+                    <div class="settings-row">
+                        <label data-t="chord_notation_label">Notacja akordów:</label>
+                        <select name="chord_notation" style="width:50%;">
+                            <option value="international" {% if settings and settings.chord_notation == 'international' %}selected{% endif %} data-t="notation_international">Międzynarodowa (Bb, B)</option>
+                            <option value="polish" {% if settings and settings.chord_notation == 'polish' %}selected{% endif %} data-t="notation_polish">Polska (B, H, Cis, Fis)</option>
+                        </select>
+                    </div>
+                    <div class="settings-row">
+                        <label data-t="minor_display_label">Akordy molowe:</label>
+                        <select name="minor_display" style="width:50%;">
+                            <option value="uppercase" {% if settings and settings.minor_display == 'uppercase' %}selected{% endif %} data-t="minor_uppercase">Wielkie litery (Am, Em)</option>
+                            <option value="lowercase" {% if settings and settings.minor_display == 'lowercase' %}selected{% endif %} data-t="minor_lowercase">Małe litery (am, em)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4 data-t="projector_screen">Rzutnik (Ekran Zewnętrzny)</h4>
+                    <div class="settings-row">
+                        <label data-t="font_label">Czcionka:</label>
+                        <select name="font_family" style="width:50%;">
+                            <option value="Sen" {% if settings and settings.font_family == 'Sen' %}selected{% endif %}>Sen</option>
+                            <option value="Arial" {% if settings and settings.font_family == 'Arial' %}selected{% endif %}>Arial</option>
+                            <option value="Times New Roman" {% if settings and settings.font_family == 'Times New Roman' %}selected{% endif %}>Times New Roman</option>
+                        </select>
+                    </div>
+                    <div class="color-grid">
+                        <div class="color-item">
+                            <label data-t="bg_color">Tło</label>
+                            <input type="color" name="bg_color" value="{{ settings.bg_color if settings else '#000000' }}">
+                        </div>
+                        <div class="color-item">
+                            <label data-t="text_color">Tekst</label>
+                            <input type="color" name="text_color" value="{{ settings.text_color if settings else '#ffffff' }}">
+                        </div>
+                        <div class="color-item">
+                            <label data-t="chord_color">Akordy</label>
+                            <input type="color" name="chord_color" value="{{ settings.chord_color if settings else '#00e5ff' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary btn-lg" style="width:100%; margin-top:var(--s3); margin-bottom:var(--s5);" data-t="save_settings">ZAPISZ USTAWIENIA</button>
+            </form>
+
+            <div class="settings-section">
+                <h4 data-t="media_header">Multimedia</h4>
+                <div style="margin-bottom:var(--s4);">
+                    <label style="font-weight:700; font-size:var(--font-xs);" data-t="bg_proj_label">Tło Rzutnika:</label>
+                    <form action="{{ base }}/upload_background" method="POST" enctype="multipart/form-data" class="file-upload-row">
+                        <label for="bg-file-input" class="custom-file-label" data-t="choose_file_label">Wybierz plik...</label>
+                        <input type="file" id="bg-file-input" name="bg_file" accept=".jpg,.png" required style="display:none;" onchange="updateFileName(this)">
+                        <button type="submit" class="btn-primary btn-sm" data-t="upload_btn">WGRAJ</button>
+                    </form>
+                    {% if has_bg %}
+                    <form action="{{ base }}/delete_background" method="POST" style="margin-top:var(--s1); text-align:right;">
+                        <button type="submit" class="btn-danger btn-sm" data-t="delete_current">USUŃ OBECNE</button>
+                    </form>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label style="font-weight:700; font-size:var(--font-xs);">Logo:</label>
+                    <form action="{{ base }}/upload_logo" method="POST" enctype="multipart/form-data" class="file-upload-row">
+                        <label for="logo-file-input" class="custom-file-label" data-t="choose_file_label">Wybierz plik...</label>
+                        <input type="file" id="logo-file-input" name="logo_file" accept=".png" required style="display:none;" onchange="updateFileName(this)">
+                        <button type="submit" class="btn-primary btn-sm" data-t="upload_btn">WGRAJ</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h4 data-t="audio_section">Audio — pady i metronom</h4>
+                <p class="shortcuts-hint" data-t="audio_hint">Wybierz interfejs audio i wyjścia. Pady i metronom mogą iść na różne kanały (np. pady na FOH, click na słuchawki/IEM). Bez interfejsu wielokanałowego — wszystko w stereo.</p>
+                <div class="settings-row">
+                    <label data-t="audio_out">Interfejs / wyjście:</label>
+                    <select id="audio-out-select" style="width:55%;" onchange="selectAudioOutput(this.value)">
+                        <option value="" data-t="audio_out_default">Domyślne systemowe</option>
+                    </select>
+                </div>
+                <div class="settings-row" id="stereo-split-row">
+                    <label data-t="audio_split">Podział bez interfejsu:</label>
+                    <select id="stereo-split-select" style="width:55%;" onchange="setStereoSplit(this.value === '1')">
+                        <option value="0" data-t="audio_split_together">Razem (stereo)</option>
+                        <option value="1" data-t="audio_split_lr">Pady L / Metronom P (przejściówka)</option>
+                    </select>
+                </div>
+                <div class="settings-row" id="pad-ch-row">
+                    <label data-t="audio_pad_ch">Wyjście padów:</label>
+                    <select id="pad-channels-select" style="width:55%;" onchange="selectPadChannels(this.value)">
+                        <option value="[0,1]">1–2</option>
+                    </select>
+                </div>
+                <div class="settings-row" id="metro-ch-row">
+                    <label data-t="audio_metro_ch">Wyjście metronomu:</label>
+                    <select id="metro-channels-select" style="width:55%;" onchange="selectMetroChannels(this.value)">
+                        <option value="[0,1]">1–2</option>
+                    </select>
+                </div>
+                <p id="audio-ch-note" class="shortcuts-hint" style="margin-top:var(--s2);"></p>
+                <button type="button" class="backup-btn" style="width:100%; margin-top:var(--s3);" onclick="scanAudioOutputs()" data-t="audio_scan">Skanuj wyjścia audio</button>
+            </div>
+
+            <div class="settings-section">
+                <h4 data-t="smd_section">Silent Music Director (MIDI)</h4>
+                <p class="shortcuts-hint" data-t="smd_hint">Wybierz pianino MIDI podłączone przez USB. Po włączeniu „Silent MD" w panelu, akordy grane na pianinie pojawią się na żywo u zespołu.</p>
+                <div class="settings-row">
+                    <label data-t="midi_device">Urządzenie MIDI:</label>
+                    <select id="midi-device-select" style="width:55%;" onchange="selectMidiDevice(this.value)">
+                        <option value="" data-t="midi_none">— nie wykryto —</option>
+                    </select>
+                </div>
+                <button type="button" class="backup-btn" style="width:100%; margin-top:var(--s3);" onclick="scanMidiDevices()" data-t="midi_scan">Skanuj urządzenia MIDI</button>
+            </div>
+
+            <div class="settings-section">
+                <h4 data-t="shortcuts_header">Skróty klawiszowe</h4>
+                <p class="shortcuts-hint" data-t="shortcuts_hint">Kliknij klawisz obok akcji i naciśnij nowy. Pod te skróty podłączysz hardware'owy sterownik (emulujący klawiaturę).</p>
+                <div id="shortcuts-list"></div>
+                <button type="button" class="backup-btn" onclick="resetShortcuts()" data-t="shortcuts_reset" style="width:100%; margin-top:var(--s4);">Przywróć domyślne skróty</button>
+            </div>
+
+            <div class="settings-section system-section">
+                <h4 data-t="system_section">System</h4>
+                <div class="system-actions">
+                    <button type="button" class="backup-btn" onclick="saveBackupDesktop()" data-t="backup_btn">Kopia bazy</button>
+                    <form action="{{ base }}/reset_settings" method="POST" style="flex:1;" onsubmit="return confirm('Przywrócić domyślne?');">
+                        <button type="submit" class="reset-btn" style="width:100%;">&#8635; RESET</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Modal -->
+    <div id="qrModal" class="modal">
+        <div class="modal-content qr-modal-content">
+            <div class="modal-top">
+                <span class="modal-title">Połącz ekrany</span>
+                <button class="modal-x" onclick="closeQRModal()">&#10005;</button>
+            </div>
+            <div class="qr-server-ip">SERWER: {{ server_ip }}</div>
+            <div class="qr-container">
+                <div class="qr-box">
+                    <h3 data-t="control_qr">STEROWANIE</h3>
+                    <img src="{{ base }}/qr_code/control">
+                    <button class="qr-open-btn" onclick="fetch('/screen_url/control').then(r=>r.json()).then(d=>window.open(d.url,'_blank'))" data-t="open_win">OTWÓRZ OKNO &#8599;</button>
+                </div>
+                <div class="qr-box">
+                    <h3 data-t="band_qr">ZESPÓŁ</h3>
+                    <img src="{{ base }}/qr_code/stage">
+                    <button class="qr-open-btn" onclick="fetch('/screen_url/stage').then(r=>r.json()).then(d=>window.open(d.url,'_blank'))" data-t="open_win">OTWÓRZ OKNO &#8599;</button>
+                </div>
+                <div class="qr-box">
+                    <h3 data-t="proj_qr">RZUTNIK</h3>
+                    <img src="{{ base }}/qr_code/projector">
+                    <button class="qr-open-btn" onclick="fetch('/screen_url/projector').then(r=>r.json()).then(d=>window.open(d.url,'_blank'))" data-t="open_win">OTWÓRZ OKNO &#8599;</button>
+                </div>
+                <div class="qr-box">
+                    <h3 data-t="member_qr">CZŁONEK ZESPOŁU</h3>
+                    <img src="{{ base }}/qr_code/band_member">
+                    <button class="qr-open-btn" onclick="fetch('/screen_url/band_member').then(r=>r.json()).then(d=>window.open(d.url,'_blank'))" data-t="open_win">OTWÓRZ OKNO &#8599;</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Scripts ═══ -->
+    <script>
+        window.SERVER_DATA = {
+            songs: [
+                {% for song in songs %}
+                { id: {{song.id|tojson}}, title: {{song.title|tojson}}, content: {{song.content|tojson}}, key: {{song.key|tojson}}, bpm: {{song.bpm or 0}} },
+                {% endfor %}
+            ],
+            settings: {
+                bg_color: "{{ settings.bg_color if settings else '#000000' }}",
+                text_color: "{{ settings.text_color if settings else '#ffffff' }}",
+                chord_color: "{{ settings.chord_color if settings else '#00e5ff' }}",
+                font_family: "{{ settings.font_family if settings else 'Sen' }}",
+                transition_engine: "{{ settings.transition_engine if settings else 'v2' }}",
+                chord_notation: "{{ settings.chord_notation if settings else 'international' }}",
+                minor_display: "{{ settings.minor_display if settings else 'uppercase' }}"
+            },
+            logoUrl: "{{ media }}/logo.png",
+            serverIp: "{{ server_ip }}"
+        };
+
+        function fitPreviewText(box) {
+            var inner = box.querySelector('.preview-fit');
+            if (!inner) return;
+            var size = 22, min = 8, guard = 0;   // start ~1.35rem, zmniejszaj aż się zmieści
+            inner.style.fontSize = size + 'px';
+            while ((box.scrollHeight > box.clientHeight || box.scrollWidth > box.clientWidth)
+                   && size > min && guard < 80) {
+                size -= 1; guard++;
+                inner.style.fontSize = size + 'px';
+            }
+        }
+        window.updateLocalPreview = function(text, label) {
+            var previewBox = document.getElementById('live-preview-box');
+            if (!text || text.trim() === '') {
+                var displayLabel = label ? label : '...';
+                previewBox.innerHTML = '<span class="preview-info-label">' + displayLabel + '</span>';
+            } else {
+                previewBox.innerHTML = '<div class="preview-fit"></div>';
+                previewBox.querySelector('.preview-fit').innerText = text;
+                fitPreviewText(previewBox);
+            }
+        };
+        // Przelicz dopasowanie przy zmianie rozmiaru okna
+        var _prevFitTimer = null;
+        window.addEventListener('resize', function() {
+            clearTimeout(_prevFitTimer);
+            _prevFitTimer = setTimeout(function() {
+                var box = document.getElementById('live-preview-box');
+                if (box && box.querySelector('.preview-fit')) fitPreviewText(box);
+            }, 150);
+        });
+    </script>
+
+    <script src="{{ url_for('static', filename='js/control_logic.js') }}"></script>
+    <script>initI18n();</script>
+</body>
+</html>

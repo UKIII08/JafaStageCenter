@@ -13,6 +13,7 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
+    volumes: ["uploads:/srv/instance/uploads"]   # logo/tła/prezentacje wspólnot
     depends_on: [db, redis]
   db:
     image: postgres:16-alpine
@@ -36,3 +37,4 @@ services:
 volumes:
   pgdata:
   caddy_data:
+  uploads:
