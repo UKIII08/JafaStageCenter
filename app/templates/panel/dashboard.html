@@ -4,12 +4,24 @@
     <h2>{{ church.name }}</h2>
     <p class="muted">Panel wspólnoty — fundament M0. Kolejne moduły wg PLAN.md:
     Piosenki i Setlisty (M1), LIVE (M2), Ćwiczenie i moje tonacje (M3).</p>
+    <div id="live-banner" style="display:none; margin-bottom:14px;">
+        <a class="btn" style="background:#e85d75;" href="{{ url_for('live.band', church_id=church.id) }}">🔴 LIVE trwa — dołącz jako muzyk</a>
+        {% if membership.role != 'muzyk' %}
+        <a class="btn-ghost btn" href="{{ url_for('live.leader', church_id=church.id) }}">Panel prowadzącego</a>
+        {% endif %}
+    </div>
     <a class="btn" href="{{ url_for('songs.songs_list', church_id=church.id) }}">Piosenki</a>
     <a class="btn" href="{{ url_for('songs.setlists', church_id=church.id) }}">Setlisty</a>
     <a class="btn" href="{{ url_for('panel.team', church_id=church.id) }}">Zespół</a>
     <a class="btn-ghost btn" href="{{ url_for('panel.my_profile', church_id=church.id) }}">Mój profil</a>
     {% if membership.role == 'admin' %}
+    <a class="btn-ghost btn" href="{{ url_for('live.screens', church_id=church.id) }}">Ekrany</a>
     <a class="btn-ghost btn" href="{{ url_for('panel.church_settings', church_id=church.id) }}">Ustawienia</a>
     {% endif %}
+    <script>
+    fetch('/api/live/current/{{ church.id }}').then(r => r.json()).then(d => {
+        if (d.active) document.getElementById('live-banner').style.display = '';
+    });
+    </script>
 </div>
 {% endblock %}

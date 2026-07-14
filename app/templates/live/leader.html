@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}LIVE — {{ church.name }}{% endblock %}
+{% block content %}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <h2 style="margin:0;">🔴 LIVE: {{ sl.name }}</h2>
+        <div>
+            <button class="btn-ghost btn" id="btn-logo">LOGO</button>
+            <button class="btn-ghost btn" id="btn-blackout" style="color:#e85d75;">BLACKOUT</button>
+            <form method="POST" action="{{ url_for('live.live_end', church_id=church.id) }}"
+                  style="display:inline;" onsubmit="return confirm('Zakończyć sesję LIVE?')">
+                <button class="btn-ghost btn">Zakończ</button>
+            </form>
+        </div>
+    </div>
+    <p class="muted" id="live-status">Kliknij kafelek sekcji, aby wysłać na wszystkie ekrany.
+       Silnik przejść: {{ engine }}.</p>
+</div>
+{% for row in rows %}
+<div class="card">
+    <h3 style="margin-top:0;">{{ loop.index }}. {{ row.song.title }}
+        <span class="muted">{{ row.song.key }}{% if row.transpose %} (transpozycja {{ '+' + row.transpose|string if row.transpose > 0 else row.transpose }}){% endif %}{% if row.song.bpm %} · {{ row.song.bpm }} BPM{% endif %}</span>
+    </h3>
+    <div style="display:flex; flex-wrap:wrap; gap:10px;">
+        {% set song_i = loop.index0 %}
+        {% for sec in row.sections %}
+        <div class="tile" data-song="{{ song_i }}" data-section="{{ loop.index0 }}"
+             style="border:1px solid var(--border-default); border-radius:10px; padding:10px 14px;
+                    cursor:pointer; min-width:150px; max-width:230px;">
+            <div style="font-weight:800; font-size:.75rem; letter-spacing:.06em; color:#5b7cfa;">{{ sec.label|upper }}</div>
+            <div class="muted" style="font-size:.85rem;">{{ sec.content|replace('[', '⟨')|truncate(42) }}</div>
+        </div>
+        {% endfor %}
+        {% if not loop.last %}
+        <div class="tile-transition" data-song="{{ song_i }}"
+             style="border:1px dashed #f0a832; border-radius:10px; padding:10px 14px;
+                    cursor:pointer; min-width:120px;">
+            <div style="font-weight:800; font-size:.75rem; letter-spacing:.06em; color:#f0a832;">PRZEJŚCIE →</div>
+            <div class="muted" style="font-size:.85rem;" id="trans-prev-{{ song_i }}">akordy pomostu</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+<script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>
+<script>
+const CHURCH = '{{ church.id }}';
+function post(url, body) {
+    return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body || {}) }).then(r => r.json());
+}
+document.querySelectorAll('.tile').forEach(el => el.addEventListener('click', () => {
+    document.querySelectorAll('.tile, .tile-transition').forEach(x => x.style.background = '');
+    el.style.background = 'rgba(91,124,250,.18)';
+    post(`/c/${CHURCH}/live/slide`, { song_idx: +el.dataset.song, section_idx: +el.dataset.section });
+}));
+document.querySelectorAll('.tile-transition').forEach(el => el.addEventListener('click', () => {
+    document.querySelectorAll('.tile, .tile-transition').forEach(x => x.style.background = '');
+    el.style.background = 'rgba(240,168,50,.15)';
+    post(`/c/${CHURCH}/live/transition`, { song_idx: +el.dataset.song })
+        .then(d => { if (d.chords) {
+            const p = document.getElementById('trans-prev-' + el.dataset.song);
+            if (p) p.textContent = d.chords.join(' ');
+        }});
+}));
+document.getElementById('btn-blackout').addEventListener('click', () =>
+    post(`/c/${CHURCH}/live/blackout`).then(d =>
+        document.getElementById('live-status').textContent =
+            d.blackout ? 'BLACKOUT — ekrany wygaszone.' : 'Ekrany aktywne.'));
+document.getElementById('btn-logo').addEventListener('click', () =>
+    post(`/c/${CHURCH}/live/logo`).then(d =>
+        document.getElementById('live-status').textContent =
+            d.logo ? 'LOGO na ekranach.' : 'Ekrany aktywne.'));
+const socket = io();
+socket.on('connect', () => socket.emit('join_live', { church_id: CHURCH }));
+</script>
+{% endblock %}

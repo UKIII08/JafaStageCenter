@@ -511,3 +511,25 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
     return text_people, text_band, text_print
 
 # --- 6. ROUTING ---
+
+
+def parse_song_sections(content):
+    """Dzieli treść pieśni na sekcje (kafelki) — port zachowania desktopu:
+    granica sekcji = pusta linia; etykieta = pierwsza linia sekcji, jeśli
+    jest krótka i nie zawiera akordów; inaczej "SLAJD n"."""
+    if not content:
+        return []
+    text = content.replace('\r', '')
+    text = re.sub(r'(\n\s*){2,}\n', '\n\n', text)
+    parts = [p for p in re.split(r'\n\s*\n', text) if p.strip()]
+    sections = []
+    for i, block in enumerate(parts):
+        lines = block.strip().split('\n')
+        label = f'SLAJD {i + 1}'
+        body = block.strip()
+        if lines and '[' not in lines[0] and len(lines[0].strip()) < 30 \
+                and len(lines) > 1:
+            label = lines[0].strip()
+            body = '\n'.join(lines[1:]).strip()
+        sections.append({'label': label, 'content': body})
+    return sections

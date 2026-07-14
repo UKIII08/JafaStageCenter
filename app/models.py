@@ -130,3 +130,31 @@ class Setlist(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow,
                            onupdate=datetime.utcnow)
     deleted = db.Column(db.Boolean, default=False)
+
+
+class LiveSession(db.Model):
+    __tablename__ = 'live_sessions'
+    id = db.Column(db.String(36), primary_key=True, default=new_uuid)
+    church_id = db.Column(db.String(36), db.ForeignKey('churches.id'),
+                          nullable=False, index=True)
+    setlist_id = db.Column(db.String(36), db.ForeignKey('setlists.id'))
+    started_by = db.Column(db.String(36), db.ForeignKey('users.id'))
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    ended_at = db.Column(db.DateTime, nullable=True)
+    is_practice = db.Column(db.Boolean, default=False)
+    # stan bieżącego slajdu trzymamy w app/live/state.py (Redis/pamięć) —
+    # w bazie tylko cykl życia sesji
+
+
+class ScreenToken(db.Model):
+    """Stały token dla rzutnika/TV — urządzenie otwiera URL raz i nasłuchuje
+    aktywnej sesji swojej wspólnoty; odwoływalny z panelu."""
+    __tablename__ = 'screen_tokens'
+    id = db.Column(db.Integer, primary_key=True)
+    church_id = db.Column(db.String(36), db.ForeignKey('churches.id'),
+                          nullable=False, index=True)
+    token = db.Column(db.String(43), unique=True, nullable=False, index=True)
+    type = db.Column(db.String(20), default='projector')  # projector|stage
+    name = db.Column(db.String(120), default='')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    revoked_at = db.Column(db.DateTime, nullable=True)

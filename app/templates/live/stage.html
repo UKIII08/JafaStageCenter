@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ekran sceny</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/song-render.css') }}">
+    <style>
+        body { background:#0b0d12; color:#eef0f4; margin:0; height:100vh;
+               display:flex; flex-direction:column; font-family:'Sen',system-ui,sans-serif;
+               overflow:hidden; }
+        #main { flex:1; display:flex; align-items:center; justify-content:center;
+                text-align:center; font-size:6.5vh; line-height:1.45; padding:1vh 3vw; overflow:hidden; }
+        #next-wrap { height:26vh; border-top:1px solid rgba(255,255,255,.1);
+                     padding:1vh 3vw; overflow:hidden; }
+        #next-label { color:#e85d75; font-size:1.8vh; font-weight:800; letter-spacing:.08em; }
+        #next { font-size:3vh; line-height:1.45; color:#9aa3b2; text-align:left; }
+        #clock { position:fixed; top:1.5vh; right:2vw; color:#59606e; font-family:monospace; font-size:2.6vh; }
+        #keybpm { position:fixed; top:5vh; right:2vw; color:#2dd4a7; font-size:2.4vh; text-align:right; }
+        .song-render .chord-pair .chord { color:#6d8cff; }
+    </style>
+</head>
+<body>
+<div id="clock"></div>
+<div id="keybpm"></div>
+<div id="main"></div>
+<div id="next-wrap"><div id="next-label">NASTĘPNIE</div><div id="next" class="song-render"></div></div>
+<script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>
+<script>
+const CHURCH = '{{ church_id }}';
+const TOKEN = '{{ token }}';
+const main = document.getElementById('main');
+const nextEl = document.getElementById('next');
+setInterval(() => document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }), 1000);
+function render(st) {
+    if (!st || st.blackout || st.logo) { main.innerHTML = ''; nextEl.innerHTML = ''; return; }
+    main.innerHTML = '<div class="song-render">' + (st.band_html || '') + '</div>';
+    nextEl.innerHTML = st.next_band_html || '';
+    document.getElementById('keybpm').textContent =
+        (st.key ? 'Tonacja: ' + st.key : '') + (st.bpm ? ' · ' + st.bpm + ' BPM' : '');
+    let size = 6.5;
+    main.style.fontSize = size + 'vh';
+    while (main.scrollHeight > main.clientHeight && size > 2.5) {
+        size -= 0.2; main.style.fontSize = size + 'vh';
+    }
+}
+const socket = io();
+socket.on('connect', () => socket.emit('join_live', { church_id: CHURCH, token: TOKEN }));
+socket.on('update_slide', render);
+socket.on('session_ended', () => render(null));
+fetch(`/api/live/current/${CHURCH}?token=${TOKEN}`).then(r => r.json())
+    .then(d => { if (d.state) render(d.state); });
+</script>
+</body>
+</html>

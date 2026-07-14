@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rzutnik</title>
+    <style>
+        body { background:#000; color:#fff; margin:0; height:100vh;
+               display:flex; align-items:center; justify-content:center;
+               font-family:'Arial',sans-serif; text-align:center; overflow:hidden; }
+        #content { font-size:7vh; font-weight:700; line-height:1.5; padding:0 4vw;
+                   white-space:pre-line; }
+    </style>
+</head>
+<body>
+<div id="content"></div>
+<script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>
+<script>
+const CHURCH = '{{ church_id }}';
+const TOKEN = '{{ token }}';
+const el = document.getElementById('content');
+function render(st) {
+    if (!st || st.blackout || st.logo || st.type !== 'section') {
+        el.textContent = '';
+        return;
+    }
+    el.textContent = st.people_html || '';
+    let size = 7;
+    el.style.fontSize = size + 'vh';
+    while (el.scrollHeight > window.innerHeight * 0.92 && size > 2.5) {
+        size -= 0.2; el.style.fontSize = size + 'vh';
+    }
+}
+const socket = io();
+socket.on('connect', () => socket.emit('join_live', { church_id: CHURCH, token: TOKEN }));
+socket.on('update_slide', render);
+socket.on('session_ended', () => render(null));
+fetch(`/api/live/current/${CHURCH}?token=${TOKEN}`).then(r => r.json())
+    .then(d => { if (d.state) render(d.state); });
+</script>
+</body>
+</html>

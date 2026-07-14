@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIVE — {{ church.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/song-render.css') }}">
+    <style>
+        body { background:#0b0d12; color:#eef0f4; font-family:'Sen',system-ui,sans-serif;
+               margin:0; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+        #top { display:flex; justify-content:space-between; padding:10px 14px;
+               font-size:.85rem; color:#8b93a3; border-bottom:1px solid rgba(255,255,255,.08); }
+        #main { flex:1; display:flex; align-items:center; justify-content:center;
+                text-align:center; padding:8px 14px; overflow:hidden;
+                font-size:5.5vh; line-height:1.45; }
+        #next-wrap { border-top:1px solid rgba(255,255,255,.08); padding:8px 14px 12px;
+                     max-height:30vh; overflow:hidden; }
+        #next-label { color:#e85d75; font-size:.7rem; font-weight:800; letter-spacing:.08em; }
+        #next { font-size:2.4vh; line-height:1.45; color:#9aa3b2; text-align:left; }
+        .song-render .chord-pair .chord { color:#6d8cff; }
+        #waiting { color:#59606e; font-size:3vh; }
+    </style>
+</head>
+<body>
+<div id="top">
+    <span>{{ church.name }}</span>
+    <span id="meta"></span>
+</div>
+<div id="main"><div id="waiting">Oczekiwanie na sesję LIVE…</div></div>
+<div id="next-wrap" style="display:none;">
+    <div id="next-label">NASTĘPNIE</div>
+    <div id="next" class="song-render"></div>
+</div>
+<script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chords-client.js') }}"></script>
+<script>
+const CHURCH = '{{ church.id }}';
+const PREFS = {{ prefs|tojson }};
+const main = document.getElementById('main');
+const nextWrap = document.getElementById('next-wrap');
+const nextEl = document.getElementById('next');
+const meta = document.getElementById('meta');
+
+function render(st) {
+    if (!st || st.type === 'idle' || st.blackout || st.logo) {
+        main.innerHTML = '<div id="waiting">' +
+            (st && st.blackout ? '' : 'Oczekiwanie na treść…') + '</div>';
+        nextWrap.style.display = 'none';
+        return;
+    }
+    main.innerHTML = '<div class="song-render">' + st.band_html + '</div>';
+    applyChordPrefs(main, PREFS);
+    let m = st.song_title || '';
+    if (st.key) m += ' · ' + (PREFS.capo_default > 0
+        ? st.key + ' (capo ' + PREFS.capo_default + ')' : st.key);
+    if (st.bpm) m += ' · ' + st.bpm + ' BPM';
+    meta.textContent = m;
+    if (st.next_band_html) {
+        nextEl.innerHTML = st.next_band_html;
+        applyChordPrefs(nextEl, PREFS);
+        nextWrap.style.display = '';
+    } else nextWrap.style.display = 'none';
+    fit();
+}
+function fit() {
+    let size = 5.5;
+    main.style.fontSize = size + 'vh';
+    const avail = main.clientHeight - 10;
+    while (main.scrollHeight > avail && size > 2) {
+        size -= 0.2;
+        main.style.fontSize = size + 'vh';
+    }
+}
+window.addEventListener('resize', fit);
+const socket = io();
+socket.on('connect', () => socket.emit('join_live', { church_id: CHURCH }));
+socket.on('update_slide', render);
+socket.on('session_ended', () => render(null));
+fetch(`/api/live/current/${CHURCH}`).then(r => r.json())
+    .then(d => { if (d.state) render(d.state); });
+</script>
+</body>
+</html>

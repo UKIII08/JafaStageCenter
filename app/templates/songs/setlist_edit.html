@@ -1,6 +1,10 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="card">
+    <form method="POST" action="{{ url_for('live.live_start', church_id=church.id, setlist_id=sl.id) }}"
+          style="float:right;">
+        <button type="submit" style="background:#e85d75;">🔴 Rozpocznij LIVE</button>
+    </form>
     <h2>{{ sl.name }}
         <span class="muted" style="font-size:.7em;">{{ sl.service_date.strftime('%d.%m.%Y') if sl.service_date else '' }}</span>
     </h2>
