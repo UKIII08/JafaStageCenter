@@ -70,6 +70,11 @@ def _ensure_columns():
             ('capo_fret', 'INTEGER'),
             ('section_notes', "TEXT DEFAULT '{}'"),
         ],
+        'songs': [
+            ('ccli_number', "VARCHAR(20) DEFAULT ''"),
+            ('author', "VARCHAR(300) DEFAULT ''"),
+            ('copyright', "VARCHAR(300) DEFAULT ''"),
+        ],
     }
     for table, cols in wanted.items():
         if table not in insp.get_table_names():

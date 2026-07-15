@@ -78,6 +78,7 @@ SETTINGS_DEFAULTS = {
     'font_family': 'Sen', 'bg_color': '#000000', 'text_color': '#ffffff',
     'chord_color': '#00e5ff', 'transition_engine': 'v4', 'language': 'pl',
     'chord_notation': 'international', 'minor_display': 'uppercase',
+    'ccli_license': '',   # numer licencji CCLI wspólnoty (rynek USA)
 }
 
 
@@ -178,13 +179,20 @@ def add_song(church_id):
             bpm_val = int(bpm) if bpm else 0
         except ValueError:
             bpm_val = 0
+        ccli = (request.form.get('ccli_number') or '').strip()[:20]
+        author = (request.form.get('author') or '').strip()[:300]
+        copyright_ = (request.form.get('copyright') or '').strip()[:300]
         existing = Song.query.filter_by(church_id=church_id, title=title,
                                         deleted=False).first()
         if existing:
             existing.content, existing.key, existing.bpm = content, key, bpm_val
+            existing.ccli_number, existing.author = ccli, author
+            existing.copyright = copyright_
         else:
             db.session.add(Song(church_id=church_id, title=title,
                                 content=content, key=key, bpm=bpm_val,
+                                ccli_number=ccli, author=author,
+                                copyright=copyright_,
                                 created_by=current_user().id))
         db.session.commit()
     return _back(church_id)
@@ -211,6 +219,9 @@ def edit_song(church_id, sid):
         song.bpm = int(bpm) if bpm else 0
     except ValueError:
         song.bpm = 0
+    song.ccli_number = (request.form.get('ccli_number') or '').strip()[:20]
+    song.author = (request.form.get('author') or '').strip()[:300]
+    song.copyright = (request.form.get('copyright') or '').strip()[:300]
     db.session.commit()
     return _back(church_id)
 
@@ -610,7 +621,19 @@ def send_text(church_id):
     people_html, band_html, _ = process_song(raw_text, shift)
     _, band_next_html, _ = process_song(data.get('next_text', ''), next_shift)
 
+    # CCLI: notka copyright na rzutniku + log uzycia (raz na dzien)
+    copyright_line = ''
+    title = (data.get('song_title') or '').strip()
+    if title:
+        song_row = Song.query.filter_by(church_id=church_id, title=title,
+                                        deleted=False).first()
+        if song_row:
+            _log_song_usage(church_id, song_row.id)
+            copyright_line = build_copyright_line(song_row,
+                                                  s.get('ccli_license', ''))
+
     set_slide({
+        'copyright_line': copyright_line,
         'mode': 'worship', 'people': people_html, 'band': band_html,
         'band_next': band_next_html, 'raw_text': raw_text,
         'raw_next': data.get('next_text', ''),
@@ -1136,3 +1159,82 @@ def song_team_prefs(church_id, sid):
                           'key': sp.preferred_key or '',
                           'transpose': sp.preferred_transpose or 0})
     return {'song_key': song.key or '', 'prefs': prefs}
+
+
+# ── CCLI: log użyć + raport (rynek USA) ──────────────────────────────────
+def _log_song_usage(church_id, song_id):
+    from datetime import date as _date
+
+    from app.models import SongUsage
+    today = _date.today()
+    exists = SongUsage.query.filter_by(church_id=church_id, song_id=song_id,
+                                       used_on=today).first()
+    if not exists:
+        db.session.add(SongUsage(church_id=church_id, song_id=song_id,
+                                 used_on=today))
+        db.session.commit()
+
+
+def build_copyright_line(song, license_number):
+    """Notka wymagana warunkami licencji CCLI przy projekcji tekstu:
+    tytuł, autorzy, © właściciel praw, numer licencji WSPÓLNOTY."""
+    parts = [f'"{song.title}"']
+    if song.author:
+        parts.append(f'words and music by {song.author}')
+    if song.copyright:
+        parts.append(f'© {song.copyright}')
+    if not (song.author or song.copyright):
+        return ''
+    line = ', '.join(parts) + '. Used By Permission.'
+    if license_number:
+        line += f' CCLI License #{license_number}'
+    return line
+
+
+@studio_bp.get('/studio/ccli-report')
+@studio_auth('prowadzacy')
+def ccli_report(church_id):
+    from datetime import date as _date, timedelta
+
+    from app.models import SongUsage
+    church = db.session.get(Church, church_id)
+    try:
+        d_to = _date.fromisoformat(request.args.get('to', ''))
+    except ValueError:
+        d_to = _date.today()
+    try:
+        d_from = _date.fromisoformat(request.args.get('from', ''))
+    except ValueError:
+        d_from = d_to - timedelta(days=182)   # domyślnie ~6 miesięcy
+
+    rows = db.session.query(Song, db.func.count(SongUsage.id)) \
+        .join(SongUsage, SongUsage.song_id == Song.id) \
+        .filter(SongUsage.church_id == church_id,
+                SongUsage.used_on >= d_from,
+                SongUsage.used_on <= d_to) \
+        .group_by(Song.id) \
+        .order_by(db.func.count(SongUsage.id).desc()) \
+        .all()
+    items = [{'song': s, 'count': c} for s, c in rows]
+
+    if request.args.get('format') == 'csv':
+        import csv
+        import io as _io
+        buf = _io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(['Song Title', 'CCLI Song Number', 'Author',
+                    'Times Used'])
+        for it in items:
+            w.writerow([it['song'].title, it['song'].ccli_number or '',
+                        it['song'].author or '', it['count']])
+        return Response(
+            buf.getvalue(), mimetype='text/csv',
+            headers={'Content-disposition':
+                     f'attachment; filename=ccli_report_{d_from}_{d_to}.csv'})
+
+    from app.panel.routes import get_membership
+    return render_template('studio/ccli_report.html', items=items,
+                           d_from=d_from, d_to=d_to, church=church,
+                           settings=get_settings(church),
+                           membership=get_membership(church_id),
+                           user=current_user())

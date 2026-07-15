@@ -131,8 +131,24 @@
             else document.body.style.backgroundImage = "none";
         });
 
+        // CCLI: notka copyright (warunek licencji przy projekcji tekstu)
+        socket.on('update_slide', function (data) {
+            var ccli = document.getElementById('ccli-notice');
+            if (!ccli) return;
+            if (data && data.mode === 'worship' && !data.is_blackout
+                && data.copyright_line) {
+                ccli.textContent = data.copyright_line;
+                ccli.style.display = 'block';
+            } else {
+                ccli.style.display = 'none';
+            }
+        });
+
         // Initialize translations
         initI18n();
     </script>
+<div id="ccli-notice" style="display:none; position:fixed; left:0; right:0; bottom:1vh;
+     text-align:center; font-size:1.6vh; opacity:.55; font-family:var(--font-family);
+     color:var(--text-color); padding:0 3vw; pointer-events:none;"></div>
 </body>
 </html>

@@ -1998,6 +1998,9 @@ function openEditModal(id){
         document.getElementById('edit-content').value=s.content;
         document.getElementById('edit-key-input').value = s.key || '';
         document.getElementById('edit-bpm-input').value = s.bpm || '';
+        var ec = document.getElementById('edit-ccli'); if (ec) ec.value = s.ccli_number || '';
+        var ea = document.getElementById('edit-author'); if (ea) ea.value = s.author || '';
+        var ep = document.getElementById('edit-copyright'); if (ep) ep.value = s.copyright || '';
         if(!s.key) liveKeyCheck('edit-content', 'edit-key-input');
         document.getElementById('editForm').action=(window.JAFA_BASE||'')+'/edit_song/'+id;
         document.getElementById('deleteForm').action=(window.JAFA_BASE||'')+'/delete_song/'+id;

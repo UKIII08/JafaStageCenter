@@ -109,6 +109,10 @@ class Song(db.Model):
     key = db.Column(db.String(10), default='')
     bpm = db.Column(db.Integer, default=0)
     tags = db.Column(db.JSON, default=list)
+    # CCLI (rynek USA): numer piosenki, autorzy, wlasciciel praw
+    ccli_number = db.Column(db.String(20), default='')
+    author = db.Column(db.String(300), default='')
+    copyright = db.Column(db.String(300), default='')
     created_by = db.Column(db.String(36), db.ForeignKey('users.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow,
@@ -259,3 +263,16 @@ class EventAssignment(db.Model):
                         nullable=False, index=True)
     instrument = db.Column(db.String(60), default='')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class SongUsage(db.Model):
+    """Log użyć piosenki na żywo (wyświetlenie tekstu zborowi) — podstawa
+    raportu CCLI. Jedno użycie na piosenkę na dzień."""
+    __tablename__ = 'song_usage'
+    __table_args__ = (db.UniqueConstraint('church_id', 'song_id', 'used_on'),)
+    id = db.Column(db.Integer, primary_key=True)
+    church_id = db.Column(db.String(36), db.ForeignKey('churches.id'),
+                          nullable=False, index=True)
+    song_id = db.Column(db.String(36), db.ForeignKey('songs.id'),
+                        nullable=False, index=True)
+    used_on = db.Column(db.Date, nullable=False)

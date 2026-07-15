@@ -256,6 +256,9 @@ def church_settings(church_id, membership):
             settings['default_notation'] = request.form.get('default_notation')
         if request.form.get('transition_engine') in ENGINES:
             settings['transition_engine'] = request.form.get('transition_engine')
+        if request.form.get('ccli_license') is not None:
+            settings['ccli_license'] = \
+                (request.form.get('ccli_license') or '').strip()[:20]
         church.settings = settings
         db.session.commit()
         flash('Zapisano ustawienia.')

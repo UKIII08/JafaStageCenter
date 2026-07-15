@@ -199,3 +199,47 @@ def test_pads_upload_and_serving(app, client):
     # usunięcie
     client.post(f'/c/{cid}/studio/pads/delete', data={'key': 'C'})
     assert client.get(f'/c/{cid}/media/pads/C.mp3').status_code == 404
+
+
+def test_ccli_usage_logging_and_report(app, client):
+    cid = make_church(app, client, 'a@a.pl', 'Zbor A')
+    # numer licencji wspólnoty + piosenka z danymi CCLI
+    client.post(f'/c/{cid}/settings', data={
+        'name': 'Zbor A', 'default_notation': 'international',
+        'transition_engine': 'v4', 'ccli_license': '987654'},
+        follow_redirects=True)
+    client.post(f'/c/{cid}/studio/add_song', data={
+        'title': 'Amazing Grace', 'content': SONG,
+        'ccli_number': '22025', 'author': 'John Newton',
+        'copyright': 'Public Domain'})
+
+    # wyświetlenie na żywo -> log użycia + notka copyright w slajdzie
+    client.post(f'/c/{cid}/studio/send_text', json={
+        'text': SONG, 'transpose': 0, 'song_title': 'Amazing Grace'})
+    slide = client.get(f'/c/{cid}/studio/api/current-slide').get_json()
+    assert 'Amazing Grace' in slide['copyright_line']
+    assert 'John Newton' in slide['copyright_line']
+    assert 'CCLI License #987654' in slide['copyright_line']
+
+    # drugi raz tego samego dnia = nadal jedno użycie
+    client.post(f'/c/{cid}/studio/send_text', json={
+        'text': SONG, 'transpose': 0, 'song_title': 'Amazing Grace'})
+    r = client.get(f'/c/{cid}/studio/ccli-report')
+    assert b'Amazing Grace' in r.data and b'22025' in r.data
+    assert b'<b>1</b>' in r.data
+
+    # eksport CSV
+    r = client.get(f'/c/{cid}/studio/ccli-report?format=csv')
+    assert r.mimetype == 'text/csv'
+    assert b'Amazing Grace,22025,John Newton,1' in r.data
+
+
+def test_ccli_no_data_no_notice(app, client):
+    cid = make_church(app, client, 'a@a.pl', 'Zbor A')
+    client.post(f'/c/{cid}/studio/add_song', data={
+        'title': 'Wlasna piesn', 'content': SONG})
+    client.post(f'/c/{cid}/studio/send_text', json={
+        'text': SONG, 'song_title': 'Wlasna piesn'})
+    slide = client.get(f'/c/{cid}/studio/api/current-slide').get_json()
+    # piosenka bez autora/copyright (np. własna) = brak notki
+    assert slide['copyright_line'] == ''

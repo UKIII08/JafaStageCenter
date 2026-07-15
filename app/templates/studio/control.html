@@ -1665,6 +1665,11 @@
                     <input type="number" name="bpm" id="add-bpm-input" class="input-small" placeholder="BPM">
                     <div class="tap-btn" onclick="tapTempo('add-bpm-input')">TAP</div>
                 </div>
+                <div style="display:flex; gap:var(--s2); margin-top:var(--s2);">
+                    <input type="text" name="ccli_number" id="add-ccli" class="input-small" style="flex:0 0 110px;" placeholder="Nr CCLI">
+                    <input type="text" name="author" id="add-author" style="flex:1;" placeholder="Autorzy (np. Chris Tomlin)">
+                    <input type="text" name="copyright" id="add-copyright" style="flex:1;" placeholder="Copyright (np. 2004 worshiptogether.com songs)">
+                </div>
                 <div id="add-title-warn" style="display:none; font-size:var(--font-xs); color:var(--amber, #f0a832); margin:2px 0 0 2px;"></div>
                 <div class="notation-row">
                     <label data-t="input_notation_label">Notacja wejściowa:</label>
@@ -1703,6 +1708,11 @@
                     <input type="text" name="key" id="edit-key-input" class="input-small" placeholder="Key">
                     <input type="number" name="bpm" id="edit-bpm-input" class="input-small" placeholder="BPM">
                     <div class="tap-btn" onclick="tapTempo('edit-bpm-input')">TAP</div>
+                </div>
+                <div style="display:flex; gap:var(--s2); margin-top:var(--s2);">
+                    <input type="text" name="ccli_number" id="edit-ccli" class="input-small" style="flex:0 0 110px;" placeholder="Nr CCLI">
+                    <input type="text" name="author" id="edit-author" style="flex:1;" placeholder="Autorzy (np. Chris Tomlin)">
+                    <input type="text" name="copyright" id="edit-copyright" style="flex:1;" placeholder="Copyright (np. 2004 worshiptogether.com songs)">
                 </div>
                 <div class="notation-row">
                     <label data-t="input_notation_label">Notacja wejściowa:</label>
@@ -1969,7 +1979,7 @@
         window.SERVER_DATA = {
             songs: [
                 {% for song in songs %}
-                { id: {{song.id|tojson}}, title: {{song.title|tojson}}, content: {{song.content|tojson}}, key: {{song.key|tojson}}, bpm: {{song.bpm or 0}} },
+                { id: {{song.id|tojson}}, title: {{song.title|tojson}}, content: {{song.content|tojson}}, key: {{song.key|tojson}}, bpm: {{song.bpm or 0}}, ccli_number: {{ (song.ccli_number or '')|tojson }}, author: {{ (song.author or '')|tojson }}, copyright: {{ (song.copyright or '')|tojson }} },
                 {% endfor %}
             ],
             settings: {

@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Raport CCLI — {{ church.name }}{% endblock %}
+{% block content %}
+<div class="panel">
+    <div class="panel-header">
+        <h2>Raport CCLI</h2>
+        <a class="btn" href="{{ url_for('studio.ccli_report', church_id=church.id, **{'from': d_from.isoformat(), 'to': d_to.isoformat(), 'format': 'csv'}) }}">Eksport CSV</a>
+    </div>
+    <p class="hint">Każde wyświetlenie tekstu piosenki na żywo jest logowane
+    automatycznie (raz na piosenkę na dzień). W okresie raportowym CCLI
+    wyeksportuj CSV i przepisz liczby do formularza na ccli.com.
+    {% if not settings.ccli_license %}<br><b>Wskazówka:</b> uzupełnij numer
+    licencji CCLI wspólnoty w Ustawieniach — pojawi się w notce copyright
+    na rzutniku.{% endif %}</p>
+    <form method="GET" class="form-row" style="margin-bottom:var(--s4);">
+        <input type="date" name="from" value="{{ d_from.isoformat() }}" style="flex:1;">
+        <input type="date" name="to" value="{{ d_to.isoformat() }}" style="flex:1;">
+        <button type="submit" class="btn-ghost btn" style="flex:0;">Pokaż okres</button>
+    </form>
+    <table>
+        <tr><th>Piosenka</th><th>Nr CCLI</th><th>Autorzy</th><th>Użyć</th></tr>
+        {% for it in items %}
+        <tr>
+            <td style="font-weight:700;">{{ it.song.title }}</td>
+            <td class="muted">{{ it.song.ccli_number or '—' }}</td>
+            <td class="muted">{{ it.song.author or '—' }}</td>
+            <td><b>{{ it.count }}</b></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="muted">Brak zalogowanych użyć w tym okresie —
+            licznik rośnie, gdy wyświetlasz piosenki na żywo w Studiu.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

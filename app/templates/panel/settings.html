@@ -17,6 +17,12 @@
             <option value="v3" {% if church.settings.get('transition_engine') == 'v3' %}selected{% endif %}>Pivot Pro</option>
             <option value="v2" {% if church.settings.get('transition_engine') == 'v2' %}selected{% endif %}>Advanced</option>
         </select>
+        <label>Numer licencji CCLI (opcjonalnie — rynek USA)</label>
+        <input name="ccli_license" value="{{ church.settings.get('ccli_license', '') }}"
+               placeholder="np. 123456789" maxlength="20">
+        <p class="hint" style="margin:var(--s1) 0 0;">Z licencją CCLI rzutnik sam dodaje
+        wymaganą notkę copyright, a użycia piosenek zliczają się do
+        <a href="{{ url_for('studio.ccli_report', church_id=church.id) }}">raportu CCLI</a>.</p>
         <div style="margin-top:var(--s4);"><button type="submit">Zapisz</button></div>
     </form>
 </div>
