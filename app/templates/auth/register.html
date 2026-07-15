@@ -11,6 +11,7 @@
             <input name="email" type="email" required>
             <label>Hasło (min. 8 znaków)</label>
             <input name="password" type="password" minlength="8" required>
+            <p class="hint" style="margin-top:var(--s3);">Rejestrując się akceptujesz <a href="{{ url_for('auth.terms') }}">regulamin</a> i <a href="{{ url_for('auth.privacy') }}">politykę prywatności</a>.</p>
             <div style="margin-top:var(--s4);"><button type="submit">Zarejestruj się</button></div>
         </form>
         <p class="muted" style="margin-bottom:0;">Masz konto?

@@ -1,5 +1,6 @@
 # Rejestracja / logowanie (M0). Sesje cookie; hasła: werkzeug (scrypt).
 # Reset hasła mailem i weryfikacja e-mail dochodzą pod koniec M0 (wymagają SMTP).
+import os
 from datetime import datetime
 from functools import wraps
 
@@ -54,6 +55,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         session['user_id'] = user.id
+        _send_verification(user)
         nxt = request.args.get('next')
         return redirect(nxt or url_for('panel.dashboard'))
     return render_template('auth/register.html')
@@ -143,7 +145,7 @@ def twofa_confirm():
             return redirect(url_for('auth.account'))
         flash('Kod się nie zgadza — zeskanuj QR jeszcze raz i spróbuj.')
     uri = pyotp.TOTP(secret).provisioning_uri(
-        name=user.email, issuer_name='JafaStage')
+        name=user.email, issuer_name='Jonathan App')
     img = qrcode.make(uri, image_factory=qrcode.image.svg.SvgPathImage)
     buf = io.BytesIO(); img.save(buf)
     qr_svg = base64.b64encode(buf.getvalue()).decode()
@@ -185,7 +187,7 @@ def reset_request():
         if user:
             token = _reset_serializer().dumps(user.id)
             link = url_for('auth.reset_token', token=token, _external=True)
-            send_email(email, 'JafaStage — reset hasła',
+            send_email(email, 'Jonathan App — reset hasła',
                        f'Aby ustawić nowe hasło, otwórz link (ważny 2 godziny):\n{link}')
         # celowo ta sama odpowiedź niezależnie od istnienia konta
         flash('Jeśli konto istnieje, wysłaliśmy link do resetu hasła.')
@@ -213,3 +215,162 @@ def reset_token(token):
         flash('Hasło zmienione — zaloguj się.')
         return redirect(url_for('auth.login'))
     return render_template('auth/reset_form.html')
+
+
+# ── Weryfikacja adresu e-mail ──
+def _verify_serializer():
+    return URLSafeTimedSerializer(current_app.config['SECRET_KEY'],
+                                  salt='email-verify')
+
+
+def _send_verification(user):
+    token = _verify_serializer().dumps(user.id)
+    link = url_for('auth.verify_email', token=token, _external=True)
+    send_email(user.email, 'Jonathan App — potwierdź adres e-mail',
+               f'Cześć {user.display_name}!\n\n'
+               f'Potwierdź swój adres e-mail, otwierając link '
+               f'(ważny 3 dni):\n{link}\n\n'
+               f'Jeśli to nie Ty zakładałeś konto — zignoruj tę wiadomość.')
+
+
+@auth_bp.post('/account/verify/send')
+@login_required
+@limiter.limit('3 per hour')
+def verify_send():
+    user = current_user()
+    if not user.email_verified_at:
+        _send_verification(user)
+        flash('Wysłaliśmy link weryfikacyjny na Twój adres e-mail.')
+    return redirect(url_for('auth.account'))
+
+
+@auth_bp.get('/verify/<token>')
+def verify_email(token):
+    try:
+        uid = _verify_serializer().loads(token, max_age=3 * 24 * 3600)
+    except (BadSignature, SignatureExpired):
+        flash('Link weryfikacyjny wygasł — wyślij nowy z ustawień konta.')
+        return redirect(url_for('auth.login'))
+    user = db.session.get(User, uid)
+    if user and not user.email_verified_at:
+        user.email_verified_at = datetime.utcnow()
+        db.session.commit()
+    flash('Adres e-mail potwierdzony.')
+    return redirect(url_for('panel.dashboard') if session.get('user_id')
+                    else url_for('auth.login'))
+
+
+# ── Usunięcie konta (RODO: prawo do bycia zapomnianym) ──
+@auth_bp.route('/account/delete', methods=['GET', 'POST'])
+@login_required
+def account_delete():
+    from app.models import (Church, EventAssignment, EventSignup, Profile,
+                            SongPersonal)
+    user = current_user()
+    # Wspólnoty, których użytkownik jest właścicielem
+    owned = Church.query.filter_by(owner_user_id=user.id).all()
+    blockers = []
+    sole_churches = []
+    for ch in owned:
+        others = Membership.query.filter(
+            Membership.church_id == ch.id,
+            Membership.user_id != user.id,
+            Membership.status == 'active').count()
+        if others:
+            blockers.append(ch)
+        else:
+            sole_churches.append(ch)
+
+    if request.method == 'POST':
+        if not check_password_hash(user.password_hash,
+                                   request.form.get('password') or ''):
+            flash('Błędne hasło — konto nie zostało usunięte.')
+            return redirect(url_for('auth.account_delete'))
+        if blockers:
+            flash('Najpierw przekaż wspólnotę innemu adminowi albo usuń '
+                  'pozostałych członków.')
+            return redirect(url_for('auth.account_delete'))
+        # Dane osobiste użytkownika we wszystkich wspólnotach
+        profile_ids = [p.id for p in
+                       Profile.query.filter_by(user_id=user.id).all()]
+        if profile_ids:
+            SongPersonal.query.filter(
+                SongPersonal.profile_id.in_(profile_ids)) \
+                .delete(synchronize_session=False)
+            Profile.query.filter(Profile.id.in_(profile_ids)) \
+                .delete(synchronize_session=False)
+        EventSignup.query.filter_by(user_id=user.id) \
+            .delete(synchronize_session=False)
+        EventAssignment.query.filter_by(user_id=user.id) \
+            .delete(synchronize_session=False)
+        Membership.query.filter_by(user_id=user.id) \
+            .delete(synchronize_session=False)
+        # Wspólnoty, w których był jedynym członkiem — kasujemy w całości
+        for ch in sole_churches:
+            _purge_church(ch.id)
+        db.session.delete(user)
+        db.session.commit()
+        session.clear()
+        flash('Konto i dane zostały usunięte.')
+        return redirect(url_for('auth.login'))
+    return render_template('auth/account_delete.html', user=user,
+                           blockers=blockers, sole_churches=sole_churches)
+
+
+def _purge_church(church_id):
+    """Twarde usunięcie wspólnoty i wszystkich jej danych (gdy właściciel
+    kasuje konto będąc jedynym członkiem)."""
+    import shutil
+
+    from app.models import (BandPreset, Event, EventAssignment, EventSignup,
+                            Invitation, LiveSession, Profile, ScreenToken,
+                            Song, SongPersonal, StudioSetlist, Church)
+    event_ids = [e.id for e in Event.query.filter_by(
+        church_id=church_id).all()]
+    if event_ids:
+        EventSignup.query.filter(EventSignup.event_id.in_(event_ids)) \
+            .delete(synchronize_session=False)
+        EventAssignment.query.filter(
+            EventAssignment.event_id.in_(event_ids)) \
+            .delete(synchronize_session=False)
+        Event.query.filter(Event.id.in_(event_ids)) \
+            .delete(synchronize_session=False)
+    profile_ids = [p.id for p in Profile.query.filter_by(
+        church_id=church_id).all()]
+    if profile_ids:
+        SongPersonal.query.filter(SongPersonal.profile_id.in_(profile_ids)) \
+            .delete(synchronize_session=False)
+    Profile.query.filter_by(church_id=church_id) \
+        .delete(synchronize_session=False)
+    song_ids = [s.id for s in Song.query.filter_by(
+        church_id=church_id).all()]
+    if song_ids:
+        SongPersonal.query.filter(SongPersonal.song_id.in_(song_ids)) \
+            .delete(synchronize_session=False)
+    for model in (StudioSetlist, BandPreset, ScreenToken, Invitation,
+                  LiveSession, Membership):
+        model.query.filter_by(church_id=church_id) \
+            .delete(synchronize_session=False)
+    Song.query.filter_by(church_id=church_id) \
+        .delete(synchronize_session=False)
+    from app.models import Setlist
+    Setlist.query.filter_by(church_id=church_id) \
+        .delete(synchronize_session=False)
+    ch = db.session.get(Church, church_id)
+    if ch:
+        db.session.delete(ch)
+    # pliki wspólnoty (logo, tła, pady, prezentacje)
+    upload_dir = os.path.join(current_app.instance_path, 'uploads',
+                              church_id)
+    shutil.rmtree(upload_dir, ignore_errors=True)
+
+
+# ── Strony prawne ──
+@auth_bp.get('/privacy')
+def privacy():
+    return render_template('legal/privacy.html', user=current_user())
+
+
+@auth_bp.get('/terms')
+def terms():
+    return render_template('legal/terms.html', user=current_user())

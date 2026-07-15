@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Polityka prywatności — Jonathan App{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:760px; margin:0 auto; line-height:1.7;">
+    <h2>Polityka prywatności</h2>
+    <p class="muted">Ostatnia aktualizacja: 15.07.2026</p>
+
+    <div class="section-title" style="margin-top:var(--s5);">1. Administrator danych</div>
+    <p>Administratorem danych osobowych serwisu Jonathan App jest
+    <b>[IMIĘ I NAZWISKO / NAZWA FIRMY]</b>, kontakt:
+    <b>[ADRES E-MAIL KONTAKTOWY]</b>.</p>
+
+    <div class="section-title" style="margin-top:var(--s5);">2. Jakie dane przetwarzamy i po co</div>
+    <p>Przetwarzamy wyłącznie dane niezbędne do działania serwisu:</p>
+    <table>
+        <tr><th>Dane</th><th>Cel</th><th>Podstawa prawna</th></tr>
+        <tr><td>adres e-mail, imię/pseudonim, hasło (wyłącznie jako hash scrypt)</td>
+            <td>konto, logowanie, reset hasła</td>
+            <td>umowa (art. 6 ust. 1 lit. b RODO)</td></tr>
+        <tr><td>przynależność do wspólnoty, rola, instrument, preferencje muzyczne, notatki</td>
+            <td>funkcje serwisu (organizacja zespołu, tonacje, ćwiczenie)</td>
+            <td>umowa (art. 6 ust. 1 lit. b RODO)</td></tr>
+        <tr><td>daty logowań, adres IP w logach serwera</td>
+            <td>bezpieczeństwo, ochrona przed nadużyciami</td>
+            <td>uzasadniony interes (art. 6 ust. 1 lit. f RODO)</td></tr>
+    </table>
+    <p class="hint">Nie profilujemy, nie sprzedajemy danych, nie wysyłamy marketingu
+    bez odrębnej zgody. Nie przetwarzamy danych o wyznaniu — nazwa wspólnoty
+    i repertuar to dane wprowadzone przez wspólnotę na jej odpowiedzialność.</p>
+
+    <div class="section-title" style="margin-top:var(--s5);">3. Gdzie trzymamy dane</div>
+    <p>Serwery znajdują się w Polsce (OVH, Warszawa) — dane nie opuszczają
+    Europejskiego Obszaru Gospodarczego. Połączenia są szyfrowane (HTTPS),
+    hasła przechowujemy wyłącznie jako niemożliwe do odwrócenia skróty
+    kryptograficzne, a kopie zapasowe są szyfrowane (AES-256).</p>
+
+    <div class="section-title" style="margin-top:var(--s5);">4. Podmioty przetwarzające</div>
+    <p>Korzystamy z: OVH (hosting, Polska/UE) oraz — do wysyłki maili
+    transakcyjnych — Brevo (UE). Z oboma łączą nas umowy powierzenia
+    przetwarzania zgodne z RODO.</p>
+
+    <div class="section-title" style="margin-top:var(--s5);">5. Jak długo przechowujemy dane</div>
+    <p>Przez czas istnienia konta. Po usunięciu konta dane osobiste są
+    kasowane natychmiast, a znikają z kopii zapasowych najpóźniej po
+    7 dniach (rotacja backupów).</p>
+
+    <div class="section-title" style="margin-top:var(--s5);">6. Twoje prawa</div>
+    <p>Masz prawo do: dostępu do danych, ich sprostowania, usunięcia
+    (przycisk „Usuń konto" w ustawieniach albo mail do administratora),
+    ograniczenia przetwarzania, przenoszenia danych oraz skargi do Prezesa
+    UODO (uodo.gov.pl).</p>
+
+    <div class="section-title" style="margin-top:var(--s5);">7. Cookies</div>
+    <p>Używamy wyłącznie niezbędnego cookie sesyjnego (utrzymanie
+    zalogowania). Nie używamy cookies reklamowych ani śledzących.</p>
+</div>
+{% endblock %}
