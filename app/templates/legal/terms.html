@@ -1,43 +1,42 @@
 {% extends 'base.html' %}
-{% block title %}Regulamin — Jonathan App{% endblock %}
+{% block title %}Terms of Service — Jonathan App{% endblock %}
 {% block content %}
 <div class="panel" style="max-width:760px; margin:0 auto; line-height:1.7;">
-    <h2>Regulamin serwisu Jonathan App</h2>
-    <p class="muted">Ostatnia aktualizacja: 15.07.2026</p>
+    <h2>Terms of Service</h2>
+    <p class="muted">Last updated: July 16, 2026</p>
 
-    <div class="section-title" style="margin-top:var(--s5);">1. Postanowienia ogólne</div>
-    <p>Jonathan App to narzędzie dla zespołów uwielbienia: biblioteka
-    piosenek, setlisty, organizacja grań, tryb LIVE z ekranami i widokiem
-    muzyka. Usługę świadczy <b>[IMIĘ I NAZWISKO / NAZWA FIRMY]</b>,
-    kontakt: <b>[ADRES E-MAIL]</b> („Usługodawca").</p>
+    <div class="section-title" style="margin-top:var(--s5);">1. Overview</div>
+    <p>Jonathan App is a tool for worship teams: a song library, setlists,
+    service scheduling, and a LIVE mode with projection screens and a musician
+    view. The service is provided by <b>[FULL NAME / COMPANY]</b>, contact:
+    <b>[CONTACT E-MAIL]</b> ("we").</p>
 
-    <div class="section-title" style="margin-top:var(--s5);">2. Konto i wspólnota</div>
-    <p>Konto zakłada się nieodpłatnie w okresie beta. Użytkownik odpowiada za
-    poufność hasła. Wspólnota (przestrzeń zespołu) należy do jej
-    administratora, który zarządza członkami i danymi wspólnoty.</p>
+    <div class="section-title" style="margin-top:var(--s5);">2. Accounts and churches</div>
+    <p>Accounts are free during the beta. You are responsible for keeping your
+    password confidential. A church (team space) belongs to its admin, who
+    manages members and the church's data.</p>
 
-    <div class="section-title" style="margin-top:var(--s5);">3. Treści użytkowników i prawa autorskie</div>
-    <p>Teksty piosenek i inne treści wprowadzają użytkownicy. Wspólnota
-    odpowiada za posiadanie praw do wyświetlania utworów (np. licencji
-    CCLI lub zgody właścicieli praw). Serwis służy do organizacji pracy
-    zespołu i wyświetlania treści w ramach zgromadzeń wspólnoty.</p>
+    <div class="section-title" style="margin-top:var(--s5);">3. Your content and copyright</div>
+    <p>Song lyrics and other content are entered by users. Your church is
+    responsible for holding the rights to display those works (for example, a
+    CCLI license or permission from the rights holders). The service is for
+    organizing your team's work and displaying content within your community's
+    gatherings.</p>
 
-    <div class="section-title" style="margin-top:var(--s5);">4. Dostępność usługi</div>
-    <p>Usługodawca dokłada starań, by serwis działał nieprzerwanie, ale w
-    okresie beta nie gwarantuje dostępności (SLA). Zalecamy używanie
-    aplikacji desktopowej do prowadzenia nabożeństw w miejscach ze słabym
-    internetem.</p>
+    <div class="section-title" style="margin-top:var(--s5);">4. Availability</div>
+    <p>We make every effort to keep the service running, but during the beta we
+    do not guarantee availability (no SLA). For services in venues with poor
+    internet, we recommend the desktop app.</p>
 
-    <div class="section-title" style="margin-top:var(--s5);">5. Niedozwolone użycie</div>
-    <p>Zabronione: łamanie prawa, naruszanie praw autorskich, próby
-    uzyskania dostępu do danych innych wspólnot, przeciążanie serwisu.</p>
+    <div class="section-title" style="margin-top:var(--s5);">5. Acceptable use</div>
+    <p>Prohibited: breaking the law, infringing copyright, attempting to access
+    other churches' data, or overloading the service.</p>
 
-    <div class="section-title" style="margin-top:var(--s5);">6. Reklamacje i kontakt</div>
-    <p>Reklamacje: <b>[ADRES E-MAIL]</b> — odpowiadamy do 14 dni.</p>
+    <div class="section-title" style="margin-top:var(--s5);">6. Complaints and contact</div>
+    <p>Complaints: <b>[CONTACT E-MAIL]</b> — we respond within 14 days.</p>
 
-    <div class="section-title" style="margin-top:var(--s5);">7. Zmiany regulaminu</div>
-    <p>O zmianach poinformujemy w serwisie z 14-dniowym wyprzedzeniem.
-    Dane osobowe: patrz <a href="{{ url_for('auth.privacy') }}">Polityka
-    prywatności</a>.</p>
+    <div class="section-title" style="margin-top:var(--s5);">7. Changes</div>
+    <p>We will announce changes in the service 14 days in advance. For personal
+    data, see the <a href="{{ url_for('auth.privacy') }}">Privacy Policy</a>.</p>
 </div>
 {% endblock %}

@@ -369,6 +369,17 @@ PL = {
     "Your account and data have been deleted.":
         "Konto i dane zostały usunięte.",
 
+    # ── Maile ──
+    "Jonathan App — confirm your e-mail": "Jonathan App — potwierdź adres e-mail",
+    "Hi %(name)s!": "Cześć %(name)s!",
+    "Confirm your e-mail address by opening this link (valid for 3 days):":
+        "Potwierdź swój adres e-mail, otwierając link (ważny 3 dni):",
+    "If you didn't create this account, ignore this message.":
+        "Jeśli to nie Ty zakładałeś konto — zignoruj tę wiadomość.",
+    "Jonathan App — password reset": "Jonathan App — reset hasła",
+    "To set a new password, open this link (valid for 2 hours):":
+        "Aby ustawić nowe hasło, otwórz link (ważny 2 godziny):",
+
     # ── Flash: events ──
     "Enter a service date.": "Podaj datę grania.",
     "Service deleted.": "Usunięto granie.",

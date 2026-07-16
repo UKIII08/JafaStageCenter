@@ -188,8 +188,9 @@ def reset_request():
         if user:
             token = _reset_serializer().dumps(user.id)
             link = url_for('auth.reset_token', token=token, _external=True)
-            send_email(email, 'Jonathan App — reset hasła',
-                       f'Aby ustawić nowe hasło, otwórz link (ważny 2 godziny):\n{link}')
+            send_email(email, _('Jonathan App — password reset'),
+                       _('To set a new password, open this link '
+                         '(valid for 2 hours):') + f'\n{link}')
         # celowo ta sama odpowiedź niezależnie od istnienia konta
         flash(_('If the account exists, we\'ve sent a password reset link.'))
     return render_template('auth/reset_request.html')
@@ -227,11 +228,11 @@ def _verify_serializer():
 def _send_verification(user):
     token = _verify_serializer().dumps(user.id)
     link = url_for('auth.verify_email', token=token, _external=True)
-    send_email(user.email, 'Jonathan App — potwierdź adres e-mail',
-               f'Cześć {user.display_name}!\n\n'
-               f'Potwierdź swój adres e-mail, otwierając link '
-               f'(ważny 3 dni):\n{link}\n\n'
-               f'Jeśli to nie Ty zakładałeś konto — zignoruj tę wiadomość.')
+    send_email(user.email, _('Jonathan App — confirm your e-mail'),
+               _('Hi %(name)s!') % {'name': user.display_name} + '\n\n'
+               + _('Confirm your e-mail address by opening this link '
+                   '(valid for 3 days):') + f'\n{link}\n\n'
+               + _("If you didn't create this account, ignore this message."))
 
 
 @auth_bp.post('/account/verify/send')
