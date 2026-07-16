@@ -101,7 +101,9 @@ def test_anonymous_sees_landing(client):
     # '/' to publiczny landing; panel nadal wymaga logowania
     r = client.get('/', follow_redirects=False)
     assert r.status_code == 200
-    assert 'Załóż konto'.encode() in r.data
+    assert b'Create account' in r.data           # domyslnie EN (rynek USA)
+    r = client.get('/pl')
+    assert 'Załóż konto'.encode() in r.data      # polska wersja pod /pl
     r = client.get('/account', follow_redirects=False)
     assert r.status_code == 302 and '/login' in r.headers['Location']
 

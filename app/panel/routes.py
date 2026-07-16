@@ -272,3 +272,9 @@ def church_settings(church_id, membership):
     return render_template('panel/settings.html', church=church,
                            pads=pads_status(church_id),
                            membership=membership, user=current_user())
+
+
+@panel_bp.get('/pl')
+def landing_pl():
+    """Polska wersja landinga (domyślny '/' jest po angielsku — rynek USA)."""
+    return render_template('landing_pl.html')
