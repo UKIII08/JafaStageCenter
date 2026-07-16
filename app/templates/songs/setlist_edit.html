@@ -8,20 +8,20 @@
         </h2>
         {% if membership.role != 'muzyk' %}
         <form method="POST" action="{{ url_for('live.live_start', church_id=church.id, setlist_id=sl.id) }}">
-            <button type="submit" class="btn-live">Rozpocznij LIVE</button>
+            <button type="submit" class="btn-live">{{ _('Start LIVE') }}</button>
         </form>
         {% endif %}
     </div>
     <table>
-        <tr><th style="width:30px;">#</th><th>Piosenka</th><th>Tonacja</th><th>Transpozycja</th><th></th></tr>
+        <tr><th style="width:30px;">#</th><th>{{ _('Song') }}</th><th>{{ _('Key') }}</th><th>{{ _('Transpose') }}</th><th></th></tr>
         {% for r in rows %}
         <tr>
             <td class="muted">{{ loop.index }}</td>
             <td>
                 <a class="row-link" href="{{ url_for('songs.song_view', church_id=church.id, song_id=r.song.id, t=r.transpose) }}">{{ r.song.title }}</a>
-                {% if r.hints %}<br><span class="muted" style="font-size:.8em;">Preferencje zespołu: {{ r.hints|join(' · ') }}</span>{% endif %}
+                {% if r.hints %}<br><span class="muted" style="font-size:.8em;">{{ _('Team preferences:') }} {{ r.hints|join(' · ') }}</span>{% endif %}
             </td>
-            <td>{{ r.shown_key or '—' }}{% if r.transpose %} <span class="muted">(oryg. {{ r.song.key }})</span>{% endif %}</td>
+            <td>{{ r.shown_key or '—' }}{% if r.transpose %} <span class="muted">({{ _('orig.') }} {{ r.song.key }})</span>{% endif %}</td>
             <td>
                 {% if membership.role != 'muzyk' %}
                 <form method="POST" action="{{ url_for('songs.setlist_items', church_id=church.id, setlist_id=sl.id) }}" style="display:inline;">
@@ -36,15 +36,15 @@
                 {% if membership.role != 'muzyk' %}
                 <form method="POST" action="{{ url_for('songs.setlist_items', church_id=church.id, setlist_id=sl.id) }}" style="display:inline;">
                     <input type="hidden" name="idx" value="{{ loop.index0 }}">
-                    <button name="action" value="up" class="btn-ghost btn btn-sm" title="W górę">↑</button>
-                    <button name="action" value="down" class="btn-ghost btn btn-sm" title="W dół">↓</button>
-                    <button name="action" value="remove" class="btn-danger btn btn-sm" title="Usuń">Usuń</button>
+                    <button name="action" value="up" class="btn-ghost btn btn-sm" title="{{ _('Up') }}">↑</button>
+                    <button name="action" value="down" class="btn-ghost btn btn-sm" title="{{ _('Down') }}">↓</button>
+                    <button name="action" value="remove" class="btn-danger btn btn-sm" title="{{ _('Remove') }}">{{ _('Remove') }}</button>
                 </form>
                 {% endif %}
             </td>
         </tr>
         {% else %}
-        <tr><td colspan="5" class="muted">Setlista jest pusta — dodaj piosenki poniżej.</td></tr>
+        <tr><td colspan="5" class="muted">{{ _('The setlist is empty — add songs below.') }}</td></tr>
         {% endfor %}
     </table>
     {% if membership.role != 'muzyk' and available %}
@@ -54,7 +54,7 @@
         <select name="song_id" style="flex:1;">
             {% for s in available %}<option value="{{ s.id }}">{{ s.title }} {{ '(' + s.key + ')' if s.key }}</option>{% endfor %}
         </select>
-        <button type="submit" style="flex:0; white-space:nowrap;">Dodaj do setlisty</button>
+        <button type="submit" style="flex:0; white-space:nowrap;">{{ _('Add to setlist') }}</button>
     </form>
     {% endif %}
 </div>

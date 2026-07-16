@@ -1,35 +1,28 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="panel" style="max-width:780px;">
-    <h2>{{ 'Dodaj piosenkę' if is_new else 'Edytuj: ' + song.title }}</h2>
+    <h2>{{ _('Add song') if is_new else _('Edit:') + ' ' + song.title }}</h2>
     <form method="POST">
         <div class="form-row">
-            <input name="title" placeholder="Tytuł" required style="flex:3; min-width:220px;"
-                   value="{{ song.title if song else '' }}">
-            <input name="key" id="song-key" placeholder="Tonacja" style="flex:1; min-width:90px;"
-                   value="{{ song.key if song else '' }}">
-            <input name="bpm" type="number" min="0" max="300" placeholder="BPM" style="flex:1; min-width:90px;"
-                   value="{{ song.bpm if song and song.bpm else '' }}">
+            <input name="title" placeholder="{{ _('Title') }}" required style="flex:3; min-width:220px;" value="{{ song.title if song else '' }}">
+            <input name="key" id="song-key" placeholder="{{ _('Key') }}" style="flex:1; min-width:90px;" value="{{ song.key if song else '' }}">
+            <input name="bpm" type="number" min="0" max="300" placeholder="{{ _('BPM') }}" style="flex:1; min-width:90px;" value="{{ song.bpm if song and song.bpm else '' }}">
         </div>
-        <label>Notacja wejściowa</label>
+        <label>{{ _('Input notation') }}</label>
         <select name="input_notation">
-            <option value="international">Międzynarodowa (Bb, B)</option>
-            <option value="polish">Polska (B, H, Cis, Fis)</option>
+            <option value="international">{{ _('International (Bb, B)') }}</option>
+            <option value="polish">{{ _('Polish (B, H, Cis, Fis)') }}</option>
         </select>
         <p class="hint" style="margin:var(--s3) 0 var(--s2);">
-            Akordy w nawiasach kwadratowych: <code>[Am]tekst [G]dalej</code>.
-            Sekcje (Zwrotka, Refren) oddzielaj pustą linią.
-            Wkleiłeś piosenkę z akordami <b>nad tekstem</b> (np. z serwisu z chwytami)?
-            Użyj przycisku konwersji.
+            {{ _('Chords in square brackets:') }} <code>[Am]lyrics [G]more</code>.
+            {{ _('Separate sections (Verse, Chorus) with a blank line. Pasted a song with chords above the lyrics (e.g. from a tabs site)? Use the convert button.') }}
         </p>
-        <button type="button" class="btn-ghost btn" id="convert-format-btn">Konwertuj akordy nad tekstem</button>
-        <textarea name="content" id="song-content" rows="14"
-                  style="font-family:monospace; margin-top:var(--s3);"
-                  placeholder="Zwrotka 1&#10;[C]Tekst piosenki [Am]z akordami&#10;&#10;Refren&#10;[F]Tekst refrenu [C]dalej">{{ song.content if song else '' }}</textarea>
+        <button type="button" class="btn-ghost btn" id="convert-format-btn">{{ _('Convert chords-above-lyrics') }}</button>
+        <textarea name="content" id="song-content" rows="14" style="font-family:monospace; margin-top:var(--s3);" placeholder="Verse 1&#10;[C]Song lyrics [Am]with chords&#10;&#10;Chorus&#10;[F]Chorus lyrics [C]more">{{ song.content if song else '' }}</textarea>
         <div id="chord-status" class="muted" style="min-height:1.3em; margin-top:var(--s1);"></div>
         <div style="margin-top:var(--s3); display:flex; gap:var(--s2);">
-            <button type="submit">{{ 'Zapisz do biblioteki' if is_new else 'Zapisz zmiany' }}</button>
-            <a class="btn-ghost btn" href="{{ url_for('songs.songs_list', church_id=church.id) }}">Anuluj</a>
+            <button type="submit">{{ _('Save to library') if is_new else _('Save changes') }}</button>
+            <a class="btn-ghost btn" href="{{ url_for('songs.songs_list', church_id=church.id) }}">{{ _('Cancel') }}</a>
         </div>
     </form>
 </div>

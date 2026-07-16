@@ -286,11 +286,31 @@ PL = {
     "No setlists": "Brak setlist",
     "Setlists are arranged in Studio and attached to a specific service.":
         "Setlisty układasz w Studiu i podpinasz do konkretnego grania.",
+    "Delete this song?": "Usunąć tę piosenkę?",
+    "Delete setlist?": "Usunąć setlistę?", "# of songs": "Piosenek",
+    "The setlist is empty — add songs below.":
+        "Setlista jest pusta — dodaj piosenki poniżej.",
+    "Up": "W górę", "Down": "W dół", "Add to setlist": "Dodaj do setlisty",
     "Songs": "Piosenek", "Transpose": "Transpozycja", "Songs count": "Piosenek",
     "Practice — %(title)s": "Ćwiczenie — %(title)s", "my key": "moja tonacja",
     "Auto-scroll": "Autoprzewijanie", "Metronome": "Metronom", "Stop": "Stop",
-    "My note (visible only to you)": "Moja notatka (widoczna tylko dla Ciebie)",
     "saved": "zapisano", "saving…": "zapisywanie…",
+    "Practice:": "Ćwiczenie:", "my key": "moja tonacja",
+    "My note": "Moja notatka", "(visible only to you)": "(widoczna tylko dla Ciebie)",
+    "e.g. play barre on the bridge, come in on 3":
+        "np. w bridge gram barré, wejście na 3",
+    "Start LIVE": "Rozpocznij LIVE", "Song": "Piosenka",
+    # form (dodawanie/edycja poza Studiem)
+    "Add song": "Dodaj piosenkę", "Edit:": "Edytuj:",
+    "Input notation": "Notacja wejściowa",
+    "Chords in square brackets:": "Akordy w nawiasach kwadratowych:",
+    "Separate sections (Verse, Chorus) with a blank line. Pasted a song with "
+    "chords above the lyrics (e.g. from a tabs site)? Use the convert button.":
+        "Sekcje (Zwrotka, Refren) oddzielaj pustą linią. Wkleiłeś piosenkę z "
+        "akordami nad tekstem (np. z serwisu z chwytami)? Użyj przycisku "
+        "konwersji.",
+    "Convert chords-above-lyrics": "Konwertuj akordy nad tekstem",
+    "Save to library": "Zapisz do biblioteki",
 
     # ── Mój profil ──
     "My profile": "Mój profil", "Account & password": "Konto i hasło",

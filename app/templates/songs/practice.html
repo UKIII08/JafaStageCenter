@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Ćwiczenie: {{ song.title }}{% endblock %}
+{% block title %}{{ _('Practice:') }} {{ song.title }}{% endblock %}
 {% block content %}
 <div class="panel" style="position:sticky; top:var(--s3); z-index:50;">
     <div class="panel-header" style="margin-bottom:0;">
@@ -11,9 +11,9 @@
             <button class="btn-ghost btn btn-sm" id="t-down">−1</button>
             <b id="t-val">{{ '+' + transpose|string if transpose > 0 else transpose }}</b>
             <button class="btn-ghost btn btn-sm" id="t-up">+1</button>
-            <span class="muted" id="save-status" style="min-width:110px;">moja tonacja</span>
-            {% if song.bpm %}<button class="btn-ghost btn btn-sm" id="metro">Metronom</button>{% endif %}
-            <button class="btn-ghost btn btn-sm" id="scroll">Autoprzewijanie</button>
+            <span class="muted" id="save-status" style="min-width:110px;">{{ _('my key') }}</span>
+            {% if song.bpm %}<button class="btn-ghost btn btn-sm" id="metro">{{ _('Metronome') }}</button>{% endif %}
+            <button class="btn-ghost btn btn-sm" id="scroll">{{ _('Auto-scroll') }}</button>
         </div>
     </div>
 </div>
@@ -26,8 +26,8 @@
 {% endfor %}
 </div>
 <div class="panel">
-    <div class="section-title">Moja notatka <span style="text-transform:none; letter-spacing:0;">(widoczna tylko dla Ciebie)</span></div>
-    <textarea id="note" rows="3" placeholder="np. w bridge gram barré, wejście na 3">{{ note }}</textarea>
+    <div class="section-title">{{ _('My note') }} <span style="text-transform:none; letter-spacing:0;">{{ _('(visible only to you)') }}</span></div>
+    <textarea id="note" rows="3" placeholder="{{ _('e.g. play barre on the bridge, come in on 3') }}">{{ note }}</textarea>
     <span class="muted" id="note-status"></span>
 </div>
 <script src="{{ url_for('static', filename='js/chords-client.js') }}"></script>
@@ -48,7 +48,7 @@ function setTranspose(t) {
     transpose = Math.max(-11, Math.min(11, t));
     savePersonal({ transpose: transpose }).then(d => {
         document.getElementById('save-status').textContent =
-            'zapisano' + (d.preferred_key ? ' (' + d.preferred_key + ')' : '');
+            '{{ _('saved') }}' + (d.preferred_key ? ' (' + d.preferred_key + ')' : '');
         location.href = `/c/${CHURCH}/songs/${SONG}/practice?t=${transpose}`;
     });
 }
@@ -58,24 +58,24 @@ document.getElementById('t-down').onclick = () => setTranspose(transpose - 1);
 let noteTimer;
 document.getElementById('note').addEventListener('input', e => {
     clearTimeout(noteTimer);
-    document.getElementById('note-status').textContent = 'zapisywanie…';
+    document.getElementById('note-status').textContent = '{{ _('saving…') }}';
     noteTimer = setTimeout(() => savePersonal({ note: e.target.value })
-        .then(() => document.getElementById('note-status').textContent = 'zapisano'), 600);
+        .then(() => document.getElementById('note-status').textContent = '{{ _('saved') }}'), 600);
 });
 
 let scrolling = null;
 document.getElementById('scroll').onclick = function () {
-    if (scrolling) { clearInterval(scrolling); scrolling = null; this.textContent = 'Autoprzewijanie'; return; }
+    if (scrolling) { clearInterval(scrolling); scrolling = null; this.textContent = '{{ _('Auto-scroll') }}'; return; }
     const pxPerTick = BPM ? Math.max(1, Math.round(BPM / 60)) : 2;
     scrolling = setInterval(() => window.scrollBy(0, pxPerTick), 120);
-    this.textContent = 'Zatrzymaj';
+    this.textContent = '{{ _('Stop') }}';
 };
 
 {% if song.bpm %}
 let audioCtx = null, metroTimer = null, beat = 0;
 document.getElementById('metro').onclick = function () {
     if (metroTimer) { clearInterval(metroTimer); metroTimer = null; beat = 0;
-        this.textContent = 'Metronom'; return; }
+        this.textContent = '{{ _('Metronome') }}'; return; }
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     const interval = 60000 / BPM;
     metroTimer = setInterval(() => {
@@ -87,7 +87,7 @@ document.getElementById('metro').onclick = function () {
         osc.start(); osc.stop(audioCtx.currentTime + 0.08);
         beat++;
     }, interval);
-    this.textContent = 'Stop · ' + BPM + ' BPM';
+    this.textContent = '{{ _('Stop') }} · ' + BPM + ' BPM';
 };
 {% endif %}
 </script>
