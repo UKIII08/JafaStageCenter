@@ -1,13 +1,18 @@
-{% extends 'base.html' %}
+{% extends 'auth/base_auth.html' %}
+{% block title %}Weryfikacja dwuetapowa — Jonathan App{% endblock %}
+{% block aside_headline %}Jeszcze jeden krok.{% endblock %}
+{% block aside_sub %}Twoje konto chroni weryfikacja dwuetapowa. Wpisz kod z aplikacji uwierzytelniającej.{% endblock %}
 {% block content %}
-<div class="shell-narrow">
-    <div class="panel">
-        <h2>Weryfikacja dwuetapowa</h2>
-        <p class="hint">Wpisz 6-cyfrowy kod z aplikacji uwierzytelniającej.</p>
-        <form method="POST">
-            <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autofocus>
-            <div style="margin-top:var(--s4);"><button type="submit">Zaloguj</button></div>
-        </form>
+<h1>Weryfikacja dwuetapowa</h1>
+<p class="sub">Wpisz 6-cyfrowy kod z aplikacji uwierzytelniającej.</p>
+<form method="POST">
+    <div class="field">
+        <label>Kod weryfikacyjny</label>
+        <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+               required autofocus autocomplete="one-time-code"
+               style="letter-spacing:0.4em; text-align:center; font-size:1.3rem;">
     </div>
-</div>
+    <button class="btn-primary" type="submit">Zaloguj się</button>
+</form>
+<p class="auth-alt"><a href="{{ url_for('auth.login') }}">Wróć do logowania</a></p>
 {% endblock %}

@@ -18,8 +18,12 @@
             <td class="muted">{{ s.bpm or '—' }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="3" class="muted">Brak piosenek — dodaj pierwszą albo zaimportuj plik .txt
-            (obsługiwany jest eksport z aplikacji desktop).</td></tr>
+        <tr><td colspan="3" style="padding:0;">
+            <div class="empty-state">
+                <div class="es-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+                <div class="es-title">Biblioteka jest pusta</div>
+                <div class="es-sub">Dodaj pierwszą pieśń w Studiu — albo zaimportuj plik .txt z eksportu aplikacji desktop.</div>
+            </div></td></tr>
         {% endfor %}
     </table>
 </div>

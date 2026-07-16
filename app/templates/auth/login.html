@@ -1,21 +1,22 @@
-{% extends 'base.html' %}
+{% extends 'auth/base_auth.html' %}
 {% block title %}Logowanie — Jonathan App{% endblock %}
 {% block content %}
-<div class="shell-narrow">
-    <div class="panel">
-        <h2>Zaloguj się</h2>
-        <form method="POST">
-            <label>E-mail</label>
-            <input name="email" type="email" required autofocus>
-            <label>Hasło</label>
-            <input name="password" type="password" required>
-            <div style="margin-top:var(--s4);"><button type="submit">Zaloguj</button></div>
-        </form>
-        <p class="muted" style="margin-bottom:0;">
-            <a href="{{ url_for('auth.register') }}" style="color:var(--accent);">Załóż konto</a>
-            &nbsp;·&nbsp;
-            <a href="{{ url_for('auth.reset_request') }}" style="color:var(--accent);">Nie pamiętam hasła</a>
-        </p>
+<h1>Zaloguj się</h1>
+<p class="sub">Wróć do swojego zespołu.</p>
+<form method="POST">
+    <div class="field">
+        <label>E-mail</label>
+        <input name="email" type="email" required autofocus autocomplete="email">
     </div>
-</div>
+    <div class="field">
+        <label>Hasło</label>
+        <input name="password" type="password" required autocomplete="current-password">
+    </div>
+    <button class="btn-primary" type="submit">Zaloguj się</button>
+</form>
+<p class="auth-alt">
+    <a href="{{ url_for('auth.register') }}">Załóż konto</a>
+    <span class="dot">·</span>
+    <a href="{{ url_for('auth.reset_request') }}">Nie pamiętam hasła</a>
+</p>
 {% endblock %}

@@ -113,9 +113,9 @@
 
     <header class="hero">
         <h1>Lead worship,<br>not the <em>tech</em>.</h1>
-        <p>The worship leader's studio, every musician's phone, and the
-        projection screen — connected live. Setlists, keys that fit your
-        vocalists, song-to-song transitions, and team scheduling in one place.</p>
+        <p>We built this because we needed it. One place to prepare the set, lead
+        it for the room <em>and</em> for the band on stage, and sort out who's
+        playing this Sunday — instead of three apps and a group chat.</p>
         <div class="hero-cta">
             <a class="btn btn-lg" href="{{ url_for('auth.register') }}">Start free</a>
             <a class="btn btn-ghost btn-lg" href="#features">See features</a>
@@ -208,43 +208,46 @@
     <section>
         <div class="split">
             <div>
-                <div class="kicker">Between Sundays</div>
-                <h2>Musicians practice in their key.</h2>
-                <p class="lead">The setlist opens every song in the key the team
-                will actually play it — with a metronome, auto-scroll and private
-                notes. Nobody asks "what are we starting with?" on Sunday
-                morning.</p>
+                <div class="kicker">Room for everyone</div>
+                <h2>Make room for musicians who are still learning.</h2>
+                <p class="lead">Not everyone on the team is a seasoned player —
+                that's what a team is for. Each person's own key, capo mode,
+                beginner chords and chord diagrams take the pressure off, so
+                someone newer can serve on Sunday instead of dreading it. And
+                the setlist opens every song in the key you'll actually play,
+                with a metronome and private notes for practice during the week.</p>
             </div>
             <div class="shot phone-shot">
                 <img src="{{ url_for('static', filename='img/landing/band_en.png') }}"
-                     alt="Musician view on a phone — live chords" loading="lazy">
+                     alt="Musician view on a phone — live chords in their own key" loading="lazy">
             </div>
         </div>
 
         <div class="trust">
             <div>
-                <h3>Private and secure</h3>
-                <p>Encrypted connections, passwords stored only as scrypt hashes,
-                encrypted backups. Delete your account with one click.</p>
+                <h3>The tech stays in the background</h3>
+                <p>Rehearsals run long, someone's sick, the setlist changes an
+                hour before. The tools keep working quietly so the team can
+                keep its eyes on what actually matters.</p>
             </div>
             <div>
                 <h3>Built inside a worship team</h3>
                 <p>Jonathan was David's friend — and David is the best-known
-                worshiper in history. This app is meant to be that kind of
-                friend to you: it was born on a worship team, not in a
-                boardroom.</p>
+                worshiper in history. This is meant to be that kind of friend to
+                you: it was born on a worship team, not in a boardroom.</p>
             </div>
             <div>
                 <h3>Your church stays in control</h3>
                 <p>Leader and musician roles, your own logo and background,
-                screens connected by QR code and revoked in one click.</p>
+                encrypted connections, and account deletion in one click.
+                Screens connect by QR and are revoked just as easily.</p>
             </div>
         </div>
     </section>
 
     <section class="final">
         <h2>This Sunday could be calmer.</h2>
-        <p>Create your church, paste your first songs, connect the screens — fifteen minutes.</p>
+        <p>Create your church, paste your first songs, connect the screens — about fifteen minutes.</p>
         <a class="btn btn-lg" href="{{ url_for('auth.register') }}">Create a free account</a>
     </section>
 

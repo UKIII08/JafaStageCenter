@@ -1,21 +1,30 @@
-{% extends 'base.html' %}
+{% extends 'auth/base_auth.html' %}
 {% block title %}Rejestracja — Jonathan App{% endblock %}
+{% block aside_headline %}Zacznij prowadzić spokojniej.{% endblock %}
+{% block aside_sub %}Załóż konto, stwórz wspólnotę i wklej pierwsze pieśni.
+Zespół dołącza jednym kodem, ekrany podłączasz przez QR. Kwadrans — i jesteś gotowy na niedzielę.{% endblock %}
 {% block content %}
-<div class="shell-narrow">
-    <div class="panel">
-        <h2>Załóż konto</h2>
-        <form method="POST">
-            <label>Imię (widoczne dla zespołu)</label>
-            <input name="display_name" required autofocus>
-            <label>E-mail</label>
-            <input name="email" type="email" required>
-            <label>Hasło (min. 8 znaków)</label>
-            <input name="password" type="password" minlength="8" required>
-            <p class="hint" style="margin-top:var(--s3);">Rejestrując się akceptujesz <a href="{{ url_for('auth.terms') }}">regulamin</a> i <a href="{{ url_for('auth.privacy') }}">politykę prywatności</a>.</p>
-            <div style="margin-top:var(--s4);"><button type="submit">Zarejestruj się</button></div>
-        </form>
-        <p class="muted" style="margin-bottom:0;">Masz konto?
-            <a href="{{ url_for('auth.login') }}" style="color:var(--accent);">Zaloguj się</a></p>
+<h1>Załóż konto</h1>
+<p class="sub">Bezpłatnie dla wspólnot. Bez karty.</p>
+<form method="POST">
+    <div class="field">
+        <label>Imię</label>
+        <input name="display_name" required autofocus autocomplete="name">
+        <div class="field-hint">Widoczne dla Twojego zespołu.</div>
     </div>
-</div>
+    <div class="field">
+        <label>E-mail</label>
+        <input name="email" type="email" required autocomplete="email">
+    </div>
+    <div class="field">
+        <label>Hasło</label>
+        <input name="password" type="password" minlength="8" required autocomplete="new-password">
+        <div class="field-hint">Minimum 8 znaków.</div>
+    </div>
+    <p class="legal-note">Zakładając konto akceptujesz
+        <a href="{{ url_for('auth.terms') }}">regulamin</a> i
+        <a href="{{ url_for('auth.privacy') }}">politykę prywatności</a>.</p>
+    <button class="btn-primary" type="submit">Załóż konto</button>
+</form>
+<p class="auth-alt">Masz już konto? <a href="{{ url_for('auth.login') }}">Zaloguj się</a></p>
 {% endblock %}
