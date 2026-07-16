@@ -1,4 +1,15 @@
-# Podmień domenę po jej zakupie (RUNBOOK.md) — HTTPS załatwia się sam.
-app.example.com {
+# Jonathan App — produkcja. Caddy sam wyrabia i odnawia certyfikaty HTTPS.
+jonathanapp.com {
     reverse_proxy app:8000
+}
+
+# www -> domena główna
+www.jonathanapp.com {
+    redir https://jonathanapp.com{uri} permanent
+}
+
+# Stara domena testowa -> przekierowanie (stare linki i QR nadal działają).
+# Można usunąć, gdy nikt już z niej nie korzysta.
+stagecenter.jafawarszawa.pl {
+    redir https://jonathanapp.com{uri} permanent
 }
