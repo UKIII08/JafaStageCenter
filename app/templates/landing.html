@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jonathan App — narzędzie zespołu uwielbienia</title>
+    <meta name="description" content="Studio prowadzącego, telefon muzyka i rzutnik w jednym. Setlisty, tonacje, przejścia akordowe, organizacja grań i raporty CCLI — dla zespołów uwielbienia.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+    <style>
+        body { background: var(--bg-app); color: var(--text-primary);
+               font-family: 'Sen', system-ui, sans-serif; margin: 0; }
+        a { color: inherit; }
+        .wrap { max-width: 1080px; margin: 0 auto; padding: 0 var(--s6); }
+
+        /* pasek */
+        .nav { display: flex; align-items: center; justify-content: space-between;
+               padding: var(--s4) 0; }
+        .brand { font-weight: 700; font-size: 1.15rem; text-decoration: none; }
+        .brand span { color: var(--accent); }
+        .nav-actions { display: flex; gap: var(--s3); align-items: center; }
+        .btn { display: inline-block; background: var(--accent); color: #fff;
+               border: 0; border-radius: var(--r-md); padding: 10px 20px;
+               font-weight: 700; font-size: 0.95rem; text-decoration: none;
+               transition: background .15s ease, transform .15s ease; }
+        .btn:hover { background: var(--accent-hover); }
+        .btn:active { transform: scale(0.97); }
+        .btn-ghost { background: transparent; color: var(--text-secondary);
+                     border: 1px solid var(--border-strong); }
+        .btn-ghost:hover { background: var(--bg-surface); color: var(--text-primary); }
+        .btn-lg { padding: 14px 28px; font-size: 1.05rem; }
+
+        /* hero */
+        .hero { text-align: center; padding: 72px 0 40px; }
+        .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.15;
+                   margin: 0 0 var(--s4); letter-spacing: -0.02em; }
+        .hero h1 em { font-style: normal; color: var(--accent); }
+        .hero p { color: var(--text-secondary); font-size: 1.15rem; line-height: 1.7;
+                  max-width: 640px; margin: 0 auto var(--s6); }
+        .hero-cta { display: flex; gap: var(--s3); justify-content: center;
+                    flex-wrap: wrap; margin-bottom: var(--s3); }
+        .hero-note { color: var(--text-tertiary); font-size: 0.85rem; }
+
+        .shot { border: 1px solid var(--border-strong); border-radius: var(--r-lg);
+                overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,.55);
+                background: var(--bg-panel); }
+        .shot img { display: block; width: 100%; height: auto; }
+        .hero .shot { margin-top: 48px; }
+
+        /* sekcje */
+        section { padding: 72px 0 0; }
+        .kicker { font-size: var(--font-xs); font-weight: 800; letter-spacing: .14em;
+                  text-transform: uppercase; color: var(--accent); margin-bottom: var(--s2); }
+        h2 { font-size: clamp(1.5rem, 3.2vw, 2.1rem); margin: 0 0 var(--s3);
+             letter-spacing: -0.01em; }
+        .lead { color: var(--text-secondary); line-height: 1.7; max-width: 620px; }
+
+        .roles { display: grid; grid-template-columns: 1.4fr 1fr; gap: var(--s5);
+                 margin-top: var(--s6); align-items: start; }
+        .role-side { display: flex; flex-direction: column; gap: var(--s5); }
+        .role-card { background: var(--bg-panel); border: 1px solid var(--border-default);
+                     border-radius: var(--r-lg); padding: var(--s5); }
+        .role-card h3 { margin: 0 0 var(--s2); font-size: 1.05rem; }
+        .role-card p { margin: 0; color: var(--text-secondary); line-height: 1.65;
+                       font-size: 0.93rem; }
+
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s4);
+                margin-top: var(--s6); }
+        .feature { background: var(--bg-panel); border: 1px solid var(--border-default);
+                   border-radius: var(--r-lg); padding: var(--s5); }
+        .feature h3 { margin: 0 0 var(--s2); font-size: 1rem; }
+        .feature p { margin: 0; color: var(--text-secondary); font-size: 0.9rem;
+                     line-height: 1.65; }
+        .feature .fi { width: 34px; height: 34px; border-radius: 9px;
+                       background: var(--accent-subtle); color: var(--accent);
+                       display: flex; align-items: center; justify-content: center;
+                       margin-bottom: var(--s3); }
+
+        .split { display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+                 align-items: center; margin-top: var(--s6); }
+        .phone-shot { max-width: 300px; margin: 0 auto; }
+
+        .trust { background: var(--bg-panel); border: 1px solid var(--border-default);
+                 border-radius: var(--r-lg); padding: var(--s6); margin-top: var(--s6);
+                 display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s5); }
+        .trust div h3 { margin: 0 0 var(--s1); font-size: 0.95rem; }
+        .trust div p { margin: 0; color: var(--text-secondary); font-size: 0.88rem;
+                       line-height: 1.6; }
+
+        .final { text-align: center; padding: 88px 0; }
+        .final h2 { margin-bottom: var(--s3); }
+        .final p { color: var(--text-secondary); margin: 0 0 var(--s5); }
+
+        footer { border-top: 1px solid var(--border-default); padding: var(--s6) 0;
+                 display: flex; justify-content: space-between; gap: var(--s4);
+                 flex-wrap: wrap; color: var(--text-tertiary); font-size: 0.85rem; }
+        footer a { color: var(--text-secondary); text-decoration: none; margin-left: var(--s4); }
+        footer a:hover { color: var(--text-primary); }
+
+        @media (max-width: 860px) {
+            .roles, .split, .grid, .trust { grid-template-columns: 1fr; }
+            .hero { padding-top: 48px; }
+            section { padding-top: 56px; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <nav class="nav">
+        <a class="brand" href="/">Jonathan<span> App</span></a>
+        <div class="nav-actions">
+            <a class="btn btn-ghost" href="{{ url_for('auth.login') }}">Zaloguj</a>
+            <a class="btn" href="{{ url_for('auth.register') }}">Załóż konto</a>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <h1>Prowadź uwielbienie,<br>nie <em>technikę</em>.</h1>
+        <p>Studio prowadzącego, telefon każdego muzyka i rzutnik dla zboru —
+        połączone na żywo. Setlisty, tonacje pod wokal, przejścia między
+        pieśniami i organizacja grań w jednym miejscu.</p>
+        <div class="hero-cta">
+            <a class="btn btn-lg" href="{{ url_for('auth.register') }}">Zacznij za darmo</a>
+            <a class="btn btn-ghost btn-lg" href="#funkcje">Zobacz funkcje</a>
+        </div>
+        <div class="hero-note">Beta — bezpłatnie dla wspólnot. Bez karty.</div>
+        <div class="shot">
+            <img src="{{ url_for('static', filename='img/landing/studio.png') }}"
+                 alt="Studio — panel prowadzącego Jonathan App" loading="eager">
+        </div>
+    </header>
+
+    <section>
+        <div class="kicker">Jeden system, trzy ekrany</div>
+        <h2>Klikasz raz — widzą wszyscy.</h2>
+        <p class="lead">Prowadzący wybiera slajd w Studiu. W tej samej sekundzie
+        zbór widzi czysty tekst na rzutniku, a każdy muzyk — akordy w swojej
+        tonacji na własnym telefonie.</p>
+        <div class="roles">
+            <div class="shot">
+                <img src="{{ url_for('static', filename='img/landing/stage.png') }}"
+                     alt="Ekran sceny — akordy i następna sekcja" loading="lazy">
+            </div>
+            <div class="role-side">
+                <div class="role-card">
+                    <h3>Prowadzący — Studio</h3>
+                    <p>Biblioteka, setlista, kafelki sekcji, transpozycja jednym
+                    klikiem, blackout i logo. Wszystko na jednym ekranie,
+                    zaprojektowane pod niedzielny stres.</p>
+                </div>
+                <div class="role-card">
+                    <h3>Muzyk — własny telefon</h3>
+                    <p>Akordy na żywo w swojej notacji, capo, tryb początkującego,
+                    diagramy chwytów i prywatne notatki. Skanujesz QR raz —
+                    działa co niedzielę.</p>
+                </div>
+                <div class="role-card">
+                    <h3>Zbór — rzutnik</h3>
+                    <p>Czysty tekst bez akordów, własne tło i logo wspólnoty,
+                    notka copyright CCLI dodawana automatycznie.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="funkcje">
+        <div class="kicker">Funkcje</div>
+        <h2>Wszystko, czego zespół używa naprawdę.</h2>
+        <div class="grid">
+            <div class="feature">
+                <div class="fi"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+                <h3>Tonacje pod wokal</h3>
+                <p>Każdy muzyk zapisuje swoją tonację. Układając setlistę widzisz,
+                że wokalistka woli Dm — i transponujesz jednym klikiem.</p>
+            </div>
+            <div class="feature">
+                <div class="fi"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
+                <h3>Przejścia między pieśniami</h3>
+                <p>Silnik muzyczny proponuje akordy pomostu z jednej tonacji do
+                drugiej — z uwzględnieniem stylu i tempa obu pieśni.</p>
+            </div>
+            <div class="feature">
+                <div class="fi"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div>
+                <h3>Pady atmosfery</h3>
+                <p>Tła dźwiękowe w tonacji aktualnej pieśni, z płynnym
+                przejściem przy zmianie tonacji.</p>
+            </div>
+            <div class="feature">
+                <div class="fi"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                <h3>Organizacja grań</h3>
+                <p>Tworzysz granie, zespół zaznacza „mogę / nie mogę", układasz
+                obsadę z instrumentami i podpinasz setlistę. Każdy wie, kiedy
+                gra i czego się uczy.</p>
+            </div>
+            <div class="feature">
+                <div class="fi"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+                <h3>Tryb konferencyjny</h3>
+                <p>Prezentacje PDF, osadzanie Canvy, zegar dla mówcy i widok
+                prezentera — na te same ekrany, bez przepinania kabli.</p>
+            </div>
+            <div class="feature">
+                <div class="fi"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+                <h3>CCLI bez wysiłku</h3>
+                <p>Notka copyright na rzutniku i automatyczny licznik użyć
+                pieśni. W okresie raportowym eksportujesz CSV — koniec.</p>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="split">
+            <div>
+                <div class="kicker">Między niedzielami</div>
+                <h2>Muzyk ćwiczy w swojej tonacji.</h2>
+                <p class="lead">Setlista z grania otwiera każdą pieśń w tonacji,
+                w której zagra ją zespół — z metronomem, autoprzewijaniem
+                i prywatnymi notatkami. Nikt nie pyta „od czego zaczynamy?"
+                w niedzielę rano.</p>
+            </div>
+            <div class="shot phone-shot">
+                <img src="{{ url_for('static', filename='img/landing/band.png') }}"
+                     alt="Widok muzyka na telefonie — akordy na żywo" loading="lazy">
+            </div>
+        </div>
+
+        <div class="trust">
+            <div>
+                <h3>Dane w Europie</h3>
+                <p>Serwery w Warszawie, połączenia szyfrowane, kopie zapasowe
+                AES-256. Zgodność z RODO, konto usuwasz jednym przyciskiem.</p>
+            </div>
+            <div>
+                <h3>Zbudowane w służbie</h3>
+                <p>Jonatan był przyjacielem Dawida — najbardziej znanego
+                uwielbiającego w historii. Ta aplikacja ma być takim
+                przyjacielem dla Ciebie: powstała w zespole uwielbienia,
+                nie w korporacji.</p>
+            </div>
+            <div>
+                <h3>Wspólnota ma kontrolę</h3>
+                <p>Role prowadzącego i muzyka, własne logo i tło, ekrany
+                podłączane kodem QR i odłączane jednym kliknięciem.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="final">
+        <h2>Najbliższa niedziela może być spokojniejsza.</h2>
+        <p>Załóż wspólnotę, wklej pierwsze pieśni i podłącz ekrany — kwadrans roboty.</p>
+        <a class="btn btn-lg" href="{{ url_for('auth.register') }}">Załóż konto — za darmo</a>
+    </section>
+
+    <footer>
+        <div>Jonathan App</div>
+        <div>
+            <a href="{{ url_for('auth.privacy') }}">Polityka prywatności</a>
+            <a href="{{ url_for('auth.terms') }}">Regulamin</a>
+        </div>
+    </footer>
+</div>
+</body>
+</html>

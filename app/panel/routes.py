@@ -71,9 +71,11 @@ def new_invite_code():
 
 
 @panel_bp.get('/')
-@login_required
 def dashboard():
     user = current_user()
+    if not user:
+        # Landing dla niezalogowanych — strona główna produktu
+        return render_template('landing.html')
     memberships = Membership.query.filter_by(
         user_id=user.id, status='active').all()
     if not memberships:

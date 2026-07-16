@@ -97,8 +97,12 @@ def test_invalid_invite_code(client):
     assert client.get('/join/ZLYKOD').status_code == 404
 
 
-def test_anonymous_redirected_to_login(client):
+def test_anonymous_sees_landing(client):
+    # '/' to publiczny landing; panel nadal wymaga logowania
     r = client.get('/', follow_redirects=False)
+    assert r.status_code == 200
+    assert 'Załóż konto'.encode() in r.data
+    r = client.get('/account', follow_redirects=False)
     assert r.status_code == 302 and '/login' in r.headers['Location']
 
 
@@ -187,8 +191,8 @@ def test_2fa_full_cycle(app, client):
     r = client.post('/login', data={'email': 'tfa@t.pl',
                     'password': 'haslo1234'}, follow_redirects=False)
     assert '/login/2fa' in r.headers['Location']
-    # bez kodu brak dostępu
-    assert client.get('/').status_code == 302
+    # bez kodu brak dostępu do panelu (landing na '/' jest publiczny)
+    assert client.get('/account').status_code == 302
     # poprawny kod wpuszcza
     code = pyotp.TOTP(secret).now()
     r = client.post('/login/2fa', data={'code': code}, follow_redirects=True)
