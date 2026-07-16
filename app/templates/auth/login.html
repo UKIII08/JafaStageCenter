@@ -1,22 +1,12 @@
 {% extends 'auth/base_auth.html' %}
-{% block title %}Logowanie — Jonathan App{% endblock %}
+{% block title %}{{ _('Log in — Jonathan App') }}{% endblock %}
 {% block content %}
-<h1>Zaloguj się</h1>
-<p class="sub">Wróć do swojego zespołu.</p>
+<h1>{{ _('Log in') }}</h1>
+<p class="sub">{{ _('Come back to your team.') }}</p>
 <form method="POST">
-    <div class="field">
-        <label>E-mail</label>
-        <input name="email" type="email" required autofocus autocomplete="email">
-    </div>
-    <div class="field">
-        <label>Hasło</label>
-        <input name="password" type="password" required autocomplete="current-password">
-    </div>
-    <button class="btn-primary" type="submit">Zaloguj się</button>
+    <div class="field"><label>{{ _('E-mail') }}</label><input name="email" type="email" required autofocus autocomplete="email"></div>
+    <div class="field"><label>{{ _('Password') }}</label><input name="password" type="password" required autocomplete="current-password"></div>
+    <button class="btn-primary" type="submit">{{ _('Log in') }}</button>
 </form>
-<p class="auth-alt">
-    <a href="{{ url_for('auth.register') }}">Załóż konto</a>
-    <span class="dot">·</span>
-    <a href="{{ url_for('auth.reset_request') }}">Nie pamiętam hasła</a>
-</p>
+<p class="auth-alt"><a href="{{ url_for('auth.register') }}">{{ _('Create account') }}</a><span class="dot">·</span><a href="{{ url_for('auth.reset_request') }}">{{ _('Forgot password') }}</a></p>
 {% endblock %}

@@ -1,32 +1,22 @@
 {% extends 'base.html' %}
-{% block title %}Usunięcie konta — Jonathan App{% endblock %}
+{% block title %}{{ _('Delete account — Jonathan App') }}{% endblock %}
 {% block content %}
 <div class="shell-narrow">
     <div class="panel">
-        <h2>Usunięcie konta</h2>
-        <p class="hint">Usunięcie konta jest <b>nieodwracalne</b>. Skasujemy:
-        Twój profil, preferowane tonacje i notatki, zgłoszenia dostępności,
-        przypisania do grań oraz członkostwa we wspólnotach.</p>
-
+        <h2>{{ _('Delete account') }}</h2>
+        <p class="hint">{{ _("Deleting your account is permanent. We'll erase your profile, preferred keys and notes, availability, service assignments and church memberships.") }}</p>
         {% if blockers %}
-        <div class="flash">Jesteś właścicielem wspólnot z innymi członkami:
-            {% for ch in blockers %}<b>{{ ch.name }}</b>{{ ', ' if not loop.last }}{% endfor %}.
-            Zanim usuniesz konto, przekaż je innemu adminowi (Zespół → zmień rolę)
-            albo usuń pozostałych członków.</div>
+        <div class="flash">{{ _('You own communities with other members:') }} {% for ch in blockers %}<b>{{ ch.name }}</b>{{ ', ' if not loop.last }}{% endfor %}. {{ _('Before deleting your account, hand them over to another admin (Team → change role) or remove the remaining members.') }}</div>
         {% endif %}
-
         {% if sole_churches %}
-        <p class="hint">Jesteś jedynym członkiem wspólnot:
-            {% for ch in sole_churches %}<b>{{ ch.name }}</b>{{ ', ' if not loop.last }}{% endfor %}
-            — zostaną usunięte w całości (piosenki, setlisty, grania, pliki).</p>
+        <p class="hint">{{ _('You are the only member of:') }} {% for ch in sole_churches %}<b>{{ ch.name }}</b>{{ ', ' if not loop.last }}{% endfor %} — {{ _('they will be deleted entirely (songs, setlists, services, files).') }}</p>
         {% endif %}
-
-        <form method="POST" onsubmit="return confirm('Na pewno? Tej operacji nie da się cofnąć.')">
-            <label>Potwierdź hasłem</label>
+        <form method="POST" onsubmit="return confirm('{{ _("Really? This can't be undone.") }}')">
+            <label>{{ _('Confirm with password') }}</label>
             <input name="password" type="password" required autocomplete="current-password">
             <div style="margin-top:var(--s4); display:flex; gap:var(--s2);">
-                <button type="submit" class="btn-danger btn" {{ 'disabled' if blockers }}>Usuń konto na zawsze</button>
-                <a class="btn btn-ghost" href="{{ url_for('auth.account') }}">Anuluj</a>
+                <button type="submit" class="btn-danger btn" {{ 'disabled' if blockers }}>{{ _('Delete account forever') }}</button>
+                <a class="btn btn-ghost" href="{{ url_for('auth.account') }}">{{ _('Cancel') }}</a>
             </div>
         </form>
     </div>

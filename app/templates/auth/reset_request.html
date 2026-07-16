@@ -1,16 +1,10 @@
 {% extends 'auth/base_auth.html' %}
-{% block title %}Reset hasła — Jonathan App{% endblock %}
-{% block aside_headline %}Zdarza się każdemu.{% endblock %}
-{% block aside_sub %}Podaj adres konta, a wyślemy link do ustawienia nowego hasła.{% endblock %}
+{% block title %}{{ _('Reset password — Jonathan App') }}{% endblock %}
+{% block aside_headline %}{{ _('It happens to everyone.') }}{% endblock %}
+{% block aside_sub %}{{ _("Enter your account e-mail and we'll send a link to set a new password.") }}{% endblock %}
 {% block content %}
-<h1>Reset hasła</h1>
-<p class="sub">Wyślemy link na Twój adres e-mail.</p>
-<form method="POST">
-    <div class="field">
-        <label>E-mail konta</label>
-        <input name="email" type="email" required autofocus autocomplete="email">
-    </div>
-    <button class="btn-primary" type="submit">Wyślij link resetujący</button>
-</form>
-<p class="auth-alt"><a href="{{ url_for('auth.login') }}">Wróć do logowania</a></p>
+<h1>{{ _('Reset password') }}</h1>
+<p class="sub">{{ _("We'll send a link to your e-mail.") }}</p>
+<form method="POST"><div class="field"><label>{{ _('Account e-mail') }}</label><input name="email" type="email" required autofocus autocomplete="email"></div><button class="btn-primary" type="submit">{{ _('Send reset link') }}</button></form>
+<p class="auth-alt"><a href="{{ url_for('auth.login') }}">{{ _('Back to login') }}</a></p>
 {% endblock %}

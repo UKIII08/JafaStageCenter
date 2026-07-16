@@ -49,6 +49,17 @@ def create_app(config_object='app.config.Config'):
 
     _register_socket_handlers(app)
 
+    # i18n panelu (gettext, EN domyślny) — dostępne w każdym szablonie jako _()
+    from app.i18n import translate, get_lang, set_lang
+    app.jinja_env.globals['_'] = translate
+    app.jinja_env.globals['current_lang'] = get_lang
+
+    @app.get('/lang/<code>')
+    def switch_lang(code):
+        from flask import redirect, request as _req
+        set_lang(code)
+        return redirect(_req.args.get('next') or _req.referrer or '/')
+
     with app.app_context():
         db.create_all()   # M0: create_all; migracje Alembic dojdą w M1
         _ensure_columns()   # drobne ALTER-y dla kolumn dodanych po M3

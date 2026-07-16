@@ -1,41 +1,25 @@
 {% extends 'base.html' %}
-{% block title %}Moje konto — Jonathan App{% endblock %}
+{% block title %}{{ _('My account — Jonathan App') }}{% endblock %}
 {% block content %}
 <div class="panel" style="max-width:560px;">
-    <h2>Moje konto</h2>
+    <h2>{{ _('My account') }}</h2>
     <p>{{ user.display_name }} <span class="muted">{{ user.email }}</span>
-        {% if user.email_verified_at %}
-        <span class="badge" style="background:var(--green-subtle); color:var(--green);">e-mail potwierdzony</span>
-        {% else %}
-        <span class="badge" style="background:var(--amber-subtle); color:var(--amber);">e-mail niepotwierdzony</span>
-        {% endif %}
+        {% if user.email_verified_at %}<span class="badge" style="background:var(--green-subtle); color:var(--green);">{{ _('e-mail verified') }}</span>
+        {% else %}<span class="badge" style="background:var(--amber-subtle); color:var(--amber);">{{ _('e-mail not verified') }}</span>{% endif %}
     </p>
     {% if not user.email_verified_at %}
-    <form method="POST" action="{{ url_for('auth.verify_send') }}">
-        <button class="btn-ghost btn btn-sm" type="submit">Wyślij link weryfikacyjny</button>
-    </form>
+    <form method="POST" action="{{ url_for('auth.verify_send') }}"><button class="btn-ghost btn btn-sm" type="submit">{{ _('Send verification link') }}</button></form>
     {% endif %}
-
-    <div class="section-title" style="margin-top:var(--s5);">Weryfikacja dwuetapowa</div>
+    <div class="section-title" style="margin-top:var(--s5);">{{ _('Two-factor authentication') }}</div>
     {% if user.totp_secret %}
-        <p class="hint">Włączona — logowanie wymaga kodu z aplikacji.</p>
-        <form method="POST" action="{{ url_for('auth.twofa_disable') }}">
-            <label>Potwierdź hasłem, aby wyłączyć</label>
-            <input name="password" type="password" required>
-            <div style="margin-top:var(--s3);"><button class="btn-danger btn" type="submit">Wyłącz 2FA</button></div>
-        </form>
+        <p class="hint">{{ _('Enabled — login requires a code from your app.') }}</p>
+        <form method="POST" action="{{ url_for('auth.twofa_disable') }}"><label>{{ _('Confirm with your password to disable') }}</label><input name="password" type="password" required><div style="margin-top:var(--s3);"><button class="btn-danger btn" type="submit">{{ _('Disable 2FA') }}</button></div></form>
     {% else %}
-        <p class="hint">Dodatkowa warstwa ochrony konta — zalecana zwłaszcza dla
-        administratorów. Potrzebna darmowa aplikacja (Google Authenticator,
-        Microsoft Authenticator, Aegis).</p>
-        <form method="POST" action="{{ url_for('auth.twofa_enable') }}">
-            <button type="submit">Włącz 2FA</button>
-        </form>
+        <p class="hint">{{ _('An extra layer of account protection — recommended especially for admins. Requires a free app (Google Authenticator, Microsoft Authenticator, Aegis).') }}</p>
+        <form method="POST" action="{{ url_for('auth.twofa_enable') }}"><button type="submit">{{ _('Enable 2FA') }}</button></form>
     {% endif %}
-
-    <div class="section-title" style="margin-top:var(--s5);">Strefa niebezpieczna</div>
-    <p class="hint">Usunięcie konta kasuje wszystkie Twoje dane osobiste
-    (RODO — prawo do bycia zapomnianym).</p>
-    <a class="btn btn-danger btn-sm" href="{{ url_for('auth.account_delete') }}">Usuń konto…</a>
+    <div class="section-title" style="margin-top:var(--s5);">{{ _('Danger zone') }}</div>
+    <p class="hint">{{ _('Deleting your account erases all your personal data (GDPR — the right to be forgotten).') }}</p>
+    <a class="btn btn-danger btn-sm" href="{{ url_for('auth.account_delete') }}">{{ _('Delete account…') }}</a>
 </div>
 {% endblock %}

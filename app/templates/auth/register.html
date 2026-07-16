@@ -1,30 +1,16 @@
 {% extends 'auth/base_auth.html' %}
-{% block title %}Rejestracja — Jonathan App{% endblock %}
-{% block aside_headline %}Zacznij prowadzić spokojniej.{% endblock %}
-{% block aside_sub %}Załóż konto, stwórz wspólnotę i wklej pierwsze pieśni.
-Zespół dołącza jednym kodem, ekrany podłączasz przez QR. Kwadrans — i jesteś gotowy na niedzielę.{% endblock %}
+{% block title %}{{ _('Sign up — Jonathan App') }}{% endblock %}
+{% block aside_headline %}{{ _('Start leading calmer.') }}{% endblock %}
+{% block aside_sub %}{{ _("Create an account, set up your church and paste your first songs. The team joins with a single code, screens connect by QR. Fifteen minutes — and you're ready for Sunday.") }}{% endblock %}
 {% block content %}
-<h1>Załóż konto</h1>
-<p class="sub">Bezpłatnie dla wspólnot. Bez karty.</p>
+<h1>{{ _('Create account') }}</h1>
+<p class="sub">{{ _('Free for churches. No card.') }}</p>
 <form method="POST">
-    <div class="field">
-        <label>Imię</label>
-        <input name="display_name" required autofocus autocomplete="name">
-        <div class="field-hint">Widoczne dla Twojego zespołu.</div>
-    </div>
-    <div class="field">
-        <label>E-mail</label>
-        <input name="email" type="email" required autocomplete="email">
-    </div>
-    <div class="field">
-        <label>Hasło</label>
-        <input name="password" type="password" minlength="8" required autocomplete="new-password">
-        <div class="field-hint">Minimum 8 znaków.</div>
-    </div>
-    <p class="legal-note">Zakładając konto akceptujesz
-        <a href="{{ url_for('auth.terms') }}">regulamin</a> i
-        <a href="{{ url_for('auth.privacy') }}">politykę prywatności</a>.</p>
-    <button class="btn-primary" type="submit">Załóż konto</button>
+    <div class="field"><label>{{ _('First name') }}</label><input name="display_name" required autofocus autocomplete="name"><div class="field-hint">{{ _('Visible to your team.') }}</div></div>
+    <div class="field"><label>{{ _('E-mail') }}</label><input name="email" type="email" required autocomplete="email"></div>
+    <div class="field"><label>{{ _('Password') }}</label><input name="password" type="password" minlength="8" required autocomplete="new-password"><div class="field-hint">{{ _('At least 8 characters.') }}</div></div>
+    <p class="legal-note">{{ _('By creating an account you accept the') }} <a href="{{ url_for('auth.terms') }}">{{ _('terms') }}</a> {{ _('and the') }} <a href="{{ url_for('auth.privacy') }}">{{ _('privacy policy') }}</a>.</p>
+    <button class="btn-primary" type="submit">{{ _('Create account') }}</button>
 </form>
-<p class="auth-alt">Masz już konto? <a href="{{ url_for('auth.login') }}">Zaloguj się</a></p>
+<p class="auth-alt">{{ _('Already have an account?') }} <a href="{{ url_for('auth.login') }}">{{ _('Log in') }}</a></p>
 {% endblock %}

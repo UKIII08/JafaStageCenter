@@ -1,18 +1,10 @@
 {% extends 'auth/base_auth.html' %}
-{% block title %}Weryfikacja dwuetapowa — Jonathan App{% endblock %}
-{% block aside_headline %}Jeszcze jeden krok.{% endblock %}
-{% block aside_sub %}Twoje konto chroni weryfikacja dwuetapowa. Wpisz kod z aplikacji uwierzytelniającej.{% endblock %}
+{% block title %}{{ _('Two-factor authentication — Jonathan App') }}{% endblock %}
+{% block aside_headline %}{{ _('One more step.') }}{% endblock %}
+{% block aside_sub %}{{ _('Your account is protected by two-factor authentication. Enter the code from your authenticator app.') }}{% endblock %}
 {% block content %}
-<h1>Weryfikacja dwuetapowa</h1>
-<p class="sub">Wpisz 6-cyfrowy kod z aplikacji uwierzytelniającej.</p>
-<form method="POST">
-    <div class="field">
-        <label>Kod weryfikacyjny</label>
-        <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
-               required autofocus autocomplete="one-time-code"
-               style="letter-spacing:0.4em; text-align:center; font-size:1.3rem;">
-    </div>
-    <button class="btn-primary" type="submit">Zaloguj się</button>
-</form>
-<p class="auth-alt"><a href="{{ url_for('auth.login') }}">Wróć do logowania</a></p>
+<h1>{{ _('Two-factor authentication') }}</h1>
+<p class="sub">{{ _('Enter the 6-digit code from your authenticator app.') }}</p>
+<form method="POST"><div class="field"><label>{{ _('Verification code') }}</label><input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autofocus autocomplete="one-time-code" style="letter-spacing:0.4em; text-align:center; font-size:1.3rem;"></div><button class="btn-primary" type="submit">{{ _('Log in') }}</button></form>
+<p class="auth-alt"><a href="{{ url_for('auth.login') }}">{{ _('Back to login') }}</a></p>
 {% endblock %}

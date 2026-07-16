@@ -1,16 +1,9 @@
 {% extends 'auth/base_auth.html' %}
-{% block title %}Nowe hasło — Jonathan App{% endblock %}
-{% block aside_headline %}Prawie gotowe.{% endblock %}
-{% block aside_sub %}Ustaw nowe hasło i wracaj do zespołu.{% endblock %}
+{% block title %}{{ _('New password — Jonathan App') }}{% endblock %}
+{% block aside_headline %}{{ _('Almost done.') }}{% endblock %}
+{% block aside_sub %}{{ _('Set a new password and get back to your team.') }}{% endblock %}
 {% block content %}
-<h1>Nowe hasło</h1>
-<p class="sub">Wpisz nowe hasło do swojego konta.</p>
-<form method="POST">
-    <div class="field">
-        <label>Nowe hasło</label>
-        <input name="password" type="password" minlength="8" required autofocus autocomplete="new-password">
-        <div class="field-hint">Minimum 8 znaków.</div>
-    </div>
-    <button class="btn-primary" type="submit">Zapisz nowe hasło</button>
-</form>
+<h1>{{ _('New password') }}</h1>
+<p class="sub">{{ _('Enter a new password for your account.') }}</p>
+<form method="POST"><div class="field"><label>{{ _('New password') }}</label><input name="password" type="password" minlength="8" required autofocus autocomplete="new-password"><div class="field-hint">{{ _('At least 8 characters.') }}</div></div><button class="btn-primary" type="submit">{{ _('Save new password') }}</button></form>
 {% endblock %}
