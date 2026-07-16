@@ -63,7 +63,7 @@ def songs_list(church_id, membership):
 
 
 @songs_bp.route('/c/<church_id>/songs/new', methods=['GET', 'POST'])
-@require_membership('prowadzacy')
+@require_membership('muzyk')   # każdy muzyk (i prowadzący) może dodawać piosenki
 def song_new(church_id, membership):
     if request.method == 'POST':
         song = Song(church_id=church_id, created_by=current_user().id)
@@ -128,7 +128,7 @@ def song_delete(church_id, song_id, membership):
 
 # ── Import .txt (format eksportu aplikacji desktop) ──
 @songs_bp.post('/c/<church_id>/songs/import')
-@require_membership('prowadzacy')
+@require_membership('muzyk')   # dodawanie piosenek (import) dostępne dla muzyków
 def songs_import(church_id, membership):
     files = request.files.getlist('files')
     added, skipped = [], []

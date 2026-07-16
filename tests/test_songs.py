@@ -74,7 +74,7 @@ def test_songs_tenancy(app, client):
     assert client.post(f'/c/{cid_a}/songs/{sid}/delete').status_code == 403
 
 
-def test_musician_cannot_edit_songs(app, client):
+def test_musician_can_add_but_not_edit_or_delete_songs(app, client):
     cid = setup_church(client, app)
     client.post(f'/c/{cid}/songs/new', data={'title': 'X', 'content': '[C]x'})
     r = client.post(f'/c/{cid}/team/invite', data={'role': 'muzyk'})
@@ -87,7 +87,14 @@ def test_musician_cannot_edit_songs(app, client):
                                    'display_name': 'Muzyk'})
     client.get(f'/join/{code}')
     assert client.get(f'/c/{cid}/songs/{sid}').status_code == 200   # czyta
-    assert client.get(f'/c/{cid}/songs/new').status_code == 403     # nie tworzy
+    assert client.get(f'/c/{cid}/songs/new').status_code == 200     # dodaje
+    r = client.post(f'/c/{cid}/songs/new',
+                    data={'title': 'Nowa', 'content': '[G]y'})
+    assert r.status_code in (200, 302)
+    with app.app_context():
+        assert Song.query.filter_by(title='Nowa').first() is not None
+    # ale nie edytuje ani nie usuwa cudzych/wspólnych piosenek
+    assert client.get(f'/c/{cid}/songs/{sid}/edit').status_code == 403
     assert client.post(f'/c/{cid}/songs/{sid}/delete').status_code == 403
 
 

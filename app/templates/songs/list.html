@@ -4,9 +4,17 @@
 <div class="panel">
     <div class="panel-header">
         <h2>{{ _('Songs') }} <span class="muted">({{ songs|length }})</span></h2>
-        {% if membership.role != 'muzyk' %}
-        <a class="btn" href="{{ url_for('studio.control', church_id=church.id) }}">{{ _('Manage in Studio') }}</a>
-        {% endif %}
+        <div style="display:flex; gap:var(--s2); align-items:center;">
+            <a class="btn btn-primary" href="{{ url_for('songs.song_new', church_id=church.id) }}">{{ _('Add song') }}</a>
+            <form method="POST" action="{{ url_for('songs.songs_import', church_id=church.id) }}" enctype="multipart/form-data" style="display:inline;">
+                <label class="btn" style="cursor:pointer;">{{ _('Import .txt') }}
+                    <input type="file" name="files" accept=".txt" multiple hidden onchange="this.form.submit()">
+                </label>
+            </form>
+            {% if membership.role != 'muzyk' %}
+            <a class="btn" href="{{ url_for('studio.control', church_id=church.id) }}">{{ _('Manage in Studio') }}</a>
+            {% endif %}
+        </div>
     </div>
     <form method="GET"><input name="q" value="{{ q }}" placeholder="{{ _('Search by title or lyrics') }}"></form>
     <table style="margin-top:var(--s3);">
@@ -22,7 +30,7 @@
             <div class="empty-state">
                 <div class="es-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
                 <div class="es-title">{{ _('The library is empty') }}</div>
-                <div class="es-sub">{{ _('Add your first song in Studio — or import a .txt file exported from the desktop app.') }}</div>
+                <div class="es-sub">{{ _('Add your first song with the button above — or import a .txt file exported from the desktop app.') }}</div>
             </div></td></tr>
         {% endfor %}
     </table>

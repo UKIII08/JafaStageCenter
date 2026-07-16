@@ -275,11 +275,12 @@ PL = {
     "Songs — %(church)s": "Piosenki — %(church)s",
     "The library is empty": "Biblioteka jest pusta",
     "Manage in Studio": "Zarządzaj w Studiu", "Edit in Studio": "Edytuj w Studiu",
+    "Add song": "Dodaj pieśń", "Import .txt": "Importuj .txt",
     "Search by title or lyrics": "Szukaj po tytule lub tekście",
-    "Add your first song in Studio — or import a .txt file exported from the "
-    "desktop app.":
-        "Dodaj pierwszą pieśń w Studiu — albo zaimportuj plik .txt z eksportu "
-        "aplikacji desktop.",
+    "Add your first song with the button above — or import a .txt file "
+    "exported from the desktop app.":
+        "Dodaj pierwszą pieśń przyciskiem powyżej — albo zaimportuj plik .txt "
+        "z eksportu aplikacji desktop.",
     "Setlists — %(church)s": "Setlisty — %(church)s",
     "Setlists": "Setlisty", "New setlist": "Nowa setlista",
     "Name (e.g. Sunday morning)": "Nazwa (np. Niedziela poranna)",
