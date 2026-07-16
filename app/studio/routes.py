@@ -1077,66 +1077,10 @@ def presenter(church_id):
                            settings=get_settings(church))
 
 
-# ── Pady atmosfery (upload MP3 per tonacja) ──────────────────────────────
-# Konwencja z desktopu (static/pads/README.txt): 12 plików nazwanych
-# tonacją durową z krzyżykiem: C.mp3, C#.mp3 ... B.mp3. Bemole przy
-# uploadzie mapujemy na odpowiednik z krzyżykiem (Eb -> D#).
-PAD_KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-PAD_FLAT_ALIASES = {'DB': 'C#', 'EB': 'D#', 'GB': 'F#', 'AB': 'G#',
-                    'BB': 'A#'}
-
-
-def _pad_key_from_filename(filename):
-    name = os.path.splitext(os.path.basename(filename))[0].strip()
-    name = name.replace('♭', 'b').replace('♯', '#')
-    if len(name) >= 1:
-        cand = name[0].upper() + name[1:]
-        if cand in PAD_KEYS:
-            return cand
-    return PAD_FLAT_ALIASES.get(name.upper())
-
-
-def pads_status(church_id):
-    d = media_dir(church_id, 'pads')
-    return [{'key': k, 'exists': os.path.exists(os.path.join(d, f'{k}.mp3'))}
-            for k in PAD_KEYS]
-
-
-@studio_bp.post('/studio/pads/upload')
-@studio_auth('prowadzacy')
-def upload_pads(church_id):
-    from flask import flash
-    d = media_dir(church_id, 'pads')
-    saved, skipped = [], []
-    for f in request.files.getlist('pad_files'):
-        if not f or not f.filename:
-            continue
-        if not f.filename.lower().endswith('.mp3'):
-            skipped.append(f.filename)
-            continue
-        key = _pad_key_from_filename(f.filename)
-        if not key:
-            skipped.append(f.filename)
-            continue
-        f.save(os.path.join(d, f'{key}.mp3'))
-        saved.append(key)
-    if saved:
-        flash(_('Pads uploaded:') + ' ' + ', '.join(sorted(saved)))
-    if skipped:
-        flash(_('Skipped (bad name — use e.g. C.mp3, F#.mp3, Eb.mp3):') + ' '
-              + ', '.join(skipped[:8]))
-    return redirect(url_for('panel.church_settings', church_id=church_id))
-
-
-@studio_bp.post('/studio/pads/delete')
-@studio_auth('prowadzacy')
-def delete_pad(church_id):
-    key = request.form.get('key', '')
-    if key in PAD_KEYS:
-        p = os.path.join(media_dir(church_id, 'pads'), f'{key}.mp3')
-        if os.path.exists(p):
-            os.remove(p)
-    return redirect(url_for('panel.church_settings', church_id=church_id))
+# ── Pady atmosfery ───────────────────────────────────────────────────────
+# Wspólny zestaw padów (jeden na całą platformę, wgrywany przez dewelopera na
+# serwer) serwuje live.global_pad z /pads/<key>.mp3 — bez uploadu per-wspólnota,
+# żeby dysk się nie zapełniał. Zob. app/live/routes.py.
 
 
 @studio_bp.get('/studio/api/song/<sid>/team-prefs')

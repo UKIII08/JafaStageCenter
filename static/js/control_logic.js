@@ -318,8 +318,9 @@ function playPad(rawKey, fadeOutSec = 4) {
 
     currentPadKey = targetKey;
 
-    // encodeURIComponent: '#' w nazwie pliku (C#.mp3) inaczej ucina URL jako fragment
-    let filename = `${window.JAFA_MEDIA || '/static'}/pads/${encodeURIComponent(targetKey)}.mp3`;
+    // Wspólne pady (jeden zestaw na serwerze) — globalny endpoint, nie media
+    // per-wspólnota. encodeURIComponent: '#' w C#.mp3 inaczej ucina URL.
+    let filename = `/pads/${encodeURIComponent(targetKey)}.mp3`;
     let active = currentPadEl;
     let next = (active === padElA) ? padElB : padElA;
 

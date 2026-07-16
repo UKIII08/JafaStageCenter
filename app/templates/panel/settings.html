@@ -28,30 +28,4 @@
         <div style="margin-top:var(--s4);"><button type="submit">{{ _('Save') }}</button></div>
     </form>
 </div>
-
-<div class="panel" style="max-width:560px;">
-    <div class="section-title">{{ _('Atmosphere pads') }}</div>
-    <p class="hint">{{ _("Atmosphere beds played in Studio in the current song's key. Upload up to 12 MP3 files named by major key:") }}
-    <span class="mono-url">C.mp3, C#.mp3, D.mp3 … B.mp3</span>
-    {{ _('(flats work too — Eb.mp3 saves as D#). Minor keys play the pad of the relative major, so 12 files are enough.') }}</p>
-    <div style="display:flex; flex-wrap:wrap; gap:var(--s2); margin-bottom:var(--s4);">
-        {% for p in pads %}
-        {% if p.exists %}
-        <form method="POST" action="{{ url_for('studio.delete_pad', church_id=church.id) }}" style="display:inline;" onsubmit="return confirm('{{ _('Remove pad') }} {{ p.key }}?')">
-            <input type="hidden" name="key" value="{{ p.key }}">
-            <button class="badge" style="background:var(--green-subtle); color:var(--green); border:0; cursor:pointer;" title="{{ _('Click to remove') }}">{{ p.key }}</button>
-        </form>
-        {% else %}
-        <span class="badge" title="{{ _('No file') }}">{{ p.key }}</span>
-        {% endif %}
-        {% endfor %}
-    </div>
-    <form method="POST" action="{{ url_for('studio.upload_pads', church_id=church.id) }}" enctype="multipart/form-data">
-        <label class="btn" style="cursor:pointer;">
-            {{ _('Upload MP3 files') }}
-            <input type="file" name="pad_files" accept=".mp3,audio/mpeg" multiple hidden onchange="this.form.submit()">
-        </label>
-        <span class="muted" style="margin-left:var(--s2);">{{ _('you can select all at once') }}</span>
-    </form>
-</div>
 {% endblock %}

@@ -180,25 +180,21 @@ def test_transition_endpoint(app, client):
     assert data['engine_used'] == 'v4'
 
 
-def test_pads_upload_and_serving(app, client):
-    import io
-    cid = make_church(app, client, 'a@a.pl', 'Zbor A')
-    # upload: poprawny C.mp3, bemol Eb.mp3 (alias D#), zła nazwa X.mp3
-    r = client.post(f'/c/{cid}/studio/pads/upload', data={
-        'pad_files': [
-            (io.BytesIO(b'ID3fakemp3'), 'C.mp3'),
-            (io.BytesIO(b'ID3fakemp3'), 'Eb.mp3'),
-            (io.BytesIO(b'ID3fakemp3'), 'X.mp3'),
-        ]}, content_type='multipart/form-data', follow_redirects=True)
-    assert r.status_code == 200
-    assert b'Pads uploaded: C, D#' in r.data
-    # serwowanie przez media (tak ładuje je Studio)
-    assert client.get(f'/c/{cid}/media/pads/C.mp3').status_code == 200
-    assert client.get(f'/c/{cid}/media/pads/D%23.mp3').status_code == 200
-    assert client.get(f'/c/{cid}/media/pads/X.mp3').status_code == 404
-    # usunięcie
-    client.post(f'/c/{cid}/studio/pads/delete', data={'key': 'C'})
-    assert client.get(f'/c/{cid}/media/pads/C.mp3').status_code == 404
+def test_global_pads_serving(app, client):
+    import os
+    # Wspólne pady (jeden zestaw wgrywany przez dewelopera na serwer) —
+    # globalny endpoint /pads/<key>.mp3, nie per-wspólnota.
+    shared = os.path.join(app.instance_path, 'uploads', '_shared', 'pads')
+    os.makedirs(shared, exist_ok=True)
+    with open(os.path.join(shared, 'C.mp3'), 'wb') as f:
+        f.write(b'ID3fakemp3')
+    with open(os.path.join(shared, 'D#.mp3'), 'wb') as f:
+        f.write(b'ID3fakemp3')
+    assert client.get('/pads/C.mp3').status_code == 200
+    assert client.get('/pads/D%23.mp3').status_code == 200
+    # tonacja której nie wgrano -> 404, zła nazwa -> 404
+    assert client.get('/pads/A.mp3').status_code == 404
+    assert client.get('/pads/X.mp3').status_code == 404
 
 
 def test_ccli_usage_logging_and_report(app, client):

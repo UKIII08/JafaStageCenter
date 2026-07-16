@@ -20,6 +20,30 @@ from app.i18n import translate as _
 
 live_bp = Blueprint('live', __name__)
 
+# Konwencja z desktopu: 12 plików tonacją durową z krzyżykiem (C.mp3 … B.mp3).
+PAD_KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+
+@live_bp.get('/pads/<key>.mp3')
+def global_pad(key):
+    """Wspólne pady (jeden zestaw, który wgrywa deweloper na serwer) —
+    nie per-wspólnota, żeby dysk się nie zapełniał uploadami. Trzymane na
+    trwałym wolumenie uploads (instance/uploads/_shared/pads/), a jeśli tam
+    nic nie ma, fallback do wersji dołączonej do repo (static/pads/)."""
+    import os
+    from flask import current_app, send_from_directory
+    if key not in PAD_KEYS:
+        abort(404)
+    fname = f'{key}.mp3'
+    shared = os.path.join(current_app.instance_path, 'uploads', '_shared',
+                          'pads')
+    if os.path.exists(os.path.join(shared, fname)):
+        return send_from_directory(shared, fname)
+    bundled = os.path.join(current_app.static_folder, 'pads')
+    if os.path.exists(os.path.join(bundled, fname)):
+        return send_from_directory(bundled, fname)
+    abort(404)
+
 
 def _qr_svg(data):
     import qrcode
