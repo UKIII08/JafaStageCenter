@@ -79,6 +79,7 @@ SETTINGS_DEFAULTS = {
     'chord_color': '#00e5ff', 'transition_engine': 'v4', 'language': 'pl',
     'chord_notation': 'international', 'minor_display': 'uppercase',
     'ccli_license': '',   # numer licencji CCLI wspólnoty (rynek USA)
+    'ccli_notice': '1',   # notka copyright na rzutniku: '1' wł. / '0' wył.
 }
 
 
@@ -628,9 +629,10 @@ def send_text(church_id):
         song_row = Song.query.filter_by(church_id=church_id, title=title,
                                         deleted=False).first()
         if song_row:
-            _log_song_usage(church_id, song_row.id)
-            copyright_line = build_copyright_line(song_row,
-                                                  s.get('ccli_license', ''))
+            _log_song_usage(church_id, song_row.id)   # log zawsze (raport)
+            if s.get('ccli_notice', '1') == '1':
+                copyright_line = build_copyright_line(
+                    song_row, s.get('ccli_license', ''))
 
     set_slide({
         'copyright_line': copyright_line,

@@ -20,8 +20,14 @@
         <label>Numer licencji CCLI (opcjonalnie — rynek USA)</label>
         <input name="ccli_license" value="{{ church.settings.get('ccli_license', '') }}"
                placeholder="np. 123456789" maxlength="20">
-        <p class="hint" style="margin:var(--s1) 0 0;">Z licencją CCLI rzutnik sam dodaje
-        wymaganą notkę copyright, a użycia piosenek zliczają się do
+        <div class="check" style="margin-top:var(--s2);">
+            <input type="checkbox" name="ccli_notice" id="ccli-notice-cb"
+                   {{ 'checked' if church.settings.get('ccli_notice', '1') == '1' }}>
+            <label for="ccli-notice-cb">Pokazuj notkę copyright na rzutniku</label>
+        </div>
+        <p class="hint" style="margin:var(--s1) 0 0;">Notka (tytuł, autorzy, © i numer licencji)
+        to warunek licencji CCLI przy projekcji tekstów — wyłączaj tylko, jeśli nie
+        korzystasz z utworów objętych CCLI. Użycia piosenek zliczają się niezależnie do
         <a href="{{ url_for('studio.ccli_report', church_id=church.id) }}">raportu CCLI</a>.</p>
         <div style="margin-top:var(--s4);"><button type="submit">Zapisz</button></div>
     </form>

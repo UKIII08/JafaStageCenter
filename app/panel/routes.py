@@ -259,6 +259,9 @@ def church_settings(church_id, membership):
         if request.form.get('ccli_license') is not None:
             settings['ccli_license'] = \
                 (request.form.get('ccli_license') or '').strip()[:20]
+            # checkbox: obecny = wł., brak (przy wysłanym formularzu) = wył.
+            settings['ccli_notice'] = \
+                '1' if request.form.get('ccli_notice') else '0'
         church.settings = settings
         db.session.commit()
         flash('Zapisano ustawienia.')

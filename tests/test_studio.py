@@ -206,7 +206,8 @@ def test_ccli_usage_logging_and_report(app, client):
     # numer licencji wspólnoty + piosenka z danymi CCLI
     client.post(f'/c/{cid}/settings', data={
         'name': 'Zbor A', 'default_notation': 'international',
-        'transition_engine': 'v4', 'ccli_license': '987654'},
+        'transition_engine': 'v4', 'ccli_license': '987654',
+        'ccli_notice': 'on'},
         follow_redirects=True)
     client.post(f'/c/{cid}/studio/add_song', data={
         'title': 'Amazing Grace', 'content': SONG,
@@ -243,3 +244,27 @@ def test_ccli_no_data_no_notice(app, client):
     slide = client.get(f'/c/{cid}/studio/api/current-slide').get_json()
     # piosenka bez autora/copyright (np. własna) = brak notki
     assert slide['copyright_line'] == ''
+
+
+def test_ccli_notice_toggle(app, client):
+    cid = make_church(app, client, 'a@a.pl', 'Zbor A')
+    client.post(f'/c/{cid}/studio/add_song', data={
+        'title': 'Hymn', 'content': SONG, 'author': 'J. Doe',
+        'copyright': 'Good Music Co'})
+    # domyślnie notka włączona
+    client.post(f'/c/{cid}/studio/send_text', json={
+        'text': SONG, 'song_title': 'Hymn'})
+    slide = client.get(f'/c/{cid}/studio/api/current-slide').get_json()
+    assert 'J. Doe' in slide['copyright_line']
+    # wyłączenie w ustawieniach (checkbox nieobecny w formularzu)
+    client.post(f'/c/{cid}/settings', data={
+        'name': 'Zbor A', 'default_notation': 'international',
+        'transition_engine': 'v4', 'ccli_license': '111'},
+        follow_redirects=True)
+    client.post(f'/c/{cid}/studio/send_text', json={
+        'text': SONG, 'song_title': 'Hymn'})
+    slide = client.get(f'/c/{cid}/studio/api/current-slide').get_json()
+    assert slide['copyright_line'] == ''
+    # użycie nadal logowane mimo wyłączonej notki
+    r = client.get(f'/c/{cid}/studio/ccli-report')
+    assert b'Hymn' in r.data
