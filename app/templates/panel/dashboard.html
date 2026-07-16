@@ -4,13 +4,13 @@
 <div id="live-banner" class="panel" style="display:none; border-color:rgba(248,113,113,.4);">
     <div class="panel-header" style="margin-bottom:0;">
         <div>
-            <span class="badge badge-live">Na żywo</span>
-            <b style="margin-left:var(--s2);">Trwa sesja LIVE</b>
+            <span class="badge badge-live">{{ _('Live now') }}</span>
+            <b style="margin-left:var(--s2);">{{ _('A live session is running') }}</b>
         </div>
         <div>
-            <a class="btn btn-live" href="{{ url_for('live.band', church_id=church.id) }}">Dołącz jako muzyk</a>
+            <a class="btn btn-live" href="{{ url_for('live.band', church_id=church.id) }}">{{ _('Join as a musician') }}</a>
             {% if membership.role != 'muzyk' %}
-            <a class="btn-ghost btn" href="{{ url_for('live.leader', church_id=church.id) }}">Panel prowadzącego</a>
+            <a class="btn-ghost btn" href="{{ url_for('live.leader', church_id=church.id) }}">{{ _('Leader panel') }}</a>
             {% endif %}
         </div>
     </div>
@@ -18,15 +18,13 @@
 <div class="panel">
     <div class="panel-header">
         <h2>{{ church.name }}</h2>
-        <span class="muted">Twoja rola: {{ membership.role }}</span>
+        <span class="muted">{{ _('Your role:') }} {{ _(membership.role) }}</span>
     </div>
-    <p class="hint">Przygotuj piosenki i setlistę, zaproś zespół, a w niedzielę
-    rozpocznij sesję LIVE z wybranej setlisty — telefony zespołu i ekrany
-    zsynchronizują się same.</p>
+    <p class="hint">{{ _('Prepare songs and a setlist, invite the team, and on Sunday start a LIVE session from the chosen setlist — the team\'s phones and screens sync automatically.') }}</p>
     <div style="display:flex; gap:var(--s3); flex-wrap:wrap;">
-        <a class="btn" href="{{ url_for('songs.songs_list', church_id=church.id) }}">Piosenki</a>
-        <a class="btn" href="{{ url_for('songs.setlists', church_id=church.id) }}">Setlisty</a>
-        <a class="btn-ghost btn" href="{{ url_for('panel.team', church_id=church.id) }}">Zespół</a>
+        <a class="btn" href="{{ url_for('songs.songs_list', church_id=church.id) }}">{{ _('Songs') }}</a>
+        <a class="btn" href="{{ url_for('songs.setlists', church_id=church.id) }}">{{ _('Setlists') }}</a>
+        <a class="btn-ghost btn" href="{{ url_for('panel.team', church_id=church.id) }}">{{ _('Team') }}</a>
     </div>
     <script>
     fetch('/api/live/current/{{ church.id }}').then(r => r.json()).then(d => {

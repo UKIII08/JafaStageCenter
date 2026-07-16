@@ -159,7 +159,7 @@ def test_password_reset_flow(app, client):
     register(client, 'r@r.pl', 'Renia')
     client.get('/logout')
     r = client.post('/reset', data={'email': 'r@r.pl'}, follow_redirects=True)
-    assert 'wysłaliśmy link'.encode() in r.data or b'wys' in r.data
+    assert b'reset link' in r.data or b'password reset' in r.data
     # token generowany tak jak w aplikacji
     with app.app_context():
         from app.auth.routes import _reset_serializer
@@ -170,10 +170,10 @@ def test_password_reset_flow(app, client):
                     follow_redirects=True)
     assert r.status_code == 200
     r = login(client, 'r@r.pl')   # stare hasło już nie działa
-    assert 'Nieprawid'.encode() in r.data
+    assert b'Invalid' in r.data
     r = client.post('/login', data={'email': 'r@r.pl',
                     'password': 'nowehaslo1'}, follow_redirects=True)
-    assert 'Nieprawid'.encode() not in r.data
+    assert b'Invalid e-mail or password' not in r.data
 
 
 def test_2fa_full_cycle(app, client):
@@ -187,7 +187,7 @@ def test_2fa_full_cycle(app, client):
     code = pyotp.TOTP(secret).now()
     r = client.post('/account/2fa/confirm', data={'code': code},
                     follow_redirects=True)
-    assert 'włączona'.encode() in r.data
+    assert b'enabled' in r.data
     # wyloguj i zaloguj: hasło NIE wystarcza
     client.get('/logout')
     r = client.post('/login', data={'email': 'tfa@t.pl',
@@ -213,6 +213,6 @@ def test_2fa_wrong_code_rejected(app, client):
     client.post('/login', data={'email': 'tfa2@t.pl', 'password': 'haslo1234'})
     r = client.post('/login/2fa', data={'code': '000000'},
                     follow_redirects=True)
-    assert 'Nieprawidłowy kod'.encode() in r.data
+    assert b'Invalid code' in r.data
     with client.session_transaction() as s:
         assert 'user_id' not in s

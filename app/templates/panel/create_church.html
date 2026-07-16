@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
+{% block title %}{{ _('Create your church') }}{% endblock %}
 {% block content %}
 <div class="shell-narrow">
     <div class="panel">
-        <h2>Załóż wspólnotę</h2>
-        <p class="hint">Utworzysz przestrzeń dla swojego zespołu — piosenki,
-        setlisty i profile muzyków.</p>
+        <h2>{{ _('Create your church') }}</h2>
+        <p class="hint">{{ _("You'll create a space for your team — songs, setlists and musician profiles.") }}</p>
         <form method="POST">
-            <label>Nazwa wspólnoty / zboru</label>
-            <input name="name" required minlength="3" placeholder="np. Zbór Betania Warszawa" autofocus>
-            <div style="margin-top:var(--s4);"><button type="submit">Utwórz</button></div>
+            <label>{{ _('Church / community name') }}</label>
+            <input name="name" required minlength="3" placeholder="{{ _('e.g. Grace Community Church') }}" autofocus>
+            <div style="margin-top:var(--s4);"><button type="submit">{{ _('Create') }}</button></div>
         </form>
     </div>
 </div>

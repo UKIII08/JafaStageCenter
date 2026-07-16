@@ -106,7 +106,7 @@ def test_import_txt_skips_duplicates(app, client):
         content_type='multipart/form-data', follow_redirects=True)
     with app.app_context():
         assert Song.query.count() == 2
-    assert 'Pomini'.encode() in r.data
+    assert b'Skipped' in r.data
 
 
 def test_setlist_flow(app, client):

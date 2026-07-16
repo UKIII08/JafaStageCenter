@@ -22,6 +22,7 @@ from app.auth.routes import current_user
 from app.live import state as live_state
 from app.models import (BandPreset, Church, Membership, Profile, ScreenToken,
                         Song, SongPersonal, StudioSetlist)
+from app.i18n import translate as _
 from music_core.chords import (apply_transpose_to_single_chord,
                                convert_chords_over_lyrics,
                                detect_key_algorithm,
@@ -1120,9 +1121,9 @@ def upload_pads(church_id):
         f.save(os.path.join(d, f'{key}.mp3'))
         saved.append(key)
     if saved:
-        flash(f'Wgrano pady: {", ".join(sorted(saved))}.')
+        flash(_('Pads uploaded:') + ' ' + ', '.join(sorted(saved)))
     if skipped:
-        flash('Pominięto (zła nazwa — użyj np. C.mp3, F#.mp3, Eb.mp3): '
+        flash(_('Skipped (bad name — use e.g. C.mp3, F#.mp3, Eb.mp3):') + ' '
               + ', '.join(skipped[:8]))
     return redirect(url_for('panel.church_settings', church_id=church_id))
 

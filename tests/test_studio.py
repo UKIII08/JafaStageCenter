@@ -191,7 +191,7 @@ def test_pads_upload_and_serving(app, client):
             (io.BytesIO(b'ID3fakemp3'), 'X.mp3'),
         ]}, content_type='multipart/form-data', follow_redirects=True)
     assert r.status_code == 200
-    assert 'Wgrano pady: C, D#'.encode() in r.data
+    assert b'Pads uploaded: C, D#' in r.data
     # serwowanie przez media (tak ładuje je Studio)
     assert client.get(f'/c/{cid}/media/pads/C.mp3').status_code == 200
     assert client.get(f'/c/{cid}/media/pads/D%23.mp3').status_code == 200

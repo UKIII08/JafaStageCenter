@@ -1,9 +1,10 @@
 {% extends 'base.html' %}
+{% block title %}{{ _('Invalid or expired link') }}{% endblock %}
 {% block content %}
 <div class="shell-narrow">
     <div class="panel">
-        <h2>Nieprawidłowy lub wygasły link</h2>
-        <p class="hint">Poproś prowadzącego o nowy link zaproszenia.</p>
+        <h2>{{ _('Invalid or expired link') }}</h2>
+        <p class="hint">{{ _('Ask the leader for a new invite link.') }}</p>
     </div>
 </div>
 {% endblock %}

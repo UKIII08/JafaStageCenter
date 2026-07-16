@@ -15,6 +15,7 @@ from app.auth.routes import current_user
 from app.models import (Church, Event, EventAssignment, EventSignup,
                         Membership, Song, StudioSetlist, User)
 from app.panel.routes import INSTRUMENTS, require_membership
+from app.i18n import translate as _
 from music_core.chords import apply_transpose_to_single_chord
 
 events_bp = Blueprint('events', __name__)
@@ -93,7 +94,7 @@ def events_list(church_id, membership):
         try:
             ev_date = datetime.strptime(raw_date, '%Y-%m-%d').date()
         except ValueError:
-            flash('Podaj datę grania.')
+            flash(_('Enter a service date.'))
             return redirect(url_for('events.events_list',
                                     church_id=church_id))
         ev = Event(church_id=church_id, name=name, date=ev_date,
@@ -240,5 +241,5 @@ def event_delete(church_id, eid, membership):
     ev = _get_event(church_id, eid)
     ev.deleted = True
     db.session.commit()
-    flash('Usunięto granie.')
+    flash(_('Service deleted.'))
     return redirect(url_for('events.events_list', church_id=church_id))

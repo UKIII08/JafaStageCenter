@@ -1,35 +1,34 @@
 {% extends 'base.html' %}
-{% block title %}Mój profil — {{ church.name }}{% endblock %}
+{% block title %}{{ _('My profile') }} — {{ church.name }}{% endblock %}
 {% block content %}
 <div class="panel" style="max-width:560px;">
     <div class="panel-header">
-        <h2>Mój profil</h2>
-        <a class="btn btn-ghost btn-sm" href="{{ url_for('auth.account') }}">Konto i hasło</a>
+        <h2>{{ _('My profile') }}</h2>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('auth.account') }}">{{ _('Account & password') }}</a>
     </div>
-    <p class="hint">Ustawienia zapisują się na Twoim koncie i stosują
-    automatycznie w widoku muzyka (live i ćwiczenie) na każdym urządzeniu.</p>
+    <p class="hint">{{ _('Settings save to your account and apply automatically in the musician view (live and practice) on every device.') }}</p>
     <form method="POST">
-        <label>Imię / pseudonim (widoczne dla zespołu)</label>
+        <label>{{ _('Name / nickname (visible to the team)') }}</label>
         <input name="name" value="{{ profile.name }}" required>
-        <label>Instrument</label>
+        <label>{{ _('Instrument') }}</label>
         <select name="instrument">
             {% for i in instruments %}
             <option value="{{ i }}" {% if profile.instrument == i %}selected{% endif %}>{{ i or '—' }}</option>
             {% endfor %}
         </select>
-        <label>Notacja akordów</label>
+        <label>{{ _('Chord notation') }}</label>
         <select name="notation">
-            <option value="international" {% if profile.prefs.get('notation','international') == 'international' %}selected{% endif %}>Międzynarodowa (Bb, B)</option>
-            <option value="polish" {% if profile.prefs.get('notation') == 'polish' %}selected{% endif %}>Polska (B, H, Cis, Fis)</option>
+            <option value="international" {% if profile.prefs.get('notation','international') == 'international' %}selected{% endif %}>{{ _('International (Bb, B)') }}</option>
+            <option value="polish" {% if profile.prefs.get('notation') == 'polish' %}selected{% endif %}>{{ _('Polish (B, H, Cis, Fis)') }}</option>
         </select>
-        <label>Domyślne capo (progi)</label>
+        <label>{{ _('Default capo (frets)') }}</label>
         <input name="capo_default" type="number" min="0" max="11" value="{{ profile.prefs.get('capo_default', 0) }}">
         <div style="margin-top:var(--s3);">
-            <div class="check"><input type="checkbox" id="c1" name="show_chords" {% if profile.prefs.get('show_chords', True) %}checked{% endif %}><label for="c1">Pokazuj akordy</label></div>
-            <div class="check"><input type="checkbox" id="c2" name="lowercase_minor" {% if profile.prefs.get('lowercase_minor') %}checked{% endif %}><label for="c2">Małe litery = moll</label></div>
-            <div class="check"><input type="checkbox" id="c3" name="beginner_mode" {% if profile.prefs.get('beginner_mode') %}checked{% endif %}><label for="c3">Tryb początkującego (upraszczaj akordy)</label></div>
+            <div class="check"><input type="checkbox" id="c1" name="show_chords" {% if profile.prefs.get('show_chords', True) %}checked{% endif %}><label for="c1">{{ _('Show chords') }}</label></div>
+            <div class="check"><input type="checkbox" id="c2" name="lowercase_minor" {% if profile.prefs.get('lowercase_minor') %}checked{% endif %}><label for="c2">{{ _('Lowercase = minor') }}</label></div>
+            <div class="check"><input type="checkbox" id="c3" name="beginner_mode" {% if profile.prefs.get('beginner_mode') %}checked{% endif %}><label for="c3">{{ _('Beginner mode (simplify chords)') }}</label></div>
         </div>
-        <div style="margin-top:var(--s4);"><button type="submit">Zapisz</button></div>
+        <div style="margin-top:var(--s4);"><button type="submit">{{ _('Save') }}</button></div>
     </form>
 </div>
 {% endblock %}

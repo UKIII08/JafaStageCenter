@@ -18,6 +18,7 @@ ENGINES = ('v2', 'v3', 'v4')
 INSTRUMENTS = ('', 'wokal', 'gitara', 'gitara elektryczna', 'bas',
                'klawisze', 'perkusja', 'skrzypce', 'inny')
 from app.auth.routes import current_user, login_required
+from app.i18n import translate as _
 
 panel_bp = Blueprint('panel', __name__)
 
@@ -94,7 +95,7 @@ def create_church():
     if request.method == 'POST':
         name = (request.form.get('name') or '').strip()
         if len(name) < 3:
-            flash('Podaj nazwę wspólnoty (min. 3 znaki).')
+            flash(_('Enter a community name (min. 3 characters).'))
             return render_template('panel/create_church.html')
         church = Church(name=name, slug=unique_slug(name),
                         owner_user_id=user.id)
@@ -171,7 +172,7 @@ def join(code):
                                name=user.display_name))
         inv.uses += 1
         db.session.commit()
-        flash('Dołączyłeś do zespołu! Ustaw swój instrument i preferencje.')
+        flash(_('You joined the team! Set your instrument and preferences.'))
     return redirect(url_for('panel.team', church_id=inv.church_id))
 
 
@@ -204,7 +205,7 @@ def my_profile(church_id, membership):
             prefs['capo_default'] = 0
         profile.prefs = prefs
         db.session.commit()
-        flash('Zapisano profil.')
+        flash(_('Profile saved.'))
         return redirect(url_for('panel.my_profile', church_id=church_id))
     return render_template('panel/profile.html', church=db.session.get(Church, church_id),
                            profile=profile, membership=membership,
@@ -221,7 +222,7 @@ def team_change_role(church_id, member_id, membership):
         abort(404)
     church = db.session.get(Church, church_id)
     if m.user_id == church.owner_user_id and new_role != 'admin':
-        flash('Założyciel wspólnoty pozostaje administratorem.')
+        flash(_('The community owner stays an administrator.'))
         return redirect(url_for('panel.team', church_id=church_id))
     m.role = new_role
     db.session.commit()
@@ -236,11 +237,11 @@ def team_remove(church_id, member_id, membership):
         abort(404)
     church = db.session.get(Church, church_id)
     if m.user_id == church.owner_user_id:
-        flash('Nie można usunąć założyciela wspólnoty.')
+        flash(_('The community owner can\'t be removed.'))
         return redirect(url_for('panel.team', church_id=church_id))
     m.status = 'removed'
     db.session.commit()
-    flash('Usunięto z zespołu.')
+    flash(_('Removed from the team.'))
     return redirect(url_for('panel.team', church_id=church_id))
 
 
@@ -266,7 +267,7 @@ def church_settings(church_id, membership):
                 '1' if request.form.get('ccli_notice') else '0'
         church.settings = settings
         db.session.commit()
-        flash('Zapisano ustawienia.')
+        flash(_('Settings saved.'))
         return redirect(url_for('panel.church_settings', church_id=church_id))
     from app.studio.routes import pads_status
     return render_template('panel/settings.html', church=church,

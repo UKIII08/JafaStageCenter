@@ -1,67 +1,57 @@
 {% extends 'base.html' %}
-{% block title %}Ustawienia — {{ church.name }}{% endblock %}
+{% block title %}{{ _('Settings') }} — {{ church.name }}{% endblock %}
 {% block content %}
 <div class="panel" style="max-width:560px;">
-    <h2>Ustawienia wspólnoty</h2>
+    <h2>{{ _('Community settings') }}</h2>
     <form method="POST">
-        <label>Nazwa wspólnoty</label>
+        <label>{{ _('Name') }}</label>
         <input name="name" value="{{ church.name }}" minlength="3" required>
-        <label>Domyślna notacja akordów</label>
+        <label>{{ _('Default chord notation') }}</label>
         <select name="default_notation">
-            <option value="international" {% if church.settings.get('default_notation','international') == 'international' %}selected{% endif %}>Międzynarodowa (Bb, B)</option>
-            <option value="polish" {% if church.settings.get('default_notation') == 'polish' %}selected{% endif %}>Polska (B, H, Cis, Fis)</option>
+            <option value="international" {% if church.settings.get('default_notation','international') == 'international' %}selected{% endif %}>{{ _('International (Bb, B)') }}</option>
+            <option value="polish" {% if church.settings.get('default_notation') == 'polish' %}selected{% endif %}>{{ _('Polish (B, H, Cis, Fis)') }}</option>
         </select>
-        <label>Silnik przejść między piosenkami</label>
+        <label>{{ _('Song-to-song transition engine') }}</label>
         <select name="transition_engine">
-            <option value="v4" {% if church.settings.get('transition_engine','v4') == 'v4' %}selected{% endif %}>Kontekstowy (zalecany)</option>
-            <option value="v3" {% if church.settings.get('transition_engine') == 'v3' %}selected{% endif %}>Pivot Pro</option>
-            <option value="v2" {% if church.settings.get('transition_engine') == 'v2' %}selected{% endif %}>Advanced</option>
+            <option value="v4" {% if church.settings.get('transition_engine','v4') == 'v4' %}selected{% endif %}>{{ _('Contextual (recommended)') }}</option>
+            <option value="v3" {% if church.settings.get('transition_engine') == 'v3' %}selected{% endif %}>{{ _('Pivot Pro') }}</option>
+            <option value="v2" {% if church.settings.get('transition_engine') == 'v2' %}selected{% endif %}>{{ _('Advanced') }}</option>
         </select>
-        <label>Numer licencji CCLI (opcjonalnie — rynek USA)</label>
-        <input name="ccli_license" value="{{ church.settings.get('ccli_license', '') }}"
-               placeholder="np. 123456789" maxlength="20">
+        <label>{{ _('CCLI license number (optional — US market)') }}</label>
+        <input name="ccli_license" value="{{ church.settings.get('ccli_license', '') }}" placeholder="{{ _('e.g. 123456789') }}" maxlength="20">
         <div class="check" style="margin-top:var(--s2);">
-            <input type="checkbox" name="ccli_notice" id="ccli-notice-cb"
-                   {{ 'checked' if church.settings.get('ccli_notice', '1') == '1' }}>
-            <label for="ccli-notice-cb">Pokazuj notkę copyright na rzutniku</label>
+            <input type="checkbox" name="ccli_notice" id="ccli-notice-cb" {{ 'checked' if church.settings.get('ccli_notice', '1') == '1' }}>
+            <label for="ccli-notice-cb">{{ _('Show the copyright notice on the projector') }}</label>
         </div>
-        <p class="hint" style="margin:var(--s1) 0 0;">Notka (tytuł, autorzy, © i numer licencji)
-        to warunek licencji CCLI przy projekcji tekstów — wyłączaj tylko, jeśli nie
-        korzystasz z utworów objętych CCLI. Użycia piosenek zliczają się niezależnie do
-        <a href="{{ url_for('studio.ccli_report', church_id=church.id) }}">raportu CCLI</a>.</p>
-        <div style="margin-top:var(--s4);"><button type="submit">Zapisz</button></div>
+        <p class="hint" style="margin:var(--s1) 0 0;">{{ _("The notice (title, writers, © and license number) is required by the CCLI license when projecting lyrics — turn it off only if you don't use CCLI-covered songs. Song uses still count toward the") }}
+        <a href="{{ url_for('studio.ccli_report', church_id=church.id) }}">{{ _('CCLI report') }}</a>.</p>
+        <div style="margin-top:var(--s4);"><button type="submit">{{ _('Save') }}</button></div>
     </form>
 </div>
 
 <div class="panel" style="max-width:560px;">
-    <div class="section-title">Pady atmosfery</div>
-    <p class="hint">Tła dźwiękowe odtwarzane w Studiu pod tonację piosenki.
-    Wgraj do 12 plików MP3 nazwanych tonacją durową:
+    <div class="section-title">{{ _('Atmosphere pads') }}</div>
+    <p class="hint">{{ _("Atmosphere beds played in Studio in the current song's key. Upload up to 12 MP3 files named by major key:") }}
     <span class="mono-url">C.mp3, C#.mp3, D.mp3 … B.mp3</span>
-    (bemole też zadziałają — Eb.mp3 zapisze się jako D#).
-    Tonacje molowe grają pad równoległej durowej, więc 12 plików wystarcza.</p>
+    {{ _('(flats work too — Eb.mp3 saves as D#). Minor keys play the pad of the relative major, so 12 files are enough.') }}</p>
     <div style="display:flex; flex-wrap:wrap; gap:var(--s2); margin-bottom:var(--s4);">
         {% for p in pads %}
         {% if p.exists %}
-        <form method="POST" action="{{ url_for('studio.delete_pad', church_id=church.id) }}"
-              style="display:inline;" onsubmit="return confirm('Usunąć pad {{ p.key }}?')">
+        <form method="POST" action="{{ url_for('studio.delete_pad', church_id=church.id) }}" style="display:inline;" onsubmit="return confirm('{{ _('Remove pad') }} {{ p.key }}?')">
             <input type="hidden" name="key" value="{{ p.key }}">
-            <button class="badge" style="background:var(--green-subtle); color:var(--green); border:0; cursor:pointer;"
-                    title="Kliknij, aby usunąć">{{ p.key }}</button>
+            <button class="badge" style="background:var(--green-subtle); color:var(--green); border:0; cursor:pointer;" title="{{ _('Click to remove') }}">{{ p.key }}</button>
         </form>
         {% else %}
-        <span class="badge" title="Brak pliku">{{ p.key }}</span>
+        <span class="badge" title="{{ _('No file') }}">{{ p.key }}</span>
         {% endif %}
         {% endfor %}
     </div>
-    <form method="POST" action="{{ url_for('studio.upload_pads', church_id=church.id) }}"
-          enctype="multipart/form-data">
+    <form method="POST" action="{{ url_for('studio.upload_pads', church_id=church.id) }}" enctype="multipart/form-data">
         <label class="btn" style="cursor:pointer;">
-            Wgraj pliki MP3
-            <input type="file" name="pad_files" accept=".mp3,audio/mpeg" multiple hidden
-                   onchange="this.form.submit()">
+            {{ _('Upload MP3 files') }}
+            <input type="file" name="pad_files" accept=".mp3,audio/mpeg" multiple hidden onchange="this.form.submit()">
         </label>
-        <span class="muted" style="margin-left:var(--s2);">możesz zaznaczyć wszystkie naraz</span>
+        <span class="muted" style="margin-left:var(--s2);">{{ _('you can select all at once') }}</span>
     </form>
 </div>
 {% endblock %}

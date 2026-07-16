@@ -11,6 +11,7 @@ from app import db
 from app.auth.routes import current_user, login_required
 from app.models import Church, Song, Setlist, Profile, SongPersonal
 from app.panel.routes import require_membership, NOTATIONS
+from app.i18n import translate as _
 
 songs_bp = Blueprint('songs', __name__)
 
@@ -68,13 +69,13 @@ def song_new(church_id, membership):
         song = Song(church_id=church_id, created_by=current_user().id)
         _save_song_fields(song, request.form)
         if not song.title or not song.content.strip():
-            flash('Tytuł i treść są wymagane.')
+            flash(_('Title and content are required.'))
             return render_template('songs/form.html', song=song, is_new=True,
                                    church=db.session.get(Church, church_id),
                                    membership=membership, user=current_user())
         db.session.add(song)
         db.session.commit()
-        flash(f'Dodano: {song.title}')
+        flash(_('Added:') + ' ' + song.title)
         return redirect(url_for('songs.song_view', church_id=church_id,
                                 song_id=song.id))
     return render_template('songs/form.html', song=None, is_new=True,
@@ -107,7 +108,7 @@ def song_edit(church_id, song_id, membership):
     if request.method == 'POST':
         _save_song_fields(song, request.form)
         db.session.commit()
-        flash('Zapisano zmiany.')
+        flash(_('Saved changes.'))
         return redirect(url_for('songs.song_view', church_id=church_id,
                                 song_id=song.id))
     return render_template('songs/form.html', song=song, is_new=False,
@@ -121,7 +122,7 @@ def song_delete(church_id, song_id, membership):
     song = _get_song(church_id, song_id)
     song.deleted = True   # tombstone (sync M5); twarde kasowanie po 30 dniach
     db.session.commit()
-    flash(f'Usunięto: {song.title}')
+    flash(_('Deleted:') + ' ' + song.title)
     return redirect(url_for('songs.songs_list', church_id=church_id))
 
 
@@ -179,9 +180,9 @@ def songs_import(church_id, membership):
                                 created_by=current_user().id))
             added.append(title)
     db.session.commit()
-    msg = f'Zaimportowano: {len(added)}.'
+    msg = _('Imported:') + f' {len(added)}.'
     if skipped:
-        msg += f' Pominięto (tytuł już istnieje): {len(skipped)}.'
+        msg += ' ' + _('Skipped (title already exists):') + f' {len(skipped)}.'
     flash(msg)
     return redirect(url_for('songs.songs_list', church_id=church_id))
 

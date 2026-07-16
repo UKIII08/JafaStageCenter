@@ -16,6 +16,7 @@ from app.live import state as live_state
 from app.models import (Church, Song, Setlist, LiveSession, ScreenToken,
                         Profile)
 from app.panel.routes import require_membership, get_membership
+from app.i18n import translate as _
 
 live_bp = Blueprint('live', __name__)
 
@@ -89,7 +90,7 @@ def _render_slide(church_id, rows, song_idx, section_idx):
 @require_membership('prowadzacy')
 def live_start(church_id, setlist_id, membership):
     if _active_session(church_id):
-        flash('Sesja LIVE już trwa — dołączono do niej.')
+        flash(_('A live session is already running — joined it.'))
         return redirect(url_for('live.leader', church_id=church_id))
     sl = Setlist.query.filter_by(id=setlist_id, church_id=church_id,
                                  deleted=False).first()
@@ -115,7 +116,7 @@ def live_end(church_id, membership):
         db.session.commit()
     live_state.clear_state(church_id)
     _emit(church_id, 'session_ended', {})
-    flash('Zakończono sesję LIVE.')
+    flash(_('Live session ended.'))
     return redirect(url_for('panel.church_home', church_id=church_id))
 
 

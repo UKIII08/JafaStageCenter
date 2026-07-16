@@ -1,17 +1,18 @@
 {% extends 'base.html' %}
+{% block title %}{{ _('Your communities') }}{% endblock %}
 {% block content %}
 <div class="panel" style="max-width:560px;">
-    <h2>Twoje wspólnoty</h2>
+    <h2>{{ _('Your communities') }}</h2>
     <table>
         {% for m in memberships %}
         <tr>
             <td><a class="row-link" href="{{ url_for('panel.church_home', church_id=m.church_id) }}">{{ m.church.name }}</a></td>
-            <td class="muted" style="text-align:right;">{{ m.role }}</td>
+            <td class="muted" style="text-align:right;">{{ _(m.role) }}</td>
         </tr>
         {% endfor %}
     </table>
     <div style="margin-top:var(--s4);">
-        <a class="btn-ghost btn" href="{{ url_for('panel.create_church') }}">Nowa wspólnota</a>
+        <a class="btn-ghost btn" href="{{ url_for('panel.create_church') }}">{{ _('New community') }}</a>
     </div>
 </div>
 {% endblock %}

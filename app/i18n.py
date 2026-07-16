@@ -141,14 +141,51 @@ PL = {
     "Church / community name": "Nazwa wspólnoty / zboru",
     "e.g. Grace Community Church": "np. Zbór Betania Warszawa",
     "Choose a community": "Wybierz wspólnotę",
-    "Your role:": "Twoja rola:", "Open": "Otwórz",
+    "Your role:": "Twoja rola:",
+    "Your communities": "Twoje wspólnoty", "New community": "Nowa wspólnota",
+    "Invalid or expired link": "Nieprawidłowy lub wygasły link",
+    "Ask the leader for a new invite link.":
+        "Poproś prowadzącego o nowy link zaproszenia.",
+    "Live now": "Na żywo", "A live session is running": "Trwa sesja LIVE",
+    "Join as a musician": "Dołącz jako muzyk",
+    "Leader panel": "Panel prowadzącego",
+    "Prepare songs and a setlist, invite the team, and on Sunday start a LIVE "
+    "session from the chosen setlist — the team's phones and screens sync "
+    "automatically.":
+        "Przygotuj piosenki i setlistę, zaproś zespół, a w niedzielę rozpocznij "
+        "sesję LIVE z wybranej setlisty — telefony zespołu i ekrany "
+        "zsynchronizują się same.",
 
     # ── Panel: zespół ──
     "Instrument": "Instrument", "Invite to the team": "Zaproś do zespołu",
     "Generate link": "Wygeneruj link", "Invite link": "Link zaproszenia",
     "Role:": "Rola:", "musician": "muzyk", "leader": "prowadzący", "admin": "admin",
-    "This link joins as": "Ten link dołącza jako",
     "Change role": "Zmień rolę", "owner": "właściciel",
+    "Remove from the team?": "Usunąć z zespołu?",
+    "Profile without an account:": "Profil bez konta:",
+    "— from the desktop app": "— z aplikacji desktop",
+    "A join link, valid until": "Link dołączenia, ważny do",
+    "— send it to your team (e.g. in a group chat):":
+        "— wyślij zespołowi (np. na grupie):",
+    "Role: musician": "Rola: muzyk", "Role: leader": "Rola: prowadzący",
+    "Generate a new link": "Wygeneruj nowy link",
+    # settings — pady + CCLI opis
+    "Atmosphere beds played in Studio in the current song's key. Upload up to "
+    "12 MP3 files named by major key:":
+        "Tła dźwiękowe odtwarzane w Studiu pod tonację piosenki. Wgraj do 12 "
+        "plików MP3 nazwanych tonacją durową:",
+    "(flats work too — Eb.mp3 saves as D#). Minor keys play the pad of the "
+    "relative major, so 12 files are enough.":
+        "(bemole też zadziałają — Eb.mp3 zapisze się jako D#). Tonacje molowe "
+        "grają pad równoległej durowej, więc 12 plików wystarcza.",
+    "Remove pad": "Usunąć pad", "Click to remove": "Kliknij, aby usunąć",
+    "No file": "Brak pliku",
+    "The notice (title, writers, © and license number) is required by the "
+    "CCLI license when projecting lyrics — turn it off only if you don't use "
+    "CCLI-covered songs. Song uses still count toward the":
+        "Notka (tytuł, autorzy, © i numer licencji) to warunek licencji CCLI "
+        "przy projekcji tekstów — wyłączaj tylko, jeśli nie korzystasz z "
+        "utworów objętych CCLI. Użycia piosenek zliczają się niezależnie do",
 
     # ── Ustawienia wspólnoty ──
     "Settings — %(church)s": "Ustawienia — %(church)s",
@@ -253,6 +290,20 @@ PL = {
     "My note (visible only to you)": "Moja notatka (widoczna tylko dla Ciebie)",
     "saved": "zapisano", "saving…": "zapisywanie…",
 
+    # ── Mój profil ──
+    "My profile": "Mój profil", "Account & password": "Konto i hasło",
+    "Settings save to your account and apply automatically in the musician "
+    "view (live and practice) on every device.":
+        "Ustawienia zapisują się na Twoim koncie i stosują automatycznie w "
+        "widoku muzyka (live i ćwiczenie) na każdym urządzeniu.",
+    "Name / nickname (visible to the team)":
+        "Imię / pseudonim (widoczne dla zespołu)",
+    "Chord notation": "Notacja akordów",
+    "Default capo (frets)": "Domyślne capo (progi)",
+    "Show chords": "Pokazuj akordy",
+    "Lowercase = minor": "Małe litery = moll",
+    "Beginner mode (simplify chords)": "Tryb początkującego (upraszczaj akordy)",
+
     # ── Piosenki: widok / edycja ──
     "Team preferences:": "Preferencje zespołu:",
 
@@ -300,10 +351,21 @@ PL = {
     "Enter a service date.": "Podaj datę grania.",
     "Service deleted.": "Usunięto granie.",
 
+    # ── Flash: panel (dodatkowe) ──
+    "The community owner stays an administrator.":
+        "Założyciel wspólnoty pozostaje administratorem.",
+    "The community owner can't be removed.":
+        "Nie można usunąć założyciela wspólnoty.",
+    "Removed from the team.": "Usunięto z zespołu.",
+
     # ── Flash: songs ──
     "Song saved.": "Zapisano piosenkę.",
     "Setlist created.": "Utworzono setlistę.",
     "Setlist deleted.": "Usunięto setlistę.",
+    "Title and content are required.": "Tytuł i treść są wymagane.",
+    "Added:": "Dodano:", "Deleted:": "Usunięto:", "Saved changes.": "Zapisano zmiany.",
+    "Imported:": "Zaimportowano:",
+    "Skipped (title already exists):": "Pominięto (tytuł już istnieje):",
 
     # ── Flash: live / studio ──
     "A live session is already running — joined it.":

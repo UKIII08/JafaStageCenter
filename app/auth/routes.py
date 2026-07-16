@@ -12,6 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from app import db, limiter
 from app.emails import send_email
 from app.models import User, Membership
+from app.i18n import translate as _
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -42,13 +43,13 @@ def register():
         password = request.form.get('password') or ''
         name = (request.form.get('display_name') or '').strip()
         if not email or '@' not in email:
-            flash('Podaj poprawny adres e-mail.'); return render_template('auth/register.html')
+            flash(_('Enter a valid e-mail address.')); return render_template('auth/register.html')
         if len(password) < 8:
-            flash('Hasło musi mieć co najmniej 8 znaków.'); return render_template('auth/register.html')
+            flash(_('Password must be at least 8 characters.')); return render_template('auth/register.html')
         if not name:
-            flash('Podaj swoje imię.'); return render_template('auth/register.html')
+            flash(_('Enter your name.')); return render_template('auth/register.html')
         if User.query.filter_by(email=email).first():
-            flash('Konto z tym adresem już istnieje — zaloguj się.')
+            flash(_('An account with this address already exists — please log in.'))
             return redirect(url_for('auth.login'))
         user = User(email=email, display_name=name,
                     password_hash=generate_password_hash(password))
@@ -69,7 +70,7 @@ def login():
         password = request.form.get('password') or ''
         user = User.query.filter_by(email=email).first()
         if not user or not check_password_hash(user.password_hash, password):
-            flash('Nieprawidłowy e-mail lub hasło.')
+            flash(_('Invalid e-mail or password.'))
             return render_template('auth/login.html')
         if user.totp_secret:
             # 2FA: hasło OK, ale sesja dopiero po kodzie z aplikacji
@@ -101,7 +102,7 @@ def login_2fa():
             db.session.commit()
             nxt = request.args.get('next')
             return redirect(nxt or url_for('panel.dashboard'))
-        flash('Nieprawidłowy kod — spróbuj ponownie.')
+        flash(_('Invalid code — try again.'))
     return render_template('auth/login_2fa.html')
 
 
@@ -141,9 +142,9 @@ def twofa_confirm():
             user.totp_secret = secret
             db.session.commit()
             session.pop('totp_setup', None)
-            flash('Weryfikacja dwuetapowa włączona.')
+            flash(_('Two-factor authentication enabled.'))
             return redirect(url_for('auth.account'))
-        flash('Kod się nie zgadza — zeskanuj QR jeszcze raz i spróbuj.')
+        flash(_('The code doesn\'t match — scan the QR again and try once more.'))
     uri = pyotp.TOTP(secret).provisioning_uri(
         name=user.email, issuer_name='Jonathan App')
     img = qrcode.make(uri, image_factory=qrcode.image.svg.SvgPathImage)
@@ -159,11 +160,11 @@ def twofa_disable():
     user = current_user()
     if not check_password_hash(user.password_hash,
                                request.form.get('password') or ''):
-        flash('Błędne hasło — 2FA pozostaje włączone.')
+        flash(_('Wrong password — 2FA stays enabled.'))
         return redirect(url_for('auth.account'))
     user.totp_secret = None
     db.session.commit()
-    flash('Weryfikacja dwuetapowa wyłączona.')
+    flash(_('Two-factor authentication disabled.'))
     return redirect(url_for('auth.account'))
 
 
@@ -190,7 +191,7 @@ def reset_request():
             send_email(email, 'Jonathan App — reset hasła',
                        f'Aby ustawić nowe hasło, otwórz link (ważny 2 godziny):\n{link}')
         # celowo ta sama odpowiedź niezależnie od istnienia konta
-        flash('Jeśli konto istnieje, wysłaliśmy link do resetu hasła.')
+        flash(_('If the account exists, we\'ve sent a password reset link.'))
     return render_template('auth/reset_request.html')
 
 
@@ -199,7 +200,7 @@ def reset_token(token):
     try:
         uid = _reset_serializer().loads(token, max_age=7200)
     except (BadSignature, SignatureExpired):
-        flash('Link wygasł lub jest nieprawidłowy — poproś o nowy.')
+        flash(_('The link expired or is invalid — request a new one.'))
         return redirect(url_for('auth.reset_request'))
     user = db.session.get(User, uid)
     if not user:
@@ -207,12 +208,12 @@ def reset_token(token):
     if request.method == 'POST':
         password = request.form.get('password') or ''
         if len(password) < 8:
-            flash('Hasło musi mieć co najmniej 8 znaków.')
+            flash(_('Password must be at least 8 characters.'))
             return render_template('auth/reset_form.html')
         user.password_hash = generate_password_hash(password)
         db.session.commit()
         session.clear()
-        flash('Hasło zmienione — zaloguj się.')
+        flash(_('Password changed — please log in.'))
         return redirect(url_for('auth.login'))
     return render_template('auth/reset_form.html')
 
@@ -240,7 +241,7 @@ def verify_send():
     user = current_user()
     if not user.email_verified_at:
         _send_verification(user)
-        flash('Wysłaliśmy link weryfikacyjny na Twój adres e-mail.')
+        flash(_('We\'ve sent a verification link to your e-mail address.'))
     return redirect(url_for('auth.account'))
 
 
@@ -249,13 +250,13 @@ def verify_email(token):
     try:
         uid = _verify_serializer().loads(token, max_age=3 * 24 * 3600)
     except (BadSignature, SignatureExpired):
-        flash('Link weryfikacyjny wygasł — wyślij nowy z ustawień konta.')
+        flash(_('The verification link expired — send a new one from account settings.'))
         return redirect(url_for('auth.login'))
     user = db.session.get(User, uid)
     if user and not user.email_verified_at:
         user.email_verified_at = datetime.utcnow()
         db.session.commit()
-    flash('Adres e-mail potwierdzony.')
+    flash(_('E-mail address confirmed.'))
     return redirect(url_for('panel.dashboard') if session.get('user_id')
                     else url_for('auth.login'))
 
@@ -284,11 +285,10 @@ def account_delete():
     if request.method == 'POST':
         if not check_password_hash(user.password_hash,
                                    request.form.get('password') or ''):
-            flash('Błędne hasło — konto nie zostało usunięte.')
+            flash(_('Wrong password — the account was not deleted.'))
             return redirect(url_for('auth.account_delete'))
         if blockers:
-            flash('Najpierw przekaż wspólnotę innemu adminowi albo usuń '
-                  'pozostałych członków.')
+            flash(_('First hand the community over to another admin or remove the remaining members.'))
             return redirect(url_for('auth.account_delete'))
         # Dane osobiste użytkownika we wszystkich wspólnotach
         profile_ids = [p.id for p in
@@ -311,7 +311,7 @@ def account_delete():
         db.session.delete(user)
         db.session.commit()
         session.clear()
-        flash('Konto i dane zostały usunięte.')
+        flash(_('Your account and data have been deleted.'))
         return redirect(url_for('auth.login'))
     return render_template('auth/account_delete.html', user=user,
                            blockers=blockers, sole_churches=sole_churches)

@@ -90,7 +90,7 @@ def test_event_lifecycle_and_learning_view(app, client):
                 data={'available': '1', 'comment': 'moge do 12'})
     r = client.get(f'/c/{cid}/granie/{eid}')
     assert 'Pieśń'.encode() in r.data
-    assert b'(oryg. G)' in r.data   # transpozycja +2 pokazana (G -> A)
+    assert b'(orig. G)' in r.data   # transpose +2 shown (G -> A)
     assert f'/songs/{sid}/practice?t=2'.encode() in r.data
     client.get('/logout')
 
@@ -124,11 +124,11 @@ def test_signup_after_deadline_still_allowed(app, client):
     client.get('/logout')
     login(client, 'muzyk@x.pl')
     r = client.get(f'/c/{cid}/granie/{eid}')
-    assert 'po terminie'.encode() in r.data
+    assert b'past due' in r.data
     r = client.post(f'/c/{cid}/granie/{eid}/signup',
                     data={'available': '0'}, follow_redirects=True)
     assert r.status_code == 200
-    assert 'nie mogę'.encode() in r.data
+    assert b"can't" in r.data
 
 
 def test_events_tenancy_and_roles(app, client):
