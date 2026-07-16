@@ -218,6 +218,7 @@ PL = {
         "może zaznaczać dostępność, ale widać, że jest po terminie.",
     "Upcoming services": "Nadchodzące grania",
     "Recent services": "Ostatnie grania",
+    "Signup deadline (optional)": "Termin zgłoszeń (opcjonalnie)", "yes": "tak",
     "My availability": "Moja dostępność", "Playing on": "Gram na",
     "no reply": "brak odpowiedzi", "can": "mogę", "can't": "nie mogę",
     "Nothing planned yet": "Nic jeszcze nie zaplanowano",
@@ -229,7 +230,8 @@ PL = {
     "availability and a setlist to learn.":
         "Gdy prowadzący zaplanuje granie, pojawi się tutaj z Twoją "
         "dostępnością i setlistą do nauki.",
-    "Delete service": "Usuń granie",
+    "Delete service": "Usuń granie", "Delete this service?": "Usunąć to granie?",
+    "Song": "Piosenka",
     "Signup deadline:": "Termin zgłoszeń:", "past due": "po terminie",
     "I can play": "Mogę grać", "I can't": "Nie mogę",
     "Comment (e.g. only until noon)": "Komentarz (np. tylko do 12:00)",

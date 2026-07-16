@@ -1,46 +1,45 @@
 {% extends 'base.html' %}
-{% block title %}Granie — {{ church.name }}{% endblock %}
+{% block title %}{{ _('Services') }} — {{ church.name }}{% endblock %}
 {% block content %}
 {% if membership.role != 'muzyk' %}
 <div class="panel">
-    <div class="panel-header"><h2>Nowe granie</h2></div>
+    <div class="panel-header"><h2>{{ _('New service') }}</h2></div>
     <form method="POST" class="form-row">
-        <input name="name" placeholder="Nazwa (np. Niedziela poranna)" style="flex:2; min-width:180px;">
+        <input name="name" placeholder="{{ _('Name (e.g. Sunday morning)') }}" style="flex:2; min-width:180px;">
         <input name="date" type="date" required style="flex:1; min-width:140px;">
         <input name="time" type="time" style="flex:0 0 110px;">
-        <input name="signup_deadline" type="date" title="Termin zgłoszeń (opcjonalnie)" style="flex:1; min-width:140px;">
-        <button type="submit" style="flex:0;">Utwórz</button>
+        <input name="signup_deadline" type="date" title="{{ _('Signup deadline (optional)') }}" style="flex:1; min-width:140px;">
+        <button type="submit" style="flex:0;">{{ _('Create') }}</button>
     </form>
-    <p class="hint" style="margin-bottom:0;">Trzecie pole to termin zgłoszeń (opcjonalny) — po nim
-    zespół nadal może zaznaczać dostępność, ale widać, że jest po terminie.</p>
+    <p class="hint" style="margin-bottom:0;">{{ _('The third field is the signup deadline (optional) — after it the team can still mark availability, but it shows as past due.') }}</p>
 </div>
 {% endif %}
 
 <div class="panel">
-    <div class="panel-header"><h2>Nadchodzące grania</h2></div>
+    <div class="panel-header"><h2>{{ _('Upcoming services') }}</h2></div>
     <table>
-        <tr><th>Data</th><th>Nazwa</th><th>Moja dostępność</th><th>Gram na</th><th></th></tr>
+        <tr><th>{{ _('Date') }}</th><th>{{ _('Name') }}</th><th>{{ _('My availability') }}</th><th>{{ _('Playing on') }}</th><th></th></tr>
         {% for e in upcoming %}
         {% set s = my_signups.get(e.id) %}
         <tr>
             <td class="muted" style="white-space:nowrap;">{{ e.date.strftime('%d.%m.%Y') }}{{ ' ' + e.time if e.time }}</td>
             <td><a class="row-link" href="{{ url_for('events.event_detail', church_id=church.id, eid=e.id) }}">{{ e.name }}</a></td>
             <td>
-                {% if s is none %}<span class="badge">brak odpowiedzi</span>
-                {% elif s.available %}<span class="badge" style="background:var(--green-subtle); color:var(--green);">mogę</span>
-                {% else %}<span class="badge" style="background:var(--red-subtle); color:var(--red);">nie mogę</span>{% endif %}
+                {% if s is none %}<span class="badge">{{ _('no reply') }}</span>
+                {% elif s.available %}<span class="badge" style="background:var(--green-subtle); color:var(--green);">{{ _('can') }}</span>
+                {% else %}<span class="badge" style="background:var(--red-subtle); color:var(--red);">{{ _("can't") }}</span>{% endif %}
             </td>
-            <td class="muted">{{ my_assignments.get(e.id, [])|reject('equalto', '')|join(', ') or ('—' if e.id not in my_assignments else 'tak') }}</td>
+            <td class="muted">{{ my_assignments.get(e.id, [])|reject('equalto', '')|join(', ') or ('—' if e.id not in my_assignments else _('yes')) }}</td>
             <td style="text-align:right;">
-                <a class="btn btn-ghost btn-sm" href="{{ url_for('events.event_detail', church_id=church.id, eid=e.id) }}">Otwórz</a>
+                <a class="btn btn-ghost btn-sm" href="{{ url_for('events.event_detail', church_id=church.id, eid=e.id) }}">{{ _('Open') }}</a>
             </td>
         </tr>
         {% else %}
         <tr><td colspan="5" style="padding:0;">
             <div class="empty-state">
                 <div class="es-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-                <div class="es-title">Nic jeszcze nie zaplanowano</div>
-                <div class="es-sub">{% if membership.role != 'muzyk' %}Utwórz pierwsze granie powyżej — zespół dostanie miejsce, żeby zaznaczyć dostępność.{% else %}Gdy prowadzący zaplanuje granie, pojawi się tutaj z Twoją dostępnością i setlistą do nauki.{% endif %}</div>
+                <div class="es-title">{{ _('Nothing planned yet') }}</div>
+                <div class="es-sub">{% if membership.role != 'muzyk' %}{{ _('Create your first service above — the team gets a place to mark availability.') }}{% else %}{{ _('When the leader schedules a service, it shows up here with your availability and a setlist to learn.') }}{% endif %}</div>
             </div></td></tr>
         {% endfor %}
     </table>
@@ -48,7 +47,7 @@
 
 {% if past %}
 <div class="panel">
-    <div class="section-title">Ostatnie grania</div>
+    <div class="section-title">{{ _('Recent services') }}</div>
     <table>
         {% for e in past %}
         <tr>

@@ -128,7 +128,7 @@ def test_signup_after_deadline_still_allowed(app, client):
     r = client.post(f'/c/{cid}/granie/{eid}/signup',
                     data={'available': '0'}, follow_redirects=True)
     assert r.status_code == 200
-    assert b"can't" in r.data
+    assert b"can&#39;t" in r.data
 
 
 def test_events_tenancy_and_roles(app, client):

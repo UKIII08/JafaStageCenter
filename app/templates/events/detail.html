@@ -4,47 +4,36 @@
 <div class="panel">
     <div class="panel-header">
         <h2>{{ ev.name }}
-            <span class="muted" style="font-size:.65em; font-weight:400;">
-                {{ ev.date.strftime('%d.%m.%Y') }}{{ ' · ' + ev.time if ev.time }}
-            </span>
+            <span class="muted" style="font-size:.65em; font-weight:400;">{{ ev.date.strftime('%d.%m.%Y') }}{{ ' · ' + ev.time if ev.time }}</span>
         </h2>
         {% if membership.role != 'muzyk' %}
-        <form method="POST" action="{{ url_for('events.event_delete', church_id=church.id, eid=ev.id) }}"
-              onsubmit="return confirm('Usunąć to granie?')">
-            <button class="btn btn-danger btn-sm">Usuń granie</button>
+        <form method="POST" action="{{ url_for('events.event_delete', church_id=church.id, eid=ev.id) }}" onsubmit="return confirm('{{ _('Delete this service?') }}')">
+            <button class="btn btn-danger btn-sm">{{ _('Delete service') }}</button>
         </form>
         {% endif %}
     </div>
     {% if ev.signup_deadline %}
-    <p class="hint" style="margin:0;">Termin zgłoszeń: {{ ev.signup_deadline.strftime('%d.%m.%Y') }}
-        {% if deadline_passed %}<span class="badge" style="margin-left:6px; background:var(--amber-subtle); color:var(--amber);">po terminie</span>{% endif %}
+    <p class="hint" style="margin:0;">{{ _('Signup deadline:') }} {{ ev.signup_deadline.strftime('%d.%m.%Y') }}
+        {% if deadline_passed %}<span class="badge" style="margin-left:6px; background:var(--amber-subtle); color:var(--amber);">{{ _('past due') }}</span>{% endif %}
     </p>
     {% endif %}
     {% if ev.notes %}<p class="hint">{{ ev.notes }}</p>{% endif %}
 </div>
 
 <div class="panel">
-    <div class="section-title">Moja dostępność</div>
-    <form method="POST" action="{{ url_for('events.event_signup', church_id=church.id, eid=ev.id) }}"
-          class="form-row" style="align-items:center;">
-        <input type="hidden" name="available" id="avail-val"
-               value="{{ '1' if my_signup and my_signup.available else '0' }}">
-        <button type="submit" onclick="document.getElementById('avail-val').value='1'"
-                class="btn {{ '' if my_signup and my_signup.available else 'btn-ghost' }}"
-                style="flex:0;">Mogę grać</button>
-        <button type="submit" onclick="document.getElementById('avail-val').value='0'"
-                class="btn {{ 'btn-live' if my_signup and not my_signup.available else 'btn-ghost' }}"
-                style="flex:0;">Nie mogę</button>
-        <input name="comment" placeholder="Komentarz (np. tylko do 12:00)"
-               value="{{ my_signup.comment if my_signup else '' }}" style="flex:1; min-width:180px;">
+    <div class="section-title">{{ _('My availability') }}</div>
+    <form method="POST" action="{{ url_for('events.event_signup', church_id=church.id, eid=ev.id) }}" class="form-row" style="align-items:center;">
+        <input type="hidden" name="available" id="avail-val" value="{{ '1' if my_signup and my_signup.available else '0' }}">
+        <button type="submit" onclick="document.getElementById('avail-val').value='1'" class="btn {{ '' if my_signup and my_signup.available else 'btn-ghost' }}" style="flex:0;">{{ _('I can play') }}</button>
+        <button type="submit" onclick="document.getElementById('avail-val').value='0'" class="btn {{ 'btn-live' if my_signup and not my_signup.available else 'btn-ghost' }}" style="flex:0;">{{ _("I can't") }}</button>
+        <input name="comment" placeholder="{{ _('Comment (e.g. only until noon)') }}" value="{{ my_signup.comment if my_signup else '' }}" style="flex:1; min-width:180px;">
     </form>
     {% if deadline_passed %}
-    <p class="hint" style="margin-bottom:0;">Termin zgłoszeń minął, ale nadal możesz zmienić odpowiedź —
-    daj tylko znać prowadzącemu.</p>
+    <p class="hint" style="margin-bottom:0;">{{ _('The signup deadline has passed, but you can still change your answer — just let the leader know.') }}</p>
     {% endif %}
     {% if my_instruments %}
-    <p style="margin:var(--s3) 0 0;">Grasz na tym graniu:
-        {% for i in my_instruments %}<span class="badge" style="background:var(--accent-subtle); color:var(--accent); margin-right:4px;">{{ i or 'instrument nieokreślony' }}</span>{% endfor %}
+    <p style="margin:var(--s3) 0 0;">{{ _("You're playing this service:") }}
+        {% for i in my_instruments %}<span class="badge" style="background:var(--accent-subtle); color:var(--accent); margin-right:4px;">{{ i or _('instrument unspecified') }}</span>{% endfor %}
     </p>
     {% endif %}
 </div>
@@ -52,67 +41,58 @@
 {% if songs or setlist %}
 <div class="panel">
     <div class="panel-header">
-        <div class="section-title" style="margin:0;">Setlista{{ ' — ' + setlist.name if setlist and setlist.name }}</div>
+        <div class="section-title" style="margin:0;">{{ _('Setlist') }}{{ ' — ' + setlist.name if setlist and setlist.name }}</div>
     </div>
     <table>
-        <tr><th>#</th><th>Piosenka</th><th>Tonacja</th><th>BPM</th><th></th></tr>
+        <tr><th>#</th><th>{{ _('Song') }}</th><th>{{ _('Key') }}</th><th>{{ _('BPM') }}</th><th></th></tr>
         {% for s in songs %}
         <tr>
             <td class="muted">{{ loop.index }}</td>
             <td style="font-weight:700;">{{ s.title }}</td>
-            <td>{{ s.shown_key or '—' }}{% if s.transpose %} <span class="muted">(oryg. {{ s.key }})</span>{% endif %}</td>
+            <td>{{ s.shown_key or '—' }}{% if s.transpose %} <span class="muted">({{ _('orig.') }} {{ s.key }})</span>{% endif %}</td>
             <td class="muted">{{ s.bpm or '—' }}</td>
             <td style="text-align:right;">
                 {% if s.in_library %}
-                <a class="btn btn-ghost btn-sm"
-                   href="{{ url_for('songs.practice', church_id=church.id, song_id=s.id, t=s.transpose) }}">Ćwicz</a>
-                {% else %}<span class="muted">brak w bibliotece</span>{% endif %}
+                <a class="btn btn-ghost btn-sm" href="{{ url_for('songs.practice', church_id=church.id, song_id=s.id, t=s.transpose) }}">{{ _('Practice') }}</a>
+                {% else %}<span class="muted">{{ _('not in library') }}</span>{% endif %}
             </td>
         </tr>
         {% endfor %}
     </table>
-    <p class="hint" style="margin-bottom:0;">„Ćwicz" otwiera piosenkę w tonacji z setlisty —
-    z metronomem, autoprzewijaniem i Twoją prywatną notatką.</p>
+    <p class="hint" style="margin-bottom:0;">{{ _('"Practice" opens the song in the setlist key — with a metronome, auto-scroll and your private note.') }}</p>
 </div>
 {% endif %}
 
 {% if membership.role != 'muzyk' %}
 <div class="panel">
     <div class="panel-header">
-        <div class="section-title" style="margin:0;">Setlista ze Studia</div>
-        <a class="btn" href="{{ url_for('studio.control', church_id=church.id, granie=ev.id) }}">
-            {{ 'Edytuj setlistę w Studiu' if ev.setlist_id else 'Ułóż setlistę w Studiu' }}
-        </a>
+        <div class="section-title" style="margin:0;">{{ _('Setlist from Studio') }}</div>
+        <a class="btn" href="{{ url_for('studio.control', church_id=church.id, granie=ev.id) }}">{{ _('Edit the setlist in Studio') if ev.setlist_id else _('Arrange the setlist in Studio') }}</a>
     </div>
-    <p class="hint">Przycisk otwiera Studio w trybie tego grania: układasz piosenki,
-    kolejność i tonacje, klikasz „Zapisz setlistę" — i setlista sama podpina się tutaj.
-    Możesz też podpiąć wcześniej zapisaną:</p>
-    <form method="POST" action="{{ url_for('events.event_setlist', church_id=church.id, eid=ev.id) }}"
-          class="form-row">
+    <p class="hint">{{ _('The button opens Studio in this service\'s mode: arrange songs, order and keys, hit “Save setlist” — and the setlist attaches here by itself. You can also attach one you saved earlier:') }}</p>
+    <form method="POST" action="{{ url_for('events.event_setlist', church_id=church.id, eid=ev.id) }}" class="form-row">
         <select name="setlist_id" style="flex:1;">
-            <option value="">— brak / odepnij —</option>
+            <option value="">{{ _('— none / detach —') }}</option>
             {% for sl in setlists %}
-            <option value="{{ sl.id }}" {{ 'selected' if ev.setlist_id == sl.id }}>
-                {{ sl.name or 'Setlista' }} ({{ sl.date or 'bez daty' }})
-            </option>
+            <option value="{{ sl.id }}" {{ 'selected' if ev.setlist_id == sl.id }}>{{ sl.name or _('Setlist') }} ({{ sl.date or _('no date') }})</option>
             {% endfor %}
         </select>
-        <button type="submit" class="btn-ghost btn" style="flex:0;">Podepnij wybraną</button>
+        <button type="submit" class="btn-ghost btn" style="flex:0;">{{ _('Attach selected') }}</button>
     </form>
 </div>
 {% endif %}
 
 <div class="panel">
-    <div class="section-title">Zgłoszenia zespołu</div>
+    <div class="section-title">{{ _('Team responses') }}</div>
     <table>
-        <tr><th>Osoba</th><th>Dostępność</th><th>Komentarz</th></tr>
+        <tr><th>{{ _('Person') }}</th><th>{{ _('Availability') }}</th><th>{{ _('Comment') }}</th></tr>
         {% for r in roster %}
         <tr>
             <td>{{ r.user.display_name }}</td>
             <td>
-                {% if r.signup is none %}<span class="badge">brak odpowiedzi</span>
-                {% elif r.signup.available %}<span class="badge" style="background:var(--green-subtle); color:var(--green);">mogę</span>
-                {% else %}<span class="badge" style="background:var(--red-subtle); color:var(--red);">nie mogę</span>{% endif %}
+                {% if r.signup is none %}<span class="badge">{{ _('no reply') }}</span>
+                {% elif r.signup.available %}<span class="badge" style="background:var(--green-subtle); color:var(--green);">{{ _('can') }}</span>
+                {% else %}<span class="badge" style="background:var(--red-subtle); color:var(--red);">{{ _("can't") }}</span>{% endif %}
             </td>
             <td class="muted">{{ r.signup.comment if r.signup else '' }}</td>
         </tr>
@@ -121,9 +101,9 @@
 </div>
 
 <div class="panel">
-    <div class="section-title">Obsada — kto gra</div>
+    <div class="section-title">{{ _('Lineup — who plays') }}</div>
     <table>
-        <tr><th>Osoba</th><th>Instrument</th>{% if membership.role != 'muzyk' %}<th></th>{% endif %}</tr>
+        <tr><th>{{ _('Person') }}</th><th>{{ _('Instrument') }}</th>{% if membership.role != 'muzyk' %}<th></th>{% endif %}</tr>
         {% for x in assignments %}
         <tr>
             <td>{{ x.user.display_name if x.user else '?' }}</td>
@@ -133,38 +113,34 @@
                 <form method="POST" action="{{ url_for('events.event_assign', church_id=church.id, eid=ev.id) }}" style="display:inline;">
                     <input type="hidden" name="action" value="remove">
                     <input type="hidden" name="aid" value="{{ x.a.id }}">
-                    <button class="btn btn-danger btn-sm">Usuń</button>
+                    <button class="btn btn-danger btn-sm">{{ _('Remove') }}</button>
                 </form>
             </td>
             {% endif %}
         </tr>
         {% else %}
-        <tr><td colspan="3" class="muted">Obsada jeszcze nie ułożona.</td></tr>
+        <tr><td colspan="3" class="muted">{{ _("The lineup isn't set yet.") }}</td></tr>
         {% endfor %}
     </table>
     {% if membership.role != 'muzyk' %}
-    <form method="POST" action="{{ url_for('events.event_assign', church_id=church.id, eid=ev.id) }}"
-          class="form-row" style="margin-top:var(--s4);">
+    <form method="POST" action="{{ url_for('events.event_assign', church_id=church.id, eid=ev.id) }}" class="form-row" style="margin-top:var(--s4);">
         <select name="user_id" style="flex:2; min-width:160px;">
             {% for r in roster %}
-            <option value="{{ r.user.id }}">
-                {{ r.user.display_name }}{{ ' (mogę)' if r.signup and r.signup.available else (' (nie może!)' if r.signup and not r.signup.available else ' (brak odp.)') }}
-            </option>
+            <option value="{{ r.user.id }}">{{ r.user.display_name }}{{ ' ' + _('(can play)') if r.signup and r.signup.available else (' ' + _('(can\'t play!)') if r.signup and not r.signup.available else ' ' + _('(no reply)')) }}</option>
             {% endfor %}
         </select>
         <select name="instrument" style="flex:1; min-width:130px;">
-            {% for i in instruments %}<option value="{{ i }}">{{ i or '— instrument —' }}</option>{% endfor %}
+            {% for i in instruments %}<option value="{{ i }}">{{ i or _('— instrument —') }}</option>{% endfor %}
         </select>
-        <button type="submit" style="flex:0;">Dodaj do obsady</button>
+        <button type="submit" style="flex:0;">{{ _('Add to lineup') }}</button>
     </form>
-    <p class="hint" style="margin-bottom:0;">Tę samą osobę możesz dodać kilka razy z różnymi
-    instrumentami. Lista podpowiada, kto się zgłosił.</p>
+    <p class="hint" style="margin-bottom:0;">{{ _('You can add the same person several times with different instruments. The list shows who signed up.') }}</p>
     {% endif %}
 </div>
 
 {% if membership.role != 'muzyk' %}
 <div class="panel">
-    <div class="section-title">Edytuj granie</div>
+    <div class="section-title">{{ _('Edit service') }}</div>
     <form method="POST" action="{{ url_for('events.event_edit', church_id=church.id, eid=ev.id) }}">
         <div class="form-row">
             <input name="name" value="{{ ev.name }}" style="flex:2; min-width:160px;">
@@ -172,9 +148,9 @@
             <input name="time" type="time" value="{{ ev.time }}" style="flex:0 0 110px;">
             <input name="signup_deadline" type="date" value="{{ ev.signup_deadline.isoformat() if ev.signup_deadline else '' }}" style="flex:1;">
         </div>
-        <label>Notatka dla zespołu (np. próba o 8:30)</label>
+        <label>{{ _('Note for the team (e.g. rehearsal at 8:30)') }}</label>
         <textarea name="notes" rows="2">{{ ev.notes }}</textarea>
-        <div style="margin-top:var(--s3);"><button type="submit">Zapisz zmiany</button></div>
+        <div style="margin-top:var(--s3);"><button type="submit">{{ _('Save changes') }}</button></div>
     </form>
 </div>
 {% endif %}
