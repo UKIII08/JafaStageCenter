@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
 {% block title %}{{ _('Settings') }} — {{ church.name }}{% endblock %}
 {% block content %}
+
+{# ── Wygląd i język — przełączniki przeniesione tu z górnego paska ── #}
+{% include '_appearance.html' %}
+
+{# ── Ustawienia wspólnoty ── #}
 <div class="panel" style="max-width:560px;">
     <h2>{{ _('Community settings') }}</h2>
     <form method="POST">

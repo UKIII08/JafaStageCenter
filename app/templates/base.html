@@ -7,6 +7,20 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/song-render.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    <!-- Motyw "Precision" — ładowany na końcu, nadpisuje tokeny -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-precision.css') }}">
+    <!-- Ustaw motyw z góry (bez mignięcia). Domyślnie ciemny. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('jonathan-theme') || 'dark';
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+      })();
+    </script>
 </head>
 <body>
 <div class="topbar topbar-studio">
@@ -50,9 +64,7 @@
     <div class="topbar-spacer"></div>
     {% if user %}
     <nav class="topbar-nav">
-        <a class="top-btn" href="{{ url_for('switch_lang', code='en' if current_lang() == 'pl' else 'pl') }}"
-           title="{{ 'Switch to English' if current_lang() == 'pl' else 'Przełącz na polski' }}"
-           style="font-weight:800; letter-spacing:0.04em;">{{ 'EN' if current_lang() == 'pl' else 'PL' }}</a>
+        {# Przełącznik motywu i języka przeniesiony do Ustawień / Mojego profilu (patrz _appearance.html) #}
         {% if church is defined and church and membership is defined and membership %}
         <a class="top-btn {{ 'active' if request.endpoint == 'panel.my_profile' }}"
            href="{{ url_for('panel.my_profile', church_id=church.id) }}" title="{{ _('Profile') }}">

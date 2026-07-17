@@ -181,6 +181,20 @@ PL = {
     "Set your instrument and playing preferences.":
         "Ustaw swój instrument i preferencje grania.",
     "Edit profile →": "Edytuj profil →",
+    # Dashboard „Precision" (bento) — nowe etykiety
+    "Next service": "Najbliższa służba",
+    "more songs": "więcej pieśni", "Prepare": "Przygotuj się",
+    "Offline": "Offline",
+    "Plan a service": "Zaplanuj służbę", "See services": "Zobacz służby",
+    "Last setlist:": "Ostatnia setlista:",
+    "Recently practiced:": "Ostatnio ćwiczone:",
+    "Practiced %(d)s of %(t)s songs from the setlist":
+        "Przećwiczone %(d)s z %(t)s pieśni z setlisty",
+    "people": "osób",
+    # Wygląd i język (ustawienia / profil)
+    "Appearance & language": "Wygląd i język",
+    "Theme": "Motyw", "Light": "Jasny", "Dark": "Ciemny",
+    "Language": "Język",
 
     "Prepare songs and a setlist, invite the team, and on Sunday start a LIVE "
     "session from the chosen setlist — the team's phones and screens sync "

@@ -115,8 +115,10 @@ def create_church():
 def church_home(church_id, membership):
     # Przyjazny dashboard na wejście: najbliższa służba (Przygotuj się!),
     # powrót do ćwiczenia, Studio (prowadzący) i skróty do reszty.
+    import json
+    from types import SimpleNamespace
     from datetime import date
-    from app.models import Event, EventAssignment
+    from app.models import Event, EventAssignment, StudioSetlist
     user = current_user()
     today = date.today()
     # Najbliższe granie, w które jestem wpisany do obsady; jak brak — najbliższe
@@ -129,11 +131,30 @@ def church_home(church_id, membership):
     next_event = my_event or Event.query.filter(
         Event.church_id == church_id, Event.deleted.is_(False),
         Event.date >= today).order_by(Event.date.asc()).first()
+    # Podgląd setlisty najbliższego grania (jeśli podpięta).
+    next_event_songs = []
+    if next_event and next_event.setlist_id:
+        sl = StudioSetlist.query.filter_by(
+            id=next_event.setlist_id, church_id=church_id).first()
+        if sl:
+            try:
+                next_event_songs = [
+                    SimpleNamespace(title=s.get('title', ''),
+                                    key=s.get('key', ''))
+                    for s in json.loads(sl.songs or '[]')]
+            except (ValueError, AttributeError):
+                next_event_songs = []
+    # Zespół — awatary na kafelku (imiona z profili).
+    team_members = [
+        SimpleNamespace(user_id=p.user_id, display_name=p.name)
+        for p in Profile.query.filter_by(
+            church_id=church_id, deleted=False).all()]
     church = db.session.get(Church, church_id)
     return render_template('panel/dashboard.html', church=church,
                            membership=membership, user=user,
                            next_event=next_event, my_event=my_event is not None,
-                           today=today)
+                           next_event_songs=next_event_songs,
+                           team_members=team_members, today=today)
 
 
 @panel_bp.get('/c/<church_id>/team')
