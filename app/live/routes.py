@@ -64,13 +64,31 @@ def _active_session(church_id):
 _LIVE_FRESH_MINUTES = 90
 
 
+def _legacy_is_live(church_id):
+    """Stary przepływ REST (przycisk 'Rozpocznij LIVE' → LiveSession). Uznajemy
+    za 'na żywo' TYLKO gdy istnieje niezakończona sesja I na ekranie jest realny
+    slajd (nie idle/logo/blackout). Samo istnienie wiersza LiveSession nie
+    wystarcza — inaczej kliknięcie 'Rozpocznij LIVE' zostawia dashboard 'na
+    żywo' na zawsze, nawet gdy nic się nie dzieje."""
+    if not _active_session(church_id):
+        return False
+    st = live_state.get_state(church_id)
+    if not st:
+        return False
+    if st.get('logo') or st.get('blackout'):
+        return False
+    if st.get('type') in (None, 'idle', 'none'):
+        return False
+    return True
+
+
 def _studio_is_live(church_id):
     """Czy w Studiu (port desktopu) trwa realne LIVE. Warunki (wszystkie):
     (1) ostatni slajd to realna treść (nie logo/pusto/blackout),
     (2) setlista nie jest pusta,
-    (3) slajd jest świeży (< _LIVE_FRESH_MINUTES temu).
-    Bez tego dashboard pokazywałby 'na żywo' bez końca (last_slide siedzi w
-    Redisie godzinami), a po opróżnieniu setlisty wciąż 'trwa'."""
+    (3) slajd jest świeży: znacznik czasu istnieje i jest < _LIVE_FRESH_MINUTES.
+    Brak znacznika = traktujemy jak nieświeży (stare dane w Redisie), więc NIE
+    'na żywo'. Bez tego dashboard pokazywałby 'na żywo' bez końca."""
     last = live_state.studio_get(church_id, 'last_slide')
     if not last or last.get('mode') in (None, 'none', 'logo'):
         return False
@@ -80,15 +98,14 @@ def _studio_is_live(church_id):
     if not ss.get('setlist'):
         return False
     at = live_state.studio_get(church_id, 'last_slide_at')
-    if at:
-        from datetime import datetime, timedelta
-        try:
-            when = datetime.fromisoformat(at)
-            if datetime.utcnow() - when > timedelta(minutes=_LIVE_FRESH_MINUTES):
-                return False
-        except (ValueError, TypeError):
-            pass
-    return True
+    if not at:
+        return False
+    from datetime import datetime, timedelta
+    try:
+        when = datetime.fromisoformat(at)
+    except (ValueError, TypeError):
+        return False
+    return datetime.utcnow() - when <= timedelta(minutes=_LIVE_FRESH_MINUTES)
 
 
 def _setlist_rows(church_id, sl):
@@ -287,8 +304,7 @@ def api_current(church_id):
             church_id=church_id, token=token, revoked_at=None).first()
         if not st_ok:
             abort(403)
-    active = (_active_session(church_id) is not None
-              or _studio_is_live(church_id))
+    active = _legacy_is_live(church_id) or _studio_is_live(church_id)
     return jsonify({'active': active,
                     'state': live_state.get_state(church_id)})
 

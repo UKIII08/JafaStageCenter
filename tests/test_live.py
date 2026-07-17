@@ -97,9 +97,21 @@ def test_live_requires_role_and_tenancy(app, client):
     assert client.get(f'/api/live/current/{cid}').status_code == 403
 
 
+def test_started_session_without_slide_is_not_active(app, client):
+    # Regresja (skarga użytkownika): samo istnienie sesji LIVE (kliknięcie
+    # 'Rozpocznij LIVE' albo zalegający wiersz) nie trzyma dashboardu 'na żywo',
+    # gdy na ekranie nic realnego nie ma (stan idle/logo).
+    cid, slid = setup_live(client, app)   # live_start => stan idle/logo, bez slajdu
+    with app.app_context():
+        assert LiveSession.query.filter_by(ended_at=None).count() == 1
+    assert client.get(f'/api/live/current/{cid}').get_json()['active'] is False
+
+
 def test_screen_tokens(app, client):
     cid, slid = setup_live(client, app)
     client.post(f'/c/{cid}/screens', data={'type': 'projector', 'name': 'Rzutnik'})
+    # 'na żywo' liczy się dopiero, gdy realnie coś jest na ekranie — wyślij slajd
+    client.post(f'/c/{cid}/live/slide', json={'song_idx': 0, 'section_idx': 0})
     with app.app_context():
         tok = ScreenToken.query.first().token
         sid = ScreenToken.query.first().id
