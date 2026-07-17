@@ -1,6 +1,33 @@
 {% extends 'base.html' %}
 {% block title %}{{ _('Practice:') }} {{ song.title }}{% endblock %}
 {% block content %}
+<style>
+    .practice-cols { display: flex; gap: var(--s4); align-items: flex-start; }
+    .practice-main { flex: 1 1 auto; min-width: 0; }
+    .practice-rail {
+        flex: 0 0 236px; position: sticky; top: var(--s3);
+        max-height: calc(100vh - var(--s6)); overflow-y: auto;
+    }
+    .rail-head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: var(--s2); margin-bottom: var(--s3);
+    }
+    .rail-head .section-title { margin: 0; }
+    .rail-toggle { display: inline-flex; border: 1px solid var(--border-default); border-radius: var(--r-full); overflow: hidden; }
+    .rail-toggle button {
+        background: transparent; border: 0; color: var(--text-secondary);
+        font: inherit; font-size: var(--font-xs); font-weight: 700;
+        padding: var(--s1) var(--s3); cursor: pointer;
+    }
+    .rail-toggle button.active { background: var(--accent); color: var(--text-inverse); }
+    #diagram-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--s2); }
+    .diag-svg svg { width: 100%; height: auto; border-radius: var(--r-md); display: block; }
+    @media (max-width: 820px) {
+        .practice-cols { flex-direction: column; }
+        .practice-rail { position: static; flex-basis: auto; width: 100%; max-height: none; order: -1; }
+        #diagram-list { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+    }
+</style>
 <div class="panel" style="position:sticky; top:var(--s3); z-index:50;">
     <div class="panel-header" style="margin-bottom:0;">
         <h2>{{ song.title }}
@@ -17,20 +44,35 @@
         </div>
     </div>
 </div>
-<div id="song-body">
-{% for sec in sections %}
-<div class="panel">
-    <div class="section-title">{{ sec.label }}</div>
-    <div class="song-render">{{ sec.band_html|safe }}</div>
-</div>
-{% endfor %}
-</div>
-<div class="panel">
-    <div class="section-title">{{ _('My note') }} <span style="text-transform:none; letter-spacing:0;">{{ _('(visible only to you)') }}</span></div>
-    <textarea id="note" rows="3" placeholder="{{ _('e.g. play barre on the bridge, come in on 3') }}">{{ note }}</textarea>
-    <span class="muted" id="note-status"></span>
+<div class="practice-cols">
+  <div class="practice-main">
+    <div id="song-body">
+    {% for sec in sections %}
+    <div class="panel">
+        <div class="section-title">{{ sec.label }}</div>
+        <div class="song-render">{{ sec.band_html|safe }}</div>
+    </div>
+    {% endfor %}
+    </div>
+    <div class="panel">
+        <div class="section-title">{{ _('My note') }} <span style="text-transform:none; letter-spacing:0;">{{ _('(visible only to you)') }}</span></div>
+        <textarea id="note" rows="3" placeholder="{{ _('e.g. play barre on the bridge, come in on 3') }}">{{ note }}</textarea>
+        <span class="muted" id="note-status"></span>
+    </div>
+  </div>
+  <aside class="practice-rail panel" id="chord-rail">
+    <div class="rail-head">
+        <div class="section-title">{{ _('Chords') }}</div>
+        <div class="rail-toggle" id="diagram-instrument">
+            <button data-inst="guitar">{{ _('Guitar') }}</button>
+            <button data-inst="piano">{{ _('Piano') }}</button>
+        </div>
+    </div>
+    <div id="diagram-list"></div>
+  </aside>
 </div>
 <script src="{{ url_for('static', filename='js/chords-client.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chord_diagrams.js') }}"></script>
 <script>
 const CHURCH = '{{ church.id }}', SONG = '{{ song.id }}';
 const PREFS = {{ prefs|tojson }};
@@ -38,6 +80,42 @@ let transpose = {{ transpose }};
 const BPM = {{ song.bpm or 0 }};
 const viewPrefs = Object.assign({}, PREFS, { capo_default: 0 });
 document.querySelectorAll('.song-render').forEach(el => applyChordPrefs(el, viewPrefs));
+
+// ── Diagramy akordów w bocznym panelu (gitara / pianino) ──
+const NO_DIAG = '{{ _('No chords to show yet.') }}';
+function currentInstrument() { return localStorage.getItem('jafa_practice_instrument') || 'guitar'; }
+function chordFromEl(el) {
+    // .chord może mieć podspany bass-slash/bass-note — składamy pełną nazwę.
+    var base = el.querySelector('.bass-note') ? el.firstChild.textContent : el.textContent;
+    return (base || '').trim();
+}
+function renderDiagrams() {
+    if (typeof getChordVoicings !== 'function') return;
+    var inst = currentInstrument();
+    document.querySelectorAll('#diagram-instrument button').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.inst === inst);
+    });
+    var seen = {}, chords = [];
+    document.querySelectorAll('#song-body .song-render .chord').forEach(function (el) {
+        var name = chordFromEl(el);
+        if (!name || seen[name]) return;
+        seen[name] = 1; chords.push(name);
+    });
+    var html = '';
+    chords.forEach(function (ch) {
+        var v = getChordVoicings(ch, inst);
+        if (v && v.length) html += '<div class="diag-svg" title="' + ch + '">' + v[0].svg + '</div>';
+    });
+    document.getElementById('diagram-list').innerHTML =
+        html || '<div class="muted" style="grid-column:1/-1;">' + NO_DIAG + '</div>';
+}
+document.querySelectorAll('#diagram-instrument button').forEach(function (b) {
+    b.onclick = function () {
+        localStorage.setItem('jafa_practice_instrument', b.dataset.inst);
+        renderDiagrams();
+    };
+});
+renderDiagrams();
 
 function savePersonal(body) {
     return fetch(`/c/${CHURCH}/songs/${SONG}/personal`, {

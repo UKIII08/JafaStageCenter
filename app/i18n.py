@@ -308,7 +308,7 @@ PL = {
     "Songs — %(church)s": "Piosenki — %(church)s",
     "The library is empty": "Biblioteka jest pusta",
     "Manage in Studio": "Zarządzaj w Studiu", "Edit in Studio": "Edytuj w Studiu",
-    "Add song": "Dodaj pieśń", "Import .txt": "Importuj .txt",
+    "Import .txt": "Importuj .txt",
     "Search by title or lyrics": "Szukaj po tytule lub tekście",
     "Add your first song with the button above — or import a .txt file "
     "exported from the desktop app.":
@@ -330,6 +330,8 @@ PL = {
     "Auto-scroll": "Autoprzewijanie", "Metronome": "Metronom", "Stop": "Stop",
     "saved": "zapisano", "saving…": "zapisywanie…",
     "Practice:": "Ćwiczenie:", "my key": "moja tonacja",
+    "Chords": "Akordy", "Guitar": "Gitara", "Piano": "Pianino",
+    "No chords to show yet.": "Brak akordów do pokazania.",
     "My note": "Moja notatka", "(visible only to you)": "(widoczna tylko dla Ciebie)",
     "e.g. play barre on the bridge, come in on 3":
         "np. w bridge gram barré, wejście na 3",
