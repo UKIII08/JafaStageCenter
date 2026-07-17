@@ -79,15 +79,21 @@ const PREFS = {{ prefs|tojson }};
 let transpose = {{ transpose }};
 const BPM = {{ song.bpm or 0 }};
 const viewPrefs = Object.assign({}, PREFS, { capo_default: 0 });
+// WAŻNE: zapisujemy surową (międzynarodową) nazwę akordu ZANIM applyChordPrefs
+// zamieni ją na formę wyświetlaną (np. Em -> "e" przy „małe litery = moll",
+// albo notacja polska). Diagramy muszą używać nazwy międzynarodowej, inaczej
+// „e" jest czytane jako E-dur (błąd: Em pokazywał E-dur).
+document.querySelectorAll('#song-body .song-render .chord').forEach(function (el) {
+    el.dataset.rawChord = el.textContent.trim();
+});
 document.querySelectorAll('.song-render').forEach(el => applyChordPrefs(el, viewPrefs));
 
 // ── Diagramy akordów w bocznym panelu (gitara / pianino) ──
 const NO_DIAG = '{{ _('No chords to show yet.') }}';
 function currentInstrument() { return localStorage.getItem('jafa_practice_instrument') || 'guitar'; }
 function chordFromEl(el) {
-    // .chord może mieć podspany bass-slash/bass-note — składamy pełną nazwę.
-    var base = el.querySelector('.bass-note') ? el.firstChild.textContent : el.textContent;
-    return (base || '').trim();
+    // Surowa nazwa międzynarodowa (zapisana przed konwersją notacji).
+    return (el.dataset.rawChord || el.textContent || '').trim();
 }
 function renderDiagrams() {
     if (typeof getChordVoicings !== 'function') return;
