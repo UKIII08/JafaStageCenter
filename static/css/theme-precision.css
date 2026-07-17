@@ -23,22 +23,22 @@ body {
     --border-subtle: rgba(255, 255, 255, 0.04);
     --border-default: rgba(255, 255, 255, 0.08);
     --border-strong: rgba(255, 255, 255, 0.17);
-    --border-focus: rgba(169, 155, 232, 0.45);
+    --border-focus: rgba(79, 127, 255, 0.45);
 
     --text-primary: #ECEDF0;
     --text-secondary: #969AA4;
     --text-tertiary: #65686F;
     --text-inverse: #141518;
-    --text-accent: #A99BE8;
+    --text-accent: #6690FF;
 
-    /* Akcent — stonowany "twilight", jeden ton (bez neonu) */
-    --accent: #A99BE8;
-    --accent-hover: #B8ABF0;
-    --accent-subtle: rgba(169, 155, 232, 0.16);
+    /* Akcent — niebieski marki (spójny z landingiem), stonowany, bez neonu */
+    --accent: #4F7FFF;
+    --accent-hover: #6690FF;
+    --accent-subtle: rgba(79, 127, 255, 0.16);
     --accent-glow: transparent;            /* poświata skasowana */
 
     /* Akordy: kolor akcentu zamiast neonowego cyjanu */
-    --chord-color: #A99BE8;
+    --chord-color: #6690FF;
     --chord-glow: transparent;
 
     /* Cienie — subtelne, z delikatną krawędzią (bez glow) */
@@ -51,9 +51,9 @@ body {
     /* Nowe: subtelny połysk paneli, tło atmosferyczne, tło kafla-hero */
     --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.035), transparent 44%);
     --ambient:
-        radial-gradient(1100px 520px at 86% -14%, rgba(169,155,232,0.14), transparent 60%),
-        radial-gradient(900px 500px at 2% 112%, rgba(110,140,200,0.07), transparent 55%);
-    --hero-bg: linear-gradient(135deg, rgba(169,155,232,0.22), rgba(110,140,200,0.07) 50%, transparent 80%), #171A20;
+        radial-gradient(1100px 520px at 86% -14%, rgba(79,127,255,0.14), transparent 60%),
+        radial-gradient(900px 500px at 2% 112%, rgba(79,127,255,0.06), transparent 55%);
+    --hero-bg: linear-gradient(135deg, rgba(79,127,255,0.20), rgba(79,127,255,0.05) 50%, transparent 80%), #171A20;
 }
 
 /* ── Tokeny — motyw JASNY ── */
@@ -70,20 +70,20 @@ body {
     --border-subtle: rgba(15, 18, 22, 0.05);
     --border-default: rgba(15, 18, 22, 0.09);
     --border-strong: rgba(15, 18, 22, 0.17);
-    --border-focus: rgba(90, 84, 201, 0.4);
+    --border-focus: rgba(37, 99, 235, 0.4);
 
     --text-primary: #16181C;
     --text-secondary: #585E68;
     --text-tertiary: #8B909A;
     --text-inverse: #FFFFFF;
-    --text-accent: #5A54C9;
+    --text-accent: #2563EB;
 
-    --accent: #5A54C9;
-    --accent-hover: #4A44B8;
-    --accent-subtle: rgba(90, 84, 201, 0.11);
+    --accent: #2563EB;
+    --accent-hover: #1D4ED8;
+    --accent-subtle: rgba(37, 99, 235, 0.11);
     --accent-glow: transparent;
 
-    --chord-color: #5A54C9;
+    --chord-color: #2563EB;
     --chord-glow: transparent;
 
     --shadow-sm: 0 1px 2px rgba(15,18,22,0.05);
@@ -93,8 +93,8 @@ body {
     --shadow-inset: inset 0 1px 2px rgba(15,18,22,0.05);
 
     --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.55), transparent 44%);
-    --ambient: radial-gradient(1000px 460px at 92% -14%, rgba(90,84,201,0.08), transparent 60%);
-    --hero-bg: linear-gradient(135deg, rgba(90,84,201,0.12), rgba(90,84,201,0.02) 55%), #FFFFFF;
+    --ambient: radial-gradient(1000px 460px at 92% -14%, rgba(37,99,235,0.08), transparent 60%);
+    --hero-bg: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(37,99,235,0.02) 55%), #FFFFFF;
 }
 
 /* ── Focus: obrys akcentu bez neonowej poświaty ── */
