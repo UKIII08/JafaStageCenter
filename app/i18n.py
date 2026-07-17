@@ -149,6 +149,39 @@ PL = {
     "Live now": "Na żywo", "A live session is running": "Trwa sesja LIVE",
     "Join as a musician": "Dołącz jako muzyk",
     "Leader panel": "Panel prowadzącego",
+
+    # ── Dashboard (kafelki na wejście) ──
+    "Good to see you, %(name)s": "Dobrze Cię widzieć, %(name)s",
+    "here is what matters today.": "oto co dziś najważniejsze.",
+    "You're on the team": "Grasz w obsadzie",
+    "Your next service:": "Twoja najbliższa służba:",
+    "Prepare! →": "Przygotuj się! →",
+    "No upcoming service": "Brak nadchodzącej służby",
+    "When a service is scheduled, it shows up here with everything you need to "
+    "prepare.":
+        "Gdy zaplanujecie służbę, pojawi się tu razem ze wszystkim, czego "
+        "potrzebujesz do przygotowania.",
+    "Plan a service →": "Zaplanuj służbę →",
+    "See services →": "Zobacz służby →",
+    "Back to practice": "Wróć do ćwiczenia",
+    "Open the song library and rehearse with chords and diagrams.":
+        "Otwórz bibliotekę piosenek i ćwicz z akordami i diagramami.",
+    "Practice now →": "Ćwicz teraz →",
+    "Build the setlist and run the whole service live.":
+        "Ułóż setlistę i poprowadź całą służbę na żywo.",
+    "Open Studio →": "Otwórz Studio →",
+    "Live view": "Widok na żywo",
+    "Follow lyrics and chords sent live during the service.":
+        "Śledź tekst i akordy wysyłane na żywo podczas służby.",
+    "Go live →": "Wejdź na żywo →",
+    "See who plays and invite new members.":
+        "Zobacz, kto gra, i zaproś nowe osoby.",
+    "View team →": "Zobacz zespół →",
+    "My profile": "Mój profil",
+    "Set your instrument and playing preferences.":
+        "Ustaw swój instrument i preferencje grania.",
+    "Edit profile →": "Edytuj profil →",
+
     "Prepare songs and a setlist, invite the team, and on Sunday start a LIVE "
     "session from the chosen setlist — the team's phones and screens sync "
     "automatically.":

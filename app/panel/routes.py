@@ -113,11 +113,27 @@ def create_church():
 @panel_bp.get('/c/<church_id>')
 @require_membership('muzyk')
 def church_home(church_id, membership):
-    # Widok domyślny jak w aplikacji desktop: prowadzący ląduje w Studiu,
-    # muzyk w "Graniu" (kiedy gram, na czym, setlista do nauki).
-    if membership.role in ('prowadzacy', 'admin'):
-        return redirect(url_for('studio.control', church_id=church_id))
-    return redirect(url_for('events.events_list', church_id=church_id))
+    # Przyjazny dashboard na wejście: najbliższa służba (Przygotuj się!),
+    # powrót do ćwiczenia, Studio (prowadzący) i skróty do reszty.
+    from datetime import date
+    from app.models import Event, EventAssignment
+    user = current_user()
+    today = date.today()
+    # Najbliższe granie, w które jestem wpisany do obsady; jak brak — najbliższe
+    # granie wspólnoty w ogóle (żeby kafelek zawsze coś sensownego pokazał).
+    my_event = Event.query.join(
+        EventAssignment, EventAssignment.event_id == Event.id).filter(
+        Event.church_id == church_id, Event.deleted.is_(False),
+        Event.date >= today, EventAssignment.user_id == user.id).order_by(
+        Event.date.asc()).first()
+    next_event = my_event or Event.query.filter(
+        Event.church_id == church_id, Event.deleted.is_(False),
+        Event.date >= today).order_by(Event.date.asc()).first()
+    church = db.session.get(Church, church_id)
+    return render_template('panel/dashboard.html', church=church,
+                           membership=membership, user=user,
+                           next_event=next_event, my_event=my_event is not None,
+                           today=today)
 
 
 @panel_bp.get('/c/<church_id>/team')
