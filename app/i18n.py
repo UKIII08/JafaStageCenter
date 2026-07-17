@@ -195,6 +195,16 @@ PL = {
     "Appearance & language": "Wygląd i język",
     "Theme": "Motyw", "Light": "Jasny", "Dark": "Ciemny",
     "Language": "Język",
+    # Dashboard — dane na kafelkach (design z obrazków)
+    "today": "dzisiaj", "tomorrow": "jutro",
+    "in %(n)s days": "za %(n)s dni",
+    "songs": "pieśni", "min": "min",
+    "No active session. Last:": "Brak aktywnej sesji. Ostatnia:",
+    "No active session yet.": "Jeszcze bez sesji na żywo.",
+    "International notation": "Notacja międzynarodowa",
+    "Polish notation": "Notacja polska",
+    "capo": "kapo", "chords on": "akordy wł.", "chords off": "akordy wył.",
+    "admins": "adminów", "leaders": "prowadzących", "musicians": "muzyków",
 
     "Prepare songs and a setlist, invite the team, and on Sunday start a LIVE "
     "session from the chosen setlist — the team's phones and screens sync "

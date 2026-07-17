@@ -110,19 +110,28 @@ def create_church():
     return render_template('panel/create_church.html')
 
 
+AVG_SONG_MIN = 4   # zgrubny czas jednej pieśni (do szacunku długości setlisty)
+
+
+def _est_minutes(n):
+    return int(round(n * AVG_SONG_MIN))
+
+
 @panel_bp.get('/c/<church_id>')
 @require_membership('muzyk')
 def church_home(church_id, membership):
-    # Przyjazny dashboard na wejście: najbliższa służba (Przygotuj się!),
-    # powrót do ćwiczenia, Studio (prowadzący) i skróty do reszty.
+    # Przyjazny dashboard na wejście (design „Precision"): najbliższa służba
+    # z podglądem setlisty, Live ze statusem, profil, Studio, powrót do
+    # ćwiczenia z postępem, zespół z podziałem ról. Dane liczone realnie;
+    # to, czego nie ma, chowa się z gracją.
     import json
     from types import SimpleNamespace
     from datetime import date
-    from app.models import Event, EventAssignment, StudioSetlist
+    from app.models import (Event, EventAssignment, StudioSetlist,
+                            LiveSession, SongPersonal, Song)
     user = current_user()
     today = date.today()
-    # Najbliższe granie, w które jestem wpisany do obsady; jak brak — najbliższe
-    # granie wspólnoty w ogóle (żeby kafelek zawsze coś sensownego pokazał).
+    # ── Najbliższa służba (moja obsada > dowolna) ──
     my_event = Event.query.join(
         EventAssignment, EventAssignment.event_id == Event.id).filter(
         Event.church_id == church_id, Event.deleted.is_(False),
@@ -131,7 +140,8 @@ def church_home(church_id, membership):
     next_event = my_event or Event.query.filter(
         Event.church_id == church_id, Event.deleted.is_(False),
         Event.date >= today).order_by(Event.date.asc()).first()
-    # Podgląd setlisty najbliższego grania (jeśli podpięta).
+    next_days = (next_event.date - today).days if next_event else None
+    # Podgląd setlisty najbliższego grania.
     next_event_songs = []
     if next_event and next_event.setlist_id:
         sl = StudioSetlist.query.filter_by(
@@ -144,17 +154,85 @@ def church_home(church_id, membership):
                     for s in json.loads(sl.songs or '[]')]
             except (ValueError, AttributeError):
                 next_event_songs = []
-    # Zespół — awatary na kafelku (imiona z profili).
+    setlist_minutes = _est_minutes(len(next_event_songs))
+
+    # ── Mój profil (instrument + preferencje na kafelku) ──
+    my_profile = Profile.query.filter_by(
+        church_id=church_id, user_id=user.id, deleted=False).first()
+
+    # ── Live: ostatnia zakończona sesja (jeśli była) ──
+    last_session = LiveSession.query.filter(
+        LiveSession.church_id == church_id,
+        LiveSession.ended_at.isnot(None)).order_by(
+        LiveSession.ended_at.desc()).first()
+    last_session_at = last_session.ended_at if last_session else None
+
+    # ── Studio: ostatnia setlista (liczba pieśni + szacowany czas) ──
+    last_setlist = None
+    last_sl = StudioSetlist.query.filter_by(church_id=church_id) \
+        .order_by(StudioSetlist.id.desc()).first()
+    if last_sl:
+        try:
+            n = len(json.loads(last_sl.songs or '[]'))
+        except (ValueError, TypeError):
+            n = 0
+        if n:
+            last_setlist = SimpleNamespace(count=n, minutes=_est_minutes(n))
+
+    # ── Ćwiczenie: ostatnio ćwiczona pieśń + postęp względem setlisty ──
+    last_practiced = None
+    practice_done = practice_total = 0
+    if my_profile:
+        sp = SongPersonal.query.filter_by(profile_id=my_profile.id) \
+            .order_by(SongPersonal.updated_at.desc()).first()
+        if sp:
+            song = db.session.get(Song, sp.song_id)
+            if song and not song.deleted:
+                last_practiced = SimpleNamespace(
+                    title=song.title, key=sp.preferred_key or song.key or '')
+        # postęp = ile z pieśni najbliższej setlisty mam już „ruszonych"
+        if next_event_songs:
+            titles = {s.title for s in next_event_songs}
+            practice_total = len(titles)
+            done_titles = {
+                song.title for song in Song.query.filter(
+                    Song.church_id == church_id, Song.title.in_(titles)).all()
+                if SongPersonal.query.filter_by(
+                    profile_id=my_profile.id, song_id=song.id).first()}
+            practice_done = len(done_titles)
+
+    # ── Zespół: awatary + podział ról ──
+    memberships = Membership.query.filter_by(
+        church_id=church_id, status='active').all()
+    role_counts = {'admin': 0, 'prowadzacy': 0, 'muzyk': 0}
+    for m in memberships:
+        role_counts[m.role] = role_counts.get(m.role, 0) + 1
+    # Podpis „1 admin · 1 leader · 4 musicians" (z uwzględnieniem języka).
+    summary_parts = []
+    for code, sing, plur in (('admin', 'admin', 'admins'),
+                             ('prowadzacy', 'leader', 'leaders'),
+                             ('muzyk', 'musician', 'musicians')):
+        n = role_counts.get(code, 0)
+        if n:
+            summary_parts.append(f'{n} ' + (_(sing) if n == 1 else _(plur)))
+    team_summary = ' · '.join(summary_parts)
+    profiles = {p.user_id: p.name for p in Profile.query.filter_by(
+        church_id=church_id, deleted=False).all()}
     team_members = [
-        SimpleNamespace(user_id=p.user_id, display_name=p.name)
-        for p in Profile.query.filter_by(
-            church_id=church_id, deleted=False).all()]
+        SimpleNamespace(user_id=m.user_id,
+                        display_name=profiles.get(m.user_id) or '?')
+        for m in memberships]
+
     church = db.session.get(Church, church_id)
-    return render_template('panel/dashboard.html', church=church,
-                           membership=membership, user=user,
-                           next_event=next_event, my_event=my_event is not None,
-                           next_event_songs=next_event_songs,
-                           team_members=team_members, today=today)
+    return render_template(
+        'panel/dashboard.html', church=church, membership=membership,
+        user=user, next_event=next_event, my_event=my_event is not None,
+        next_event_songs=next_event_songs, next_days=next_days,
+        setlist_minutes=setlist_minutes, my_profile=my_profile,
+        last_session_at=last_session_at, last_setlist=last_setlist,
+        last_practiced=last_practiced, practice_done=practice_done,
+        practice_total=practice_total, team_members=team_members,
+        role_counts=role_counts, team_summary=team_summary, today=today)
 
 
 @panel_bp.get('/c/<church_id>/team')
