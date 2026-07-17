@@ -93,6 +93,24 @@ def test_send_text_and_current_slide(app, client):
     assert '[' not in slide['people']    # tekst dla zboru bez akordów
 
 
+def test_live_flag_clears_when_setlist_emptied(app, client):
+    # Regresja: po opróżnieniu setlisty (Studio wysyła pusty/logo slajd)
+    # dashboard nie może dalej pokazywać "na żywo".
+    cid = make_church(app, client, 'a@a.pl', 'Zbor A')
+    # gramy piosenkę z niepustą setlistą -> LIVE
+    client.post(f'/c/{cid}/studio/send_text', json={
+        'text': SONG, 'song_title': 'Testowa', 'key': 'G',
+        'setlist': [{'title': 'Testowa'}], 'current_index': 0})
+    assert client.get(f'/api/live/current/{cid}').get_json()['active'] is True
+    # opróżnienie setlisty = clearLiveDisplay -> logo + pusta setlista
+    client.post(f'/c/{cid}/studio/send_text', json={
+        'logo': True, 'setlist': [], 'current_index': -1})
+    assert client.get(f'/api/live/current/{cid}').get_json()['active'] is False
+    # ekrany dostają czysty slajd (logo), nie stary tekst
+    slide = client.get(f'/c/{cid}/studio/api/current-slide').get_json()
+    assert slide['mode'] == 'logo'
+
+
 def test_screen_token_access(app, client):
     cid = make_church(app, client, 'a@a.pl', 'Zbor A')
     client.post(f'/c/{cid}/studio/send_text', json={'text': SONG})

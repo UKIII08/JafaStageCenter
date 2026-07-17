@@ -59,6 +59,20 @@ def _active_session(church_id):
         church_id=church_id, ended_at=None).first()
 
 
+def _studio_is_live(church_id):
+    """Czy w Studiu (port desktopu) trwa realne LIVE — tzn. na ekranach jest
+    faktyczny slajd (nie logo/pusto/blackout) i setlista nie jest pusta.
+    Bez tego dashboard pokazywałby 'na żywo' bez końca (last_slide siedzi w
+    Redisie godzinami), a po opróżnieniu setlisty wciąż 'trwa'."""
+    last = live_state.studio_get(church_id, 'last_slide')
+    if not last or last.get('mode') in (None, 'none', 'logo'):
+        return False
+    if last.get('is_blackout'):
+        return False
+    ss = live_state.studio_get(church_id, 'server_state') or {}
+    return bool(ss.get('setlist'))
+
+
 def _setlist_rows(church_id, sl):
     songs_by_id = {s.id: s for s in Song.query.filter_by(
         church_id=church_id, deleted=False).all()}
@@ -255,7 +269,9 @@ def api_current(church_id):
             church_id=church_id, token=token, revoked_at=None).first()
         if not st_ok:
             abort(403)
-    return jsonify({'active': _active_session(church_id) is not None,
+    active = (_active_session(church_id) is not None
+              or _studio_is_live(church_id))
+    return jsonify({'active': active,
                     'state': live_state.get_state(church_id)})
 
 

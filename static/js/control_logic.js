@@ -743,6 +743,19 @@ function updateServerState() {
     });
 }
 
+// (web) Wyczyszczenie tego, co widzą ekrany/zespół — po opróżnieniu setlisty
+// albo usunięciu granej piosenki. Bez tego na telefonach zostaje ostatni
+// tekst i wygląda, jakby wciąż trwało LIVE. Wysyłamy pusty (logo) slajd,
+// który kasuje last_slide na serwerze i gasi ekrany do czystego widoku.
+function clearLiveDisplay() {
+    currentLiveState = { c: '', n: '', forceTrans: null, nextTrans: null };
+    document.querySelectorAll('.slide-btn.active').forEach(function (b) { b.classList.remove('active'); });
+    fetch('/send_text', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logo: true, setlist: setlist, current_index: -1 })
+    });
+}
+
 function switchMode(m){document.querySelectorAll('.mode-container').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.segmented-control button, .mode-btn').forEach(b=>b.classList.remove('active'));if(m==='worship'){appMode='worship';var wm=document.getElementById('worship-mode');if(wm)wm.classList.add('active');var wb=document.querySelector('button[onclick="switchMode(\'worship\')"]');if(wb)wb.classList.add('active');resendCurrentSlide();}else{appMode='conference';var cm=document.getElementById('conference-mode');if(cm)cm.classList.add('active');var cb=document.querySelector('button[onclick="switchMode(\'conference\')"]');if(cb)cb.classList.add('active');confMode='timer';pushConference();}}
 function resendCurrentSlide(){var active=document.querySelector('.slide-btn.active');if(active){active.click();}else if(currentLiveState){goLiveSection(currentLiveState.c,currentLiveState.n,currentLiveState.forceTrans,currentLiveState.nextTrans);}else{fetch('/send_text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({logo:true})});}}
 function openQRModal(){document.getElementById('qrModal').style.display='flex';}
@@ -1387,12 +1400,13 @@ function removeFromSetlist(i){
         var sc2 = document.getElementById('slides-container'); if (sc2) sc2.innerHTML='';
         var ct2 = document.getElementById('current-title'); if (ct2) ct2.innerText='';
         currentSetIndex=-1;
-        fadeOutAllPads(); 
+        fadeOutAllPads();
+        clearLiveDisplay();   // zgaś ekrany zespołu — inaczej wisi ostatni tekst
     } else if (currentSetIndex > i) {
         currentSetIndex--;
     }
     renderSetlist();
-    updateServerState(); 
+    updateServerState();
 }
 
 function renderSetlist() {
