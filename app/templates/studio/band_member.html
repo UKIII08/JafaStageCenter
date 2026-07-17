@@ -13,6 +13,8 @@
         window.JAFA_MEDIA = {{ media|tojson }};
         window.CHURCH_ID = {{ church_id|tojson }};
         window.SCREEN_TOKEN = {{ screen_token|tojson }};
+        // Zalogowany członek: jego profil (z konta) — wchodzi bez wyboru profilu.
+        window.MY_PROFILE_ID = {{ (my_profile_id if my_profile_id is defined else None)|tojson }};
         (function () {
             var of = window.fetch.bind(window);
             window.fetch = function (u, o) {
@@ -1227,8 +1229,8 @@
             <div id="profile-manage-area" style="display:flex; align-items:center; gap:var(--s3);">
                 <div id="manage-avatar" class="profile-avatar" style="width:36px; height:36px; font-size:1rem; flex-shrink:0;"></div>
                 <span id="manage-profile-name" style="flex:1; font-weight:600; color:var(--text-primary);"></span>
-                <button class="btn btn-ghost" onclick="switchProfile()" data-t="bm_switch_profile" style="font-size:var(--text-xs);">Zmień</button>
-                <button class="btn btn-danger" onclick="deleteProfile()" style="padding:var(--s1) var(--s2);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                <button id="btn-switch-profile" class="btn btn-ghost" onclick="switchProfile()" data-t="bm_switch_profile" style="font-size:var(--text-xs);">Zmień</button>
+                <button id="btn-delete-profile" class="btn btn-danger" onclick="deleteProfile()" style="padding:var(--s1) var(--s2);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
             </div>
         </div>
 
@@ -1344,14 +1346,22 @@
         function getProfileId() { return localStorage.getItem('jafa_profile_id'); }
 
         function initProfile() {
-            var pid = getProfileId();
+            // Zalogowany członek: bez ekranu wyboru — od razu jego profil.
+            var pid = window.MY_PROFILE_ID || getProfileId();
             if (pid) {
                 fetch('/api/profiles/' + pid).then(r => r.json()).then(function(p) {
-                    if (p.error) { showProfileScreen(); return; }
+                    if (p.error) {
+                        // Zalogowany bez ważnego profilu nie powinien wybierać
+                        // cudzego — pokazujemy picker tylko trybie tokenowym.
+                        if (window.MY_PROFILE_ID) return;
+                        showProfileScreen();
+                        return;
+                    }
                     currentProfile = p;
+                    if (window.MY_PROFILE_ID) localStorage.setItem('jafa_profile_id', p.id);
                     applyProfileSettings(p);
                     showProfileBadge(p);
-                }).catch(function() { showProfileScreen(); });
+                }).catch(function() { if (!window.MY_PROFILE_ID) showProfileScreen(); });
             } else {
                 showProfileScreen();
             }
@@ -1429,6 +1439,16 @@
             var mName = document.getElementById('manage-profile-name');
             if (mAvatar) { mAvatar.style.background = p.color || '#6366f1'; mAvatar.textContent = (p.name || '?')[0].toUpperCase(); }
             if (mName) mName.textContent = p.name;
+            // Zalogowany członek ma jeden profil (z konta): bez zmiany/usuwania
+            // i bez wracania do wyboru profilu przez badge.
+            if (window.MY_PROFILE_ID) {
+                badge.style.cursor = 'default';
+                badge.onclick = null;
+                var sw = document.getElementById('btn-switch-profile');
+                var del = document.getElementById('btn-delete-profile');
+                if (sw) sw.style.display = 'none';
+                if (del) del.style.display = 'none';
+            }
         }
 
         function switchProfile() {

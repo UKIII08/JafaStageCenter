@@ -273,8 +273,19 @@ def _studio_screen_ctx(church_id, token=None):
 @live_bp.get('/c/<church_id>/live/band')
 @require_membership('muzyk')
 def band(church_id, membership):
-    return render_template('studio/band_member.html',
-                           **_studio_screen_ctx(church_id))
+    # Zalogowany członek nie wybiera profilu — wchodzi od razu w swój
+    # (ten powiązany z kontem). Jeśli go brak (stare konto), tworzymy.
+    user = current_user()
+    profile = Profile.query.filter_by(
+        church_id=church_id, user_id=user.id, deleted=False).first()
+    if not profile:
+        profile = Profile(church_id=church_id, user_id=user.id,
+                          name=user.display_name)
+        db.session.add(profile)
+        db.session.commit()
+    ctx = _studio_screen_ctx(church_id)
+    ctx['my_profile_id'] = profile.id
+    return render_template('studio/band_member.html', **ctx)
 
 
 # ── Ekrany (rzutnik / TV sceny / telefon zespołu) ──
