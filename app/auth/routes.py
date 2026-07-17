@@ -35,6 +35,28 @@ def login_required(f):
     return wrapper
 
 
+def _safe_next(target):
+    """Zwraca `target` tylko jeśli to bezpieczna ścieżka lokalna (bez hosta) —
+    inaczej dashboard. Blokuje open-redirect (?next=https://evil.com)."""
+    from urllib.parse import urlparse
+    if (target and target.startswith('/') and not target.startswith('//')
+            and not urlparse(target).netloc):
+        return target
+    return url_for('panel.dashboard')
+
+
+def _pw_key(user):
+    """Krótki „odcisk" bieżącego hasła — wpinany w token resetu, żeby po
+    zmianie hasła (lub jednym użyciu) stary token przestał działać."""
+    import hashlib
+    return hashlib.sha256(user.password_hash.encode()).hexdigest()[:16]
+
+
+# Wzorcowy hash do porównania „na pusto" — równy czas logowania niezależnie
+# od tego, czy konto istnieje (blokuje wyciek przez pomiar czasu).
+_DUMMY_HASH = generate_password_hash('timing-equalizer')
+
+
 @auth_bp.route('/register', methods=['GET', 'POST'])
 @limiter.limit('10 per hour', methods=['POST'])
 def register():
@@ -49,7 +71,15 @@ def register():
         if not name:
             flash(_('Enter your name.')); return render_template('auth/register.html')
         if User.query.filter_by(email=email).first():
-            flash(_('An account with this address already exists — please log in.'))
+            # Anty-enumeracja: nie potwierdzamy istnienia konta. Ostrzegamy
+            # właściciela adresu i pokazujemy neutralny komunikat.
+            try:
+                send_email(email, _('Jonathan App — account already exists'),
+                           _('Someone tried to sign up with your e-mail. If it '
+                             'was you, just log in or reset your password.'))
+            except Exception:
+                pass
+            flash(_('If this address can be used, we\'ve e-mailed you the next steps.'))
             return redirect(url_for('auth.login'))
         user = User(email=email, display_name=name,
                     password_hash=generate_password_hash(password))
@@ -57,8 +87,7 @@ def register():
         db.session.commit()
         session['user_id'] = user.id
         _send_verification(user)
-        nxt = request.args.get('next')
-        return redirect(nxt or url_for('panel.dashboard'))
+        return redirect(_safe_next(request.args.get('next')))
     return render_template('auth/register.html')
 
 
@@ -69,6 +98,9 @@ def login():
         email = (request.form.get('email') or '').strip().lower()
         password = request.form.get('password') or ''
         user = User.query.filter_by(email=email).first()
+        if not user:
+            # porównanie „na pusto" — równy czas niezależnie od istnienia konta
+            check_password_hash(_DUMMY_HASH, password)
         if not user or not check_password_hash(user.password_hash, password):
             flash(_('Invalid e-mail or password.'))
             return render_template('auth/login.html')
@@ -80,8 +112,7 @@ def login():
         user.last_login_at = datetime.utcnow()
         db.session.commit()
         session['user_id'] = user.id
-        nxt = request.args.get('next')
-        return redirect(nxt or url_for('panel.dashboard'))
+        return redirect(_safe_next(request.args.get('next')))
     return render_template('auth/login.html')
 
 
@@ -100,8 +131,7 @@ def login_2fa():
             session['user_id'] = user.id
             user.last_login_at = datetime.utcnow()
             db.session.commit()
-            nxt = request.args.get('next')
-            return redirect(nxt or url_for('panel.dashboard'))
+            return redirect(_safe_next(request.args.get('next')))
         flash(_('Invalid code — try again.'))
     return render_template('auth/login_2fa.html')
 
@@ -186,7 +216,8 @@ def reset_request():
         email = (request.form.get('email') or '').strip().lower()
         user = User.query.filter_by(email=email).first()
         if user:
-            token = _reset_serializer().dumps(user.id)
+            token = _reset_serializer().dumps({'uid': user.id,
+                                               'k': _pw_key(user)})
             link = url_for('auth.reset_token', token=token, _external=True)
             send_email(email, _('Jonathan App — password reset'),
                        _('To set a new password, open this link '
@@ -199,12 +230,16 @@ def reset_request():
 @auth_bp.route('/reset/<token>', methods=['GET', 'POST'])
 def reset_token(token):
     try:
-        uid = _reset_serializer().loads(token, max_age=7200)
+        data = _reset_serializer().loads(token, max_age=7200)
     except (BadSignature, SignatureExpired):
         flash(_('The link expired or is invalid — request a new one.'))
         return redirect(url_for('auth.reset_request'))
+    # Token wiąże się z bieżącym hasłem — po zmianie hasła (jednorazowość)
+    # stary link przestaje działać.
+    uid = data.get('uid') if isinstance(data, dict) else data
     user = db.session.get(User, uid)
-    if not user:
+    if not user or (isinstance(data, dict) and data.get('k') != _pw_key(user)):
+        flash(_('The link expired or is invalid — request a new one.'))
         return redirect(url_for('auth.reset_request'))
     if request.method == 'POST':
         password = request.form.get('password') or ''

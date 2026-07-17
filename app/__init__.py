@@ -21,6 +21,17 @@ def create_app(config_object='app.config.Config'):
     app = Flask(__name__, template_folder='templates',
                 static_folder='../static')
     app.config.from_object(config_object)
+    # Fail-closed: w produkcji nie wolno wystartować z domyślnym/pustym
+    # SECRET_KEY — podpisuje ciasteczka sesji i tokeny resetu hasła. Do
+    # lokalnego devu można świadomie ustawić ALLOW_INSECURE_SECRET=1.
+    if (not app.config.get('TESTING')
+            and os.environ.get('ALLOW_INSECURE_SECRET') != '1'):
+        sk = app.config.get('SECRET_KEY')
+        if not sk or sk == 'dev-only-change-me':
+            raise RuntimeError(
+                'SECRET_KEY nie jest ustawiony (lub ma wartość domyślną). '
+                'Ustaw silny, unikalny SECRET_KEY w środowisku (deploy/.env). '
+                'Lokalnie do testów: ALLOW_INSECURE_SECRET=1.')
     if os.environ.get('BEHIND_PROXY') == '1':
         # Za Caddy: prawdziwy protokół/host z nagłówków X-Forwarded-*
         # (inaczej linki _external i cookies myślą, że jesteśmy na http).
@@ -57,8 +68,19 @@ def create_app(config_object='app.config.Config'):
     @app.get('/lang/<code>')
     def switch_lang(code):
         from flask import redirect, request as _req
+        from urllib.parse import urlparse
         set_lang(code)
-        return redirect(_req.args.get('next') or _req.referrer or '/')
+        # Anty open-redirect: ?next tylko jako lokalna ścieżka; referrer tylko
+        # jeśli z tego samego hosta (bierzemy samą ścieżkę), inaczej '/'.
+        target = _req.args.get('next') or ''
+        if (target.startswith('/') and not target.startswith('//')
+                and not urlparse(target).netloc):
+            return redirect(target)
+        ref = _req.referrer
+        if ref and urlparse(ref).netloc == urlparse(_req.host_url).netloc:
+            rp = urlparse(ref)
+            return redirect(rp.path + (('?' + rp.query) if rp.query else ''))
+        return redirect('/')
 
     with app.app_context():
         db.create_all()   # M0: create_all; migracje Alembic dojdą w M1

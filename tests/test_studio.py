@@ -147,6 +147,15 @@ def test_screen_token_access(app, client):
     # strona ekranu po tokenie
     r = fresh.get(f'/screen/{"x" * 43}')
     assert r.status_code == 200
+    # regresja bezpieczeństwa: token ekranu (półpubliczny) NIE MOŻE zapisywać
+    # ani kasować danych — tylko odczyt.
+    tok = f'?token={"x" * 43}'
+    assert fresh.post(f'/c/{cid}/studio/api/profiles{tok}',
+                      json={'name': 'Haker'}).status_code == 403
+    assert fresh.delete(
+        f'/c/{cid}/studio/api/profiles/whatever{tok}').status_code == 403
+    assert fresh.post(f'/c/{cid}/studio/api/presets{tok}',
+                      json={'name': 'x'}).status_code == 403
 
 
 def test_presets_and_profiles(app, client):

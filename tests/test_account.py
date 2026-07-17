@@ -104,3 +104,31 @@ def test_account_delete_blocked_when_others_in_church(app, client):
     with app.app_context():
         assert User.query.filter_by(email='czlonek@x.pl').first() is None
         assert db.session.get(Church, cid) is not None
+
+
+def test_reset_token_single_use(app, client):
+    # Regresja: token resetu jest jednorazowy — po zmianie hasła stary link
+    # przestaje działać (nie da się nim ponownie przejąć konta).
+    register(client, 'r@r.pl')
+    client.get('/logout')
+    with app.app_context():
+        from app.auth.routes import _reset_serializer, _pw_key
+        u = User.query.filter_by(email='r@r.pl').first()
+        token = _reset_serializer().dumps({'uid': u.id, 'k': _pw_key(u)})
+    r = client.post(f'/reset/{token}', data={'password': 'noweHaslo123'},
+                    follow_redirects=True)
+    assert r.status_code == 200
+    # ten sam token po zmianie hasła jest już nieważny
+    r2 = client.get(f'/reset/{token}', follow_redirects=True)
+    assert b'request a new one' in r2.data
+
+
+def test_open_redirect_blocked(app, client):
+    # Regresja: ?next / lang nie mogą przekierować na obcy host (phishing).
+    register(client, 'o@o.pl')
+    client.get('/logout')
+    r = client.post('/login?next=https://evil.com',
+                    data={'email': 'o@o.pl', 'password': 'haslo1234'})
+    assert r.status_code == 302 and 'evil.com' not in r.headers['Location']
+    r2 = client.get('/lang/en?next=https://evil.com')
+    assert r2.status_code == 302 and 'evil.com' not in r2.headers['Location']

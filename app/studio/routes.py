@@ -59,15 +59,22 @@ def _screen_ok(church_id):
     return t is not None
 
 
-def studio_auth(min_role='prowadzacy', allow_screen=False):
-    """Panel (zapis) = prowadzący/admin. Odczyty ekranów = członek LUB token."""
+def studio_auth(min_role='prowadzacy', allow_screen=False, allow_member=False):
+    """Autoryzacja endpointów Studia:
+    - min_role (prowadzący/admin) zawsze przechodzi;
+    - allow_member: pozwala też zwykłemu muzykowi (członkowi wspólnoty) — do
+      obsługi własnego profilu w widoku muzyka (zapisy) i odczytów;
+    - allow_screen: pozwala anonimowemu tokenowi ekranu (rzutnik/TV) — TYLKO do
+      ODCZYTU. Token ekranu jest półpubliczny (QR/wydruk), więc nigdy nie może
+      modyfikować danych."""
     def deco(fn):
         @wraps(fn)
         def wrapper(church_id, *a, **kw):
             if _member(church_id, min_role):
                 return fn(church_id, *a, **kw)
-            if allow_screen and (_member(church_id, 'muzyk')
-                                 or _screen_ok(church_id)):
+            if allow_member and _member(church_id, 'muzyk'):
+                return fn(church_id, *a, **kw)
+            if allow_screen and _screen_ok(church_id):
                 return fn(church_id, *a, **kw)
             abort(403)
         return wrapper
@@ -107,6 +114,24 @@ def media_dir(church_id, *parts):
 def media_url(church_id, filename=''):
     base = f'/c/{church_id}/media'
     return f'{base}/{filename}' if filename else base
+
+
+# Limity uploadów (ochrona przed zapełnieniem dysku / plikami-bombami).
+IMAGE_MAX_BYTES = 8 * 1024 * 1024          # logo / tło: 8 MB
+IMAGE_MAGICS = (b'\x89PNG\r\n', b'\xff\xd8\xff', b'GIF8', b'RIFF')  # png/jpg/gif/webp
+PRES_MAX_PAGES = 80                        # prezentacja: limit stron (anty-DoS)
+PRES_MAX_PX = 1600                         # maks. szerokość renderu strony
+
+
+def _read_image(f):
+    """Wczytuje obraz z twardym limitem rozmiaru i weryfikacją sygnatury.
+    Zwraca bajty albo None (za duży / to nie jest obraz)."""
+    data = f.read(IMAGE_MAX_BYTES + 1)
+    if len(data) > IMAGE_MAX_BYTES:
+        return None
+    if not any(data.startswith(m) for m in IMAGE_MAGICS):
+        return None
+    return data
 
 
 @studio_bp.get('/media/<path:filename>')
@@ -474,7 +499,12 @@ def reset_settings(church_id):
 def upload_logo(church_id):
     f = request.files.get('logo_file')
     if f and f.filename:
-        f.save(os.path.join(media_dir(church_id), 'logo.png'))
+        data = _read_image(f)
+        if not data:
+            return {'status': 'error',
+                    'message': _('Upload a PNG/JPG image up to 8 MB.')}, 400
+        with open(os.path.join(media_dir(church_id), 'logo.png'), 'wb') as out:
+            out.write(data)
         socketio.emit('refresh_logo', room=f'live:{church_id}')
     return _back(church_id)
 
@@ -484,7 +514,12 @@ def upload_logo(church_id):
 def upload_background(church_id):
     f = request.files.get('bg_file')
     if f and f.filename:
-        f.save(os.path.join(media_dir(church_id), 'background.png'))
+        data = _read_image(f)
+        if not data:
+            return {'status': 'error',
+                    'message': _('Upload a PNG/JPG image up to 8 MB.')}, 400
+        with open(os.path.join(media_dir(church_id), 'background.png'), 'wb') as out:
+            out.write(data)
         socketio.emit('refresh_background', {'has_bg': True},
                       room=f'live:{church_id}')
     return _back(church_id)
@@ -523,9 +558,20 @@ def upload_presentation(church_id):
     file.save(pdf_path)
     try:
         doc = fitz.open(pdf_path)
+        if doc.page_count > PRES_MAX_PAGES:
+            doc.close()
+            os.remove(pdf_path)
+            return {'status': 'error',
+                    'message': _('The presentation has too many pages '
+                                 '(max %(n)s).') % {'n': PRES_MAX_PAGES}}, 400
         slide_urls = []
         for i in range(len(doc)):
-            pix = doc.load_page(i).get_pixmap(dpi=150)
+            page = doc.load_page(i)
+            # Zoom ograniczony do PRES_MAX_PX szerokości — chroni przed
+            # "PDF-bombą" (strona o gigantycznych wymiarach).
+            w = max(float(page.rect.width), 1.0)
+            zoom = min(150 / 72.0, PRES_MAX_PX / w)
+            pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom))
             pix.save(os.path.join(save_dir, f'slide_{i}.png'))
             slide_urls.append(media_url(
                 church_id, f'presentation/{pres_id}/slide_{i}.png'))
@@ -668,7 +714,7 @@ def conf_timer(church_id):
 
 
 @studio_bp.get('/studio/api/setlist')
-@studio_auth('prowadzacy', allow_screen=True)
+@studio_auth('prowadzacy', allow_screen=True, allow_member=True)
 def api_setlist(church_id):
     st = live_state.studio_get(church_id, 'server_state',
                                _default_server_state())
@@ -676,14 +722,14 @@ def api_setlist(church_id):
 
 
 @studio_bp.get('/studio/api/current-slide')
-@studio_auth('prowadzacy', allow_screen=True)
+@studio_auth('prowadzacy', allow_screen=True, allow_member=True)
 def api_current_slide(church_id):
     return live_state.studio_get(church_id, 'last_slide') or {'mode': 'none'}
 
 
 # ── piosenka dla widoku zespołu ──────────────────────────────────────────
 @studio_bp.get('/studio/api/song/<sid>/band')
-@studio_auth('prowadzacy', allow_screen=True)
+@studio_auth('prowadzacy', allow_screen=True, allow_member=True)
 def api_song_band(church_id, sid):
     song = Song.query.filter_by(id=sid, church_id=church_id,
                                 deleted=False).first()
@@ -721,14 +767,14 @@ def _preset_json(p):
 
 
 @studio_bp.get('/studio/api/presets')
-@studio_auth('prowadzacy', allow_screen=True)
+@studio_auth('prowadzacy', allow_screen=True, allow_member=True)
 def get_presets(church_id):
     return [_preset_json(p) for p in
             BandPreset.query.filter_by(church_id=church_id).all()]
 
 
 @studio_bp.post('/studio/api/presets')
-@studio_auth('prowadzacy', allow_screen=True)
+@studio_auth('prowadzacy', allow_member=True)
 def save_preset(church_id):
     data = request.json
     if data.get('id'):
@@ -753,7 +799,7 @@ def save_preset(church_id):
 
 
 @studio_bp.delete('/studio/api/presets/<int:pid>')
-@studio_auth('prowadzacy', allow_screen=True)
+@studio_auth('prowadzacy', allow_member=True)
 def delete_preset(church_id, pid):
     p = BandPreset.query.filter_by(id=pid, church_id=church_id).first()
     if p:
@@ -784,14 +830,14 @@ def _profile_json(p):
 
 
 @studio_bp.get('/studio/api/profiles')
-@studio_auth('prowadzacy', allow_screen=True)
+@studio_auth('prowadzacy', allow_screen=True, allow_member=True)
 def get_profiles(church_id):
     return [_profile_json(p) for p in
             Profile.query.filter_by(church_id=church_id, deleted=False).all()]
 
 
 @studio_bp.post('/studio/api/profiles')
-@studio_auth('prowadzacy', allow_screen=True)
+@studio_auth('prowadzacy', allow_member=True)
 def create_profile(church_id):
     data = request.json
     user = current_user()
@@ -806,7 +852,7 @@ def create_profile(church_id):
 
 
 @studio_bp.get('/studio/api/profiles/<pid>')
-@studio_auth('prowadzacy', allow_screen=True)
+@studio_auth('prowadzacy', allow_screen=True, allow_member=True)
 def get_profile(church_id, pid):
     p = Profile.query.filter_by(id=pid, church_id=church_id,
                                 deleted=False).first()
@@ -816,7 +862,7 @@ def get_profile(church_id, pid):
 
 
 @studio_bp.put('/studio/api/profiles/<pid>')
-@studio_auth('prowadzacy', allow_screen=True)
+@studio_auth('prowadzacy', allow_member=True)
 def update_profile(church_id, pid):
     p = Profile.query.filter_by(id=pid, church_id=church_id,
                                 deleted=False).first()
@@ -840,7 +886,7 @@ def update_profile(church_id, pid):
 
 
 @studio_bp.delete('/studio/api/profiles/<pid>')
-@studio_auth('prowadzacy', allow_screen=True)
+@studio_auth('prowadzacy', allow_member=True)
 def delete_profile(church_id, pid):
     p = Profile.query.filter_by(id=pid, church_id=church_id).first()
     if p:
@@ -851,7 +897,7 @@ def delete_profile(church_id, pid):
 
 
 @studio_bp.get('/studio/api/profiles/<pid>/song/<sid>')
-@studio_auth('prowadzacy', allow_screen=True)
+@studio_auth('prowadzacy', allow_screen=True, allow_member=True)
 def get_song_settings(church_id, pid, sid):
     profile = Profile.query.filter_by(id=pid, church_id=church_id).first()
     if not profile:
@@ -864,7 +910,7 @@ def get_song_settings(church_id, pid, sid):
 
 
 @studio_bp.put('/studio/api/profiles/<pid>/song/<sid>')
-@studio_auth('prowadzacy', allow_screen=True)
+@studio_auth('prowadzacy', allow_member=True)
 def update_song_settings(church_id, pid, sid):
     profile = Profile.query.filter_by(id=pid, church_id=church_id).first()
     song = Song.query.filter_by(id=sid, church_id=church_id).first()

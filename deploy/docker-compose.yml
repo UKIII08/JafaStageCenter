@@ -4,8 +4,9 @@ services:
     build: ..
     restart: unless-stopped
     environment:
-      SECRET_KEY: ${SECRET_KEY}
-      DATABASE_URL: postgresql://jafa:${DB_PASSWORD}@db:5432/jafastage
+      # Wymagane — compose przerwie, jeśli SECRET_KEY/DB_PASSWORD nie ma w .env.
+      SECRET_KEY: ${SECRET_KEY:?ustaw SECRET_KEY w deploy/.env}
+      DATABASE_URL: postgresql://jafa:${DB_PASSWORD:?ustaw DB_PASSWORD w deploy/.env}@db:5432/jafastage
       REDIS_URL: redis://redis:6379/0
       BEHIND_PROXY: "1"
       SMTP_HOST: ${SMTP_HOST:-}
