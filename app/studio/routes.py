@@ -589,7 +589,12 @@ def send_text(church_id):
         socketio.emit('sync_state_to_client', server_state, room=room)
 
     def set_slide(slide):
+        from datetime import datetime
         live_state.studio_set(church_id, 'last_slide', slide)
+        # Znacznik świeżości — dashboard uznaje LIVE tylko, gdy slajd jest świeży
+        # (prowadzący, który zamknął przeglądarkę, nie zostaje "na żywo" na dobę).
+        live_state.studio_set(church_id, 'last_slide_at',
+                              datetime.utcnow().isoformat())
         socketio.emit('update_slide', slide, room=room)
 
     if data.get('logo') is True:

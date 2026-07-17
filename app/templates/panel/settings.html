@@ -3,9 +3,27 @@
 {% block content %}
 
 {# ── Wygląd i język — przełączniki przeniesione tu z górnego paska ── #}
-{% include '_appearance.html' %}
+<div class="panel" style="max-width:560px;">
+    <div class="section-title">{{ _('Appearance & language') }}</div>
 
-{# ── Ustawienia wspólnoty ── #}
+    <div class="set-row">
+        <span>{{ _('Theme') }}</span>
+        <div class="seg" id="theme-seg">
+            <button type="button" data-theme-val="light" onclick="setTheme('light')">{{ _('Light') }}</button>
+            <button type="button" data-theme-val="dark" onclick="setTheme('dark')">{{ _('Dark') }}</button>
+        </div>
+    </div>
+
+    <div class="set-row">
+        <span>{{ _('Language') }}</span>
+        <div class="seg">
+            <a href="{{ url_for('switch_lang', code='pl') }}" class="{{ 'active' if current_lang() == 'pl' }}">Polski</a>
+            <a href="{{ url_for('switch_lang', code='en') }}" class="{{ 'active' if current_lang() == 'en' }}">English</a>
+        </div>
+    </div>
+</div>
+
+{# ── Ustawienia wspólnoty (jak dotychczas) ── #}
 <div class="panel" style="max-width:560px;">
     <h2>{{ _('Community settings') }}</h2>
     <form method="POST">
@@ -33,4 +51,16 @@
         <div style="margin-top:var(--s4);"><button type="submit">{{ _('Save') }}</button></div>
     </form>
 </div>
+
+<script>
+function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('jonathan-theme', t); } catch (e) {}
+    document.querySelectorAll('#theme-seg button').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-theme-val') === t);
+    });
+}
+// oznacz aktywny motyw przy wejściu
+setTheme(document.documentElement.getAttribute('data-theme') || 'dark');
+</script>
 {% endblock %}

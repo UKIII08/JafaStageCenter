@@ -217,6 +217,8 @@ PL = {
     "Instrument": "Instrument", "Invite to the team": "Zaproś do zespołu",
     "Generate link": "Wygeneruj link", "Invite link": "Link zaproszenia",
     "Role:": "Rola:", "musician": "muzyk", "leader": "prowadzący", "admin": "admin",
+    # kody ról (dashboard używa _(membership.role)) — ładne PL
+    "muzyk": "muzyk", "prowadzacy": "prowadzący",
     "Change role": "Zmień rolę", "owner": "właściciel",
     "Remove from the team?": "Usunąć z zespołu?",
     "Profile without an account:": "Profil bez konta:",

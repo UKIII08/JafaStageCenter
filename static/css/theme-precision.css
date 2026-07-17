@@ -1,347 +1,215 @@
 /* ============================================================
-   Jonathan App — motyw „Precision"
-   Ładowany PO design-system.css / app.css. Nadpisuje tokeny
-   (kolory, typografia) i dokłada komponenty nowego dashboardu
-   (bento) oraz przełączników w ustawieniach/profilu.
-   Obsługuje tryb ciemny (domyślny) i jasny przez [data-theme].
+   THEME — "Precision"  (1B)
+   Dojrzały, komercyjny wygląd panelu. Ładowany PO design-system.css
+   i app.css — nadpisuje tokeny i dokłada układ bento. Bez neonu.
    ============================================================ */
 
-/* ── Typografia: Instrument Sans ── */
-:root { --font-ui: 'Instrument Sans', 'Sen', system-ui, -apple-system, sans-serif; }
-body, button, input, select, textarea, .btn, .top-btn, .brand {
-    font-family: var(--font-ui);
+/* ── Font: Instrument Sans (neutralny, produktowy) ── */
+body {
+    font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* ── Tokeny: TRYB CIEMNY (domyślny) ── */
-:root, :root[data-theme="dark"] {
-    --bg-app: #08080A;
-    --bg-panel: #131318;
-    --bg-surface: #1B1B22;
-    --bg-surface-hover: #23232B;
-    --bg-elevated: #202028;
-    --bg-input: #0D0D11;
-    --bg-inset: #050507;
+/* ── Tokeny — motyw CIEMNY (domyślny) ── */
+:root {
+    --bg-app: #0B0C10;
+    --bg-panel: #16181D;
+    --bg-surface: #1F2128;
+    --bg-surface-hover: #262932;
+    --bg-elevated: #2A2D36;
+    --bg-input: #0E0F13;
+    --bg-preview: #08090C;
+    --bg-inset: #0E0F13;
 
     --border-subtle: rgba(255, 255, 255, 0.04);
     --border-default: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.15);
-    --border-focus: rgba(115, 111, 255, 0.55);
+    --border-strong: rgba(255, 255, 255, 0.17);
+    --border-focus: rgba(169, 155, 232, 0.45);
 
-    --text-primary: #F3F3F6;
-    --text-secondary: #A5A5B2;
-    --text-tertiary: #6B6B78;
-    --text-inverse: #0A0A0B;
+    --text-primary: #ECEDF0;
+    --text-secondary: #969AA4;
+    --text-tertiary: #65686F;
+    --text-inverse: #141518;
+    --text-accent: #A99BE8;
 
-    --accent: #7B78FF;
-    --accent-hover: #918EFF;
-    --accent-subtle: rgba(123, 120, 255, 0.13);
-    --accent-glow: rgba(123, 120, 255, 0.28);
+    /* Akcent — stonowany "twilight", jeden ton (bez neonu) */
+    --accent: #A99BE8;
+    --accent-hover: #B8ABF0;
+    --accent-subtle: rgba(169, 155, 232, 0.16);
+    --accent-glow: transparent;            /* poświata skasowana */
 
-    --green: #34D399;  --green-subtle: rgba(52, 211, 153, 0.13);
-    --red: #F87171;    --red-subtle: rgba(248, 113, 113, 0.13);
-    --amber: #FBBF24;  --amber-subtle: rgba(251, 191, 36, 0.13);
+    /* Akordy: kolor akcentu zamiast neonowego cyjanu */
+    --chord-color: #A99BE8;
+    --chord-glow: transparent;
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-    --shadow-md: 0 6px 24px rgba(0, 0, 0, 0.5);
-    --shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.6);
+    /* Cienie — subtelne, z delikatną krawędzią (bez glow) */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-md: inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 12px rgba(0,0,0,0.5);
+    --shadow-lg: inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 40px rgba(0,0,0,0.55);
+    --shadow-glow: none;
+    --shadow-inset: inset 0 1px 2px rgba(0,0,0,0.4);
+
+    /* Nowe: subtelny połysk paneli, tło atmosferyczne, tło kafla-hero */
+    --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.035), transparent 44%);
+    --ambient:
+        radial-gradient(1100px 520px at 86% -14%, rgba(169,155,232,0.14), transparent 60%),
+        radial-gradient(900px 500px at 2% 112%, rgba(110,140,200,0.07), transparent 55%);
+    --hero-bg: linear-gradient(135deg, rgba(169,155,232,0.22), rgba(110,140,200,0.07) 50%, transparent 80%), #171A20;
 }
 
-/* ── Tokeny: TRYB JASNY ── */
-:root[data-theme="light"] {
-    --bg-app: #F6F6F8;
+/* ── Tokeny — motyw JASNY ── */
+[data-theme="light"] {
+    --bg-app: #FAFAFB;
     --bg-panel: #FFFFFF;
-    --bg-surface: #F1F1F5;
-    --bg-surface-hover: #E9E9EF;
+    --bg-surface: #F4F5F7;
+    --bg-surface-hover: #ECEEF1;
     --bg-elevated: #FFFFFF;
-    --bg-input: #F3F3F6;
-    --bg-inset: #EEEEF2;
+    --bg-input: #FFFFFF;
+    --bg-preview: #FAFBFC;
+    --bg-inset: #F4F5F7;
 
-    --border-subtle: rgba(9, 9, 20, 0.04);
-    --border-default: rgba(9, 9, 20, 0.10);
-    --border-strong: rgba(9, 9, 20, 0.16);
-    --border-focus: rgba(91, 87, 232, 0.4);
+    --border-subtle: rgba(15, 18, 22, 0.05);
+    --border-default: rgba(15, 18, 22, 0.09);
+    --border-strong: rgba(15, 18, 22, 0.17);
+    --border-focus: rgba(90, 84, 201, 0.4);
 
-    --text-primary: #16161C;
-    --text-secondary: #52525E;
-    --text-tertiary: #8A8A96;
+    --text-primary: #16181C;
+    --text-secondary: #585E68;
+    --text-tertiary: #8B909A;
     --text-inverse: #FFFFFF;
+    --text-accent: #5A54C9;
 
-    --accent: #5B57E8;
-    --accent-hover: #4E4AD8;
-    --accent-subtle: rgba(91, 87, 232, 0.10);
-    --accent-glow: rgba(91, 87, 232, 0.18);
+    --accent: #5A54C9;
+    --accent-hover: #4A44B8;
+    --accent-subtle: rgba(90, 84, 201, 0.11);
+    --accent-glow: transparent;
 
-    --green: #059669;  --green-subtle: rgba(5, 150, 105, 0.10);
-    --red: #DC2626;    --red-subtle: rgba(220, 38, 38, 0.09);
-    --amber: #B45309;  --amber-subtle: rgba(180, 83, 9, 0.10);
+    --chord-color: #5A54C9;
+    --chord-glow: transparent;
 
-    --shadow-sm: 0 1px 2px rgba(16, 16, 40, 0.06);
-    --shadow-md: 0 6px 22px rgba(16, 16, 40, 0.09);
-    --shadow-lg: 0 18px 44px rgba(16, 16, 40, 0.12);
-}
+    --shadow-sm: 0 1px 2px rgba(15,18,22,0.05);
+    --shadow-md: inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 3px rgba(15,18,22,0.07);
+    --shadow-lg: 0 8px 32px rgba(15,18,22,0.10);
+    --shadow-glow: none;
+    --shadow-inset: inset 0 1px 2px rgba(15,18,22,0.05);
 
-/* Legacy compat — części aplikacji używają starych nazw */
-:root, :root[data-theme] {
-    --accent-primary: var(--accent);
-    --accent-active-bg: var(--accent-subtle);
-    --glow-primary: var(--accent-glow);
-}
-
-/* ── Drobne szlify wspólnych komponentów ── */
-body { -webkit-font-smoothing: antialiased; }
-.brand { letter-spacing: -0.01em; }
-.brand span { color: var(--text-tertiary); }
-.panel { border-radius: var(--r-lg); }
-
-/* ── Górny pasek — czysty tekst (jak w projekcie „Precision") ── */
-.topbar {
-    background: var(--bg-app);
-    border-bottom: 1px solid var(--border-subtle);
-    padding: 14px 28px; min-height: 62px; gap: var(--s6);
-}
-.main-nav { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
-.nav-link {
-    color: var(--text-secondary); text-decoration: none;
-    font-size: 0.92rem; font-weight: 500; letter-spacing: -0.005em;
-    padding: 4px 0; transition: color .15s ease;
-}
-.nav-link:hover { color: var(--text-primary); }
-.nav-link.active { color: var(--text-primary); font-weight: 600; }
-.topbar-right { display: flex; align-items: center; gap: var(--s3); }
-.user-chip {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 4px 12px 4px 4px; border-radius: var(--r-full);
-    background: var(--bg-surface); border: 1px solid var(--border-default);
-    color: var(--text-primary); text-decoration: none;
-    transition: border-color .15s ease, background .15s ease;
-}
-.user-chip:hover { border-color: var(--border-strong); background: var(--bg-surface-hover); }
-.user-chip.active { border-color: var(--border-strong); }
-.user-chip-av {
-    width: 28px; height: 28px; border-radius: 50%; flex: none;
-    display: inline-flex; align-items: center; justify-content: center;
-    background: var(--accent); color: #fff; font-size: 0.68rem; font-weight: 800;
-}
-.user-chip-name { font-size: 0.88rem; font-weight: 600; padding-right: 2px; }
-.icon-btn {
-    width: 38px; height: 38px; border-radius: var(--r-md); flex: none;
-    display: inline-flex; align-items: center; justify-content: center;
-    background: var(--bg-surface); border: 1px solid var(--border-default);
-    color: var(--text-secondary); text-decoration: none;
-    transition: color .15s ease, border-color .15s ease;
-}
-.icon-btn:hover { color: var(--text-primary); border-color: var(--border-strong); }
-@media (max-width: 760px) {
-    .topbar { padding: 12px var(--s4); gap: var(--s4); }
-    .main-nav { gap: 16px; }
-    .nav-link { font-size: 0.85rem; }
-    .user-chip-name { display: none; }
+    --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.55), transparent 44%);
+    --ambient: radial-gradient(1000px 460px at 92% -14%, rgba(90,84,201,0.08), transparent 60%);
+    --hero-bg: linear-gradient(135deg, rgba(90,84,201,0.12), rgba(90,84,201,0.02) 55%), #FFFFFF;
 }
 
-button, .btn { letter-spacing: -0.005em; }
-.btn-primary {
-    background: var(--accent); color: #fff; border: 0;
-    border-radius: var(--r-md); padding: 10px 18px;
-    font-weight: 700; font-size: 0.9rem; cursor: pointer;
-    text-decoration: none; display: inline-block; line-height: 1.3;
-    transition: background .15s ease, transform .12s ease;
+/* ── Focus: obrys akcentu bez neonowej poświaty ── */
+input:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: none;
 }
-.btn-primary:hover { background: var(--accent-hover); }
-.btn-primary:active { transform: scale(0.98); }
+*:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* ── Segmented control (ustawienia: motyw / język) ── */
-.set-row {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: var(--s4); padding: var(--s3) 0;
-    border-bottom: 1px solid var(--border-subtle);
+/* ── Tło atmosferyczne strony (subtelna poświata) ── */
+.shell {
+    background-image: var(--ambient);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-position: top right;
+    max-width: 1040px;
 }
-.set-row:last-child { border-bottom: 0; }
-.set-row > span { font-size: 0.92rem; color: var(--text-secondary); font-weight: 600; }
-.seg {
-    display: inline-flex; padding: 3px; gap: 2px;
-    background: var(--bg-inset); border: 1px solid var(--border-default);
-    border-radius: var(--r-full);
-}
-.seg button, .seg a {
-    border: 0; background: transparent; cursor: pointer;
-    font: inherit; font-size: 0.82rem; font-weight: 700;
-    color: var(--text-secondary); text-decoration: none;
-    padding: 6px 16px; border-radius: var(--r-full);
-    transition: background .15s ease, color .15s ease;
-}
-.seg button:hover, .seg a:hover { color: var(--text-primary); }
-.seg button.active, .seg a.active {
-    background: var(--accent); color: #fff;
-}
+
+/* ── Panele: dokładamy delikatny połysk ── */
+.panel { background-image: var(--panel-grad); box-shadow: var(--shadow-md); }
+
+/* ── Górny pasek: aktywna zakładka na akcencie (stonowana) ── */
+.top-btn.active { background: var(--accent-subtle); border-color: transparent; color: var(--accent); }
+.top-btn-accent { background: var(--accent); color: #fff; }
+.top-btn-accent:hover { background: var(--accent-hover); color: #fff; }
 
 /* ============================================================
-   DASHBOARD — bento
+   DASHBOARD — układ bento (różne wielkości + treść od razu)
    ============================================================ */
 .dash-hi { margin: var(--s2) 0 var(--s6); }
-.dash-hi h1 {
-    margin: 0; font-size: var(--font-2xl); font-weight: 700;
-    letter-spacing: -0.025em; color: var(--text-primary);
-}
-.dash-hi p { margin: var(--s2) 0 0; color: var(--text-secondary); font-size: var(--font-base); }
+.dash-hi h1 { margin: 0; font-size: var(--font-2xl); letter-spacing: -0.025em; color: var(--text-primary); }
+.dash-hi p  { margin: var(--s2) 0 0; color: var(--text-secondary); font-size: var(--font-base); }
 
 .dash-bento {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    grid-auto-rows: minmax(132px, auto);
     gap: var(--s4);
 }
 
 .db-card {
     display: flex; flex-direction: column;
-    padding: var(--s5); border-radius: var(--r-lg);
-    background: var(--bg-panel); border: 1px solid var(--border-default);
-    color: var(--text-primary); text-decoration: none;
-    box-shadow: var(--shadow-sm);
-    transition: transform .18s var(--ease-out, ease),
-                border-color .18s ease, box-shadow .18s ease;
-    min-width: 0; overflow: hidden;
-}
-.db-card:hover {
-    transform: translateY(-3px);
-    border-color: var(--border-strong);
+    padding: var(--s6);
+    border-radius: var(--r-lg);
+    background: var(--bg-panel);
+    background-image: var(--panel-grad);
+    border: 1px solid var(--border-default);
     box-shadow: var(--shadow-md);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: border-color var(--transition-smooth), transform var(--transition-smooth);
 }
+.db-card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
 
-.db-hero    { grid-column: span 4; grid-row: span 2; }
-.db-span-2  { grid-column: span 2; }
-.db-span-3  { grid-column: span 3; }
-.db-span-6  { grid-column: span 6; }
-
-/* Układ pomocniczy w kafelkach */
-.db-row { display: flex; align-items: center; }
-.db-row-between { display: flex; align-items: center; justify-content: space-between; }
-.db-card.db-row-between { flex-direction: row; }   /* kafel zespołu = poziomy */
-.db-hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s4); }
-.db-eyebrow-row { display: flex; align-items: center; gap: var(--s3); margin-bottom: var(--s2); }
-.db-title-xl { font-size: var(--font-xl); }
-.db-title-sm { font-size: var(--font-base); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.db-sub-lg { font-size: var(--font-base); margin-top: 4px; }
-.db-setlist { margin-top: var(--s5); flex: 1; }
-.db-icon-sm { width: 38px; height: 38px; }
-.db-foot-line {
-    margin-top: auto; padding-top: var(--s3);
-    border-top: 1px solid var(--border-subtle); color: var(--text-tertiary);
-}
-
-/* CTA hero „Prepare" — wysoki kontrast (biały w ciemnym, czarny w jasnym) */
-.db-cta {
-    align-self: flex-start; margin-top: var(--s5);
-    background: var(--text-primary); color: var(--bg-app);
-    border: 0; border-radius: var(--r-md); padding: 10px 20px;
-    font-weight: 700; font-size: 0.9rem; line-height: 1.3;
-    text-decoration: none; display: inline-block;
-    transition: opacity .15s ease, transform .12s ease;
-}
-.db-cta:hover { opacity: 0.88; }
-.db-cta:active { transform: scale(0.98); }
-
-.av-lg { width: 40px; height: 40px; font-size: 0.8rem; }
-.av-more { background: var(--bg-surface); color: var(--text-secondary); }
-
-/* Studio — akcentowany */
-.db-accent {
-    background:
-        linear-gradient(150deg, var(--accent-subtle), transparent 60%),
-        var(--bg-panel);
-    border-color: color-mix(in srgb, var(--accent) 28%, var(--border-default));
-}
-.db-accent .db-icon { background: var(--accent); color: #fff; }
+.db-hero   { grid-column: span 4; grid-row: span 2; background: var(--hero-bg); border-color: var(--border-strong); }
+.db-hero:hover { border-color: var(--text-tertiary); transform: none; }
+.db-span-2 { grid-column: span 2; }
+.db-span-3 { grid-column: span 3; border-color: var(--border-default); }
+.db-span-3.db-accent { border-color: var(--border-strong); }
+.db-span-6 { grid-column: span 6; flex-direction: row; align-items: center; justify-content: space-between; gap: var(--s5); }
 
 .db-icon {
-    width: 46px; height: 46px; flex: none;
-    border-radius: var(--r-md);
+    width: 42px; height: 42px; border-radius: var(--r-md);
+    background: var(--bg-surface); border: 1px solid var(--border-default);
     display: flex; align-items: center; justify-content: center;
-    background: var(--accent-subtle); color: var(--accent);
+    color: var(--text-secondary); flex-shrink: 0;
 }
-.db-eyebrow {
-    font-size: var(--font-xs); font-weight: 800; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--text-tertiary);
-}
-.db-pill {
-    display: inline-block; font-size: var(--font-xs); font-weight: 800;
-    letter-spacing: 0.04em; padding: 3px 9px; border-radius: var(--r-full);
-    background: var(--green-subtle); color: var(--green);
-}
-.db-title {
-    font-size: var(--font-lg); font-weight: 700;
-    letter-spacing: -0.015em; color: var(--text-primary);
-}
-.db-sub { font-size: var(--font-sm); color: var(--text-secondary); line-height: 1.45; }
+.db-icon svg { stroke: currentColor; }
+.db-title { font-size: var(--font-lg); font-weight: 700; letter-spacing: -0.01em; color: var(--text-primary); }
+.db-sub   { font-size: var(--font-sm); color: var(--text-secondary); line-height: 1.5; }
+.db-eyebrow { font-size: var(--font-xs); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-tertiary); }
+.db-tag { font-size: var(--font-xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); border: 1px solid var(--border-default); padding: 3px 8px; border-radius: var(--r-sm); }
+.db-pill { background: var(--accent-subtle); color: var(--accent); padding: 3px 9px; border-radius: var(--r-full); font-size: var(--font-xs); font-weight: 600; }
+.db-foot { margin-top: auto; padding-top: var(--s3); border-top: 1px solid var(--border-default); font-size: var(--font-sm); color: var(--text-tertiary); }
+.db-foot b { color: var(--text-secondary); font-weight: 600; }
 
-.db-status {
-    display: inline-flex; align-items: center; gap: 7px;
-    font-size: var(--font-xs); font-weight: 700; letter-spacing: 0.02em;
-    color: var(--text-tertiary);
-}
-.db-status i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.db-status.online { color: var(--red); }
-.db-status.online i { box-shadow: 0 0 0 4px var(--red-subtle); animation: db-pulse 1.6s infinite; }
-@keyframes db-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+/* Podgląd setlisty w kaflu-hero */
+.sl-row { display: flex; align-items: center; gap: var(--s3); padding: 9px 0; border-top: 1px solid var(--border-default); }
+.sl-n   { color: var(--text-tertiary); font-size: var(--font-sm); width: 14px; }
+.sl-t   { color: var(--text-primary); font-size: 14.5px; font-weight: 500; flex: 1; }
+.sl-t.muted { color: var(--text-secondary); font-weight: 400; }
+.sl-key { background: var(--accent-subtle); color: var(--accent); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: var(--r-sm); }
 
-.db-tag {
-    font-size: var(--font-xs); font-weight: 800; letter-spacing: 0.08em;
-    text-transform: uppercase; color: var(--accent);
-    background: var(--accent-subtle); padding: 3px 9px; border-radius: var(--r-full);
-}
-.db-foot {
-    margin-top: auto; padding-top: var(--s3);
-    border-top: 1px solid var(--border-subtle);
-    font-size: var(--font-sm); color: var(--text-tertiary);
-}
-.db-foot b { color: var(--text-secondary); }
+/* Status "na żywo" */
+.db-status { display: inline-flex; align-items: center; gap: 6px; font-size: var(--font-sm); font-weight: 600; color: var(--text-tertiary); }
+.db-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--text-tertiary); }
+.db-status.online { color: var(--accent); }
+.db-status.online i { background: var(--accent); animation: led-pulse 2s infinite; }
 
-.db-bar {
-    height: 6px; border-radius: var(--r-full);
-    background: var(--bg-inset); overflow: hidden;
-}
-.db-bar i { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+/* Pasek postępu ćwiczenia */
+.db-bar { height: 6px; border-radius: var(--r-full); background: var(--bg-surface); overflow: hidden; }
+.db-bar > i { display: block; height: 100%; background: var(--accent); border-radius: var(--r-full); }
 
-/* Podgląd setlisty w kafelku hero */
-.sl-row {
-    display: flex; align-items: center; gap: var(--s3);
-    padding: 6px 0; border-bottom: 1px solid var(--border-subtle);
-    font-size: var(--font-sm);
-}
-.sl-row:last-child { border-bottom: 0; }
-.sl-n {
-    width: 20px; flex: none; text-align: center;
-    font-size: var(--font-xs); font-weight: 800; color: var(--text-tertiary);
-}
-.sl-t { flex: 1; color: var(--text-primary); font-weight: 600; overflow: hidden;
-        text-overflow: ellipsis; white-space: nowrap; }
-.sl-t.muted { color: var(--text-tertiary); font-weight: 500; }
-.sl-key {
-    font-size: var(--font-xs); font-weight: 800; color: var(--accent);
-    background: var(--accent-subtle); padding: 2px 8px; border-radius: var(--r-sm);
-}
-
-/* Awatary (zespół, profil) */
-.av {
-    width: 34px; height: 34px; flex: none; border-radius: 50%;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 0.72rem; font-weight: 800; letter-spacing: 0.02em;
-    background: var(--bg-surface); color: var(--text-secondary);
-    border: 2px solid var(--bg-panel);
-}
-.av.me { background: var(--accent); color: #fff; }
+/* Awatary zespołu */
 .av-stack { display: flex; }
-.av-stack .av:not(:first-child) { margin-left: -10px; }
+.av { width: 34px; height: 34px; border-radius: 50%; background: var(--bg-surface); color: var(--text-secondary);
+      display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;
+      border: 2px solid var(--bg-panel); }
+.av + .av { margin-left: -10px; }
+.av.me { background: var(--accent-subtle); color: var(--accent); }
 
-/* ── Responsywność bento ── */
-@media (max-width: 1000px) {
-    .dash-bento { grid-template-columns: repeat(2, 1fr); }
-    .db-hero   { grid-column: 1 / -1; grid-row: auto; }
-    .db-span-2 { grid-column: span 1; }
-    .db-span-3 { grid-column: 1 / -1; }
-    .db-span-6 { grid-column: 1 / -1; }
+@media (max-width: 760px) {
+    .dash-bento { grid-template-columns: 1fr; }
+    .db-hero, .db-span-2, .db-span-3, .db-span-6 { grid-column: 1 / -1; grid-row: auto; }
+    .db-span-6 { flex-direction: column; align-items: flex-start; }
 }
-@media (max-width: 600px) {
-    .dash-bento { grid-template-columns: 1fr; gap: var(--s3); }
-    .db-hero, .db-span-2, .db-span-3, .db-span-6 { grid-column: 1 / -1; }
-    .dash-hi h1 { font-size: var(--font-xl); }
+
+/* ── Ustawienia: wiersz z kontrolką po prawej ── */
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); margin-bottom: var(--s5); }
+.set-row:last-child { margin-bottom: 0; }
+.set-row > span { color: var(--text-primary); font-size: var(--font-base); font-weight: 500; }
+.seg { display: inline-flex; gap: 2px; background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--r-md); padding: 3px; }
+.seg a, .seg button {
+    padding: var(--s2) var(--s4); border: none; border-radius: var(--r-sm);
+    background: transparent; color: var(--text-secondary);
+    font-family: inherit; font-weight: 600; font-size: var(--font-sm);
+    cursor: pointer; text-decoration: none;
 }
+.seg a.active, .seg button.active { background: var(--text-primary); color: var(--bg-panel); }

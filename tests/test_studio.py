@@ -111,6 +111,26 @@ def test_live_flag_clears_when_setlist_emptied(app, client):
     assert slide['mode'] == 'logo'
 
 
+def test_live_flag_clears_when_setlist_emptied_via_socket(app, client):
+    # Regresja (ścieżka realna): usunięcie wszystkich pieśni w Studiu leci
+    # przez socket client_update_state z pustą setlistą — musi zgasić LIVE
+    # i wyczyścić ostatni slajd, nawet bez osobnego /send_text.
+    from app import socketio
+    cid = make_church(app, client, 'a@a.pl', 'Zbor A')
+    client.post(f'/c/{cid}/studio/send_text', json={
+        'text': SONG, 'song_title': 'X', 'key': 'G',
+        'setlist': [{'title': 'X'}], 'current_index': 0})
+    assert client.get(f'/api/live/current/{cid}').get_json()['active'] is True
+    sio = socketio.test_client(app, flask_test_client=client)
+    assert sio.is_connected()
+    sio.emit('client_update_state',
+             {'church_id': cid, 'setlist': [], 'current_index': -1})
+    sio.disconnect()
+    assert client.get(f'/api/live/current/{cid}').get_json()['active'] is False
+    slide = client.get(f'/c/{cid}/studio/api/current-slide').get_json()
+    assert slide['mode'] == 'logo'
+
+
 def test_screen_token_access(app, client):
     cid = make_church(app, client, 'a@a.pl', 'Zbor A')
     client.post(f'/c/{cid}/studio/send_text', json={'text': SONG})

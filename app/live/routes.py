@@ -59,9 +59,16 @@ def _active_session(church_id):
         church_id=church_id, ended_at=None).first()
 
 
+# Po tylu minutach od ostatniego slajdu przestajemy uznawać sesję za "na żywo"
+# (prowadzący zwykle po prostu zamyka Studio, bez formalnego kończenia).
+_LIVE_FRESH_MINUTES = 90
+
+
 def _studio_is_live(church_id):
-    """Czy w Studiu (port desktopu) trwa realne LIVE — tzn. na ekranach jest
-    faktyczny slajd (nie logo/pusto/blackout) i setlista nie jest pusta.
+    """Czy w Studiu (port desktopu) trwa realne LIVE. Warunki (wszystkie):
+    (1) ostatni slajd to realna treść (nie logo/pusto/blackout),
+    (2) setlista nie jest pusta,
+    (3) slajd jest świeży (< _LIVE_FRESH_MINUTES temu).
     Bez tego dashboard pokazywałby 'na żywo' bez końca (last_slide siedzi w
     Redisie godzinami), a po opróżnieniu setlisty wciąż 'trwa'."""
     last = live_state.studio_get(church_id, 'last_slide')
@@ -70,7 +77,18 @@ def _studio_is_live(church_id):
     if last.get('is_blackout'):
         return False
     ss = live_state.studio_get(church_id, 'server_state') or {}
-    return bool(ss.get('setlist'))
+    if not ss.get('setlist'):
+        return False
+    at = live_state.studio_get(church_id, 'last_slide_at')
+    if at:
+        from datetime import datetime, timedelta
+        try:
+            when = datetime.fromisoformat(at)
+            if datetime.utcnow() - when > timedelta(minutes=_LIVE_FRESH_MINUTES):
+                return False
+        except (ValueError, TypeError):
+            pass
+    return True
 
 
 def _setlist_rows(church_id, sl):

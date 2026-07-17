@@ -168,6 +168,12 @@ def _register_socket_handlers(app):
         st['current_index'] = data.get('current_index', -1)
         live_state.studio_set(church_id, 'server_state', st)
         emit('sync_state_to_client', st, room=f'live:{church_id}')
+        # Pusta setlista => nie ma LIVE. Kasujemy ostatni slajd (logo) i gasimy
+        # ekrany — niezależnie od tego, jak setlista została opróżniona. Bez
+        # tego dashboard i telefony zespołu pokazują "na żywo" po staremu.
+        if not st['setlist']:
+            live_state.studio_set(church_id, 'last_slide', {'mode': 'logo'})
+            emit('update_slide', {'mode': 'logo'}, room=f'live:{church_id}')
 
     @socketio.on('request_current_slide')
     def request_current_slide(data):

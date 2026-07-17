@@ -128,7 +128,7 @@ def church_home(church_id, membership):
     from types import SimpleNamespace
     from datetime import date
     from app.models import (Event, EventAssignment, StudioSetlist,
-                            LiveSession, SongPersonal, Song)
+                            SongPersonal, Song)
     user = current_user()
     today = date.today()
     # ── Najbliższa służba (moja obsada > dowolna) ──
@@ -140,7 +140,6 @@ def church_home(church_id, membership):
     next_event = my_event or Event.query.filter(
         Event.church_id == church_id, Event.deleted.is_(False),
         Event.date >= today).order_by(Event.date.asc()).first()
-    next_days = (next_event.date - today).days if next_event else None
     # Podgląd setlisty najbliższego grania.
     next_event_songs = []
     if next_event and next_event.setlist_id:
@@ -154,20 +153,12 @@ def church_home(church_id, membership):
                     for s in json.loads(sl.songs or '[]')]
             except (ValueError, AttributeError):
                 next_event_songs = []
-    setlist_minutes = _est_minutes(len(next_event_songs))
 
-    # ── Mój profil (instrument + preferencje na kafelku) ──
+    # Mój profil — potrzebny do postępu ćwiczenia (ostatnio ćwiczone).
     my_profile = Profile.query.filter_by(
         church_id=church_id, user_id=user.id, deleted=False).first()
 
-    # ── Live: ostatnia zakończona sesja (jeśli była) ──
-    last_session = LiveSession.query.filter(
-        LiveSession.church_id == church_id,
-        LiveSession.ended_at.isnot(None)).order_by(
-        LiveSession.ended_at.desc()).first()
-    last_session_at = last_session.ended_at if last_session else None
-
-    # ── Studio: ostatnia setlista (liczba pieśni + szacowany czas) ──
+    # ── Studio: ostatnia setlista (string „N pieśni · M min") ──
     last_setlist = None
     last_sl = StudioSetlist.query.filter_by(church_id=church_id) \
         .order_by(StudioSetlist.id.desc()).first()
@@ -177,9 +168,10 @@ def church_home(church_id, membership):
         except (ValueError, TypeError):
             n = 0
         if n:
-            last_setlist = SimpleNamespace(count=n, minutes=_est_minutes(n))
+            last_setlist = (f'{n} ' + _('songs') + ' · '
+                            + f'{_est_minutes(n)} ' + _('min'))
 
-    # ── Ćwiczenie: ostatnio ćwiczona pieśń + postęp względem setlisty ──
+    # ── Ćwiczenie: ostatnio ćwiczona pieśń (string) + postęp ──
     last_practiced = None
     practice_done = practice_total = 0
     if my_profile:
@@ -188,8 +180,8 @@ def church_home(church_id, membership):
         if sp:
             song = db.session.get(Song, sp.song_id)
             if song and not song.deleted:
-                last_practiced = SimpleNamespace(
-                    title=song.title, key=sp.preferred_key or song.key or '')
+                key = sp.preferred_key or song.key or ''
+                last_practiced = song.title + (f' — {key}' if key else '')
         # postęp = ile z pieśni najbliższej setlisty mam już „ruszonych"
         if next_event_songs:
             titles = {s.title for s in next_event_songs}
@@ -201,21 +193,9 @@ def church_home(church_id, membership):
                     profile_id=my_profile.id, song_id=song.id).first()}
             practice_done = len(done_titles)
 
-    # ── Zespół: awatary + podział ról ──
+    # ── Zespół: awatary (imiona z profili) ──
     memberships = Membership.query.filter_by(
         church_id=church_id, status='active').all()
-    role_counts = {'admin': 0, 'prowadzacy': 0, 'muzyk': 0}
-    for m in memberships:
-        role_counts[m.role] = role_counts.get(m.role, 0) + 1
-    # Podpis „1 admin · 1 leader · 4 musicians" (z uwzględnieniem języka).
-    summary_parts = []
-    for code, sing, plur in (('admin', 'admin', 'admins'),
-                             ('prowadzacy', 'leader', 'leaders'),
-                             ('muzyk', 'musician', 'musicians')):
-        n = role_counts.get(code, 0)
-        if n:
-            summary_parts.append(f'{n} ' + (_(sing) if n == 1 else _(plur)))
-    team_summary = ' · '.join(summary_parts)
     profiles = {p.user_id: p.name for p in Profile.query.filter_by(
         church_id=church_id, deleted=False).all()}
     team_members = [
@@ -227,12 +207,10 @@ def church_home(church_id, membership):
     return render_template(
         'panel/dashboard.html', church=church, membership=membership,
         user=user, next_event=next_event, my_event=my_event is not None,
-        next_event_songs=next_event_songs, next_days=next_days,
-        setlist_minutes=setlist_minutes, my_profile=my_profile,
-        last_session_at=last_session_at, last_setlist=last_setlist,
+        next_event_songs=next_event_songs, last_setlist=last_setlist,
         last_practiced=last_practiced, practice_done=practice_done,
         practice_total=practice_total, team_members=team_members,
-        role_counts=role_counts, team_summary=team_summary, today=today)
+        today=today)
 
 
 @panel_bp.get('/c/<church_id>/team')
