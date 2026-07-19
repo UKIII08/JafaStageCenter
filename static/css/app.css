@@ -66,13 +66,21 @@ body {
     flex-wrap: wrap;
     margin-bottom: var(--s5);
 }
-/* Pasek przycisków nad listą piosenek — równe, jednakowe przyciski */
+/* Pasek przycisków nad listą piosenek — równe, jednakowe przyciski.
+   display:inline-flex + centrowanie jest kluczowe: bazowe `.btn` to
+   inline-block (tekst <a> lądowałby u góry, a natywny <button> centruje
+   sam z siebie — stąd wcześniejszy rozjazd). Wymuszamy jednakowe centrowanie. */
 .song-toolbar { display: flex; gap: var(--s2); flex-wrap: wrap; align-items: center; }
 .song-toolbar .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     height: 40px;
+    line-height: 1;
     padding: 0 var(--s5);
     font-size: var(--font-sm);
     white-space: nowrap;
+    box-sizing: border-box;
 }
 
 .panel h2 { margin: 0; font-size: 1.15rem; letter-spacing: -0.01em; }
