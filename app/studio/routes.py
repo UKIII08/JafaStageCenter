@@ -185,6 +185,18 @@ def _back(church_id):
     return redirect(url_for('studio.control', church_id=church_id))
 
 
+def _redirect_back(church_id):
+    """Jak _back, ale honoruje bezpieczne (lokalne) pole `next` — dzięki temu
+    ten sam endpoint (logo/kolory/tło) obsługuje zarówno Studio, jak i stronę
+    Ustawień wspólnoty, wracając tam, skąd przyszedł."""
+    from urllib.parse import urlparse
+    nxt = request.form.get('next') or request.args.get('next')
+    if (nxt and nxt.startswith('/') and not nxt.startswith('//')
+            and not urlparse(nxt).netloc):
+        return redirect(nxt)
+    return redirect(url_for('studio.control', church_id=church_id))
+
+
 @studio_bp.post('/studio/add_song')
 @studio_auth('prowadzacy')
 def add_song(church_id):
@@ -469,12 +481,12 @@ def update_settings(church_id):
     s = get_settings(church)
     socketio.emit('apply_settings', {
         'font_family': s['font_family'], 'bg_color': s['bg_color'],
-        'text_color': s['text_color'], 'lang': s['language'],
-        'chord_notation': s['chord_notation'],
+        'text_color': s['text_color'], 'chord_color': s['chord_color'],
+        'lang': s['language'], 'chord_notation': s['chord_notation'],
         'minor_display': s['minor_display'],
     }, room=f'live:{church_id}')
     socketio.emit('settings_changed', room=f'live:{church_id}')
-    return _back(church_id)
+    return _redirect_back(church_id)
 
 
 @studio_bp.post('/studio/reset_settings')
@@ -490,7 +502,7 @@ def reset_settings(church_id):
                    'text_color': '#ffffff'}, room=f'live:{church_id}')
     socketio.emit('refresh_background', {'has_bg': False},
                   room=f'live:{church_id}')
-    return _back(church_id)
+    return _redirect_back(church_id)
 
 
 # ── media: logo / tło / prezentacje ──────────────────────────────────────
@@ -506,7 +518,7 @@ def upload_logo(church_id):
         with open(os.path.join(media_dir(church_id), 'logo.png'), 'wb') as out:
             out.write(data)
         socketio.emit('refresh_logo', room=f'live:{church_id}')
-    return _back(church_id)
+    return _redirect_back(church_id)
 
 
 @studio_bp.post('/studio/upload_background')
@@ -522,7 +534,7 @@ def upload_background(church_id):
             out.write(data)
         socketio.emit('refresh_background', {'has_bg': True},
                       room=f'live:{church_id}')
-    return _back(church_id)
+    return _redirect_back(church_id)
 
 
 @studio_bp.post('/studio/delete_background')
@@ -533,7 +545,7 @@ def delete_background(church_id):
         os.remove(bg)
         socketio.emit('refresh_background', {'has_bg': False},
                       room=f'live:{church_id}')
-    return _back(church_id)
+    return _redirect_back(church_id)
 
 
 @studio_bp.post('/studio/upload_presentation')

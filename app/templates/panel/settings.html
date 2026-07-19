@@ -52,6 +52,60 @@
     </form>
 </div>
 
+{# ── Logo wspólnoty i wygląd projekcji ── #}
+{% set next_url = url_for('panel.church_settings', church_id=church.id) %}
+<div class="panel" style="max-width:560px;">
+    <div class="section-title">{{ _('Church logo & projection look') }}</div>
+    <p class="hint" style="margin:0 0 var(--s3);">{{ _('The logo shows on the projector when nothing is being displayed. Colors and font apply to what the congregation sees on screen.') }}</p>
+
+    <label>{{ _('Logo (PNG/JPG, up to 8 MB)') }}</label>
+    <div style="display:flex; gap:var(--s3); align-items:center; flex-wrap:wrap; margin-bottom:var(--s4);">
+        <img src="{{ url_for('studio.media', church_id=church.id, filename='logo.png') }}?v={{ range(100000)|random }}"
+             alt="logo" style="height:46px; max-width:140px; object-fit:contain; background:var(--bg-inset); border:1px solid var(--border-default); border-radius:var(--r-sm); padding:4px;">
+        <form method="POST" action="{{ url_for('studio.upload_logo', church_id=church.id) }}" enctype="multipart/form-data" style="display:inline;">
+            <input type="hidden" name="next" value="{{ next_url }}">
+            <label class="btn" style="cursor:pointer;">{{ _('Choose logo') }}
+                <input type="file" name="logo_file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" hidden onchange="this.form.submit()">
+            </label>
+        </form>
+    </div>
+
+    <label>{{ _('Projector background (optional)') }}</label>
+    <div style="display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap; margin-bottom:var(--s4);">
+        <form method="POST" action="{{ url_for('studio.upload_background', church_id=church.id) }}" enctype="multipart/form-data" style="display:inline;">
+            <input type="hidden" name="next" value="{{ next_url }}">
+            <label class="btn" style="cursor:pointer;">{{ _('Choose background') }}
+                <input type="file" name="bg_file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" hidden onchange="this.form.submit()">
+            </label>
+        </form>
+        {% if has_bg %}
+        <form method="POST" action="{{ url_for('studio.delete_background', church_id=church.id) }}" style="display:inline;">
+            <input type="hidden" name="next" value="{{ next_url }}">
+            <button class="btn btn-ghost btn-sm" type="submit">{{ _('Remove background') }}</button>
+        </form>
+        {% endif %}
+    </div>
+
+    <form method="POST" action="{{ url_for('studio.update_settings', church_id=church.id) }}">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <label>{{ _('Projection font') }}</label>
+        <select name="font_family">
+            <option value="Sen" {% if appearance.font_family == 'Sen' %}selected{% endif %}>Sen</option>
+            <option value="Arial" {% if appearance.font_family == 'Arial' %}selected{% endif %}>Arial</option>
+            <option value="Times New Roman" {% if appearance.font_family == 'Times New Roman' %}selected{% endif %}>Times New Roman</option>
+        </select>
+        <div style="display:flex; gap:var(--s4); margin-top:var(--s3); flex-wrap:wrap;">
+            <label style="flex:1; min-width:130px;">{{ _('Background') }}
+                <input type="color" name="bg_color" value="{{ appearance.bg_color }}" style="width:100%; height:40px; padding:2px;"></label>
+            <label style="flex:1; min-width:130px;">{{ _('Text') }}
+                <input type="color" name="text_color" value="{{ appearance.text_color }}" style="width:100%; height:40px; padding:2px;"></label>
+            <label style="flex:1; min-width:130px;">{{ _('Chords') }}
+                <input type="color" name="chord_color" value="{{ appearance.chord_color }}" style="width:100%; height:40px; padding:2px;"></label>
+        </div>
+        <div style="margin-top:var(--s4);"><button type="submit">{{ _('Save appearance') }}</button></div>
+    </form>
+</div>
+
 <script>
 function setTheme(t) {
     document.documentElement.setAttribute('data-theme', t);

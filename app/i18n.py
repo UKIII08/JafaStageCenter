@@ -193,6 +193,18 @@ PL = {
     "people": "osób",
     # Wygląd i język (ustawienia / profil)
     "Appearance & language": "Wygląd i język",
+    # Logo wspólnoty + wygląd projekcji (strona Ustawień)
+    "Church logo & projection look": "Logo wspólnoty i wygląd projekcji",
+    "The logo shows on the projector when nothing is being displayed. Colors "
+    "and font apply to what the congregation sees on screen.":
+        "Logo pokazuje się na rzutniku, gdy nic nie jest wyświetlane. Kolory i "
+        "czcionka dotyczą tego, co zbór widzi na ekranie.",
+    "Logo (PNG/JPG, up to 8 MB)": "Logo (PNG/JPG, do 8 MB)",
+    "Choose logo": "Wybierz logo",
+    "Projector background (optional)": "Tło rzutnika (opcjonalnie)",
+    "Choose background": "Wybierz tło", "Remove background": "Usuń tło",
+    "Projection font": "Czcionka projekcji",
+    "Background": "Tło", "Text": "Tekst", "Save appearance": "Zapisz wygląd",
     "Theme": "Motyw", "Light": "Jasny", "Dark": "Ciemny",
     "Language": "Język",
     # Dashboard — dane na kafelkach (design z obrazków)

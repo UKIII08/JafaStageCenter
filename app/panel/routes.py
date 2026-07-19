@@ -1,6 +1,7 @@
 # Panel wspólnoty (M0): dashboard, zakładanie wspólnoty, zespół, zaproszenia.
 # TWARDA ZASADA TENANCY: każdy dostęp do danych wspólnoty przechodzi przez
 # require_membership() — nigdy przez samo id z URL-a.
+import os
 import re
 import secrets
 import string
@@ -362,7 +363,11 @@ def church_settings(church_id, membership):
         db.session.commit()
         flash(_('Settings saved.'))
         return redirect(url_for('panel.church_settings', church_id=church_id))
+    from app.studio.routes import get_settings, media_dir
+    appearance = get_settings(church)
+    has_bg = os.path.exists(os.path.join(media_dir(church_id), 'background.png'))
     return render_template('panel/settings.html', church=church,
+                           appearance=appearance, has_bg=has_bg,
                            membership=membership, user=current_user())
 
 
