@@ -1875,8 +1875,67 @@
                     </form>
                 </div>
             </div>
+
+            <!-- Chmura: pobieranie piosenek/setlist/profili z web-a (jeśli jest sieć) -->
+            <div class="settings-section" id="cloud-section">
+                <h4 data-t="cloud_section">Chmura (synchronizacja)</h4>
+                <p class="hint" style="margin:0 0 var(--s3); color:var(--text-secondary); font-size:var(--font-sm);"
+                   data-t="cloud_hint">Zaloguj się swoim kontem Jonathan App, a apka dociągnie piosenki, setlisty i profile z chmury. Bez sieci działa offline na tym, co lokalnie.</p>
+                <label style="display:flex; align-items:center; gap:var(--s2); margin-bottom:var(--s3);">
+                    <input type="checkbox" id="cloud-enabled">
+                    <span data-t="cloud_enable">Włącz synchronizację z chmurą</span>
+                </label>
+                <input type="text" id="cloud-url" placeholder="https://jonathanapp.com" style="width:100%; margin-bottom:var(--s2);">
+                <input type="email" id="cloud-email" placeholder="e-mail konta" style="width:100%; margin-bottom:var(--s2);">
+                <input type="password" id="cloud-password" placeholder="hasło" style="width:100%; margin-bottom:var(--s2);">
+                <input type="text" id="cloud-church" placeholder="ID wspólnoty (opcjonalnie — tylko przy kilku)" style="width:100%; margin-bottom:var(--s3);">
+                <div style="display:flex; gap:var(--s2);">
+                    <button type="button" class="backup-btn" style="flex:1;" onclick="saveCloudConfig()" data-t="cloud_save">Zapisz</button>
+                    <button type="button" class="backup-btn" style="flex:1;" onclick="cloudSyncNow()" data-t="cloud_sync_now">Synchronizuj teraz</button>
+                </div>
+                <div id="cloud-status" style="margin-top:var(--s2); font-size:var(--font-sm); color:var(--text-secondary); min-height:1.2em;"></div>
+            </div>
         </div>
     </div>
+    <script>
+    async function loadCloudConfig() {
+        try {
+            const r = await fetch('/api/cloud/config'); const c = await r.json();
+            document.getElementById('cloud-enabled').checked = !!c.enabled;
+            document.getElementById('cloud-url').value = c.url || 'https://jonathanapp.com';
+            document.getElementById('cloud-email').value = c.email || '';
+            document.getElementById('cloud-church').value = c.church_id || '';
+            document.getElementById('cloud-password').placeholder = c.has_password ? '•••••••• (zapisane)' : 'hasło';
+            const st = document.getElementById('cloud-status');
+            if (st) st.textContent = c.last_sync ? ('Ostatnia synchronizacja: ' + c.last_sync) : '';
+        } catch (e) {}
+    }
+    async function saveCloudConfig() {
+        const body = {
+            enabled: document.getElementById('cloud-enabled').checked,
+            url: document.getElementById('cloud-url').value,
+            email: document.getElementById('cloud-email').value,
+            password: document.getElementById('cloud-password').value,
+            church_id: document.getElementById('cloud-church').value
+        };
+        await fetch('/api/cloud/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        document.getElementById('cloud-password').value = '';
+        document.getElementById('cloud-status').textContent = 'Zapisano ustawienia chmury.';
+        loadCloudConfig();
+    }
+    async function cloudSyncNow() {
+        const st = document.getElementById('cloud-status');
+        st.textContent = 'Synchronizuję…';
+        await saveCloudConfig();
+        try {
+            const r = await fetch('/api/cloud/sync', { method: 'POST' });
+            const res = await r.json();
+            st.textContent = res.message || (res.ok ? 'Gotowe.' : 'Nie udało się.');
+            if (res.ok) setTimeout(() => location.reload(), 1200);
+        } catch (e) { st.textContent = 'Błąd połączenia — pracuję offline.'; }
+    }
+    document.addEventListener('DOMContentLoaded', loadCloudConfig);
+    </script>
 
     <!-- QR Modal -->
     <div id="qrModal" class="modal">

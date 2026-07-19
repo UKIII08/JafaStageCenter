@@ -193,6 +193,14 @@ class Settings(db.Model):
     chord_notation = db.Column(db.String(15), default='international')
     minor_display = db.Column(db.String(10), default='uppercase')
     chords_standardized = db.Column(db.Boolean, default=False)
+    # Synchronizacja z chmurą (web app) — apka pobiera piosenki/setlisty/profile
+    # z konta prowadzącego, jeśli jest sieć; inaczej działa offline.
+    cloud_enabled = db.Column(db.Boolean, default=False)
+    cloud_url = db.Column(db.String(200), default='https://jonathanapp.com')
+    cloud_email = db.Column(db.String(200), default='')
+    cloud_password = db.Column(db.String(200), default='')
+    cloud_church_id = db.Column(db.String(40), default='')
+    cloud_last_sync = db.Column(db.String(40), default='')
 
 class BandPreset(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -292,6 +300,21 @@ def check_db_schema():
                 with db.engine.connect() as conn:
                     conn.execute(text("ALTER TABLE settings ADD COLUMN minor_display VARCHAR(10) DEFAULT 'uppercase'"))
                     conn.commit()
+
+            # Kolumny synchronizacji z chmurą (dokładane do starych baz)
+            _cloud_cols = [
+                ("cloud_enabled", "BOOLEAN DEFAULT 0"),
+                ("cloud_url", "VARCHAR(200) DEFAULT 'https://jonathanapp.com'"),
+                ("cloud_email", "VARCHAR(200) DEFAULT ''"),
+                ("cloud_password", "VARCHAR(200) DEFAULT ''"),
+                ("cloud_church_id", "VARCHAR(40) DEFAULT ''"),
+                ("cloud_last_sync", "VARCHAR(40) DEFAULT ''"),
+            ]
+            for _name, _ddl in _cloud_cols:
+                if _name not in settings_columns:
+                    with db.engine.connect() as conn:
+                        conn.execute(text(f"ALTER TABLE settings ADD COLUMN {_name} {_ddl}"))
+                        conn.commit()
 
             # Check if BandPreset table exists
             if 'band_preset' not in inspector.get_table_names():
@@ -1416,6 +1439,147 @@ def import_songs():
     db.session.commit()
     return redirect(url_for('control'))
 
+
+# ── Synchronizacja z chmurą (opcjonalna) ─────────────────────────────────
+# Apka pobiera piosenki/setlisty/profile z web-owego konta prowadzącego, jeśli
+# jest sieć. Przy braku sieci działa offline na lokalnej bazie (nic nie kasuje).
+import cloud_sync
+
+
+def _apply_cloud_songs(songs, input_notation='international'):
+    """Upsert piosenek z chmury po tytule (nie usuwa lokalnych nadmiarowych)."""
+    added = updated = 0
+    for title, body, key, bpm in songs:
+        content = normalize_song_chords_to_international(
+            body, input_notation=input_notation)
+        k = normalize_chord_to_international(
+            key, input_notation=input_notation) if key else ''
+        if not k:
+            k = detect_key_algorithm(content)
+        if k in ('N/A', '-'):
+            k = ''
+        existing = Song.query.filter_by(title=title).first()
+        if existing:
+            existing.content, existing.key, existing.bpm = content, k, bpm or 0
+            updated += 1
+        else:
+            db.session.add(Song(title=title, content=content, key=k, bpm=bpm or 0))
+            added += 1
+    return added, updated
+
+
+def _apply_cloud_profiles(profiles):
+    """Upsert profili muzyków po nazwie."""
+    touched = 0
+    str_f = ['instrument', 'color', 'chord_notation', 'diagram_instrument', 'theme']
+    bool_f = ['show_chords', 'lowercase_minor', 'beginner_mode']
+    int_f = ['capo_fret', 'font_size', 'instrument_transpose']
+    for pdata in profiles or []:
+        name = (pdata.get('name') or '').strip()
+        if not name:
+            continue
+        p = MusicianProfile.query.filter_by(name=name).first()
+        if not p:
+            p = MusicianProfile(name=name)
+            db.session.add(p)
+        for f in str_f:
+            if pdata.get(f) is not None:
+                setattr(p, f, pdata[f])
+        for f in bool_f:
+            if pdata.get(f) is not None:
+                setattr(p, f, bool(pdata[f]))
+        for f in int_f:
+            if pdata.get(f) is not None:
+                try:
+                    setattr(p, f, int(pdata[f]))
+                except (TypeError, ValueError):
+                    pass
+        touched += 1
+    return touched
+
+
+def _apply_cloud_setlists(setlists):
+    """Dokłada setlisty z chmury (po nazwie+dacie), nie duplikując."""
+    added = 0
+    for s in setlists or []:
+        name = (s.get('name') or '').strip()
+        date = s.get('date') or ''
+        if not name or SetlistHistory.query.filter_by(name=name, date=date).first():
+            continue
+        h = SetlistHistory()
+        h.name, h.date = name, date
+        h.songs = json.dumps(s.get('songs', []))
+        db.session.add(h)
+        added += 1
+    return added
+
+
+def run_cloud_sync():
+    """Pobiera dane z chmury do lokalnej bazy. Nigdy nie rzuca — przy braku
+    sieci zwraca offline=True i aplikacja działa dalej na tym, co lokalne."""
+    s = Settings.query.first()
+    if not s or not s.cloud_enabled or not s.cloud_email or not s.cloud_password:
+        return {'ok': False, 'configured': False,
+                'message': 'Synchronizacja z chmurą jest wyłączona.'}
+    try:
+        opener, church_id = cloud_sync.connect(
+            s.cloud_url, s.cloud_email, s.cloud_password)
+    except cloud_sync.CloudUnavailable:
+        return {'ok': False, 'offline': True,
+                'message': 'Brak połączenia — pracuję offline na lokalnych danych.'}
+    except cloud_sync.CloudAuthError as e:
+        return {'ok': False, 'configured': True, 'message': str(e)}
+    if s.cloud_church_id and len(s.cloud_church_id) == 36:
+        church_id = s.cloud_church_id     # ręczny wybór (konto w kilku wspólnotach)
+    try:
+        songs = cloud_sync.fetch_songs(opener, s.cloud_url, church_id)
+        profiles = cloud_sync.fetch_profiles(opener, s.cloud_url, church_id)
+        setlists = cloud_sync.fetch_setlists(opener, s.cloud_url, church_id)
+    except cloud_sync.CloudUnavailable:
+        return {'ok': False, 'offline': True,
+                'message': 'Połączenie przerwane — zostaję na lokalnych danych.'}
+    c = {'songs_added': 0, 'songs_updated': 0, 'profiles': 0, 'setlists': 0}
+    if songs is not None:
+        c['songs_added'], c['songs_updated'] = _apply_cloud_songs(songs)
+    if profiles is not None:
+        c['profiles'] = _apply_cloud_profiles(profiles)
+    if setlists is not None:
+        c['setlists'] = _apply_cloud_setlists(setlists)
+    from datetime import datetime as _dt
+    s.cloud_church_id = church_id
+    s.cloud_last_sync = _dt.now().strftime('%Y-%m-%d %H:%M')
+    db.session.commit()
+    return {'ok': True, 'church_id': church_id, 'last_sync': s.cloud_last_sync,
+            'counts': c,
+            'message': (f"Pobrano z chmury: +{c['songs_added']} nowych pieśni, "
+                        f"{c['songs_updated']} zaktualizowanych, "
+                        f"{c['profiles']} profili, +{c['setlists']} setlist.")}
+
+
+@app.route('/api/cloud/config', methods=['GET', 'POST'])
+def cloud_config():
+    s = Settings.query.first()
+    if request.method == 'POST':
+        data = request.json or {}
+        s.cloud_enabled = bool(data.get('enabled'))
+        s.cloud_url = (data.get('url') or 'https://jonathanapp.com').strip()
+        s.cloud_email = (data.get('email') or '').strip()
+        if data.get('password'):     # nie nadpisuj pustym (hasło maskowane w GET)
+            s.cloud_password = data['password']
+        s.cloud_church_id = (data.get('church_id') or '').strip()
+        db.session.commit()
+        return {'status': 'ok'}
+    return {'enabled': bool(s.cloud_enabled),
+            'url': s.cloud_url or 'https://jonathanapp.com',
+            'email': s.cloud_email or '', 'has_password': bool(s.cloud_password),
+            'church_id': s.cloud_church_id or '', 'last_sync': s.cloud_last_sync or ''}
+
+
+@app.route('/api/cloud/sync', methods=['POST'])
+def cloud_sync_now():
+    return run_cloud_sync()
+
+
 @app.route('/edit_song/<int:id>', methods=['POST'])
 def edit_song(id):
     song = Song.query.get_or_404(id)
@@ -2050,6 +2214,18 @@ if __name__ == '__main__':
     t = threading.Thread(target=start_server)
     t.daemon = True
     t.start()
+
+    # Przy starcie: jeśli synchronizacja włączona i jest sieć — dociągnij dane
+    # z chmury (best-effort, w tle, nie blokuje uruchomienia; offline = cisza).
+    def _startup_cloud_sync():
+        try:
+            with app.app_context():
+                res = run_cloud_sync()
+                if res.get('ok'):
+                    logging.info('Cloud sync: %s', res.get('message'))
+        except Exception as _e:
+            logging.info('Cloud sync pominięty: %s', _e)
+    threading.Thread(target=_startup_cloud_sync, daemon=True).start()
 
     # WAŻNE: Dodajemy js_api=JafaApi()
     api = JafaApi()
