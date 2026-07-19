@@ -1257,6 +1257,15 @@
         .modal-content { width: 92%; max-height: 86vh; }
     }
 
+    /* ═══ Wąski telefon (portrait): PAD i KEY/TRANSPOSE/BPM w pionie ═══
+       Obok siebie kolumny są za wąskie i przycisk +1 (transpose) wychodził
+       poza kafelek. Na telefonie układamy oba panele jeden pod drugim. */
+    @media (max-width: 600px) {
+        .live-side-controls { flex-direction: column; flex-wrap: nowrap; gap: var(--s3); }
+        .pad-panel-box, .music-info-box { width: 100%; min-width: 0; flex: none; }
+        .music-info-row { gap: var(--s3); }
+    }
+
     /* ═══ Responsive — landscape phone (on-stage) ═══ */
     @media (max-width: 1285px) and (orientation: landscape) {
         .mobile-nav { display: none !important; }

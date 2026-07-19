@@ -4,7 +4,7 @@
 <div class="panel">
     <div class="panel-header">
         <h2>{{ _('Songs') }} <span class="muted">({{ songs|length }})</span></h2>
-        <div style="display:flex; gap:var(--s2); align-items:center;">
+        <div style="display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap;">
             <a class="btn btn-primary" href="{{ url_for('songs.song_new', church_id=church.id) }}">{{ _('Add song') }}</a>
             <form method="POST" action="{{ url_for('songs.songs_import', church_id=church.id) }}" enctype="multipart/form-data" style="display:inline;">
                 <label class="btn" style="cursor:pointer;">{{ _('Import .txt') }}

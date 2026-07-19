@@ -301,7 +301,11 @@ td a.row-link:hover { color: var(--accent); }
 .panel { min-width: 0; }
 @media (max-width: 700px) {
     .shell { padding: var(--s4) var(--s3); }
-    .panel { padding: var(--s4); overflow-x: auto; }   /* szeroka tabela = przewijanie w panelu */
+    .panel { padding: var(--s4); }
+    /* Szeroka tabela przewija się WEWNĄTRZ własnego pudełka — nagłówki panelu
+       (np. „Upcoming services") zostają na miejscu, a kolumny nie są ucinane. */
+    .panel table { display: block; width: 100%; overflow-x: auto;
+                   -webkit-overflow-scrolling: touch; }
     .panel-header { gap: var(--s2); }
     .panel h2 { font-size: 1.1rem; }
     th, td { padding: var(--s2); }
