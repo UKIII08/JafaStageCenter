@@ -4,15 +4,15 @@
 <div class="panel">
     <div class="panel-header">
         <h2>{{ _('Songs') }} <span class="muted">({{ songs|length }})</span></h2>
-        <div style="display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap;">
+        <div style="display:flex; gap:var(--s2); align-items:stretch; flex-wrap:wrap;">
             <a class="btn btn-primary" href="{{ url_for('songs.song_new', church_id=church.id) }}">{{ _('Add song') }}</a>
-            <form method="POST" action="{{ url_for('songs.songs_import', church_id=church.id) }}" enctype="multipart/form-data" style="display:inline;">
-                <label class="btn" style="cursor:pointer;">{{ _('Import .txt') }}
+            <form method="POST" action="{{ url_for('songs.songs_import', church_id=church.id) }}" enctype="multipart/form-data" style="display:contents;">
+                <label class="btn btn-secondary">{{ _('Import .txt') }}
                     <input type="file" name="files" accept=".txt" multiple hidden onchange="this.form.submit()">
                 </label>
             </form>
             {% if membership.role != 'muzyk' %}
-            <a class="btn" href="{{ url_for('studio.control', church_id=church.id) }}">{{ _('Manage in Studio') }}</a>
+            <a class="btn btn-secondary" href="{{ url_for('studio.control', church_id=church.id) }}">{{ _('Manage in Studio') }}</a>
             {% endif %}
         </div>
     </div>

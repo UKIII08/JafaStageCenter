@@ -15,6 +15,12 @@ from app.i18n import translate as _
 
 songs_bp = Blueprint('songs', __name__)
 
+# Limity importu .txt — piosenka to zwykły tekst (kilka KB), więc trzymamy je
+# ciasno, żeby jeden śmieciowy plik nie zapchał bazy/dysku serwera.
+IMPORT_MAX_FILES = 200          # ile plików naraz przyjmiemy w jednym imporcie
+IMPORT_MAX_BYTES = 512 * 1024   # 512 KB na plik .txt (nawet długi zbiór pieśni)
+SONG_MAX_CHARS = 20000          # górny limit długości treści pojedynczej pieśni
+
 
 def _get_song(church_id, song_id):
     song = Song.query.filter_by(id=song_id, church_id=church_id,
@@ -131,16 +137,21 @@ def song_delete(church_id, song_id, membership):
 @require_membership('muzyk')   # dodawanie piosenek (import) dostępne dla muzyków
 def songs_import(church_id, membership):
     files = request.files.getlist('files')
-    added, skipped = [], []
+    added, skipped, too_big = [], [], []
     header_re = re.compile(r'^(.*?)(?:\s*\(([^)]+)\))?(?:-\((\d+)\))?$')
-    for f in files:
+    for f in files[:IMPORT_MAX_FILES]:
         if not f or not f.filename.endswith('.txt'):
             continue
+        # Czytamy tylko do limitu +1 bajt — jeśli plik jest większy, pomijamy go
+        # bez ładowania całości do pamięci.
+        raw_bytes = f.read(IMPORT_MAX_BYTES + 1)
+        if len(raw_bytes) > IMPORT_MAX_BYTES:
+            too_big.append(f.filename)
+            continue
         try:
-            content = f.read().decode('utf-8-sig')
+            content = raw_bytes.decode('utf-8-sig')
         except UnicodeDecodeError:
-            f.seek(0)
-            content = f.read().decode('cp1250', errors='ignore')
+            content = raw_bytes.decode('cp1250', errors='ignore')
         content = content.replace('\r', '')
         chunks = content.split('---') if '---' in content else None
         if chunks is None:
@@ -163,7 +174,7 @@ def songs_import(church_id, membership):
                 bpm = int(m.group(3)) if (m and m.group(3)) else 0
             except ValueError:
                 bpm = 0
-            body = '\n'.join(lines[1:]).strip()
+            body = '\n'.join(lines[1:]).strip()[:SONG_MAX_CHARS]
             if not title or not body:
                 continue
             if Song.query.filter_by(church_id=church_id, title=title,
@@ -183,6 +194,8 @@ def songs_import(church_id, membership):
     msg = _('Imported:') + f' {len(added)}.'
     if skipped:
         msg += ' ' + _('Skipped (title already exists):') + f' {len(skipped)}.'
+    if too_big:
+        msg += ' ' + _('Skipped (file too large, max 512 KB):') + f' {len(too_big)}.'
     flash(msg)
     return redirect(url_for('songs.songs_list', church_id=church_id))
 

@@ -473,6 +473,7 @@ PL = {
     "Added:": "Dodano:", "Deleted:": "Usunięto:", "Saved changes.": "Zapisano zmiany.",
     "Imported:": "Zaimportowano:",
     "Skipped (title already exists):": "Pominięto (tytuł już istnieje):",
+    "Skipped (file too large, max 512 KB):": "Pominięto (plik za duży, maks. 512 KB):",
 
     # ── Flash: live / studio ──
     "A live session is already running — joined it.":

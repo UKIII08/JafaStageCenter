@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jonathan App — narzędzie zespołu uwielbienia</title>
-    <meta name="description" content="Studio prowadzącego, telefon muzyka i rzutnik w jednym. Setlisty, tonacje, przejścia akordowe, organizacja grań i raporty CCLI — dla zespołów uwielbienia.">
+    <title>jonathanapp — Twój kumpel od uwielbienia</title>
+    <meta name="description" content="Twój kumpel od uwielbienia. Nazwa od Jonatana, przyjaciela Dawida — najbardziej znanego uwielbiającego w historii. Studio prowadzącego, telefon muzyka i rzutnik w jednym: setlisty, tonacje, przejścia akordowe, organizacja grań i raporty CCLI.">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
     <style>
         body { background: var(--bg-app); color: var(--text-primary);
@@ -31,6 +31,10 @@
 
         /* hero */
         .hero { text-align: center; padding: 72px 0 40px; }
+        .hero-tag { display: inline-block; margin: 0 0 var(--s4);
+                    padding: 6px 16px; border-radius: 999px;
+                    background: var(--accent-subtle); color: var(--accent);
+                    font-weight: 800; font-size: 0.9rem; letter-spacing: .01em; }
         .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.15;
                    margin: 0 0 var(--s4); letter-spacing: -0.02em; }
         .hero h1 em { font-style: normal; color: var(--accent); }
@@ -86,6 +90,16 @@
         .trust div p { margin: 0; color: var(--text-secondary); font-size: 0.88rem;
                        line-height: 1.6; }
 
+        .namestory { text-align: center; background: var(--bg-panel);
+                     border: 1px solid var(--border-default);
+                     border-radius: var(--r-lg); padding: 56px var(--s6);
+                     margin-top: var(--s6); }
+        .namestory .kicker { margin-bottom: var(--s3); }
+        .namestory h2 { max-width: 760px; margin: 0 auto var(--s4); }
+        .namestory p { color: var(--text-secondary); line-height: 1.75;
+                       max-width: 620px; margin: 0 auto; font-size: 1.05rem; }
+        .namestory .accent { color: var(--accent); font-weight: 700; }
+
         .final { text-align: center; padding: 88px 0; }
         .final h2 { margin-bottom: var(--s3); }
         .final p { color: var(--text-secondary); margin: 0 0 var(--s5); }
@@ -115,6 +129,7 @@
     </nav>
 
     <header class="hero">
+        <span class="hero-tag">Twój kumpel od uwielbienia</span>
         <h1>Prowadź uwielbienie,<br>nie <em>technikę</em>.</h1>
         <p>Robimy to, bo sami tego potrzebowaliśmy. Jedno miejsce, żeby
         przygotować set, poprowadzić go dla ludzi <em>i</em> dla zespołu na
@@ -235,9 +250,9 @@
             </div>
             <div>
                 <h3>Zbudowane w służbie</h3>
-                <p>Jonatan był przyjacielem Dawida — najbardziej znanego
-                uwielbiającego w historii. Ta apka ma być takim przyjacielem dla
-                Ciebie: powstała w zespole uwielbienia, nie w korporacji.</p>
+                <p>Robione przez ludzi, którzy co tydzień prowadzą uwielbienie —
+                powstało w zespole uwielbienia, nie w korporacji. Narzędzia,
+                których sami potrzebowaliśmy.</p>
             </div>
             <div>
                 <h3>Wspólnota ma kontrolę</h3>
@@ -245,6 +260,20 @@
                 połączenia i usunięcie konta jednym kliknięciem. Ekrany
                 podłączasz przez QR i odłączasz równie łatwo.</p>
             </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="namestory">
+            <div class="kicker">Skąd nazwa „Jonathan”?</div>
+            <h2>Każdy uwielbiający potrzebuje swojego Jonatana.</h2>
+            <p><span class="accent">Jonatan był najbliższym przyjacielem
+            Dawida</span> — a Dawid to najbardziej znany uwielbiający w historii,
+            ten, który tańczył przed Panem z całych sił. Jonatan krył plecy
+            Dawida, żeby ten mógł robić to, do czego był stworzony. O to właśnie
+            chodzi w nazwie: ta apka ma być twoim
+            <span class="accent">kumplem od uwielbienia</span>, po cichu ogarniać
+            technikę, żebyś ty mógł prowadzić z całego serca.</p>
         </div>
     </section>
 

@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jonathan App — the worship team's toolkit</title>
-    <meta name="description" content="The worship leader's studio, every musician's phone, and the projection screen — connected live. Setlists, vocal-friendly keys, song transitions, team scheduling, and CCLI reporting.">
+    <title>jonathanapp — Your worship buddy</title>
+    <meta name="description" content="Your worship buddy. Named after Jonathan, David's friend — and David is the best-known worshiper in history. The leader's studio, every musician's phone, and the projection screen, connected live: setlists, vocal-friendly keys, song transitions, team scheduling and CCLI reporting.">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
     <style>
         body { background: var(--bg-app); color: var(--text-primary);
@@ -29,6 +29,10 @@
         .btn-lg { padding: 14px 28px; font-size: 1.05rem; }
 
         .hero { text-align: center; padding: 72px 0 40px; }
+        .hero-tag { display: inline-block; margin: 0 0 var(--s4);
+                    padding: 6px 16px; border-radius: 999px;
+                    background: var(--accent-subtle); color: var(--accent);
+                    font-weight: 800; font-size: 0.9rem; letter-spacing: .01em; }
         .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.15;
                    margin: 0 0 var(--s4); letter-spacing: -0.02em; }
         .hero h1 em { font-style: normal; color: var(--accent); }
@@ -87,6 +91,16 @@
         .final h2 { margin-bottom: var(--s3); }
         .final p { color: var(--text-secondary); margin: 0 0 var(--s5); }
 
+        .namestory { text-align: center; background: var(--bg-panel);
+                     border: 1px solid var(--border-default);
+                     border-radius: var(--r-lg); padding: 56px var(--s6);
+                     margin-top: var(--s6); }
+        .namestory .kicker { margin-bottom: var(--s3); }
+        .namestory h2 { max-width: 760px; margin: 0 auto var(--s4); }
+        .namestory p { color: var(--text-secondary); line-height: 1.75;
+                       max-width: 620px; margin: 0 auto; font-size: 1.05rem; }
+        .namestory .accent { color: var(--accent); font-weight: 700; }
+
         footer { border-top: 1px solid var(--border-default); padding: var(--s6) 0;
                  display: flex; justify-content: space-between; gap: var(--s4);
                  flex-wrap: wrap; color: var(--text-tertiary); font-size: 0.85rem; }
@@ -112,6 +126,7 @@
     </nav>
 
     <header class="hero">
+        <span class="hero-tag">Your worship buddy</span>
         <h1>Lead worship,<br>not the <em>tech</em>.</h1>
         <p>We built this because we needed it. One place to prepare the set, lead
         it for the room <em>and</em> for the band on stage, and sort out who's
@@ -232,9 +247,8 @@
             </div>
             <div>
                 <h3>Built inside a worship team</h3>
-                <p>Jonathan was David's friend — and David is the best-known
-                worshiper in history. This is meant to be that kind of friend to
-                you: it was born on a worship team, not in a boardroom.</p>
+                <p>Made by people who lead worship every week — born on a
+                worship team, not in a boardroom. The tools we wished we had.</p>
             </div>
             <div>
                 <h3>Your church stays in control</h3>
@@ -242,6 +256,19 @@
                 encrypted connections, and account deletion in one click.
                 Screens connect by QR and are revoked just as easily.</p>
             </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="namestory">
+            <div class="kicker">Why "Jonathan"?</div>
+            <h2>Every worshiper needs a Jonathan.</h2>
+            <p><span class="accent">Jonathan was David's closest friend</span> —
+            and David is the best-known worshiper in history, the one who danced
+            before the Lord with all his might. Jonathan had David's back so David
+            could do what he was made for. That's the whole idea behind the name:
+            this app is meant to be your <span class="accent">worship buddy</span>,
+            quietly handling the tech so you can lead with all your heart.</p>
         </div>
     </section>
 
