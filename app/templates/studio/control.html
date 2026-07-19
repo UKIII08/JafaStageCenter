@@ -1502,6 +1502,7 @@
             <div class="bottom-controls">
                 <button class="danger" onclick="blackout()">BLACKOUT</button>
                 <button class="secondary" onclick="showLogo()">LOGO</button>
+                <button class="secondary" onclick="openNoteModal()" data-t="note_btn" title="Spontaniczny tekst">TEKST</button>
                 <button id="silent-md-btn" class="secondary silent-md-btn" onclick="toggleSilentMD()" title="Silent Music Director — pianino MIDI">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="14"/><line x1="10" y1="10" x2="10" y2="14"/><line x1="14" y1="10" x2="14" y2="14"/><line x1="18" y1="10" x2="18" y2="14"/></svg>
                     <span id="silent-md-label">SILENT MD</span>
@@ -1657,6 +1658,25 @@
                 <input type="file" name="import_files" id="importInput" multiple accept=".txt" style="display:none;" onchange="document.getElementById('importForm').submit()">
                 <button type="button" class="btn-primary btn-lg" style="width:100%;" onclick="document.getElementById('importInput').click()" data-t="choose_file">Wybierz plik</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Spontaniczny tekst (kafelki) — funkcja webowa, poza control_logic.js -->
+    <div id="noteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-top">
+                <span class="modal-title" data-t="note_modal_title">Spontaniczny tekst</span>
+                <button class="modal-x" onclick="closeNoteModal()">&#10005;</button>
+            </div>
+            <p class="note-hint" data-t="note_hint" style="margin:0 0 12px; opacity:.7; font-size:.9em;">Wpisz tekst i wyświetl go na ekranie. Zapisz jako kafelek, żeby mieć go pod ręką.</p>
+            <textarea id="note-text" rows="4" data-t-ph="note_ph" placeholder="np. „Wyciszmy się na chwilę przed Panem…”"
+                      style="width:100%; box-sizing:border-box; resize:vertical; font:inherit; padding:10px; border-radius:8px;"></textarea>
+            <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+                <button type="button" class="btn-primary" style="flex:1; min-width:140px;" onclick="showNoteFromBox()" data-t="note_show_btn">Wyświetl na ekranie</button>
+                <button type="button" class="secondary" onclick="saveNoteTile()" data-t="note_save_tile">Zapisz jako kafelek</button>
+            </div>
+            <div class="note-tiles-label" data-t="note_tiles_label" style="margin:16px 0 8px; font-weight:700; opacity:.8;">Kafelki</div>
+            <div id="note-tiles" class="note-tiles" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
         </div>
     </div>
 
@@ -2116,6 +2136,105 @@
                     document.body.appendChild(pop);
                 });
         });
+    })();
+    </script>
+
+    <script>
+    // ── Spontaniczny tekst + kafelki (funkcja webowa; poza control_logic.js,
+    //    żeby nie łamać parytetu 1:1 z aplikacją desktop) ──────────────────
+    (function () {
+        var LS_KEY = 'jonathan-tiles-' + (window.CHURCH_ID || 'x');
+
+        function loadTiles() {
+            try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
+            catch (e) { return []; }
+        }
+        function storeTiles(list) {
+            try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch (e) {}
+        }
+        function tt(key, fallback) {
+            return (window.t && window.t(key) !== key) ? window.t(key) : fallback;
+        }
+
+        window.sendNote = function (text) {
+            text = (text || '').toString();
+            if (!text.trim()) return;
+            fetch('/send_text', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode: 'note', text: text })
+            });
+            var box = document.getElementById('live-preview-box');
+            if (box) box.innerText = text;
+            if (typeof clearLogoActive === 'function') clearLogoActive();
+        };
+
+        window.showNoteFromBox = function () {
+            var ta = document.getElementById('note-text');
+            window.sendNote(ta ? ta.value : '');
+        };
+
+        window.saveNoteTile = function () {
+            var ta = document.getElementById('note-text');
+            var text = ta ? ta.value.trim() : '';
+            if (!text) return;
+            var list = loadTiles();
+            if (list.indexOf(text) === -1) { list.push(text); storeTiles(list); }
+            renderNoteTiles();
+        };
+
+        window.removeNoteTile = function (idx) {
+            var list = loadTiles();
+            list.splice(idx, 1); storeTiles(list); renderNoteTiles();
+        };
+
+        function renderNoteTiles() {
+            var wrap = document.getElementById('note-tiles');
+            if (!wrap) return;
+            var list = loadTiles();
+            wrap.innerHTML = '';
+            if (!list.length) {
+                var empty = document.createElement('div');
+                empty.style.cssText = 'opacity:.55; font-size:.88em;';
+                empty.textContent = tt('note_no_tiles', 'No tiles yet — save your first one above.');
+                wrap.appendChild(empty);
+                return;
+            }
+            list.forEach(function (text, i) {
+                var tile = document.createElement('div');
+                tile.style.cssText = 'display:flex; align-items:stretch; gap:0; ' +
+                    'border:1px solid var(--border-strong, rgba(255,255,255,.16)); ' +
+                    'border-radius:10px; overflow:hidden; max-width:220px;';
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.textContent = text.length > 40 ? text.slice(0, 40) + '…' : text;
+                b.title = text;
+                b.style.cssText = 'flex:1; text-align:left; border:0; background:transparent; ' +
+                    'color:inherit; font:inherit; padding:8px 12px; cursor:pointer; ' +
+                    'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
+                b.onclick = function () { window.sendNote(text); };
+                var x = document.createElement('button');
+                x.type = 'button';
+                x.textContent = '✕';
+                x.title = tt('note_remove_tile', 'Remove tile');
+                x.style.cssText = 'border:0; border-left:1px solid var(--border-default, rgba(255,255,255,.09)); ' +
+                    'background:transparent; color:var(--text-tertiary,#7C7C87); cursor:pointer; padding:0 10px;';
+                x.onclick = function (e) { e.stopPropagation(); window.removeNoteTile(i); };
+                tile.appendChild(b); tile.appendChild(x);
+                wrap.appendChild(tile);
+            });
+        }
+
+        window.openNoteModal = function () {
+            var m = document.getElementById('noteModal');
+            if (m) m.style.display = 'flex';
+            renderNoteTiles();
+            var ta = document.getElementById('note-text');
+            if (ta) ta.focus();
+        };
+        window.closeNoteModal = function () {
+            var m = document.getElementById('noteModal');
+            if (m) m.style.display = 'none';
+        };
     })();
     </script>
 </body>

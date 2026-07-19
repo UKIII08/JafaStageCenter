@@ -122,6 +122,17 @@ var translations = {
         blackout_off_btn: "ZDEJMIJ BLACKOUT (POKAŻ EKRAN)",
         open_presenter_btn: "Otwórz widok prezentera (w nowej karcie)",
 
+        // ── Spontaniczny tekst (kafelki) ──
+        note_btn: "TEKST",
+        note_modal_title: "Spontaniczny tekst",
+        note_hint: "Wpisz tekst i wyświetl go na ekranie. Zapisz jako kafelek, żeby mieć go pod ręką.",
+        note_show_btn: "Wyświetl na ekranie",
+        note_save_tile: "Zapisz jako kafelek",
+        note_tiles_label: "Kafelki",
+        note_no_tiles: "Brak kafelków — zapisz pierwszy powyżej.",
+        note_ph: "np. „Wyciszmy się na chwilę przed Panem…”",
+        note_remove_tile: "Usuń kafelek",
+
         // ── Control extras ──
         lang_label: "Język / Language:",
         logo_label: "Logo:",
@@ -450,6 +461,17 @@ var translations = {
         blackout_on_btn: "BLACKOUT PROJECTOR",
         blackout_off_btn: "REMOVE BLACKOUT (SHOW SCREEN)",
         open_presenter_btn: "Open presenter view (new tab)",
+
+        // ── Spontaneous text (tiles) ──
+        note_btn: "TEXT",
+        note_modal_title: "Spontaneous text",
+        note_hint: "Type text and show it on screen. Save it as a tile to keep it handy.",
+        note_show_btn: "Show on screen",
+        note_save_tile: "Save as tile",
+        note_tiles_label: "Tiles",
+        note_no_tiles: "No tiles yet — save your first one above.",
+        note_ph: "e.g. “Let's be still before the Lord for a moment…”",
+        note_remove_tile: "Remove tile",
 
         // ── Control extras ──
         lang_label: "Language:",

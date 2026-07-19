@@ -603,6 +603,19 @@
                 document.getElementById('next-text-inner').innerHTML = "";
                 document.getElementById('next-label').style.display = 'none';
             }
+            else if (data.mode === 'note') {
+                // Spontaniczny tekst — zespół też go widzi (bez tonacji/BPM/next)
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+                stageLogo.style.display = 'none';
+                currentContent.style.display = 'block';
+                document.getElementById('key-display').style.display = 'none';
+                document.getElementById('bpm-display').style.display = 'none';
+                document.getElementById('next-text-inner').innerHTML = '';
+                document.getElementById('next-label').style.display = 'none';
+                currentContent.innerHTML = data.is_blackout ? '' : (data.html || '');
+                setTimeout(() => { fitText('current-slide', 'current-content', 12, 4); }, 0);
+            }
             else if (data.mode === 'conference' || data.mode === 'presentation' || data.mode === 'canva') {
                 // Tryb konferencyjny (także gdy na projektor idzie prezentacja/Canva):
                 // ekran ZESPOŁU pokazuje wyłącznie zegar i wiadomość do mówcy —

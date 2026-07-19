@@ -111,6 +111,13 @@
                 presImage.src = data.slide_url;
                 if(!data.is_blackout) presImage.style.display = 'block';
             }
+            else if (data.mode === 'note') {
+                // Spontaniczny tekst — pełny ekran, jak slajd worship
+                if (!data.is_blackout) {
+                    slide.style.display = 'block';
+                    slide.innerHTML = data.html || '';
+                }
+            }
         });
 
         socket.on('apply_settings', function(data) {

@@ -93,6 +93,21 @@ def test_send_text_and_current_slide(app, client):
     assert '[' not in slide['people']    # tekst dla zboru bez akordów
 
 
+def test_send_note_spontaneous_text(app, client):
+    # Spontaniczny kafelek: tekst leci na ekran jako slajd „note", HTML jest
+    # zescapowany, a nowe linie zamieniane na <br>.
+    cid = make_church(app, client, 'n@n.pl', 'Zbor N')
+    r = client.post(f'/c/{cid}/studio/send_text', json={
+        'mode': 'note', 'text': 'Wyciszmy się\n<script>x</script>'})
+    assert r.get_json()['status'] == 'ok'
+    slide = client.get(f'/c/{cid}/studio/api/current-slide').get_json()
+    assert slide['mode'] == 'note'
+    assert '<br>' in slide['html']                 # nowa linia → <br>
+    assert '<script>' not in slide['html']         # HTML zescapowany
+    assert '&lt;script&gt;' in slide['html']
+    assert slide['is_blackout'] is False
+
+
 def test_live_flag_clears_when_setlist_emptied(app, client):
     # Regresja: po opróżnieniu setlisty (Studio wysyła pusty/logo slajd)
     # dashboard nie może dalej pokazywać "na żywo".

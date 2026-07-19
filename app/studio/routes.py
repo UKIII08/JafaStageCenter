@@ -667,6 +667,18 @@ def send_text(church_id):
         live_state.studio_set(church_id, 'server_state', server_state)
         set_slide(data)
         return {'status': 'ok'}
+    if data.get('mode') == 'note':
+        # Spontaniczny tekst na ekran (bez akordów/CCLI) — np. „wyciszmy się".
+        # Escapujemy i zamieniamy nowe linie na <br>, limit chroni ekran/pamięć.
+        from markupsafe import escape
+        raw = (data.get('text') or '')[:2000]
+        is_blackout = bool(data.get('blackout', False))
+        server_state['is_blackout'] = is_blackout
+        live_state.studio_set(church_id, 'server_state', server_state)
+        html = '<br>'.join(str(escape(ln)) for ln in raw.split('\n'))
+        set_slide({'mode': 'note', 'html': html, 'text': raw,
+                   'is_blackout': is_blackout})
+        return {'status': 'ok'}
     if not data or 'text' not in data:
         if state_updated:
             live_state.studio_set(church_id, 'server_state', server_state)
