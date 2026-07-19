@@ -112,6 +112,7 @@ def login():
         user.last_login_at = datetime.utcnow()
         db.session.commit()
         session['user_id'] = user.id
+        session['show_welcome'] = True   # ekran powitalny raz, po zalogowaniu
         return redirect(_safe_next(request.args.get('next')))
     return render_template('auth/login.html')
 
@@ -129,6 +130,7 @@ def login_2fa():
         if user and pyotp.TOTP(user.totp_secret).verify(code, valid_window=1):
             session.pop('pending_2fa', None)
             session['user_id'] = user.id
+            session['show_welcome'] = True   # ekran powitalny raz, po zalogowaniu
             user.last_login_at = datetime.utcnow()
             db.session.commit()
             return redirect(_safe_next(request.args.get('next')))

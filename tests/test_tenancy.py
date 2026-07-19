@@ -64,6 +64,23 @@ def test_two_churches_are_isolated(app, client):
                       follow_redirects=True).status_code == 200
 
 
+def test_welcome_splash_shows_once_after_login(app, client):
+    # Ekran powitalny wyskakuje tylko na pierwszym wejściu po zalogowaniu,
+    # nie przy kolejnych wejściach na pulpit (np. klik w logo).
+    register(client, 'w@w.pl', 'Wojtek')
+    create_church(client, 'Zbor W')
+    cid = church_id_by_name(app, 'Zbor W')
+    client.get('/logout')
+
+    # logowanie z jedną wspólnotą przekierowuje wprost na jej pulpit —
+    # nakładka jest już na tej pierwszej stronie po zalogowaniu.
+    first = login(client, 'w@w.pl').get_data(as_text=True)
+    assert 'welcome-splash' in first
+    # kolejne wejście (jak klik w logo) — już bez nakładki
+    second = client.get(f'/c/{cid}', follow_redirects=True).get_data(as_text=True)
+    assert 'welcome-splash' not in second
+
+
 def test_join_flow_and_roles(app, client):
     register(client, 'admin@zbor.pl', 'Admin')
     create_church(client, 'Zbor X')

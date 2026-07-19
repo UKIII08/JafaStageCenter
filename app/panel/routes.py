@@ -9,7 +9,7 @@ import unicodedata
 from functools import wraps
 
 from flask import (Blueprint, render_template, request, redirect,
-                   url_for, flash, abort)
+                   url_for, flash, abort, session)
 
 from app import db
 from app.models import Church, Membership, Profile, Invitation, ROLES
@@ -205,13 +205,16 @@ def church_home(church_id, membership):
         for m in memberships]
 
     church = db.session.get(Church, church_id)
+    # Ekran powitalny pokazujemy tylko raz — zaraz po zalogowaniu (flaga w sesji
+    # ustawiona przy logowaniu, tu ją zdejmujemy). Klik w logo itd. go nie wywoła.
+    show_welcome = session.pop('show_welcome', False)
     return render_template(
         'panel/dashboard.html', church=church, membership=membership,
         user=user, next_event=next_event, my_event=my_event is not None,
         next_event_songs=next_event_songs, last_setlist=last_setlist,
         last_practiced=last_practiced, practice_done=practice_done,
         practice_total=practice_total, team_members=team_members,
-        today=today)
+        today=today, show_welcome=show_welcome)
 
 
 @panel_bp.get('/c/<church_id>/team')

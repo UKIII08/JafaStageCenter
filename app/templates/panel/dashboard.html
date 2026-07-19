@@ -2,11 +2,13 @@
 {% block title %}{{ church.name }} — Jonathan App{% endblock %}
 {% block content %}
 
-{# ── Ekran powitalny: logo + nazwa wspólnoty, raz na sesję po wejściu ──
-   Mały „smaczek", żeby od razu było wiadomo, że jesteś w panelu TEJ wspólnoty.
-   Nakładka pokazuje się tylko przez JS (gdy jest sessionStorage), więc bez JS
-   nic nie blokuje. Znika sama po chwili i wtapia się w panel. #}
-<div id="welcome-splash" hidden>
+{# ── Ekran powitalny: logo + nazwa wspólnoty, tylko RAZ po zalogowaniu ──
+   Flaga `show_welcome` jest ustawiana przy logowaniu i zdejmowana w widoku, więc
+   nakładka renderuje się wyłącznie na pierwszym wejściu po logowaniu — klik w
+   logo Jonathan App ani odświeżenie już jej nie pokażą. Znika sama i wtapia się
+   w panel. #}
+{% if show_welcome %}
+<div id="welcome-splash">
     <div class="ws-card">
         <img class="ws-logo" src="{{ url_for('studio.media', church_id=church.id, filename='logo.png') }}" alt="">
         <div class="ws-name">{{ church.name }}</div>
@@ -14,10 +16,13 @@
     </div>
 </div>
 <style>
+/* Auto-znikanie robi CSS — nawet bez JS nakładka sama zejdzie i odsłoni panel;
+   JS tylko dodaje wcześniejsze zamknięcie kliknięciem. */
 #welcome-splash { position: fixed; inset: 0; z-index: 1000; display: flex;
     align-items: center; justify-content: center; background: var(--bg-app);
-    opacity: 1; transition: opacity .5s ease; }
-#welcome-splash.ws-hide { opacity: 0; pointer-events: none; }
+    opacity: 1; animation: ws-fade .6s ease 1.6s forwards; }
+#welcome-splash.ws-hide { animation: none; opacity: 0; visibility: hidden;
+    pointer-events: none; transition: opacity .5s ease; }
 .ws-card { text-align: center; padding: var(--s5); transform: translateY(8px);
     opacity: 0; animation: ws-in .6s cubic-bezier(.2,.7,.2,1) forwards; }
 .ws-logo { height: 88px; max-width: 240px; object-fit: contain;
@@ -26,29 +31,22 @@
     letter-spacing: -.02em; }
 .ws-sub { color: var(--text-secondary); margin-top: var(--s2); font-size: 1rem; }
 @keyframes ws-in { to { transform: none; opacity: 1; } }
+@keyframes ws-fade { to { opacity: 0; visibility: hidden; } }
 @media (prefers-reduced-motion: reduce) {
+    #welcome-splash { animation-delay: .8s; }
     .ws-card { animation: none; opacity: 1; transform: none; } }
 </style>
 <script>
 (function () {
-    var key = 'jonathan-welcomed-' + {{ church.id|tojson }};
-    try {
-        if (sessionStorage.getItem(key)) return;   // już witane w tej sesji
-        sessionStorage.setItem(key, '1');
-    } catch (e) { return; }   // brak sessionStorage → nie pokazuj (nic nie blokuj)
     var el = document.getElementById('welcome-splash');
     if (!el) return;
-    el.hidden = false;
-    var reduce = window.matchMedia &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    function close() {
+    el.addEventListener('click', function () {
         el.classList.add('ws-hide');
         setTimeout(function () { if (el.parentNode) el.remove(); }, 550);
-    }
-    var t = setTimeout(close, reduce ? 700 : 1600);
-    el.addEventListener('click', function () { clearTimeout(t); close(); });
+    });
 })();
 </script>
+{% endif %}
 
 {# ── Baner: trwa sesja LIVE (bez zmian logiki) ── #}
 <div id="live-banner" class="panel" style="display:none; border-color:var(--border-strong); margin-bottom:var(--s5);">
