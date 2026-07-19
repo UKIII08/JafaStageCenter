@@ -153,6 +153,7 @@ PL = {
     # ── Dashboard (kafelki na wejście) ──
     "Good to see you, %(name)s": "Dobrze Cię widzieć, %(name)s",
     "here is what matters today.": "oto co dziś najważniejsze.",
+    "Welcome back — your worship buddy is ready.": "Witaj z powrotem — Twój kumpel od uwielbienia jest gotowy.",
     "You're on the team": "Grasz w obsadzie",
     "Your next service:": "Twoja najbliższa służba:",
     "Prepare! →": "Przygotuj się! →",
