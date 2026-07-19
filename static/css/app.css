@@ -66,6 +66,15 @@ body {
     flex-wrap: wrap;
     margin-bottom: var(--s5);
 }
+/* Pasek przycisków nad listą piosenek — równe, jednakowe przyciski */
+.song-toolbar { display: flex; gap: var(--s2); flex-wrap: wrap; align-items: center; }
+.song-toolbar .btn {
+    height: 40px;
+    padding: 0 var(--s5);
+    font-size: var(--font-sm);
+    white-space: nowrap;
+}
+
 .panel h2 { margin: 0; font-size: 1.15rem; letter-spacing: -0.01em; }
 .panel h3 { margin: 0 0 var(--s3); font-size: 1rem; }
 
