@@ -463,15 +463,16 @@ function lookupPianoChord(chordName) {
 
     if (!notes) return null;
 
-    // Add bass note below the chord
+    // Nuta basowa (slash) MUSI być najniższym klawiszem. Bas rysujemy w dolnej
+    // oktawie (0–11), a akord przenosimy do górnej (12–23). Wcześniej podwójne
+    // odejmowanie oktawy spychało bas na sam dół zakresu, przez co renderer
+    // (((n%24)+24)%24) „zawijał" go na GÓRĘ klawiatury zamiast pod akord.
     if (bassPitch !== null) {
-        const lowest = Math.min(...notes);
-        // Place bass note below the lowest chord note
-        let bass = bassPitch;
-        while (bass >= lowest) bass -= 12;
-        if (bass < 0) bass += 12;
-        if (bass >= lowest) bass -= 12;
-        notes = [bass, ...notes.filter(n => n % 12 !== bassPitch % 12)];
+        const bass = ((bassPitch % 12) + 12) % 12;
+        const chord = notes
+            .filter(n => (((n % 12) + 12) % 12) !== bass)
+            .map(n => (((n % 12) + 12) % 12) + 12);
+        notes = [bass, ...chord];
     }
 
     return notes;
@@ -503,42 +504,53 @@ function generatePianoChord(chordName) {
     let noFifth = false;
 
     const s = raw.toLowerCase();
+    // Wersja sufiksu bez członów add* — detektory rozszerzeń liczbowych (9/11/13)
+    // NIE mogą łapać cyfry z "add9"/"add11" (add9 to NIE akord dominujący z ♭7).
+    const sExt = s.replace(/add\d+/g, '');
+    const maj = /maj/.test(s);              // maj7/maj9/maj13 → septyma wielka (11)
+    const seventh = maj ? 11 : 10;
 
     // Quality: minor, dim, aug
     if (/^m(?!aj)/i.test(raw)) third = 3;
-    if (s.includes('dim')) { third = 3; fifth = 6; }
+    const isDim = s.includes('dim');
+    if (isDim) { third = 3; fifth = 6; }
     if (s.includes('aug')) { fifth = 8; }
+    // Zmieniona kwinta zapisana wprost: b5/-5, #5/+5 (np. m7b5 = półzmniejszony).
+    if (/(?:b5|-5|♭5)/.test(s)) fifth = 6;
+    if (/(?:#5|\+5|♯5)/.test(s)) fifth = 8;
 
     // Suspended: replaces the third
     if (s.includes('sus4')) { third = 5; noThird = false; }
     else if (s.includes('sus2')) { third = 2; noThird = false; }
     else if (s.includes('sus')) { third = 5; } // sus alone = sus4
 
-    // Extensions and additions
-    if (s.includes('maj7'))        extras.push(11);
-    else if (s.includes('7'))      extras.push(10);
+    // Septyma: maj7 = 11, dim7 = 𝄫7 (9 półtonów), pozostałe „7" = ♭7 (10).
+    if (s.includes('maj7'))            extras.push(11);
+    else if (isDim && s.includes('7')) extras.push(9);
+    else if (s.includes('7'))          extras.push(10);
 
     if (s.includes('add9') || s.includes('add2'))   extras.push(14);
     if (s.includes('add11') || s.includes('add4'))  extras.push(17);
     if (s.includes('add13') || s.includes('add6'))  extras.push(21);
 
-    // Numbered extensions (9, 11, 13) imply lower extensions
-    if (/(?:^|[^d])13/.test(s)) {
-        if (!extras.includes(10) && !extras.includes(11)) extras.push(10);
+    // Numbered extensions (9, 11, 13) imply lower extensions — liczone z sExt,
+    // więc "add9" nie dokłada septymy, a "maj9" bierze septymę wielką.
+    if (/(?:^|[^d])13/.test(sExt)) {
+        if (!extras.includes(10) && !extras.includes(11)) extras.push(seventh);
         if (!extras.includes(14)) extras.push(14);
         extras.push(21);
-    } else if (/(?:^|[^d])11/.test(s)) {
-        if (!extras.includes(10) && !extras.includes(11)) extras.push(10);
+    } else if (/(?:^|[^d])11/.test(sExt)) {
+        if (!extras.includes(10) && !extras.includes(11)) extras.push(seventh);
         if (!extras.includes(14)) extras.push(14);
         extras.push(17);
-    } else if (/(?:^|[^d])9(?!$)/.test(s) || s.endsWith('9')) {
-        if (!extras.includes(10) && !extras.includes(11)) extras.push(10);
+    } else if (/(?:^|[^d])9(?!$)/.test(sExt) || sExt.endsWith('9')) {
+        if (!extras.includes(10) && !extras.includes(11)) extras.push(seventh);
         extras.push(14);
     }
 
-    // 6th chord
-    if (/(?:^|m)6(?!\/|$)/.test(s) || s.endsWith('6')) {
-        if (!extras.includes(21)) extras.push(9);
+    // 6th chord (C6, m6) — nie mylić z add6 (już dodało 21) ani z dim7 (dodało 9).
+    if (/(?:^|m)6(?!\/|$)/.test(sExt) || sExt.endsWith('6')) {
+        if (!extras.includes(21) && !extras.includes(9)) extras.push(9);
     }
 
     // Build the note set
@@ -808,9 +820,10 @@ var _SUFFIX_ALIAS = { 'sus': 'sus4' };   // nasze 'sus' == sus4 w bazie
 
 function _dbKeyFor(chordName) {
     var main = String(chordName || '').split('/')[0];
-    var m = main.match(/^([A-Ga-g][#b]?)(.*)$/);
+    var m = main.match(/^([A-Ha-h][#b]?)(.*)$/);
     if (!m) return null;
     var root = m[1].charAt(0).toUpperCase() + m[1].slice(1);
+    if (root === 'H') root = 'B';   // baza chords-db używa notacji międzynarodowej
     var suf = m[2] || '';
     if (_ENHARMONIC[root]) root = _ENHARMONIC[root];
     if (_SUFFIX_ALIAS[suf] != null) suf = _SUFFIX_ALIAS[suf];
