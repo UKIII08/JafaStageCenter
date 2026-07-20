@@ -21,7 +21,28 @@
     }
     .rail-toggle button.active { background: var(--accent); color: var(--text-inverse); }
     #diagram-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--s2); }
+    .diag-svg { cursor: pointer; position: relative; }
     .diag-svg svg { width: 100%; height: auto; border-radius: var(--r-md); display: block; }
+    .diag-svg .diag-more-hint { position: absolute; bottom: 3px; right: 5px; font-size: .62rem;
+        color: var(--text-tertiary); opacity: .8; pointer-events: none; }
+    .rail-head-tools { display: flex; align-items: center; gap: var(--s2); }
+    /* Modal „wszystkie przewroty" */
+    .pos-modal { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.55);
+        display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .pos-modal[hidden] { display: none; }
+    .pos-modal-card { background: var(--bg-panel); border: 1px solid var(--border-strong);
+        border-radius: var(--r-lg); max-width: 540px; width: 100%; max-height: 85vh;
+        overflow: auto; padding: var(--s4); }
+    .pos-modal-head { display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: var(--s3); font-weight: 700; }
+    .pos-modal-head button { background: none; border: 0; color: var(--text-secondary);
+        font-size: 1.1rem; cursor: pointer; line-height: 1; }
+    .pos-modal-body { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: var(--s3); }
+    .pos-cell { position: relative; text-align: center; }
+    .pos-cell svg { width: 100%; height: auto; }
+    .pos-cell .pos-tag { font-size: .72rem; color: var(--text-tertiary); margin-top: 2px; }
+    .pos-cell.pick { outline: 2px solid var(--accent); border-radius: var(--r-md); }
+    .pos-cell .pos-star { position: absolute; top: 2px; right: 6px; color: var(--accent); font-size: .8rem; }
     @media (max-width: 820px) {
         .practice-cols { flex-direction: column; }
         .practice-rail { position: static; flex-basis: auto; width: 100%; max-height: none; order: -1; }
@@ -63,15 +84,30 @@
   <aside class="practice-rail panel" id="chord-rail">
     <div class="rail-head">
         <div class="section-title">{{ _('Chords') }}</div>
-        <div class="rail-toggle" id="diagram-instrument">
-            <button data-inst="guitar">{{ _('Guitar') }}</button>
-            <button data-inst="piano">{{ _('Piano') }}</button>
+        <div class="rail-head-tools">
+            <div class="rail-toggle" id="diagram-level" title="{{ _('How to pick voicings') }}">
+                <button data-level="beginner">{{ _('Easy') }}</button>
+                <button data-level="advanced">{{ _('Smooth') }}</button>
+            </div>
+            <div class="rail-toggle" id="diagram-instrument">
+                <button data-inst="guitar">{{ _('Guitar') }}</button>
+                <button data-inst="piano">{{ _('Piano') }}</button>
+            </div>
         </div>
     </div>
     <div id="diagram-list"></div>
   </aside>
 </div>
+
+<div id="pos-modal" class="pos-modal" hidden onclick="if(event.target===this)this.hidden=true">
+    <div class="pos-modal-card">
+        <div class="pos-modal-head"><span id="pos-modal-title"></span>
+            <button type="button" onclick="document.getElementById('pos-modal').hidden=true">&#10005;</button></div>
+        <div id="pos-modal-body" class="pos-modal-body"></div>
+    </div>
+</div>
 <script src="{{ url_for('static', filename='js/chords-client.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chords_db_guitar.js') }}"></script>
 <script src="{{ url_for('static', filename='js/chord_diagrams.js') }}"></script>
 <script>
 const CHURCH = '{{ church.id }}', SONG = '{{ song.id }}';
@@ -95,29 +131,90 @@ function chordFromEl(el) {
     // Surowa nazwa międzynarodowa (zapisana przed konwersją notacji).
     return (el.dataset.rawChord || el.textContent || '').trim();
 }
+function currentLevel() { return localStorage.getItem('jafa_practice_level') || 'advanced'; }
+var _pickByChord = {};   // akord -> indeks wybranej pozycji (dobór pod piosenkę)
+
 function renderDiagrams() {
     if (typeof getChordVoicings !== 'function') return;
     var inst = currentInstrument();
+    var level = currentLevel();
     document.querySelectorAll('#diagram-instrument button').forEach(function (b) {
         b.classList.toggle('active', b.dataset.inst === inst);
     });
-    var seen = {}, chords = [];
+    document.querySelectorAll('#diagram-level button').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.level === level);
+    });
+    // Suwak poziomu ma sens tylko dla gitary (pianino nie ma przewrotów gryfu).
+    document.getElementById('diagram-level').style.display = (inst === 'piano') ? 'none' : '';
+
+    // Pełna progresja (z powtórzeniami) — potrzebna do voice-leadingu; lista
+    // unikatów do wyświetlenia.
+    var full = [], seen = {}, uniq = [];
     document.querySelectorAll('#song-body .song-render .chord').forEach(function (el) {
         var name = chordFromEl(el);
-        if (!name || seen[name]) return;
-        seen[name] = 1; chords.push(name);
+        if (!name) return;
+        full.push(name);
+        if (!seen[name]) { seen[name] = 1; uniq.push(name); }
     });
+
+    _pickByChord = {};
+    if (inst !== 'piano' && typeof pickProgressionVoicings === 'function') {
+        var picks = pickProgressionVoicings(full, inst, level);
+        full.forEach(function (ch, i) { if (_pickByChord[ch] == null) _pickByChord[ch] = picks[i]; });
+    }
+
     var html = '';
-    chords.forEach(function (ch) {
+    uniq.forEach(function (ch) {
+        if (inst !== 'piano' && typeof getAllVoicings === 'function') {
+            var all = getAllVoicings(ch, inst);
+            if (all.length) {
+                var pi = _pickByChord[ch] || 0; if (pi >= all.length) pi = 0;
+                html += '<div class="diag-svg" data-ch="' + encodeURIComponent(ch) + '" title="' + ch + '">' +
+                        all[pi].svg + '<span class="diag-more-hint">' +
+                        (all.length > 1 ? '+' + (all.length - 1) : '') + '</span></div>';
+                return;
+            }
+        }
         var v = getChordVoicings(ch, inst);
         if (v && v.length) html += '<div class="diag-svg" title="' + ch + '">' + v[0].svg + '</div>';
     });
     document.getElementById('diagram-list').innerHTML =
         html || '<div class="muted" style="grid-column:1/-1;">' + NO_DIAG + '</div>';
+
+    document.querySelectorAll('#diagram-list .diag-svg[data-ch]').forEach(function (el) {
+        el.onclick = function () { openPositions(decodeURIComponent(el.dataset.ch)); };
+    });
 }
+
+var L_OPEN = '{{ _('open') }}', L_FRET = '{{ _('fret') }}', L_BEST = '{{ _('best for this song') }}';
+function openPositions(ch) {
+    var inst = currentInstrument();
+    if (inst === 'piano' || typeof getAllVoicings !== 'function') return;
+    var all = getAllVoicings(ch, inst);
+    if (!all.length) return;
+    var pi = _pickByChord[ch] || 0; if (pi >= all.length) pi = 0;
+    document.getElementById('pos-modal-title').textContent = ch;
+    var h = '';
+    all.forEach(function (pv, idx) {
+        var isPick = (idx === pi);
+        var tag = pv.open ? L_OPEN : (L_FRET + ' ' + pv.fret);
+        h += '<div class="pos-cell' + (isPick ? ' pick' : '') + '">' +
+             (isPick ? '<span class="pos-star" title="' + L_BEST + '">★</span>' : '') +
+             pv.svg + '<div class="pos-tag">' + tag + '</div></div>';
+    });
+    document.getElementById('pos-modal-body').innerHTML = h;
+    document.getElementById('pos-modal').hidden = false;
+}
+
 document.querySelectorAll('#diagram-instrument button').forEach(function (b) {
     b.onclick = function () {
         localStorage.setItem('jafa_practice_instrument', b.dataset.inst);
+        renderDiagrams();
+    };
+});
+document.querySelectorAll('#diagram-level button').forEach(function (b) {
+    b.onclick = function () {
+        localStorage.setItem('jafa_practice_level', b.dataset.level);
         renderDiagrams();
     };
 });

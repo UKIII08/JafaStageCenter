@@ -798,6 +798,169 @@ function recommendVoicing(chordName, progression, instrument) {
     return { index: best, pedalPc: (best === 0 ? null : bestPedal) };
 }
 
+// ===== NECK POSITIONS (przewroty) — z bazy chords-db (window.GUITAR_DB) =====
+// Format bazy: name -> [{b:baseFret, f:[E,A,D,G,B,e], x:[relFrets barré]}].
+// Konwersja na nasz model {fret, fingers, barres} jest 1:1 (ten sam porządek
+// strun, baseFret==1 => pozycja otwarta => nasz fret=0).
+
+var _ENHARMONIC = { 'Db': 'C#', 'D#': 'Eb', 'Gb': 'F#', 'G#': 'Ab', 'A#': 'Bb' };
+var _SUFFIX_ALIAS = { 'sus': 'sus4' };   // nasze 'sus' == sus4 w bazie
+
+function _dbKeyFor(chordName) {
+    var main = String(chordName || '').split('/')[0];
+    var m = main.match(/^([A-Ga-g][#b]?)(.*)$/);
+    if (!m) return null;
+    var root = m[1].charAt(0).toUpperCase() + m[1].slice(1);
+    var suf = m[2] || '';
+    if (_ENHARMONIC[root]) root = _ENHARMONIC[root];
+    if (_SUFFIX_ALIAS[suf] != null) suf = _SUFFIX_ALIAS[suf];
+    return { exact: root + suf, root: root, suffix: suf };
+}
+
+function _positionToShape(p) {
+    var b = p.b || 1, f = p.f;
+    var barres = [];
+    (p.x || []).forEach(function (v) {
+        var lo = -1, hi = -1;
+        for (var i = 0; i < 6; i++) { if (f[i] === v) { if (lo < 0) lo = i; hi = i; } }
+        if (lo >= 0) barres.push([lo + 1, hi + 1, v]);
+    });
+    return { fret: (b === 1 ? 0 : b), fingers: f.slice(), barres: barres };
+}
+
+// Wszystkie pozycje danego akordu na gryfie (posortowane od najniższej).
+// Zwraca [] dla pianina lub gdy akordu nie ma w bazie.
+function guitarPositions(chordName) {
+    if (typeof window === 'undefined' || !window.GUITAR_DB) return [];
+    var k = _dbKeyFor(chordName);
+    if (!k) return [];
+    var arr = window.GUITAR_DB[k.exact];
+    // Fallback: nieznana barwa (np. add11) → pokaż pozycje rdzenia (dur/mol).
+    if (!arr) {
+        var isMinor = /^m(?!aj)/.test(k.suffix);
+        arr = window.GUITAR_DB[k.root + (isMinor ? 'm' : '')];
+    }
+    if (!arr || !arr.length) return [];
+    return arr.map(_positionToShape).sort(function (a, b) {
+        var fa = a.fret > 0 ? a.fret : Math.min.apply(null,
+            a.fingers.filter(function (x) { return x > 0; }).concat([0]));
+        var fb = b.fret > 0 ? b.fret : Math.min.apply(null,
+            b.fingers.filter(function (x) { return x > 0; }).concat([0]));
+        return fa - fb;
+    });
+}
+
+// Bezwzględne progi (0 = pusta struna). Muted pomijane.
+function _absFrets(shape) {
+    var out = [], f = shape.fingers, base = shape.fret;
+    for (var i = 0; i < 6; i++) {
+        if (f[i] < 0) continue;
+        out.push(f[i] === 0 ? 0 : (base > 0 ? base + f[i] - 1 : f[i]));
+    }
+    return out;
+}
+
+// Środek ciężkości chwytu na gryfie (tylko dociskane struny) — proxy „rejonu ręki".
+function _fretCentroid(shape) {
+    var a = _absFrets(shape).filter(function (x) { return x > 0; });
+    if (!a.length) return 0;
+    return a.reduce(function (s, x) { return s + x; }, 0) / a.length;
+}
+
+// Trudność chwytu (im mniej, tym łatwiej): barré i wysokie progi drogo,
+// puste struny tanio. Steruje doborem dla początkujących.
+function _shapeDifficulty(shape) {
+    var f = shape.fingers;
+    var pressed = [];
+    var open = 0, muted = 0;
+    for (var i = 0; i < 6; i++) {
+        if (f[i] > 0) pressed.push(f[i]);
+        else if (f[i] === 0) open++;
+        else muted++;
+    }
+    var absMin = shape.fret > 0 ? shape.fret
+        : (pressed.length ? Math.min.apply(null, pressed) : 0);
+    var barre = (shape.barres && shape.barres.length) ? 1 : 0;
+    var cost = 0;
+    cost += absMin * 1.0;                       // wyżej na gryfie = trudniej
+    cost += barre * 4.0;                         // barré = trudno dla początkujących
+    cost -= open * 0.8;                          // puste struny = łatwo i ładnie brzmią
+    cost += Math.max(0, pressed.length - 3) * 0.6;
+    return cost;
+}
+
+// Koszt przejścia między chwytami = jak daleko wędruje ręka (voice-leading proxy).
+function _transitionCost(a, b) {
+    return Math.abs(_fretCentroid(a) - _fretCentroid(b));
+}
+
+// ===== DOBÓR POZYCJI POD CAŁĄ PIOSENKĘ (zależny od poziomu gracza) =====
+// Zwraca tablicę indeksów (do guitarPositions(chord)) — po jednym na akord.
+// - 'beginner': dominuje łatwość chwytu (otwarte, bez barré), przejścia prawie
+//   nieistotne → najprostsze kształty.
+// - 'advanced': dominuje płynność (programowanie dynamiczne / Viterbi po
+//   kandydatach), więc ręka wędruje mało, a progresja brzmi naturalnie.
+// W pełni deterministyczne.
+function pickProgressionVoicings(progression, instrument, level) {
+    if (instrument === 'piano' || !progression || !progression.length) {
+        return (progression || []).map(function () { return 0; });
+    }
+    var cands = progression.map(function (ch) {
+        var ps = guitarPositions(ch);
+        if (ps.length) return ps;
+        var d = lookupChord(ch.split('/')[0]);
+        return d ? [{ fret: d.fret, fingers: d.fingers.slice(),
+                      barres: (d.barres || []).map(function (b) { return b.slice(); }) }] : [];
+    });
+    var n = cands.length;
+    var beginner = (level === 'beginner');
+    var W_emit = beginner ? 3.0 : 0.8;
+    var W_trans = beginner ? 0.15 : 1.6;
+
+    var dp = [], back = [];
+    for (var i = 0; i < n; i++) {
+        dp.push(cands[i].map(function () { return Infinity; }));
+        back.push(cands[i].map(function () { return -1; }));
+    }
+    if (!n || !cands[0].length) return cands.map(function () { return 0; });
+    for (var j = 0; j < cands[0].length; j++) {
+        dp[0][j] = W_emit * _shapeDifficulty(cands[0][j]);
+    }
+    for (var i2 = 1; i2 < n; i2++) {
+        if (!cands[i2].length) { dp[i2] = [0]; back[i2] = [-1]; cands[i2] = [cands[i2 - 1][0]]; }
+        for (var j2 = 0; j2 < cands[i2].length; j2++) {
+            var emit = W_emit * _shapeDifficulty(cands[i2][j2]);
+            for (var k = 0; k < cands[i2 - 1].length; k++) {
+                if (dp[i2 - 1][k] === Infinity) continue;
+                var c = dp[i2 - 1][k] + W_trans * _transitionCost(cands[i2 - 1][k], cands[i2][j2]) + emit;
+                if (c < dp[i2][j2]) { dp[i2][j2] = c; back[i2][j2] = k; }
+            }
+        }
+    }
+    var last = n - 1, bestJ = 0;
+    for (var j3 = 1; j3 < dp[last].length; j3++) if (dp[last][j3] < dp[last][bestJ]) bestJ = j3;
+    var idx = new Array(n); idx[last] = bestJ;
+    for (var i3 = last; i3 > 0; i3--) idx[i3 - 1] = Math.max(0, back[i3][idx[i3]]);
+    return idx;
+}
+
+// Wszystkie pozycje akordu gotowe do wyświetlenia (SVG + etykieta progu).
+// instrument !== 'piano'. Dla nieznanych akordów zwraca [].
+function getAllVoicings(chordName, instrument) {
+    if (instrument === 'piano') return [];
+    var shapes = guitarPositions(chordName);
+    var label = chordName.split('/')[0];
+    return shapes.map(function (sh) {
+        var frets = _absFrets(sh).filter(function (x) { return x > 0; });
+        var lo = frets.length ? Math.min.apply(null, frets) : 0;
+        return {
+            label: label, tag: 'pos', fret: lo,
+            open: sh.fingers.some(function (x) { return x === 0; }),
+            svg: renderChordSVG(label, sh)
+        };
+    });
+}
+
 function renderPianoSVG(chordName, notes) {
     const W = 200, H = 120;
     const TOP = 28;

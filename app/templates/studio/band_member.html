@@ -51,6 +51,7 @@
         })();
     </script>
     <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chords_db_guitar.js') }}"></script>
     <script src="{{ url_for('static', filename='js/chord_diagrams.js') }}"></script>
     <style>
         @keyframes scaleIn {
@@ -2674,6 +2675,46 @@
                             '</div>';
                 });
                 html += '</div>';
+
+                // ── Przewroty na gryfie (chords-db) + dobór pod piosenkę ──
+                // „można patrzeć" (wszystkie pozycje) i algorytm gwiazdką wskazuje
+                // najlepszą dla TEJ piosenki, zależnie od poziomu gracza.
+                if (inst !== 'piano') {
+                    let positions = [];
+                    try { positions = getAllVoicings(dch, inst) || []; } catch (e) { positions = []; }
+                    if (positions.length > 1) {
+                        const level = currentSettings.beginner_mode ? 'beginner' : 'advanced';
+                        let pickIdx = 0;
+                        try {
+                            const prog2 = currentProgressionChords().map(diagramChord).map(simplifyDiagramChord);
+                            const picks = pickProgressionVoicings(prog2, inst, level);
+                            const at = prog2.indexOf(dch);
+                            if (at >= 0 && picks[at] != null) pickIdx = picks[at];
+                        } catch (e) { pickIdx = 0; }
+                        const modeLbl = (level === 'beginner')
+                            ? (en ? 'easy picks' : 'łatwe chwyty')
+                            : (en ? 'smooth for this song' : 'płynnie do tej piosenki');
+                        html += '<div class="voicing-title" style="margin-top:12px;">' +
+                                (en ? 'Positions on the neck' : 'Przewroty na gryfie') +
+                                ' · <span style="opacity:.65;font-weight:400;">' + modeLbl + '</span></div>';
+                        html += '<div class="voicing-row">';
+                        positions.forEach(function (pv, pi) {
+                            const isPick = (pi === pickIdx);
+                            const svg = pv.svg.replace('>' + pv.label + '<', '>' + label + '<');
+                            const fretTag = pv.open ? (en ? 'open' : 'otwarty')
+                                                    : (en ? 'fret ' : 'próg ') + pv.fret;
+                            const star = isPick ? '<div class="voicing-star">★ ' +
+                                (en ? 'best here' : 'najlepszy tu') + '</div>' : '';
+                            html += '<div class="voicing-card' + (isPick ? ' voicing-card--rec' : '') + '">' +
+                                        star +
+                                        '<div class="voicing-svg">' + svg + '</div>' +
+                                        '<div class="voicing-tag voicing-tag--base">' + fretTag + '</div>' +
+                                    '</div>';
+                        });
+                        html += '</div>';
+                    }
+                }
+
                 content.innerHTML = html;
             }
 
