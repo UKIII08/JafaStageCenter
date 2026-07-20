@@ -160,6 +160,8 @@ PL = {
     "open": "otwarty",
     "fret": "próg",
     "best for this song": "najlepszy do tej piosenki",
+    "Note": "Notatka",
+    "Note for this part (only you)": "Notatka do tej części (tylko Ty)",
     "You're on the team": "Grasz w obsadzie",
     "Your next service:": "Twoja najbliższa służba:",
     "Prepare! →": "Przygotuj się! →",

@@ -1,5 +1,6 @@
 # Biblioteka piosenek + setlisty (M1). Cała logika muzyczna z music_core —
 # ta sama co w aplikacji desktop (parytet zachowań gwarantują wspólne testy).
+import json
 import re
 from datetime import datetime
 
@@ -362,6 +363,17 @@ def _my_personal(church_id, song_id, create=False):
     return profile, sp
 
 
+def _load_section_notes(sp):
+    """Notatki per sekcja z SongPersonal.section_notes (JSON) — bezpieczny parse."""
+    if not sp:
+        return {}
+    try:
+        d = json.loads(sp.section_notes or '{}')
+        return d if isinstance(d, dict) else {}
+    except (ValueError, TypeError):
+        return {}
+
+
 @songs_bp.get('/c/<church_id>/songs/<song_id>/practice')
 @require_membership('muzyk')
 def practice(church_id, song_id, membership):
@@ -388,6 +400,7 @@ def practice(church_id, song_id, membership):
                            sections=rendered, transpose=transpose,
                            shown_key=shown_key,
                            note=(sp.note if sp else ''),
+                           section_notes=(_load_section_notes(sp) if sp else {}),
                            prefs=(profile.prefs if profile else {}) or {},
                            church=db.session.get(Church, church_id),
                            membership=membership, user=current_user())
@@ -413,6 +426,21 @@ def save_personal(church_id, song_id, membership):
             pass
     if 'note' in data:
         sp.note = str(data['note'])[:2000]
+    # Notatka do konkretnej sekcji (kafelka) — ten sam model co widok live
+    # (section_notes: JSON {"<idx>": "..."}), więc notatki się współdzielą.
+    if 'section' in data and 'section_note' in data:
+        notes = _load_section_notes(sp)
+        try:
+            key = str(int(data['section']))
+        except (TypeError, ValueError):
+            key = None
+        if key is not None:
+            txt = str(data['section_note'])[:1000]
+            if txt.strip():
+                notes[key] = txt
+            else:
+                notes.pop(key, None)
+            sp.section_notes = json.dumps(notes)
     db.session.commit()
     return jsonify({'status': 'ok',
                     'preferred_key': sp.preferred_key,

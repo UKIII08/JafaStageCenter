@@ -50,6 +50,28 @@ def test_personal_transpose_saved_and_applied(app, client):
     assert 'wejście na 3' in r.get_data(as_text=True)
 
 
+def test_section_note_saved_and_shown(app, client):
+    cid, sid = setup(client, app)
+    # notatka do konkretnej sekcji (kafelka) — jak w widoku live muzyka
+    d = client.post(f'/c/{cid}/songs/{sid}/personal',
+                    json={'section': 0, 'section_note': 'graj cicho tu'}).get_json()
+    assert d['status'] == 'ok'
+    with app.app_context():
+        import json
+        sp = SongPersonal.query.first()
+        assert json.loads(sp.section_notes) == {'0': 'graj cicho tu'}
+    # widoczna po ponownym wejściu w tryb ćwiczenia
+    r = client.get(f'/c/{cid}/songs/{sid}/practice')
+    assert 'graj cicho tu' in r.get_data(as_text=True)
+    # pusta notatka usuwa wpis
+    client.post(f'/c/{cid}/songs/{sid}/personal',
+                json={'section': 0, 'section_note': '  '})
+    with app.app_context():
+        import json
+        sp = SongPersonal.query.first()
+        assert json.loads(sp.section_notes) == {}
+
+
 def test_personal_is_per_user(app, client):
     cid, sid = setup(client, app)
     client.post(f'/c/{cid}/songs/{sid}/personal', json={'transpose': 2})
