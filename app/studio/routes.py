@@ -119,8 +119,6 @@ def media_url(church_id, filename=''):
 # Limity uploadów (ochrona przed zapełnieniem dysku / plikami-bombami).
 IMAGE_MAX_BYTES = 8 * 1024 * 1024          # logo / tło: 8 MB
 IMAGE_MAGICS = (b'\x89PNG\r\n', b'\xff\xd8\xff', b'GIF8', b'RIFF')  # png/jpg/gif/webp
-PRES_MAX_PAGES = 80                        # prezentacja: limit stron (anty-DoS)
-PRES_MAX_PX = 1600                         # maks. szerokość renderu strony
 
 
 def _read_image(f):
@@ -548,68 +546,9 @@ def delete_background(church_id):
     return _redirect_back(church_id)
 
 
-@studio_bp.post('/studio/upload_presentation')
-@studio_auth('prowadzacy')
-def upload_presentation(church_id):
-    file = request.files.get('pres_file')
-    if not file:
-        return {'status': 'error', 'message': 'Brak pliku.'}
-    filename = file.filename.lower()
-    if not filename.endswith('.pdf'):
-        return {'status': 'error',
-                'message': 'W wersji online wgraj plik PDF (w PowerPoint: '
-                           'Zapisz jako → PDF).'}
-    try:
-        import fitz
-    except ImportError:
-        return {'status': 'error',
-                'message': 'Serwer nie ma modułu PDF (PyMuPDF).'}
-    pres_id = uuid.uuid4().hex[:8]
-    save_dir = media_dir(church_id, 'presentation', pres_id)
-    pdf_path = os.path.join(save_dir, 'temp.pdf')
-    file.save(pdf_path)
-    try:
-        doc = fitz.open(pdf_path)
-        if doc.page_count > PRES_MAX_PAGES:
-            doc.close()
-            os.remove(pdf_path)
-            return {'status': 'error',
-                    'message': _('The presentation has too many pages '
-                                 '(max %(n)s).') % {'n': PRES_MAX_PAGES}}, 400
-        slide_urls = []
-        for i in range(len(doc)):
-            page = doc.load_page(i)
-            # Zoom ograniczony do PRES_MAX_PX szerokości — chroni przed
-            # "PDF-bombą" (strona o gigantycznych wymiarach).
-            w = max(float(page.rect.width), 1.0)
-            zoom = min(150 / 72.0, PRES_MAX_PX / w)
-            pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom))
-            pix.save(os.path.join(save_dir, f'slide_{i}.png'))
-            slide_urls.append(media_url(
-                church_id, f'presentation/{pres_id}/slide_{i}.png'))
-        doc.close()
-        os.remove(pdf_path)
-        socketio.emit('presentation_ready', {'slides': slide_urls},
-                      room=f'live:{church_id}')
-        return {'status': 'ok', 'slides': slide_urls,
-                'id': pres_id,
-                'name': os.path.splitext(os.path.basename(file.filename))[0]}
-    except Exception as e:
-        return {'status': 'error', 'message': f'Błąd przetwarzania: {e}'}
-
-
-@studio_bp.post('/studio/delete_presentation')
-@studio_auth('prowadzacy')
-def delete_presentation(church_id):
-    import shutil
-    data = request.get_json(silent=True) or {}
-    pres_id = data.get('id', '')
-    if not pres_id or '/' in pres_id or '\\' in pres_id or '..' in pres_id:
-        return {'status': 'error', 'message': 'Nieprawidłowe id.'}
-    target = os.path.join(media_dir(church_id, 'presentation'), pres_id)
-    if os.path.isdir(target):
-        shutil.rmtree(target, ignore_errors=True)
-    return {'status': 'ok'}
+# Prezentacje PDF są celowo dostępne TYLKO w aplikacji desktop — renderowanie
+# PDF→PNG po stronie serwera zjadałoby miejsce i CPU. W wersji online do
+# prezentacji służy Canva (embed, bez przechowywania plików).
 
 
 @studio_bp.post('/studio/open_canva')

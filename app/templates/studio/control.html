@@ -1575,56 +1575,24 @@
                     </h3>
 
                     <div style="display:flex; flex-direction:column; gap:var(--s3); flex-grow:1; min-height:0;">
-                        <!-- GŁÓWNE: Prezentacja jako PDF (uniwersalne, tryb prezentera) -->
+                        <!-- Prezentacja przez Canva (embed) — wersja online, bez wgrywania plików na serwer.
+                             Prezentacje PDF są dostępne w aplikacji desktop. -->
                         <div class="conf-sub-card" style="flex-grow:1; display:flex; flex-direction:column;">
                             <label class="conf-sub-label primary">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                Prezentacja (PDF)
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                                <span data-t="canva_pres_title">Prezentacja (Canva)</span>
                             </label>
-                            <div class="conf-hint" data-t="pres_pdf_hint">
-                                Sterujesz slajdami z panelu, u prezentera widzisz „następny slajd" — bez przeciągania okien.
-                                <b>Canva:</b> Udostępnij → Pobierz → PDF. &nbsp;<b>PowerPoint / Google Slides:</b> Pobierz / Zapisz jako PDF.
+                            <div class="conf-hint" data-t="canva_online_hint">
+                                Działa z <b>publicznym linkiem do osadzenia</b> (Canva: Udostępnij → Więcej → „Osadź").
+                                Zwykły link „Edytuj" da „odmowa dostępu". Prezentacje PDF są dostępne w aplikacji desktop.
                             </div>
-
-                            <div class="conf-pdf-row">
-                                <label for="pdf-upload" class="conf-pdf-label" id="pdf-file-label" data-t="pdf_ph">Wybierz plik PDF...</label>
-                                <input type="file" id="pdf-upload" accept=".pdf,.pptx,.ppt" style="display:none;" onchange="document.getElementById('pdf-file-label').innerText = this.files[0] ? this.files[0].name : translations[currentLang].pdf_ph">
-                                <button class="conf-upload-btn" onclick="uploadPdfPresentation()" data-t="upload_btn">WGRAJ</button>
+                            <div class="conf-canva-input-row">
+                                <input type="text" id="new-canva-link" placeholder="Wklej link do osadzenia (embed)..." data-t-ph="canva_link_ph">
+                                <button class="conf-add-btn" onclick="addCanvaLink()" data-t="add_link_btn">+ DODAJ</button>
                             </div>
-
-                            <!-- Lista wgranych prezentacji — przełączanie między kilkoma PDF -->
-                            <div id="pdf-list" style="display:flex; flex-direction:column; gap:var(--s2); margin-top:var(--s2); max-height:88px; overflow-y:auto;"></div>
-
-                            <div class="conf-sub-card" style="text-align:center; margin-top:auto;">
-                                <div class="slides-control-label" data-t="slides_control_title">Sterowanie Slajdami</div>
-
-                                <button class="conf-show-btn" onclick="sendPresentationState()" data-t="show_pres_btn">Pokaz prezentacje na ekranach</button>
-
-                                <div class="slides-nav-row">
-                                    <button class="conf-slide-btn" onclick="changeSlide(-1)">&#9664;</button>
-                                    <span id="slide-counter" class="slide-counter-display">0 / 0</span>
-                                    <button class="conf-slide-btn" onclick="changeSlide(1)">&#9654;</button>
-                                </div>
-
-                                <button class="danger conf-blackout-btn blackout-toggle" onclick="blackout()" data-t="blackout_on_btn">WYGAS EKRAN RZUTNIKA</button>
-                            </div>
+                            <div id="canva-links-list" style="display:flex; flex-direction:column; gap:var(--s2); flex:1; min-height:0; overflow-y:auto; margin-top:var(--s2);"></div>
+                            <button class="danger conf-blackout-btn blackout-toggle" onclick="blackout()" data-t="blackout_on_btn" style="margin-top:var(--s3);">WYGAS EKRAN RZUTNIKA</button>
                         </div>
-
-                        <!-- ZAAWANSOWANE: Canva na żywo (embed) — zwijane -->
-                        <details class="conf-sub-card conf-canva-adv">
-                            <summary data-t="canva_adv_title">Canva na żywo (embed) — zaawansowane</summary>
-                            <div>
-                                <div class="conf-hint" data-t="canva_adv_hint">
-                                    Działa tylko z <b>publicznym linkiem do osadzenia</b> (Canva: Udostępnij → Więcej → „Osadź").
-                                    Zwykły link „Edytuj" da „odmowa dostępu". Do trybu prezentera lepszy jest PDF powyżej.
-                                </div>
-                                <div class="conf-canva-input-row">
-                                    <input type="text" id="new-canva-link" placeholder="Wklej link do osadzenia (embed)..." data-t-ph="canva_link_ph">
-                                    <button class="conf-add-btn" onclick="addCanvaLink()" data-t="add_link_btn">+ DODAJ</button>
-                                </div>
-                                <div id="canva-links-list" style="display:flex; flex-direction:column; gap:var(--s2); max-height:80px; overflow-y:auto;"></div>
-                            </div>
-                        </details>
                     </div>
                 </div>
             </div>
