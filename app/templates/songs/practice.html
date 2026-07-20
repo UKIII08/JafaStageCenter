@@ -90,7 +90,7 @@
         <div class="section-head">
             <div class="section-title">{{ sec.label }}</div>
             <button type="button" class="sec-note-btn {{ 'has-note' if sec_note }}"
-                    data-secbtn="{{ loop.index0 }}" onclick="toggleSecNote({{ loop.index0 }})">📝 {{ _('Note') }}</button>
+                    data-secbtn="{{ loop.index0 }}" onclick="toggleSecNote({{ loop.index0 }})">{{ _('Note') }}</button>
         </div>
         <div class="song-render">{{ sec.band_html|safe }}</div>
         <div class="sec-note-wrap" id="sec-note-{{ loop.index0 }}" {{ '' if sec_note else 'hidden' }}>
