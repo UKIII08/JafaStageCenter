@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('What Jonathan can do') }} — {{ church.name }}{% endblock %}
+{% block content %}
+<style>
+    .guide-hero { margin-bottom: var(--s5); }
+    .guide-hero h1 { margin: 0 0 var(--s2); letter-spacing: -0.02em; }
+    .guide-hero p { color: var(--text-secondary); max-width: 60ch; margin: 0; }
+    .guide-sec { margin-top: var(--s6); }
+    .guide-sec-head { display: flex; align-items: baseline; justify-content: space-between;
+        gap: var(--s3); flex-wrap: wrap; margin-bottom: var(--s3); }
+    .guide-sec-head h2 { font-size: 1.15rem; margin: 0; letter-spacing: -0.01em; }
+    .guide-sec-head .who { color: var(--text-tertiary); font-size: var(--font-xs);
+        text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+    .guide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--s3); }
+    .guide-item { background: var(--bg-panel); border: 1px solid var(--border-default);
+        border-radius: var(--r-md); padding: var(--s4); }
+    .guide-item h3 { margin: 0 0 4px; font-size: 0.98rem; }
+    .guide-item p { margin: 0; color: var(--text-secondary); font-size: var(--font-sm); line-height: 1.5; }
+    .guide-cta { margin-top: var(--s3); }
+    .guide-cta a { font-size: var(--font-sm); }
+</style>
+
+<div class="guide-hero">
+    <h1>{{ _('What Jonathan can do') }}</h1>
+    <p>{{ _('A quick tour of what makes Jonathan different — pick what your team needs, no need to use it all at once.') }}</p>
+</div>
+
+<div class="guide-sec">
+    <div class="guide-sec-head">
+        <h2>{{ _('One system, three screens') }}</h2>
+        <span class="who">{{ _('Worship leader · Studio') }}</span>
+    </div>
+    <div class="guide-grid">
+        <div class="guide-item"><h3>{{ _('Click once, everyone sees it') }}</h3><p>{{ _('You pick a slide in Studio — the projector, the stage screen and every musician’s phone update the same second.') }}</p></div>
+        <div class="guide-item"><h3>{{ _('Smart song-to-song transitions') }}</h3><p>{{ _('A music engine suggests bridge chords from one key to the next, aware of the style and tempo of both songs.') }}</p></div>
+        <div class="guide-item"><h3>{{ _('Ambient pads in the song’s key') }}</h3><p>{{ _('Atmosphere beds that follow the current key with smooth crossfades when it changes.') }}</p></div>
+        <div class="guide-item"><h3>{{ _('Spontaneous moments') }}</h3><p>{{ _('One tap to put a line of text on screen for an unplanned moment — save it as a tile to reuse.') }}</p></div>
+    </div>
+    <div class="guide-cta"><a class="btn btn-sm" href="{{ url_for('studio.control', church_id=church.id) }}">{{ _('Open Studio →') }}</a></div>
+</div>
+
+<div class="guide-sec">
+    <div class="guide-sec-head">
+        <h2>{{ _('Made for every musician') }}</h2>
+        <span class="who">{{ _('Musician · their phone') }}</span>
+    </div>
+    <div class="guide-grid">
+        <div class="guide-item"><h3>{{ _('Chords in YOUR key') }}</h3><p>{{ _('Each musician saves a preferred key — everyone sees the chart transposed to what they actually play.') }}</p></div>
+        <div class="guide-item"><h3>{{ _('Plain or Pretty voicings') }}</h3><p>{{ _('Switch between simple shapes and tasteful open chords (add9, sus, m7) — the algorithm picks the best for the song.') }}</p></div>
+        <div class="guide-item"><h3>{{ _('Every shape on the neck') }}</h3><p>{{ _('Browse all fingerings of a chord up the fretboard, with the best-for-this-song one starred.') }}</p></div>
+        <div class="guide-item"><h3>{{ _('Practice mode') }}</h3><p>{{ _('Metronome, auto-scroll, capo and beginner mode, and a private note on any part of the song.') }}</p></div>
+        <div class="guide-item"><h3>{{ _('Built-in tuner') }}</h3><p>{{ _('Tune straight from the phone before you play — no extra app.') }}</p></div>
+    </div>
+    <div class="guide-cta"><a class="btn btn-sm" href="{{ url_for('panel.my_profile', church_id=church.id) }}">{{ _('Set my instrument & key →') }}</a></div>
+</div>
+
+<div class="guide-sec">
+    <div class="guide-sec-head">
+        <h2>{{ _('Clean screens for the room') }}</h2>
+        <span class="who">{{ _('Congregation · projector') }}</span>
+    </div>
+    <div class="guide-grid">
+        <div class="guide-item"><h3>{{ _('Lyrics without the clutter') }}</h3><p>{{ _('The congregation sees clean lyrics — your church’s background and logo, no chords.') }}</p></div>
+        <div class="guide-item"><h3>{{ _('CCLI notice, automatic') }}</h3><p>{{ _('The copyright line and song-usage count are handled for you, ready for your reporting period.') }}</p></div>
+        <div class="guide-item"><h3>{{ _('Connect a screen with a QR') }}</h3><p>{{ _('Open the link on a projector or TV once — it joins every LIVE session by itself.') }}</p></div>
+    </div>
+    <div class="guide-cta"><a class="btn btn-sm" href="{{ url_for('live.screens', church_id=church.id) }}">{{ _('Connect a screen →') }}</a></div>
+</div>
+
+<div class="guide-sec">
+    <div class="guide-sec-head">
+        <h2>{{ _('Get the team ready') }}</h2>
+        <span class="who">{{ _('Whole team') }}</span>
+    </div>
+    <div class="guide-grid">
+        <div class="guide-item"><h3>{{ _('Plan a service') }}</h3><p>{{ _('The team marks availability, you assign who plays what and attach the setlist.') }}</p></div>
+        <div class="guide-item"><h3>{{ _('Everyone knows their part') }}</h3><p>{{ _('Each musician sees when they play and gets practice links in their own key.') }}</p></div>
+        <div class="guide-item"><h3>{{ _('Keys that fit your vocalists') }}</h3><p>{{ _('Building the setlist, you see who prefers which key — and transpose in one click.') }}</p></div>
+    </div>
+    <div class="guide-cta"><a class="btn btn-sm" href="{{ url_for('events.events_list', church_id=church.id) }}">{{ _('Plan a service →') }}</a></div>
+</div>
+
+<div class="guide-sec">
+    <div class="guide-sec-head">
+        <h2>{{ _('Quietly in the background') }}</h2>
+        <span class="who">{{ _('Behind the scenes') }}</span>
+    </div>
+    <div class="guide-grid">
+        <div class="guide-item"><h3>{{ _('Cloud sync with the desktop app') }}</h3><p>{{ _('The offline .exe pulls your songs, setlists and profiles from the cloud on startup — work anywhere, on or offline.') }}</p></div>
+        <div class="guide-item"><h3>{{ _('Import your existing library') }}</h3><p>{{ _('Bring songs in from ChordPro (.cho) or .txt in one step — title, key and CCLI number are read automatically.') }}</p></div>
+        <div class="guide-item"><h3>{{ _('Leader & musician roles') }}</h3><p>{{ _('Musicians add songs and set their keys; leaders run the service and manage the team.') }}</p></div>
+    </div>
+</div>
+{% endblock %}

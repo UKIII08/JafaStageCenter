@@ -66,7 +66,8 @@
 
 <div class="dash-hi">
     <h1>{{ _('Good to see you, %(name)s') % {'name': user.display_name} }}</h1>
-    <p>{{ church.name }} — {{ _('here is what matters today.') }}</p>
+    <p>{{ church.name }} — {{ _('here is what matters today.') }}
+        <a href="{{ url_for('panel.guide', church_id=church.id) }}" style="margin-left:6px; white-space:nowrap;">{{ _('Discover what you can do →') }}</a></p>
 </div>
 
 {# ── Onboarding „Pierwsze kroki" — tylko admin, znika po ukończeniu ── #}

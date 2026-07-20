@@ -254,6 +254,16 @@ def team(church_id, membership):
                            membership=membership, user=current_user())
 
 
+@panel_bp.get('/c/<church_id>/guide')
+@require_membership('muzyk')
+def guide(church_id, membership):
+    """Przewodnik po funkcjach — „co potrafi Jonathan", żeby użytkownicy
+    odkryli unikalne możliwości bez przytłoczenia (osobna, opcjonalna strona)."""
+    church = db.session.get(Church, church_id)
+    return render_template('panel/guide.html', church=church,
+                           membership=membership, user=current_user())
+
+
 @panel_bp.post('/c/<church_id>/team/invite')
 @require_membership('admin')
 def team_invite(church_id, membership):
