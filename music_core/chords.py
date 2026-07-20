@@ -552,10 +552,36 @@ def is_chordpro(text):
         r'start_of_\w+|sov|soc|sob)\s*[:}]', text, re.I))
 
 
+# Łącznik sylab z SongSelect: fragment słowa " - " + akord + dalszy ciąg,
+# np. "re - [G/B]lieved" albo "al - [G/D]read - [D/C]y". Usuwamy sam myślnik
+# (akord zostaje na miejscu) — na rzutniku dla ludzi nie mogą być myślniki.
+_SYLLABLE_HYPHEN = re.compile(r'([A-Za-z])[ \t]+-[ \t]+(\[[^\]]*\])([a-z])')
+# Stopka dołączana przez SongSelect (nie jest częścią pieśni).
+_SS_FOOTER = re.compile(
+    r'^\s*(ccli\s*song\s*#|©|\(c\)|for use solely|.*songselect|.*ccli\.com)',
+    re.I)
+
+
+def _clean_lyric_line(line):
+    prev = None
+    while prev != line:                    # obsłuż łańcuch: al - read - y
+        prev = line
+        line = _SYLLABLE_HYPHEN.sub(r'\1\2\3', line)
+    line = re.sub(r'[ \t]{2,}', ' ', line)   # zwiń nadmiarowe spacje wyrównujące
+    return line.rstrip()
+
+
+def _clean_author(val):
+    # "Words by: John Newton" / "Music: ..." → sam autor
+    return re.sub(r'^\s*(words?|music|lyrics)\s*(by)?\s*[:\-]\s*', '',
+                  val, flags=re.I).strip()
+
+
 def _chordpro_one(text):
     """Parsuje pojedynczą pieśń ChordPro → dict z meta i treścią wewnętrzną."""
     meta = {'title': '', 'author': '', 'key': '', 'bpm': 0,
             'ccli': '', 'copyright': ''}
+    author_parts = []
     blocks = []
     cur = {'label': '', 'lines': []}
 
@@ -582,6 +608,10 @@ def _chordpro_one(text):
                             meta['bpm'] = int(digits)
                         except ValueError:
                             pass
+                elif field == 'author':
+                    a = _clean_author(val)          # łączymy Words by/Music by
+                    if a and a not in author_parts:
+                        author_parts.append(a)
                 elif not meta.get(field):
                     meta[field] = val
                 continue
@@ -591,12 +621,15 @@ def _chordpro_one(text):
                 continue
             continue                       # inne dyrektywy — pomijamy
         line = re.sub(r'\{[^}]*\}', '', raw)   # usuń ewentualne inline dyrektywy
+        if _SS_FOOTER.match(line):             # stopka SongSelect — pomijamy
+            continue
         if not line.strip():
             if cur['lines']:
                 flush()
             continue
-        cur['lines'].append(line.rstrip())
+        cur['lines'].append(_clean_lyric_line(line))
     flush()
+    meta['author'] = ', '.join(author_parts)
 
     segments = []
     for b in blocks:

@@ -122,15 +122,21 @@ def test_import_chordpro_from_songselect(app, client):
     # format jak pobranie z CCLI SongSelect
     cho = (
         "{title: Amazing Grace}\n"
-        "{artist: John Newton}\n"
+        "{artist: Words by: John Newton}\n"
+        "{artist: Music by: Edwin Excell}\n"
         "{key: G}\n"
         "{ccli: 4768151}\n"
         "{tempo: 72}\n"
-        "{copyright: 2006 sixsteps Music}\n\n"
+        "{time: 3/4}\n"
+        "{copyright: Public Domain}\n\n"
         "{comment: Verse 1}\n"
-        "[G]Amazing grace how [C]sweet the [G]sound\n\n"
+        "A - [G]mazing grace how [C]sweet the [G]sound\n"
+        "And [G]grace my [G/D]fears [D/C]re - [G/B]lieved\n\n"
         "{comment: Chorus}\n"
-        "My chains are [C]gone I've been set [G]free\n"
+        "I [G]have al - [G/D]read - [D/C]y [G]come\n\n"
+        "CCLI Song # 4768151\n"
+        "© Public Domain\n"
+        "For use solely with the SongSelect® Terms of Use. www.ccli.com\n"
     )
     r = client.post(f'/c/{cid}/songs/import', data={
         'files': (io.BytesIO(cho.encode()), 'amazing_grace.cho')},
@@ -142,11 +148,20 @@ def test_import_chordpro_from_songselect(app, client):
         assert s.key == 'G'
         assert s.bpm == 72
         assert s.ccli_number == '4768151'
-        assert 'John Newton' in s.author
-        assert 'sixsteps' in s.copyright
-        assert '[G]Amazing grace' in s.content
+        # Words by/Music by sklejone i oczyszczone z prefiksów
+        assert s.author == 'John Newton, Edwin Excell'
+        assert 'Public Domain' in s.copyright
         # etykiety sekcji z {comment} trafiły do treści (kafelki)
         assert 'Verse 1' in s.content and 'Chorus' in s.content
+        # ŁĄCZNIKI SYLAB usunięte (nie mogą iść na rzutnik), akord zostaje
+        assert ' - ' not in s.content
+        assert 'A[G]mazing' in s.content
+        assert 're[G/B]lieved' in s.content
+        assert 'al[G/D]read[D/C]y' in s.content
+        # stopka SongSelect wycięta
+        assert 'CCLI Song' not in s.content
+        assert 'ccli.com' not in s.content.lower()
+        assert 'SongSelect' not in s.content
 
 
 def test_setlist_flow(app, client):
