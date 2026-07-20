@@ -867,25 +867,27 @@ function _fretCentroid(shape) {
     return a.reduce(function (s, x) { return s + x; }, 0) / a.length;
 }
 
-// Trudność chwytu (im mniej, tym łatwiej): barré i wysokie progi drogo,
-// puste struny tanio. Steruje doborem dla początkujących.
+// Trudność chwytu (im mniej, tym łatwiej). Kluczowa jest tu ergonomia, a nie
+// „czy jest barré": największym wrogiem wygody jest ROZSTAW palców, dlatego
+// dziwny cząstkowy chwyt rozciągnięty na 3 progi ma być droższy niż zwarte,
+// znane barré w pierwszej pozycji. Steruje doborem dla początkujących.
 function _shapeDifficulty(shape) {
-    var f = shape.fingers;
-    var pressed = [];
-    var open = 0, muted = 0;
+    var f = shape.fingers, base = shape.fret;
+    var pressed = [];   // bezwzględne progi dociskanych strun
+    var open = 0;
     for (var i = 0; i < 6; i++) {
-        if (f[i] > 0) pressed.push(f[i]);
+        if (f[i] > 0) pressed.push(base > 0 ? base + f[i] - 1 : f[i]);
         else if (f[i] === 0) open++;
-        else muted++;
     }
-    var absMin = shape.fret > 0 ? shape.fret
-        : (pressed.length ? Math.min.apply(null, pressed) : 0);
+    var absMin = pressed.length ? Math.min.apply(null, pressed) : 0;
+    var span = pressed.length ? (Math.max.apply(null, pressed) - absMin) : 0;
     var barre = (shape.barres && shape.barres.length) ? 1 : 0;
     var cost = 0;
-    cost += absMin * 1.0;                       // wyżej na gryfie = trudniej
-    cost += barre * 4.0;                         // barré = trudno dla początkujących
-    cost -= open * 0.8;                          // puste struny = łatwo i ładnie brzmią
-    cost += Math.max(0, pressed.length - 3) * 0.6;
+    cost += absMin * 1.2;                    // niżej na gryfie = łatwiej (I pozycja)
+    cost += span * 1.6;                      // rozstaw palców — główny wróg wygody
+    cost += barre * 2.2;                     // barré wymaga wprawy, ale jest zwarte
+    cost -= open * 0.6;                      // puste struny = łatwo i ładnie brzmią
+    cost += Math.max(0, pressed.length - 4) * 0.5;
     return cost;
 }
 
