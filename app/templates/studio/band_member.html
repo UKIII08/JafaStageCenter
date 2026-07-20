@@ -1711,7 +1711,9 @@
             if (currentSettings.beginner_mode) display = simplifyChord(display);
             const notation = currentSettings.chord_notation || 'international';
             if (notation === 'nashville') {
-                display = toNashville(display, currentKey.replace('m', ''));
+                // Numery nashville są względne do tonacji i NIEZALEŻNE od kapo —
+                // liczymy je z brzmiącego akordu (przed transpozycją pod kapo).
+                display = toNashville(chord, currentKey.replace('m', ''));
                 cls = 'chord nashville';
                 if (currentSettings.lowercase_minor) {
                     display = applyLowercaseMinorNashville(display);

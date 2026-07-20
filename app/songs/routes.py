@@ -105,8 +105,10 @@ def song_view(church_id, song_id, membership):
     _, band_html, _ = mc.process_song(song.content, transpose_amount=transpose)
     shown_key = (mc.apply_transpose_to_single_chord(f'[{song.key}]', transpose)
                  .strip('[]')) if song.key and transpose else song.key
+    profile = _my_profile(church_id)
     return render_template('songs/view.html', song=song, band_html=band_html,
                            transpose=transpose, shown_key=shown_key,
+                           prefs=(profile.prefs if profile else {}) or {},
                            church=db.session.get(Church, church_id),
                            membership=membership, user=current_user())
 

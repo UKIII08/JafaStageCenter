@@ -59,6 +59,22 @@
         var p = parse(chord); if (!p) return chord;
         return p.root + (/^m(?!aj)/i.test(p.suffix) ? 'm' : '');
     }
+    // Numery nashville — niezależne od tonacji zapisu, liczone względem klucza.
+    var NASH = ['1','♭2','2','♭3','3','4','♭5','5','♭6','6','♭7','7'];
+    function toNashville(chord, keyRoot) {
+        if (chord.indexOf('/') >= 0) {
+            var pp = chord.split('/');
+            return toNashville(pp[0], keyRoot) + '/'
+                 + toNashville(pp.slice(1).join('/'), keyRoot);
+        }
+        var p = parse(chord); if (!p) return chord;
+        var pc = pitch(p.root), kp = pitch(keyRoot);
+        if (pc === null || kp === null) return chord;
+        var num = NASH[((pc - kp) % 12 + 12) % 12];
+        var suffix = p.suffix;
+        if (/^m(?!aj)/i.test(suffix)) { suffix = suffix.replace(/^m/i, ''); num += 'm'; }
+        return num + suffix;
+    }
 
     // Przekształca wszystkie .chord w kontenerze wg preferencji profilu.
     global.applyChordPrefs = function (container, prefs) {
@@ -68,14 +84,23 @@
                 .forEach(function (el) { el.remove(); });
             return;
         }
-        var capo = parseInt(prefs.capo_default || 0, 10) || 0;
+        // Zgodność ze schematami OBU zapisów prefów: panel profilu zapisuje
+        // capo_default/notation, ustawienia z telefonu zespołu — capo_fret/
+        // chord_notation. Czytamy oba, żeby preferencja nie była gubiona.
+        var capo = parseInt((prefs.capo_default != null ? prefs.capo_default
+                             : prefs.capo_fret) || 0, 10) || 0;
+        var notation = prefs.notation || prefs.chord_notation || 'international';
+        var nashKey = (prefs.key || '').replace(/m$/, '');
         container.querySelectorAll('.chord').forEach(function (el) {
             var raw = el.textContent.trim();
             var out = raw;
             if (capo > 0) out = transpose(out, -capo);
             if (prefs.beginner_mode) out = simplify(out);
-            out = convertNotation(out, prefs.notation || 'international',
-                                  !!prefs.lowercase_minor);
+            if (notation === 'nashville' && nashKey) {
+                out = toNashville(out, nashKey);
+            } else {
+                out = convertNotation(out, notation, !!prefs.lowercase_minor);
+            }
             if (out.indexOf('/') >= 0) {
                 var parts = out.split('/');
                 el.textContent = '';

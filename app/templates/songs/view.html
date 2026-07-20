@@ -21,4 +21,18 @@
     </div>
     <div class="song-render">{{ band_html|safe }}</div>
 </div>
+<script src="{{ url_for('static', filename='js/chords-client.js') }}"></script>
+<script>
+    // Zastosuj preferencje muzyka (notacja PL/nashville, małe litery = moll,
+    // tryb początkującego). Kapo=0, bo tę stronę transponuje serwer parametrem t
+    // — inaczej byłaby podwójna transpozycja.
+    (function () {
+        var prefs = Object.assign({}, {{ prefs|tojson }}, {
+            capo_default: 0, capo_fret: 0, key: {{ (shown_key or '')|tojson }}
+        });
+        document.querySelectorAll('.song-render').forEach(function (el) {
+            if (window.applyChordPrefs) window.applyChordPrefs(el, prefs);
+        });
+    })();
+</script>
 {% endblock %}
