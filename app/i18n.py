@@ -191,6 +191,26 @@ PL = {
     "Add your church logo": "Dodaj logo wspólnoty",
     "Connect a screen": "Podłącz ekran",
     "Plan your first service": "Zaplanuj pierwsze granie",
+    # ── Podpowiedzi na hover (coach marks) ──
+    "Hover tips": "Podpowiedzi",
+    "On": "Wł.",
+    "Off": "Wył.",
+    "Little tips appear when you hover over buttons. They show automatically the first few times you open the app, then switch off — turn them back on here anytime.":
+        "Krótkie podpowiedzi pojawiają się, gdy najedziesz myszką na przycisk. Przez pierwsze kilka uruchomień apki pokazują się same, potem się wyłączają — tutaj możesz je włączyć z powrotem w każdej chwili.",
+    "Run the service live — pick slides and everyone’s screens follow the same second.":
+        "Prowadź granie na żywo — wybierasz slajdy, a ekrany wszystkich zmieniają się w tej samej sekundzie.",
+    "Plan a service — the team marks availability, you assign parts and attach the setlist.":
+        "Zaplanuj granie — zespół zaznacza dostępność, Ty przydzielasz role i podpinasz setlistę.",
+    "Your song library — import from ChordPro/.txt, set keys and edit chords.":
+        "Twoja biblioteka pieśni — importuj z ChordPro/.txt, ustawiaj tonacje i edytuj akordy.",
+    "The musician view on your phone — chords in your key, tuner, metronome and auto-scroll.":
+        "Widok muzyka na telefonie — akordy w Twojej tonacji, stroik, metronom i auto-przewijanie.",
+    "Invite members and set roles — musicians add songs, leaders run the service.":
+        "Zaproś członków i ustaw role — muzycy dodają pieśni, prowadzący prowadzą granie.",
+    "Language, theme, church logo, projection look and CCLI — and turn these tips on or off.":
+        "Język, motyw, logo wspólnoty, wygląd projekcji i CCLI — oraz włączanie i wyłączanie tych podpowiedzi.",
+    "Your instrument and preferred key — every chart transposes to what you actually play.":
+        "Twój instrument i preferowana tonacja — każdy zapis akordów przeniesie się na to, co realnie grasz.",
     'Discover what you can do →': 'Odkryj, co potrafi apka →',
     'What Jonathan can do': 'Co potrafi Jonathan',
     'A quick tour of what makes Jonathan different — pick what your team needs, no need to use it all at once.': 'Szybki przegląd tego, co wyróżnia Jonathana — wybierz to, czego potrzebuje Twój zespół, nie musisz używać wszystkiego naraz.',
