@@ -485,6 +485,9 @@ PL = {
     "Added:": "Dodano:", "Deleted:": "Usunięto:", "Saved changes.": "Zapisano zmiany.",
     "Imported:": "Zaimportowano:",
     "Skipped (title already exists):": "Pominięto (tytuł już istnieje):",
+    "Import songs": "Importuj piosenki",
+    "Import ChordPro files — including songs downloaded from CCLI SongSelect — or .txt exports. Title, key, CCLI number and copyright are picked up automatically.":
+        "Importuj pliki ChordPro — w tym piosenki pobrane z CCLI SongSelect — albo eksporty .txt. Tytuł, tonacja, numer CCLI i copyright wczytują się automatycznie.",
     "Skipped (file too large, max 512 KB):": "Pominięto (plik za duży, maks. 512 KB):",
 
     # ── Flash: live / studio ──

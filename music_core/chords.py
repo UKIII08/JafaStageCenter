@@ -513,6 +513,125 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
 # --- 6. ROUTING ---
 
 
+# ── Import ChordPro (np. pobrania z CCLI SongSelect) ─────────────────────
+# Nasz wewnętrzny format to już ChordPro ([C]tekst), więc import sprowadza się
+# do: wyciągnięcia meta (tytuł/tonacja/BPM/CCLI/autor/©), zamiany dyrektyw
+# sekcji ({comment}, {start_of_*}) na nasze etykiety sekcji i pominięcia
+# dyrektyw, których nie używamy. W pełni legalne — treść dostarcza użytkownik
+# (jego własne pobranie z SongSelect na podstawie licencji CCLI).
+
+_CHORDPRO_META = {
+    'title': 'title', 't': 'title',
+    'artist': 'author', 'subtitle': 'author', 'st': 'author', 'composer': 'author',
+    'key': 'key', 'k': 'key',
+    'tempo': 'bpm', 'bpm': 'bpm',
+    'ccli': 'ccli', 'ccli_number': 'ccli', 'ccli_song_number': 'ccli',
+    'copyright': 'copyright',
+}
+_CHORDPRO_SECTION = {
+    'comment': '', 'c': '', 'ci': '', 'comment_italic': '',
+    'start_of_verse': 'Verse', 'sov': 'Verse',
+    'start_of_chorus': 'Chorus', 'soc': 'Chorus',
+    'start_of_bridge': 'Bridge', 'sob': 'Bridge',
+    'start_of_intro': 'Intro', 'soi': 'Intro',
+    'start_of_part': 'Part', 'sop': 'Part',
+    'start_of_tab': 'Tab', 'sot': 'Tab',
+}
+_CHORDPRO_END = {'end_of_verse', 'eov', 'end_of_chorus', 'eoc', 'end_of_bridge',
+                 'eob', 'end_of_intro', 'eoi', 'end_of_part', 'eop',
+                 'end_of_tab', 'eot'}
+_DIRECTIVE_RE = re.compile(r'^\s*\{\s*([a-zA-Z_]+)\s*:?\s*(.*?)\s*\}\s*$')
+
+
+def is_chordpro(text):
+    """Czy tekst wygląda na ChordPro (obecność charakterystycznych dyrektyw)."""
+    if not text:
+        return False
+    return bool(re.search(
+        r'\{\s*(title|t|artist|subtitle|st|key|k|ccli|copyright|comment|c|ci|'
+        r'start_of_\w+|sov|soc|sob)\s*[:}]', text, re.I))
+
+
+def _chordpro_one(text):
+    """Parsuje pojedynczą pieśń ChordPro → dict z meta i treścią wewnętrzną."""
+    meta = {'title': '', 'author': '', 'key': '', 'bpm': 0,
+            'ccli': '', 'copyright': ''}
+    blocks = []
+    cur = {'label': '', 'lines': []}
+
+    def flush():
+        if cur['lines'] or cur['label']:
+            blocks.append({'label': cur['label'], 'lines': list(cur['lines'])})
+        cur['label'] = ''
+        cur['lines'] = []
+
+    for raw in text.replace('\r', '').split('\n'):
+        m = _DIRECTIVE_RE.match(raw)
+        if m:
+            name = m.group(1).lower()
+            val = m.group(2).strip()
+            if name in _CHORDPRO_END:
+                flush()
+                continue
+            if name in _CHORDPRO_META:
+                field = _CHORDPRO_META[name]
+                if field == 'bpm':
+                    digits = re.sub(r'\D', '', val)
+                    if digits:
+                        try:
+                            meta['bpm'] = int(digits)
+                        except ValueError:
+                            pass
+                elif not meta.get(field):
+                    meta[field] = val
+                continue
+            if name in _CHORDPRO_SECTION:
+                flush()
+                cur['label'] = val or _CHORDPRO_SECTION[name]
+                continue
+            continue                       # inne dyrektywy — pomijamy
+        line = re.sub(r'\{[^}]*\}', '', raw)   # usuń ewentualne inline dyrektywy
+        if not line.strip():
+            if cur['lines']:
+                flush()
+            continue
+        cur['lines'].append(line.rstrip())
+    flush()
+
+    segments = []
+    for b in blocks:
+        if not b['lines']:
+            continue
+        # Etykieta musi spełniać wymogi parse_song_sections: krótka, bez '['.
+        label = b['label'].replace('[', ' ').replace(']', ' ').strip()[:28]
+        seg = ([label] if label else []) + b['lines']
+        segments.append('\n'.join(seg))
+    return {
+        'title': meta['title'][:200],
+        'author': meta['author'][:300],
+        'key': meta['key'][:10],
+        'bpm': meta['bpm'],
+        'ccli': re.sub(r'\D', '', meta['ccli'])[:20],
+        'copyright': meta['copyright'][:300],
+        'content': '\n\n'.join(segments).strip(),
+    }
+
+
+def parse_chordpro(text):
+    """Parsuje ChordPro. Zwraca listę pieśni (obsługa {new_song}/{ns})."""
+    if not text:
+        return []
+    parts = re.split(r'\{\s*(?:new_song|ns)\s*\}', text, flags=re.I)
+    songs = []
+    for part in parts:
+        if not part.strip():
+            continue
+        parsed = _chordpro_one(part)
+        if parsed['content'] or parsed['title']:
+            songs.append(parsed)
+    return songs
+
+
 def parse_song_sections(content):
     """Dzieli treść pieśni na sekcje (kafelki) — port zachowania desktopu:
     granica sekcji = pusta linia; etykieta = pierwsza linia sekcji, jeśli

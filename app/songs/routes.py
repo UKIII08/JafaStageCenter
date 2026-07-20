@@ -19,8 +19,11 @@ songs_bp = Blueprint('songs', __name__)
 # Limity importu .txt — piosenka to zwykły tekst (kilka KB), więc trzymamy je
 # ciasno, żeby jeden śmieciowy plik nie zapchał bazy/dysku serwera.
 IMPORT_MAX_FILES = 200          # ile plików naraz przyjmiemy w jednym imporcie
-IMPORT_MAX_BYTES = 512 * 1024   # 512 KB na plik .txt (nawet długi zbiór pieśni)
+IMPORT_MAX_BYTES = 512 * 1024   # 512 KB na plik (nawet długi zbiór pieśni)
 SONG_MAX_CHARS = 20000          # górny limit długości treści pojedynczej pieśni
+# Przyjmowane rozszerzenia: .txt (eksport desktop) + formaty ChordPro
+# (m.in. pobrania z CCLI SongSelect, OnSong, OpenSong).
+IMPORT_EXTS = ('.txt', '.cho', '.pro', '.chopro', '.chordpro', '.crd', '.onsong')
 
 
 def _get_song(church_id, song_id):
@@ -140,8 +143,31 @@ def songs_import(church_id, membership):
     files = request.files.getlist('files')
     added, skipped, too_big = [], [], []
     header_re = re.compile(r'^(.*?)(?:\s*\(([^)]+)\))?(?:-\((\d+)\))?$')
+
+    def _add(title, body, key, bpm, author='', copyright='', ccli=''):
+        title = (title or '').strip()[:200]
+        body = (body or '').strip()[:SONG_MAX_CHARS]
+        if not title or not body:
+            return
+        if Song.query.filter_by(church_id=church_id, title=title,
+                                deleted=False).first():
+            skipped.append(title)   # nie nadpisujemy po cichu
+            return
+        body = mc.normalize_song_chords_to_international(body)
+        if not key:
+            key = mc.detect_key_algorithm(body)
+        if key in ('N/A', '-'):
+            key = ''
+        db.session.add(Song(church_id=church_id, title=title,
+                            content=body, key=(key or '')[:10], bpm=bpm or 0,
+                            author=(author or '')[:300],
+                            copyright=(copyright or '')[:300],
+                            ccli_number=(ccli or '')[:20],
+                            created_by=current_user().id))
+        added.append(title)
+
     for f in files[:IMPORT_MAX_FILES]:
-        if not f or not f.filename.endswith('.txt'):
+        if not f or not f.filename.lower().endswith(IMPORT_EXTS):
             continue
         # Czytamy tylko do limitu +1 bajt — jeśli plik jest większy, pomijamy go
         # bez ładowania całości do pamięci.
@@ -154,6 +180,17 @@ def songs_import(church_id, membership):
         except UnicodeDecodeError:
             content = raw_bytes.decode('cp1250', errors='ignore')
         content = content.replace('\r', '')
+
+        # ── ChordPro (np. pobranie z CCLI SongSelect) ──
+        if mc.is_chordpro(content):
+            for song in mc.parse_chordpro(content):
+                title = song['title'] or f.filename.rsplit('.', 1)[0]
+                _add(title, song['content'], song['key'], song['bpm'],
+                     author=song['author'], copyright=song['copyright'],
+                     ccli=song['ccli'])
+            continue
+
+        # ── Format eksportu aplikacji desktop (.txt) ──
         chunks = content.split('---') if '---' in content else None
         if chunks is None:
             # jeden plik = jedna piosenka; tytuł z nazwy pliku
@@ -175,22 +212,7 @@ def songs_import(church_id, membership):
                 bpm = int(m.group(3)) if (m and m.group(3)) else 0
             except ValueError:
                 bpm = 0
-            body = '\n'.join(lines[1:]).strip()[:SONG_MAX_CHARS]
-            if not title or not body:
-                continue
-            if Song.query.filter_by(church_id=church_id, title=title,
-                                    deleted=False).first():
-                skipped.append(title)   # nie nadpisujemy po cichu
-                continue
-            body = mc.normalize_song_chords_to_international(body)
-            if not key:
-                key = mc.detect_key_algorithm(body)
-            if key in ('N/A', '-'):
-                key = ''
-            db.session.add(Song(church_id=church_id, title=title,
-                                content=body, key=key[:10], bpm=bpm,
-                                created_by=current_user().id))
-            added.append(title)
+            _add(title, '\n'.join(lines[1:]), key, bpm)
     db.session.commit()
     msg = _('Imported:') + f' {len(added)}.'
     if skipped:

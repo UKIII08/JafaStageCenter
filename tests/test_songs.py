@@ -116,6 +116,39 @@ def test_import_txt_skips_duplicates(app, client):
     assert b'Skipped' in r.data
 
 
+def test_import_chordpro_from_songselect(app, client):
+    import io
+    cid = setup_church(client, app)
+    # format jak pobranie z CCLI SongSelect
+    cho = (
+        "{title: Amazing Grace}\n"
+        "{artist: John Newton}\n"
+        "{key: G}\n"
+        "{ccli: 4768151}\n"
+        "{tempo: 72}\n"
+        "{copyright: 2006 sixsteps Music}\n\n"
+        "{comment: Verse 1}\n"
+        "[G]Amazing grace how [C]sweet the [G]sound\n\n"
+        "{comment: Chorus}\n"
+        "My chains are [C]gone I've been set [G]free\n"
+    )
+    r = client.post(f'/c/{cid}/songs/import', data={
+        'files': (io.BytesIO(cho.encode()), 'amazing_grace.cho')},
+        content_type='multipart/form-data', follow_redirects=True)
+    assert b'Imported' in r.data
+    with app.app_context():
+        s = Song.query.filter_by(title='Amazing Grace').first()
+        assert s is not None
+        assert s.key == 'G'
+        assert s.bpm == 72
+        assert s.ccli_number == '4768151'
+        assert 'John Newton' in s.author
+        assert 'sixsteps' in s.copyright
+        assert '[G]Amazing grace' in s.content
+        # etykiety sekcji z {comment} trafiły do treści (kafelki)
+        assert 'Verse 1' in s.content and 'Chorus' in s.content
+
+
 def test_setlist_flow(app, client):
     cid = setup_church(client, app)
     client.post(f'/c/{cid}/songs/new', data={'title': 'A', 'content': '[C]a'})

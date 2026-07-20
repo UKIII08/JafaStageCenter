@@ -8,6 +8,7 @@ from music_core.chords import (
     normalize_chord_to_international, normalize_song_chords_to_international,
     transpose_chord, apply_transpose_to_single_chord,
     convert_chords_over_lyrics,
+    is_chordpro, parse_chordpro,
     detect_key_algorithm,
     get_first_chord_of_song, get_first_chord_from_chorus,
     process_song, parse_song_sections,
