@@ -205,6 +205,23 @@ def church_home(church_id, membership):
         for m in memberships]
 
     church = db.session.get(Church, church_id)
+
+    # ── Onboarding „Pierwsze kroki" (tylko admin) — realne wykrywanie postępu.
+    onboarding = None
+    if membership.role == 'admin':
+        from app.studio.routes import media_dir
+        from app.models import Song, ScreenToken
+        onboarding = {
+            'logo': os.path.exists(os.path.join(media_dir(church_id), 'logo.png')),
+            'songs': Song.query.filter_by(church_id=church_id, deleted=False).count() > 0,
+            'members': len(memberships) > 1,
+            'screen': ScreenToken.query.filter_by(church_id=church_id).first() is not None,
+            'event': Event.query.filter_by(church_id=church_id, deleted=False).first() is not None,
+        }
+        onboarding['done'] = sum(1 for v in onboarding.values() if v)
+        onboarding['total'] = len(onboarding) - 1   # bez klucza 'done'
+        onboarding['complete'] = onboarding['done'] == onboarding['total']
+
     # Ekran powitalny pokazujemy tylko raz — zaraz po zalogowaniu (flaga w sesji
     # ustawiona przy logowaniu, tu ją zdejmujemy). Klik w logo itd. go nie wywoła.
     show_welcome = session.pop('show_welcome', False)
@@ -214,7 +231,7 @@ def church_home(church_id, membership):
         next_event_songs=next_event_songs, last_setlist=last_setlist,
         last_practiced=last_practiced, practice_done=practice_done,
         practice_total=practice_total, team_members=team_members,
-        today=today, show_welcome=show_welcome)
+        today=today, show_welcome=show_welcome, onboarding=onboarding)
 
 
 @panel_bp.get('/c/<church_id>/team')

@@ -69,6 +69,77 @@
     <p>{{ church.name }} — {{ _('here is what matters today.') }}</p>
 </div>
 
+{# ── Onboarding „Pierwsze kroki" — tylko admin, znika po ukończeniu ── #}
+{% if onboarding and not onboarding.complete %}
+{% macro onb_step(done, label, href) %}
+<a class="onb-step {{ 'is-done' if done }}" href="{{ href }}">
+    <span class="onb-check">{{ '✓' if done else '' }}</span>
+    <span class="onb-label">{{ label }}</span>
+    {% if not done %}<span class="onb-go" aria-hidden="true">→</span>{% endif %}
+</a>
+{% endmacro %}
+<style>
+    .onb-card { background: var(--bg-panel); border: 1px solid var(--border-default);
+        border-radius: var(--r-lg); padding: var(--s5); margin-bottom: var(--s5); }
+    .onb-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s3); }
+    .onb-title { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; }
+    .onb-sub { color: var(--text-tertiary); font-size: var(--font-xs); margin-top: 2px; }
+    .onb-hide { background: none; border: 0; color: var(--text-tertiary); font: inherit;
+        font-size: var(--font-xs); cursor: pointer; padding: 4px 6px; flex: 0 0 auto; }
+    .onb-hide:hover { color: var(--text-secondary); }
+    .onb-bar { height: 6px; background: var(--bg-inset); border-radius: 999px; overflow: hidden;
+        margin: var(--s3) 0 var(--s4); }
+    .onb-bar-fill { height: 100%; background: var(--accent); border-radius: 999px;
+        transition: width .4s ease; }
+    .onb-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--s2); }
+    .onb-step { display: flex; align-items: center; gap: var(--s3); padding: var(--s3);
+        border: 1px solid var(--border-default); border-radius: var(--r-md);
+        text-decoration: none; color: var(--text-primary); transition: border-color .15s, background .15s; }
+    .onb-step:hover { border-color: var(--accent); background: var(--bg-surface); }
+    .onb-step .onb-check { flex: 0 0 20px; width: 20px; height: 20px; border-radius: 50%;
+        border: 1.5px solid var(--border-strong); display: flex; align-items: center; justify-content: center;
+        font-size: 12px; color: var(--accent); }
+    .onb-step.is-done { color: var(--text-tertiary); }
+    .onb-step.is-done .onb-check { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .onb-step.is-done .onb-label { text-decoration: line-through; }
+    .onb-label { flex: 1; font-size: var(--font-sm); }
+    .onb-go { color: var(--text-tertiary); }
+</style>
+<div class="onb-card" id="onboarding-card">
+    <div class="onb-head">
+        <div>
+            <div class="onb-title">{{ _('Get your church set up') }}</div>
+            <div class="onb-sub">{{ _('%(done)s of %(total)s done — you can do these in any order') % {'done': onboarding.done, 'total': onboarding.total} }}</div>
+        </div>
+        <button type="button" class="onb-hide" onclick="dismissOnboarding()">{{ _('Hide') }}</button>
+    </div>
+    <div class="onb-bar"><div class="onb-bar-fill" style="width:{{ (onboarding.done / onboarding.total * 100)|round }}%;"></div></div>
+    <div class="onb-steps">
+        {{ onb_step(onboarding.songs, _('Add your first songs'), url_for('songs.songs_list', church_id=church.id)) }}
+        {{ onb_step(onboarding.members, _('Invite your team'), url_for('panel.team', church_id=church.id)) }}
+        {{ onb_step(onboarding.logo, _('Add your church logo'), url_for('panel.church_settings', church_id=church.id)) }}
+        {{ onb_step(onboarding.screen, _('Connect a screen'), url_for('live.screens', church_id=church.id)) }}
+        {{ onb_step(onboarding.event, _('Plan your first service'), url_for('events.events_list', church_id=church.id)) }}
+    </div>
+</div>
+<script>
+(function () {
+    try {
+        var key = 'jonathan-onb-hide-{{ church.id }}';
+        if (localStorage.getItem(key)) {
+            var c = document.getElementById('onboarding-card');
+            if (c) c.style.display = 'none';
+        }
+        window.dismissOnboarding = function () {
+            try { localStorage.setItem('jonathan-onb-hide-{{ church.id }}', '1'); } catch (e) {}
+            var c = document.getElementById('onboarding-card');
+            if (c) c.style.display = 'none';
+        };
+    } catch (e) {}
+})();
+</script>
+{% endif %}
+
 <div class="dash-bento">
 
     {# 1. Najbliższa służba — kafel duży (4×2) z podglądem setlisty ── #}
