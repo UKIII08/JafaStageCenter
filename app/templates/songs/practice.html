@@ -112,8 +112,8 @@
         <div class="section-title">{{ _('Chords') }}</div>
         <div class="rail-head-tools">
             <div class="rail-toggle" id="diagram-level" title="{{ _('How to pick voicings') }}">
-                <button data-level="beginner">{{ _('Easy') }}</button>
-                <button data-level="advanced">{{ _('Smooth') }}</button>
+                <button data-level="basic">{{ _('Plain') }}</button>
+                <button data-level="pretty">{{ _('Pretty') }}</button>
             </div>
             <div class="rail-toggle" id="diagram-instrument">
                 <button data-inst="guitar">{{ _('Guitar') }}</button>
@@ -157,20 +157,27 @@ function chordFromEl(el) {
     // Surowa nazwa międzynarodowa (zapisana przed konwersją notacji).
     return (el.dataset.rawChord || el.textContent || '').trim();
 }
-function currentLevel() { return localStorage.getItem('jafa_practice_level') || 'advanced'; }
-var _pickByChord = {};   // akord -> indeks wybranej pozycji (dobór pod piosenkę)
+// 'basic' = najprostsze chwyty; 'pretty' = ładne otwarte akordy z ozdobnikami.
+function currentMode() {
+    var m = localStorage.getItem('jafa_practice_level') || 'basic';
+    if (m === 'advanced' || m === 'smooth' || m === 'pretty') return 'pretty';
+    return 'basic';   // 'beginner'/'basic'/cokolwiek → zwykłe
+}
+var _pickByChord = {};    // basic: akord -> indeks pozycji na gryfie (getAllVoicings)
+var _prettyByChord = {};  // pretty: akord -> {idx, voicing, all} (getChordVoicings)
+var _fullProg = [];       // pełna progresja (do doboru pod piosenkę)
 
 function renderDiagrams() {
     if (typeof getChordVoicings !== 'function') return;
     var inst = currentInstrument();
-    var level = currentLevel();
+    var mode = currentMode();
     document.querySelectorAll('#diagram-instrument button').forEach(function (b) {
         b.classList.toggle('active', b.dataset.inst === inst);
     });
     document.querySelectorAll('#diagram-level button').forEach(function (b) {
-        b.classList.toggle('active', b.dataset.level === level);
+        b.classList.toggle('active', b.dataset.level === mode);
     });
-    // Suwak poziomu ma sens tylko dla gitary (pianino nie ma przewrotów gryfu).
+    // Przełącznik Zwykłe/Ładne ma sens tylko dla gitary.
     document.getElementById('diagram-level').style.display = (inst === 'piano') ? 'none' : '';
 
     // Pełna progresja (z powtórzeniami) — potrzebna do voice-leadingu; lista
@@ -183,22 +190,40 @@ function renderDiagrams() {
         if (!seen[name]) { seen[name] = 1; uniq.push(name); }
     });
 
+    _fullProg = full;
     _pickByChord = {};
-    if (inst !== 'piano' && typeof pickProgressionVoicings === 'function') {
-        var picks = pickProgressionVoicings(full, inst, level);
-        full.forEach(function (ch, i) { if (_pickByChord[ch] == null) _pickByChord[ch] = picks[i]; });
+    _prettyByChord = {};
+    if (inst !== 'piano') {
+        if (mode === 'pretty' && typeof pickPrettyVoicing === 'function') {
+            uniq.forEach(function (ch) { _prettyByChord[ch] = pickPrettyVoicing(ch, full); });
+        } else if (typeof pickProgressionVoicings === 'function') {
+            var picks = pickProgressionVoicings(full, inst, 'beginner');
+            full.forEach(function (ch, i) { if (_pickByChord[ch] == null) _pickByChord[ch] = picks[i]; });
+        }
     }
 
     var html = '';
     uniq.forEach(function (ch) {
-        if (inst !== 'piano' && typeof getAllVoicings === 'function') {
-            var all = getAllVoicings(ch, inst);
-            if (all.length) {
-                var pi = _pickByChord[ch] || 0; if (pi >= all.length) pi = 0;
-                html += '<div class="diag-svg" data-ch="' + encodeURIComponent(ch) + '" title="' + ch + '">' +
-                        all[pi].svg + '<span class="diag-more-hint">' +
-                        (all.length > 1 ? '+' + (all.length - 1) : '') + '</span></div>';
-                return;
+        if (inst !== 'piano') {
+            // Tryb ŁADNE: ozdobny, otwarty voicing (Cadd9, Gsus4, Em7…).
+            if (mode === 'pretty') {
+                var pv = _prettyByChord[ch];
+                if (pv && pv.voicing) {
+                    var more = (pv.all.length > 1) ? '<span class="diag-more-hint">' + (pv.all.length - 1) + '</span>' : '';
+                    html += '<div class="diag-svg" data-ch="' + encodeURIComponent(ch) + '" title="' + ch + '">' +
+                            pv.voicing.svg + more + '</div>';
+                    return;
+                }
+            } else if (typeof getAllVoicings === 'function') {
+                // Tryb ZWYKŁE: najprostszy chwyt (pozycja na gryfie).
+                var all = getAllVoicings(ch, inst);
+                if (all.length) {
+                    var pi = _pickByChord[ch] || 0; if (pi >= all.length) pi = 0;
+                    html += '<div class="diag-svg" data-ch="' + encodeURIComponent(ch) + '" title="' + ch + '">' +
+                            all[pi].svg + '<span class="diag-more-hint">' +
+                            (all.length > 1 ? '+' + (all.length - 1) : '') + '</span></div>';
+                    return;
+                }
             }
         }
         var v = getChordVoicings(ch, inst);
@@ -213,21 +238,38 @@ function renderDiagrams() {
 }
 
 var L_OPEN = '{{ _('open') }}', L_FRET = '{{ _('fret') }}', L_BEST = '{{ _('best for this song') }}';
+var L_PLAIN = '{{ _('plain') }}';
 function openPositions(ch) {
     var inst = currentInstrument();
-    if (inst === 'piano' || typeof getAllVoicings !== 'function') return;
-    var all = getAllVoicings(ch, inst);
-    if (!all.length) return;
-    var pi = _pickByChord[ch] || 0; if (pi >= all.length) pi = 0;
+    if (inst === 'piano') return;
+    var mode = currentMode();
     document.getElementById('pos-modal-title').textContent = ch;
     var h = '';
-    all.forEach(function (pv, idx) {
-        var isPick = (idx === pi);
-        var tag = pv.open ? L_OPEN : (L_FRET + ' ' + pv.fret);
-        h += '<div class="pos-cell' + (isPick ? ' pick' : '') + '">' +
-             (isPick ? '<span class="pos-star" title="' + L_BEST + '">★</span>' : '') +
-             pv.svg + '<div class="pos-tag">' + tag + '</div></div>';
-    });
+    if (mode === 'pretty' && typeof pickPrettyVoicing === 'function') {
+        // Ładne warianty (ozdobniki) — gwiazdka na proponowanym.
+        var pv = _prettyByChord[ch] || pickPrettyVoicing(ch, _fullProg);
+        if (!pv || !pv.all || !pv.all.length) return;
+        pv.all.forEach(function (v, idx) {
+            var isPick = (idx === pv.idx);
+            var tag = (idx === 0) ? L_PLAIN : v.label;
+            h += '<div class="pos-cell' + (isPick ? ' pick' : '') + '">' +
+                 (isPick ? '<span class="pos-star" title="' + L_BEST + '">★</span>' : '') +
+                 v.svg + '<div class="pos-tag">' + tag + '</div></div>';
+        });
+    } else {
+        // Pozycje na gryfie (przewroty) — gwiazdka na najprostszej.
+        if (typeof getAllVoicings !== 'function') return;
+        var all = getAllVoicings(ch, inst);
+        if (!all.length) return;
+        var pi = _pickByChord[ch] || 0; if (pi >= all.length) pi = 0;
+        all.forEach(function (pv2, idx) {
+            var isPick = (idx === pi);
+            var tag = pv2.open ? L_OPEN : (L_FRET + ' ' + pv2.fret);
+            h += '<div class="pos-cell' + (isPick ? ' pick' : '') + '">' +
+                 (isPick ? '<span class="pos-star" title="' + L_BEST + '">★</span>' : '') +
+                 pv2.svg + '<div class="pos-tag">' + tag + '</div></div>';
+        });
+    }
     document.getElementById('pos-modal-body').innerHTML = h;
     document.getElementById('pos-modal').hidden = false;
 }

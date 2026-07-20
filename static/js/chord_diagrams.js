@@ -963,6 +963,37 @@ function getAllVoicings(chordName, instrument) {
     });
 }
 
+// ===== TRYB „ŁADNE" — ozdobne, otwarte akordy (jak u ogranego gitarzysty) =====
+// Nie chodzi o najmniejszy ruch ręki, tylko o ładne brzmienie: add9, sus, m7…
+// Korzysta z istniejącego silnika embellishmentów (getChordVoicings +
+// recommendVoicing z tonem pedałowym), a jak nic nie pasuje — daje gustowny
+// domyślny kolor, zamiast surowego trójdźwięku.
+function _prettyDefaultIdx(voicings) {
+    // Najpierw ozdobniki, które ZACHOWUJĄ charakter akordu (add9, m7, 6, 9…),
+    // potem gustowne sus (Dsus2, Asus2) — też ładne, otwarte, idiomatyczne.
+    var order = ['color', 'soft', 'jazzy', 'open'];
+    for (var p = 0; p < order.length; p++) {
+        for (var i = 1; i < voicings.length; i++) {
+            if (voicings[i].tag === order[p]) return i;
+        }
+    }
+    return 0;
+}
+
+// Zwraca {idx, voicing, all} — idx do getChordVoicings(chord), wybrany „ładny"
+// wariant, plus cała lista wariantów do podglądu. null gdy brak diagramu.
+function pickPrettyVoicing(chordName, progression) {
+    var vs = getChordVoicings(chordName, 'guitar');
+    if (!vs || !vs.length) return null;
+    var idx = 0;
+    try {
+        var rec = recommendVoicing(chordName, progression || [], 'guitar');
+        if (rec && rec.index > 0) idx = rec.index;
+    } catch (e) { idx = 0; }
+    if (idx === 0) idx = _prettyDefaultIdx(vs);
+    return { idx: idx, voicing: vs[idx], all: vs };
+}
+
 function renderPianoSVG(chordName, notes) {
     const W = 200, H = 120;
     const TOP = 28;
