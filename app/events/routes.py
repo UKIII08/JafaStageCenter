@@ -139,9 +139,31 @@ def event_detail(church_id, eid, membership):
     ev = _get_event(church_id, eid)
     me = current_user()
     view = _event_view(church_id, ev, me)
-    setlists = StudioSetlist.query.filter_by(church_id=church_id) \
-        .order_by(StudioSetlist.id.desc()).limit(20).all() \
-        if membership.role != 'muzyk' else []
+    # Dropdown „podepnij setlistę": każdy zapis w Studiu tworzy nowy wiersz,
+    # więc bez dedupu lista puchła od starych wersji. Pokazujemy najnowszą
+    # wersję per nazwa, pomijamy puste, a aktualnie podpiętą zawsze pokazujemy.
+    setlists = []
+    if membership.role != 'muzyk':
+        seen = set()
+        for sl in StudioSetlist.query.filter_by(church_id=church_id) \
+                .order_by(StudioSetlist.id.desc()).limit(60).all():
+            key = (sl.name or '').strip().lower()
+            if key in seen:
+                continue
+            try:
+                if not json.loads(sl.songs or '[]'):
+                    continue
+            except (ValueError, TypeError):
+                continue
+            seen.add(key)
+            setlists.append(sl)
+            if len(setlists) >= 25:
+                break
+        if ev.setlist_id and not any(s.id == ev.setlist_id for s in setlists):
+            attached = StudioSetlist.query.filter_by(
+                id=ev.setlist_id, church_id=church_id).first()
+            if attached:
+                setlists.insert(0, attached)
     return render_template('events/detail.html', ev=ev, today=date.today(),
                            instruments=INSTRUMENTS, setlists=setlists,
                            church=db.session.get(Church, church_id),

@@ -405,10 +405,10 @@
             if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
                 if (requestFullScreen) {
                     requestFullScreen.call(docEl).catch(err => {
-                        alert("Na iPhone/iPad: Aby uzyskać pełny ekran, kliknij 'Udostępnij' i wybierz 'Do ekranu początkowego'.");
+                        alert(t('ios_fullscreen') || "On iPhone/iPad: for full screen, tap 'Share' and choose 'Add to Home Screen'.");
                     });
                 } else {
-                    alert("Na iPhone/iPad: Aby uzyskać pełny ekran, kliknij 'Udostępnij' i wybierz 'Do ekranu początkowego'.");
+                    alert(t('ios_fullscreen') || "On iPhone/iPad: for full screen, tap 'Share' and choose 'Add to Home Screen'.");
                 }
             } else {
                 if (cancelFullScreen) {

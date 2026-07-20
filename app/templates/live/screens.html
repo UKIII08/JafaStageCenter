@@ -1,19 +1,19 @@
 {% extends 'base.html' %}
-{% block title %}Ekrany — {{ church.name }}{% endblock %}
+{% block title %}{{ _('Screens') }} — {{ church.name }}{% endblock %}
 {% block content %}
 <div class="panel">
     <div class="panel-header">
-        <h2>Ekrany</h2>
+        <h2>{{ _('Screens') }}</h2>
     </div>
-    <p class="hint">Rzutnik (tekst dla zboru) i ekran sceny (akordy dla zespołu).
-    Otwórz link na urządzeniu raz — zapamięta się i sam podejmie każdą sesję LIVE.</p>
+    <p class="hint">{{ _('Projector (lyrics for the congregation) and the stage screen (chords for the band).') }}
+    {{ _('Open the link on the device once — it is remembered and joins every LIVE session by itself.') }}</p>
     <form method="POST" class="form-row" style="margin-top: var(--s4);">
-        <input name="name" placeholder="Nazwa (np. Rzutnik sala główna)" style="flex:2; min-width:200px;">
+        <input name="name" placeholder="{{ _('Name (e.g. Projector – main hall)') }}" style="flex:2; min-width:200px;">
         <select name="type" style="flex:1; min-width:150px;">
-            <option value="projector">Rzutnik (tekst)</option>
-            <option value="stage">Ekran sceny (akordy)</option>
+            <option value="projector">{{ _('Projector (lyrics)') }}</option>
+            <option value="stage">{{ _('Stage screen (chords)') }}</option>
         </select>
-        <button type="submit" style="flex:0;">Dodaj ekran</button>
+        <button type="submit" style="flex:0 0 auto;">{{ _('Add screen') }}</button>
     </form>
 </div>
 {% for it in items %}
@@ -22,14 +22,14 @@
         <img src="data:image/svg+xml;base64,{{ it.qr }}" width="110" height="110" alt="QR">
     </div>
     <div style="flex:1; min-width:220px;">
-        <div style="font-weight:700;">{{ it.t.name or ('Rzutnik' if it.t.type == 'projector' else 'Ekran sceny') }}
-            <span class="badge">{{ 'tekst' if it.t.type == 'projector' else 'akordy' }}</span>
+        <div style="font-weight:700;">{{ it.t.name or (_('Projector') if it.t.type == 'projector' else _('Stage screen')) }}
+            <span class="badge">{{ _('lyrics') if it.t.type == 'projector' else _('chords') }}</span>
         </div>
         <div class="mono-url" style="margin-top: var(--s1);">{{ it.url }}</div>
     </div>
     <form method="POST" action="{{ url_for('live.screen_revoke', church_id=church.id, sid=it.t.id) }}"
-          onsubmit="return confirm('Odłączyć ten ekran?')">
-        <button class="btn btn-danger btn-sm">Odłącz</button>
+          onsubmit="return confirm('{{ _('Disconnect this screen?') }}')">
+        <button class="btn btn-danger btn-sm">{{ _('Disconnect') }}</button>
     </form>
 </div>
 {% endfor %}

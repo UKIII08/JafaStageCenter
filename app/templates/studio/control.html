@@ -2003,8 +2003,8 @@
                 'background:var(--amber-subtle, rgba(251,191,36,.1));color:var(--amber, #FBBF24);' +
                 'border:1px dashed var(--amber, #FBBF24);border-radius:var(--r-md,10px);' +
                 'padding:6px 12px;font-size:0.8rem;font-weight:700;white-space:nowrap;';
-            chip.textContent = 'Setlista dla: ' + window.JAFA_EVENT.name +
-                ' (' + window.JAFA_EVENT.date + ') — kliknij Zapisz setlistę, aby podpiąć';
+            chip.textContent = {{ _('Setlist for:')|tojson }} + ' ' + window.JAFA_EVENT.name +
+                ' (' + window.JAFA_EVENT.date + ') — ' + {{ _('click Save setlist to attach')|tojson }};
             var spacer = bar && bar.querySelector('.top-bar-spacer');
             if (spacer) bar.insertBefore(chip, spacer);
             if (window.JAFA_EVENT.setlist_id) {
@@ -2035,7 +2035,7 @@
             var song = (typeof setlist !== 'undefined' && typeof currentSetIndex !== 'undefined')
                 ? setlist[currentSetIndex] : null;
             if (!song) {
-                if (typeof showToast === 'function') showToast('Najpierw wybierz piosenkę z setlisty', 'error');
+                if (typeof showToast === 'function') showToast({{ _('First pick a song from the setlist')|tojson }}, 'error');
                 return;
             }
             fetch('/api/song/' + song.id + '/team-prefs')

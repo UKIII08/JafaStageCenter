@@ -1941,7 +1941,7 @@
                 keyBox.style.display = 'block';
                 if (currentSettings.capo_fret > 0) {
                     const capoKey = convertNotation(transposeChord(currentKey, -currentSettings.capo_fret));
-                    capoBox.innerText = 'Capo ' + currentSettings.capo_fret + ' → graj ' + capoKey;
+                    capoBox.innerText = 'Capo ' + currentSettings.capo_fret + ' → ' + (t('bm_capo_play') || 'play') + ' ' + capoKey;
                     capoBox.style.display = 'block';
                 } else {
                     capoBox.style.display = 'none';

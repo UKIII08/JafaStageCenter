@@ -77,7 +77,7 @@
             <option value="{{ sl.id }}" {{ 'selected' if ev.setlist_id == sl.id }}>{{ sl.name or _('Setlist') }} ({{ sl.date or _('no date') }})</option>
             {% endfor %}
         </select>
-        <button type="submit" class="btn-ghost btn" style="flex:0;">{{ _('Attach selected') }}</button>
+        <button type="submit" class="btn-ghost btn" style="flex:0 0 auto;">{{ _('Attach selected') }}</button>
     </form>
 </div>
 {% endif %}

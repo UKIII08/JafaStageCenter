@@ -121,6 +121,8 @@ var translations = {
         slides_control_title: "Sterowanie Slajdami",
         show_pres_btn: "Pokaż prezentację na ekranach",
         blackout_on_btn: "WYGAŚ EKRAN RZUTNIKA",
+        bm_capo_play: "graj",
+        ios_fullscreen: "Na iPhone/iPad: aby uzyskać pełny ekran, kliknij 'Udostępnij' i wybierz 'Do ekranu początkowego'.",
         blackout_off_btn: "ZDEJMIJ BLACKOUT (POKAŻ EKRAN)",
         open_presenter_btn: "Otwórz widok prezentera (w nowej karcie)",
 
@@ -463,6 +465,8 @@ var translations = {
         slides_control_title: "Slide Controls",
         show_pres_btn: "Show presentation on screens",
         blackout_on_btn: "BLACKOUT PROJECTOR",
+        bm_capo_play: "play",
+        ios_fullscreen: "On iPhone/iPad: for full screen, tap 'Share' and choose 'Add to Home Screen'.",
         blackout_off_btn: "REMOVE BLACKOUT (SHOW SCREEN)",
         open_presenter_btn: "Open presenter view (new tab)",
 
