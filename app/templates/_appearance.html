@@ -13,10 +13,11 @@
 
     <div class="set-row">
         <span>{{ _('Language') }}</span>
-        <div class="seg">
-            <a href="{{ url_for('switch_lang', code='pl') }}" class="{{ 'active' if current_lang() == 'pl' }}">Polski</a>
-            <a href="{{ url_for('switch_lang', code='en') }}" class="{{ 'active' if current_lang() == 'en' }}">English</a>
-        </div>
+        <select style="min-width:160px;" onchange="if(this.value)location.href=this.value;">
+            {% for code, label in languages %}
+            <option value="{{ url_for('switch_lang', code=code) }}" {{ 'selected' if current_lang() == code }}>{{ label }}</option>
+            {% endfor %}
+        </select>
     </div>
 </div>
 

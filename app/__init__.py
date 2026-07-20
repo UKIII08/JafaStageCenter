@@ -61,9 +61,10 @@ def create_app(config_object='app.config.Config'):
     _register_socket_handlers(app)
 
     # i18n panelu (gettext, EN domyślny) — dostępne w każdym szablonie jako _()
-    from app.i18n import translate, get_lang, set_lang
+    from app.i18n import translate, get_lang, set_lang, LANGUAGES
     app.jinja_env.globals['_'] = translate
     app.jinja_env.globals['current_lang'] = get_lang
+    app.jinja_env.globals['languages'] = LANGUAGES
 
     @app.get('/lang/<code>')
     def switch_lang(code):

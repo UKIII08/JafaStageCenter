@@ -4,7 +4,14 @@
 # i18n po stronie klienta (static/js/i18n.js) — tego nie dotyczy.
 from flask import session
 
-SUPPORTED = ('en', 'pl')
+# Języki dostępne w UI (kod, natywna nazwa). Angielski domyślny (rynek USA).
+# Dodanie kolejnego języka = jedna linia tutaj + jego słownik tłumaczeń.
+LANGUAGES = (
+    ('en', 'English'),
+    ('pl', 'Polski'),
+    # ('es', 'Español'),
+)
+SUPPORTED = tuple(code for code, _name in LANGUAGES)
 DEFAULT_LANG = 'en'
 
 
