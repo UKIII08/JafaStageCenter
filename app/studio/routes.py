@@ -22,7 +22,7 @@ from app.auth.routes import current_user
 from app.live import state as live_state
 from app.models import (BandPreset, Church, Membership, Profile, ScreenToken,
                         Song, SongPersonal, StudioSetlist)
-from app.i18n import translate as _
+from app.i18n import translate as _, get_lang
 from music_core.chords import (apply_transpose_to_single_chord,
                                convert_chords_over_lyrics,
                                detect_key_algorithm,
@@ -480,7 +480,7 @@ def update_settings(church_id):
     socketio.emit('apply_settings', {
         'font_family': s['font_family'], 'bg_color': s['bg_color'],
         'text_color': s['text_color'], 'chord_color': s['chord_color'],
-        'lang': s['language'], 'chord_notation': s['chord_notation'],
+        'lang': get_lang(), 'chord_notation': s['chord_notation'],
         'minor_display': s['minor_display'],
     }, room=f'live:{church_id}')
     socketio.emit('settings_changed', room=f'live:{church_id}')
@@ -657,7 +657,7 @@ def send_text(church_id):
         'current_key': data.get('key', 'N/A'),
         'current_bpm': data.get('bpm', 0),
         'song_title': data.get('song_title', ''),
-        'is_blackout': is_blackout, 'lang': s['language'],
+        'is_blackout': is_blackout, 'lang': get_lang(),
         'notation': s['chord_notation'],
         'minor_display': s['minor_display'], 'transpose': shift,
     })

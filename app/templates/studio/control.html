@@ -1321,10 +1321,19 @@
     </style>
     <script>
         (function() {
-            var savedTheme = localStorage.getItem('theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            var savedLang = localStorage.getItem('appLang') || 'pl';
-            document.documentElement.setAttribute('data-lang', savedLang);
+            // Spójność z panelem — jeden system motywu i języka. Panel trzyma
+            // motyw pod 'jonathan-theme', a język serwerowo (current_lang).
+            // Zapisujemy je pod klucze używane przez control_logic.js
+            // ('theme'/'appLang'), więc Studio UI zawsze idzie za panelem —
+            // bez osobnych ustawień języka/motywu w samym Studio.
+            var panelLang = {{ current_lang()|tojson }};
+            var panelTheme = localStorage.getItem('jonathan-theme') || 'dark';
+            try {
+                localStorage.setItem('appLang', panelLang);
+                localStorage.setItem('theme', panelTheme);
+            } catch (e) {}
+            document.documentElement.setAttribute('data-theme', panelTheme);
+            document.documentElement.setAttribute('data-lang', panelLang);
         })();
     </script>
 </head>
@@ -1746,25 +1755,16 @@
 
             <form action="{{ base }}/update_settings" method="POST" onsubmit="closeSettingsModal(); return true;">
 
-                <div class="settings-section">
-                    <h4 data-t="general_settings">Ogólne</h4>
+                {# Język i motyw ustawiasz w panelu (spójnie dla całej apki) —
+                   w Studio zostają tylko ustawienia dotyczące samego Studia.
+                   Elementy zostają ukryte, bo używa ich wspólny control_logic.js. #}
+                <div class="settings-section" style="display:none;">
                     <div class="settings-row">
-                        <label>Język / Language:</label>
-                        <select id="lang-select" name="language" onchange="setLanguage(this.value)" style="width:50%;">
+                        <select id="lang-select" name="language" onchange="setLanguage(this.value)">
                             <option value="pl">Polski</option>
                             <option value="en">English</option>
                         </select>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h4 data-t="appearance">Wygląd</h4>
-                    <div class="settings-row">
-                        <label data-t="dark_mode">Tryb ciemny:</label>
-                        <label class="switch">
-                            <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
-                            <span class="slider round"></span>
-                        </label>
+                        <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
                     </div>
                 </div>
 
