@@ -16,7 +16,7 @@
     <form method="POST" action="{{ url_for('songs.songs_import', church_id=church.id) }}" enctype="multipart/form-data" hidden>
         <input id="import-input" type="file" name="files" accept=".txt,.cho,.pro,.chopro,.chordpro,.crd,.onsong" multiple onchange="this.form.submit()">
     </form>
-    <p class="hint" style="margin:0 0 var(--s2);">{{ _('Import ChordPro files — including songs downloaded from CCLI SongSelect — or .txt exports. Title, key, CCLI number and copyright are picked up automatically.') }}</p>
+    <p class="hint" style="margin:0 0 var(--s2);">{{ _('Import ChordPro (.cho) or .txt files. Title, key, CCLI number and copyright are picked up automatically. Only import songs you are licensed to use.') }}</p>
     <form method="GET"><input name="q" value="{{ q }}" placeholder="{{ _('Search by title or lyrics') }}"></form>
     <table style="margin-top:var(--s3);">
         <tr><th>{{ _('Title') }}</th><th>{{ _('Key') }}</th><th>{{ _('BPM') }}</th></tr>
