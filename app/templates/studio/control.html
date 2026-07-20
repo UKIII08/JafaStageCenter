@@ -1032,7 +1032,7 @@
     /* ── Conference mode ── */
     .conf-panel { max-width: 1300px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; min-height: 0; flex: 1; }
     .conf-header { font-size: var(--font-xl); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 var(--s4); flex-shrink: 0; }
-    .conf-grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: var(--s5); flex: 1; min-height: 0; }
+    .conf-grid { display: grid; grid-template-columns: minmax(0, 640px); justify-content: center; gap: var(--s5); flex: 1; min-height: 0; }
     .conf-card {
         display: flex; flex-direction: column;
         min-height: 0; overflow: hidden;
@@ -1573,44 +1573,9 @@
                             <button class="secondary" style="flex:2;" onclick="sendConfMessage()" data-t="send_btn">WYSLIJ</button>
                             <button class="danger" style="flex:1;" onclick="clearConfMessage()" data-t="clear_btn">WYCZYSC</button>
                         </div>
+                        <button class="danger conf-blackout-btn blackout-toggle" onclick="blackout()" data-t="blackout_on_btn" style="margin-top:var(--s3);">WYGAS EKRAN RZUTNIKA</button>
                     </div>
                 </div>
-
-                <!-- Multimedia Card -->
-                <div class="conf-card">
-                    <h3 class="conf-card-header" data-t="multimedia_pres_title">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                        Multimedia
-                    </h3>
-
-                    <div style="display:flex; flex-direction:column; gap:var(--s3); flex-grow:1; min-height:0;">
-                        <!-- Prezentacja przez Canva (embed) — wersja online, bez wgrywania plików na serwer.
-                             Prezentacje PDF są dostępne w aplikacji desktop. -->
-                        <div class="conf-sub-card" style="flex-grow:1; display:flex; flex-direction:column;">
-                            <label class="conf-sub-label primary">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                                <span data-t="canva_pres_title">Prezentacja (Canva)</span>
-                            </label>
-                            <div class="conf-hint" data-t="canva_online_hint">
-                                Działa z <b>publicznym linkiem do osadzenia</b> (Canva: Udostępnij → Więcej → „Osadź").
-                                Zwykły link „Edytuj" da „odmowa dostępu". Prezentacje PDF są dostępne w aplikacji desktop.
-                            </div>
-                            <div class="conf-canva-input-row">
-                                <input type="text" id="new-canva-link" placeholder="Wklej link do osadzenia (embed)..." data-t-ph="canva_link_ph">
-                                <button class="conf-add-btn" onclick="addCanvaLink()" data-t="add_link_btn">+ DODAJ</button>
-                            </div>
-                            <div id="canva-links-list" style="display:flex; flex-direction:column; gap:var(--s2); flex:1; min-height:0; overflow-y:auto; margin-top:var(--s2);"></div>
-                            <button class="danger conf-blackout-btn blackout-toggle" onclick="blackout()" data-t="blackout_on_btn" style="margin-top:var(--s3);">WYGAS EKRAN RZUTNIKA</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div style="margin-top:var(--s3); flex-shrink:0;">
-                <button class="conf-presenter-btn" onclick="window.open(window.JAFA_BASE + '/presenter', '_blank')" data-t="open_presenter_btn">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                    Otworz widok prezentera
-                </button>
             </div>
         </div>
     </div>
