@@ -200,6 +200,11 @@ PL = {
     "Plan your first service": "Zaplanuj pierwsze granie",
     # ── Ekran powitalny (odliczanie + ogłoszenia) ──
     "Welcome screen": "Ekran powitalny",
+    "Edit announcements": "Edytuj ogłoszenia",
+    "A countdown to this service plus rotating announcements — shown on the projector before the first song. Photos are shared across your services.":
+        "Odliczanie do tego grania i przewijające się ogłoszenia — pokazywane na rzutniku przed pierwszą pieśnią. Zdjęcia są wspólne dla wszystkich grań.",
+    "Countdown to this service plus rotating announcements, shown on the projector before the first song. Launch it live from Studio with “Play announcements”.":
+        "Odliczanie do tego grania i przewijające się ogłoszenia na rzutniku przed pierwszą pieśnią. Odpal na żywo ze Studia przyciskiem „Ogłoszenia”.",
     "Open on projector ↗": "Otwórz na rzutniku ↗",
     "Open on projector": "Otwórz na rzutniku",
     "A countdown to your next service plus rotating announcements — shown on the projector before the first song. Set it once; it reuses your photos across services.":

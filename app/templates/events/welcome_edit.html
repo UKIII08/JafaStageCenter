@@ -23,13 +23,13 @@
 
 <div class="panel" style="max-width:820px;">
   <div class="panel-header">
-    <h2>{{ _('Welcome screen') }}</h2>
+    <h2>{{ _('Welcome screen') }} — {{ event.name }}</h2>
     <div style="display:flex; gap:var(--s2);">
-      <a class="btn btn-ghost" href="{{ url_for('events.welcome_screen', church_id=church.id) }}" target="_blank" rel="noopener">{{ _('Open on projector ↗') }}</a>
-      <a class="btn btn-ghost" href="{{ url_for('events.events_list', church_id=church.id) }}">{{ _('Back') }}</a>
+      <a class="btn btn-ghost" href="{{ url_for('events.welcome_screen', church_id=church.id, eid=event.id) }}" target="_blank" rel="noopener">{{ _('Open on projector ↗') }}</a>
+      <a class="btn btn-ghost" href="{{ url_for('events.event_detail', church_id=church.id, eid=event.id) }}">{{ _('Back') }}</a>
     </div>
   </div>
-  <p class="hint" style="margin:0 0 var(--s4);">{{ _('A countdown to your next service plus rotating announcements — shown on the projector before the first song. Set it once; it reuses your photos across services.') }}</p>
+  <p class="hint" style="margin:0 0 var(--s4);">{{ _('A countdown to this service plus rotating announcements — shown on the projector before the first song. Photos are shared across your services.') }}</p>
 
   <div class="section-title">{{ _('Photo library') }} <span class="muted" id="wl-count"></span></div>
   <p class="hint" style="margin:0 0 var(--s2);">{{ _('Up to 10 photos, reused across announcements.') }}</p>
@@ -53,6 +53,7 @@
 
 <script>
   const CHURCH = {{ church.id|tojson }};
+  const EID = {{ event.id }};
   const MAX = {{ max_photos }};
   let PHOTOS = {{ photos|tojson }};
   let SLIDES = {{ slides|tojson }};
@@ -137,7 +138,7 @@
 
   function wlSave(){
     let secs = parseInt(document.getElementById('wl-seconds').value, 10) || 8;
-    fetch('/c/' + CHURCH + '/welcome', { method:'POST', headers:{'Content-Type':'application/json'},
+    fetch('/c/' + CHURCH + '/granie/' + EID + '/welcome', { method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ slide_seconds: secs, slides: SLIDES }) })
       .then(r => r.json()).then(function(){
         document.getElementById('wl-status').textContent = L.saved;

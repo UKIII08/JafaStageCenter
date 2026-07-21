@@ -16,12 +16,7 @@
 {% endif %}
 
 <div class="panel">
-    <div class="panel-header">
-        <h2>{{ _('Upcoming services') }}</h2>
-        {% if membership.role in ('prowadzacy', 'admin') %}
-        <a class="btn btn-ghost btn-sm" href="{{ url_for('events.welcome_edit', church_id=church.id) }}">{{ _('Welcome screen') }} →</a>
-        {% endif %}
-    </div>
+    <div class="panel-header"><h2>{{ _('Upcoming services') }}</h2></div>
     <table>
         <tr><th>{{ _('Date') }}</th><th>{{ _('Name') }}</th><th>{{ _('My availability') }}</th><th>{{ _('Playing on') }}</th><th></th></tr>
         {% for e in upcoming %}

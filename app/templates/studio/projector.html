@@ -77,6 +77,7 @@
     <img id="logo-image" src="{{ media }}/logo.png?v={{ range(1,1000)|random }}" alt="Logo">
     <iframe id="canva-frame" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>
     <img id="pres-image" src="">
+    <iframe id="welcome-frame" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; border:none; z-index:16;"></iframe>
 
     <script>
         var socket = io();
@@ -85,13 +86,31 @@
         const root = document.documentElement;
         const canvaFrame = document.getElementById('canva-frame');
         const presImage = document.getElementById('pres-image');
+        const welcomeFrame = document.getElementById('welcome-frame');
+
+        function welcomeUrl(eid) {
+            var u = '/c/' + window.CHURCH_ID + '/welcome/screen';
+            var q = [];
+            if (eid) q.push('eid=' + encodeURIComponent(eid));
+            if (window.SCREEN_TOKEN) q.push('token=' + encodeURIComponent(window.SCREEN_TOKEN));
+            return q.length ? u + '?' + q.join('&') : u;
+        }
 
         socket.on('update_slide', function(data) {
             slide.style.display = 'none';
             logo.style.display = 'none';
             canvaFrame.style.display = 'none';
             presImage.style.display = 'none';
-            if (data.mode === 'logo') {
+            if (data.mode !== 'welcome') welcomeFrame.style.display = 'none';
+            if (data.mode === 'welcome') {
+                // Reładuj tylko przy zmianie (nie restartuj animacji przy każdym slajdzie).
+                var url = welcomeUrl(data.eid);
+                if (welcomeFrame.getAttribute('data-url') !== url) {
+                    welcomeFrame.src = url; welcomeFrame.setAttribute('data-url', url);
+                }
+                welcomeFrame.style.display = data.is_blackout ? 'none' : 'block';
+            }
+            else if (data.mode === 'logo') {
                 logo.style.display = 'block';
             }
             else if (data.mode === 'blackout') {}

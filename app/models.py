@@ -233,6 +233,8 @@ class Event(db.Model):
                            db.ForeignKey('studio_setlists.id'),
                            nullable=True)
     notes = db.Column(db.Text, default='')
+    # Ekran powitalny: ogłoszenia tego wydarzenia (JSON: slide_seconds + slides)
+    welcome_json = db.Column(db.Text, default='')
     created_by = db.Column(db.String(36), db.ForeignKey('users.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     deleted = db.Column(db.Boolean, default=False)

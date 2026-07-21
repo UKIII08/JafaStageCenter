@@ -299,15 +299,11 @@ def _img_ext(data):
     return 'png'
 
 
-def _welcome_cfg(church):
-    return dict((church.settings or {}).get('welcome') or {})
-
-
-def _save_welcome_cfg(church, cfg):
-    s = dict(church.settings or {})
-    s['welcome'] = cfg
-    church.settings = s
-    db.session.commit()
+def _ev_welcome(ev):
+    try:
+        return json.loads(ev.welcome_json or '{}') or {}
+    except (ValueError, TypeError):
+        return {}
 
 
 def _next_event(church_id):
@@ -317,12 +313,13 @@ def _next_event(church_id):
             .order_by(Event.date.asc(), Event.time.asc()).first())
 
 
-@events_bp.get('/c/<church_id>/welcome')
+@events_bp.get('/c/<church_id>/granie/<int:eid>/welcome')
 @require_membership('prowadzacy')
-def welcome_edit(church_id, membership):
+def welcome_edit(church_id, eid, membership):
     church = db.session.get(Church, church_id)
-    cfg = _welcome_cfg(church)
-    return render_template('events/welcome_edit.html', church=church,
+    ev = _get_event(church_id, eid)
+    cfg = _ev_welcome(ev)
+    return render_template('events/welcome_edit.html', church=church, event=ev,
                            membership=membership, user=current_user(),
                            slides=cfg.get('slides', []),
                            slide_seconds=cfg.get('slide_seconds', 8),
@@ -330,10 +327,10 @@ def welcome_edit(church_id, membership):
                            max_photos=WELCOME_MAX_PHOTOS)
 
 
-@events_bp.post('/c/<church_id>/welcome')
+@events_bp.post('/c/<church_id>/granie/<int:eid>/welcome')
 @require_membership('prowadzacy')
-def welcome_save(church_id, membership):
-    church = db.session.get(Church, church_id)
+def welcome_save(church_id, eid, membership):
+    ev = _get_event(church_id, eid)
     data = request.get_json(silent=True) or {}
     try:
         secs = max(3, min(60, int(data.get('slide_seconds', 8))))
@@ -348,7 +345,8 @@ def welcome_save(church_id, membership):
         slides.append({'title': (sl.get('title') or '').strip()[:80],
                        'text': (sl.get('text') or '').strip()[:220],
                        'photo': photo})
-    _save_welcome_cfg(church, {'slide_seconds': secs, 'slides': slides})
+    ev.welcome_json = json.dumps({'slide_seconds': secs, 'slides': slides})
+    db.session.commit()
     return {'status': 'ok'}
 
 
@@ -384,7 +382,7 @@ def welcome_photo_delete(church_id, name, membership):
 
 
 def _welcome_screen_config(church, event):
-    cfg = _welcome_cfg(church)
+    cfg = _ev_welcome(event) if event else {}
     slides = []
     for sl in cfg.get('slides', []):
         photo = sl.get('photo')
@@ -401,9 +399,27 @@ def _welcome_screen_config(church, event):
             'slides': slides}
 
 
+def _welcome_view_ok(church_id):
+    """Ekran powitalny może otworzyć zalogowany członek ALBO rzutnik z tokenem
+    ekranu (iframe na projektorze nie ma sesji panelu)."""
+    u = current_user()
+    if u:
+        m = Membership.query.filter_by(user_id=u.id, church_id=church_id,
+                                       status='active').first()
+        if m:
+            return True
+    tok = request.args.get('token')
+    if tok:
+        from app.models import ScreenToken
+        if ScreenToken.query.filter_by(token=tok, church_id=church_id).first():
+            return True
+    return False
+
+
 @events_bp.get('/c/<church_id>/welcome/screen')
-@require_membership('muzyk')
-def welcome_screen(church_id, membership):
+def welcome_screen(church_id):
+    if not _welcome_view_ok(church_id):
+        abort(403)
     church = db.session.get(Church, church_id)
     eid = request.args.get('eid', type=int)
     event = _get_event(church_id, eid) if eid else _next_event(church_id)

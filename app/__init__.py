@@ -110,6 +110,9 @@ def _ensure_columns():
             ('copyright', "VARCHAR(300) DEFAULT ''"),
             ('link', "VARCHAR(500) DEFAULT ''"),
         ],
+        'events': [
+            ('welcome_json', "TEXT DEFAULT ''"),
+        ],
     }
     for table, cols in wanted.items():
         if table not in insp.get_table_names():

@@ -614,7 +614,7 @@ def send_text(church_id):
         live_state.studio_set(church_id, 'server_state', server_state)
         set_slide({'mode': 'logo'})
         return {'status': 'ok'}
-    if data.get('mode') in ['conference', 'canva', 'presentation']:
+    if data.get('mode') in ['conference', 'canva', 'presentation', 'welcome']:
         data['is_blackout'] = bool(data.get('blackout',
                                             data.get('is_blackout', False)))
         server_state['is_blackout'] = data['is_blackout']

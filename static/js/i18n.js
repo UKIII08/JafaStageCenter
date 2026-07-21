@@ -127,6 +127,7 @@ var translations = {
         open_presenter_btn: "Otwórz widok prezentera (w nowej karcie)",
 
         // ── Spontaniczny tekst (kafelki) ──
+        play_announcements: "OGŁOSZENIA",
         note_btn: "TEKST",
         note_modal_title: "Spontaniczny tekst",
         note_hint: "Wpisz tekst i wyświetl go na ekranie. Zapisz jako kafelek, żeby mieć go pod ręką.",
@@ -471,6 +472,7 @@ var translations = {
         open_presenter_btn: "Open presenter view (new tab)",
 
         // ── Spontaneous text (tiles) ──
+        play_announcements: "ANNOUNCEMENTS",
         note_btn: "TEXT",
         note_modal_title: "Spontaneous text",
         note_hint: "Type text and show it on screen. Save it as a tile to keep it handy.",
