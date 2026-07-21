@@ -265,3 +265,148 @@ def event_delete(church_id, eid, membership):
     db.session.commit()
     flash(_('Service deleted.'))
     return redirect(url_for('events.events_list', church_id=church_id))
+
+
+# ── Ekran powitalny (odliczanie + ogłoszenia) ────────────────────────────
+# Autorowane online w sekcji wydarzeń; ogłoszenia globalne trzymamy w
+# church.settings['welcome'], zdjęcia w bibliotece wspólnoty (limit 10).
+import os
+import uuid as _uuid
+from app.studio.routes import media_dir, media_url, _read_image
+
+WELCOME_MAX_PHOTOS = 10
+
+
+def _welcome_dir(church_id):
+    return media_dir(church_id, 'welcome')
+
+
+def _welcome_photos(church_id):
+    d = _welcome_dir(church_id)
+    return sorted(f for f in os.listdir(d)
+                  if not f.startswith('.') and '.' in f)
+
+
+def _img_ext(data):
+    if data[:8].startswith(b'\x89PNG'):
+        return 'png'
+    if data[:3] == b'\xff\xd8\xff':
+        return 'jpg'
+    if data[:4] == b'GIF8':
+        return 'gif'
+    if data[:4] == b'RIFF':
+        return 'webp'
+    return 'png'
+
+
+def _welcome_cfg(church):
+    return dict((church.settings or {}).get('welcome') or {})
+
+
+def _save_welcome_cfg(church, cfg):
+    s = dict(church.settings or {})
+    s['welcome'] = cfg
+    church.settings = s
+    db.session.commit()
+
+
+def _next_event(church_id):
+    return (Event.query.filter(Event.church_id == church_id,
+                               Event.deleted == False,
+                               Event.date >= date.today())
+            .order_by(Event.date.asc(), Event.time.asc()).first())
+
+
+@events_bp.get('/c/<church_id>/welcome')
+@require_membership('prowadzacy')
+def welcome_edit(church_id, membership):
+    church = db.session.get(Church, church_id)
+    cfg = _welcome_cfg(church)
+    return render_template('events/welcome_edit.html', church=church,
+                           membership=membership, user=current_user(),
+                           slides=cfg.get('slides', []),
+                           slide_seconds=cfg.get('slide_seconds', 8),
+                           photos=_welcome_photos(church_id),
+                           max_photos=WELCOME_MAX_PHOTOS)
+
+
+@events_bp.post('/c/<church_id>/welcome')
+@require_membership('prowadzacy')
+def welcome_save(church_id, membership):
+    church = db.session.get(Church, church_id)
+    data = request.get_json(silent=True) or {}
+    try:
+        secs = max(3, min(60, int(data.get('slide_seconds', 8))))
+    except (ValueError, TypeError):
+        secs = 8
+    valid = set(_welcome_photos(church_id))
+    slides = []
+    for sl in (data.get('slides') or [])[:40]:
+        photo = (sl.get('photo') or '').strip()
+        if photo not in valid:
+            photo = ''
+        slides.append({'title': (sl.get('title') or '').strip()[:80],
+                       'text': (sl.get('text') or '').strip()[:220],
+                       'photo': photo})
+    _save_welcome_cfg(church, {'slide_seconds': secs, 'slides': slides})
+    return {'status': 'ok'}
+
+
+@events_bp.post('/c/<church_id>/welcome/photos')
+@require_membership('prowadzacy')
+def welcome_photo_upload(church_id, membership):
+    if len(_welcome_photos(church_id)) >= WELCOME_MAX_PHOTOS:
+        return {'status': 'error',
+                'message': _('Photo limit reached (10).')}, 400
+    f = request.files.get('photo')
+    if not f or not f.filename:
+        return {'status': 'error', 'message': _('No file.')}, 400
+    data = _read_image(f)
+    if data is None:
+        return {'status': 'error',
+                'message': _('Must be an image up to 8 MB.')}, 400
+    name = _uuid.uuid4().hex[:12] + '.' + _img_ext(data)
+    with open(os.path.join(_welcome_dir(church_id), name), 'wb') as out:
+        out.write(data)
+    return {'status': 'ok', 'name': name,
+            'url': media_url(church_id, 'welcome/' + name)}
+
+
+@events_bp.post('/c/<church_id>/welcome/photos/<name>/delete')
+@require_membership('prowadzacy')
+def welcome_photo_delete(church_id, name, membership):
+    if '/' in name or '\\' in name or name.startswith('.'):
+        abort(400)
+    p = os.path.join(_welcome_dir(church_id), name)
+    if os.path.exists(p):
+        os.remove(p)
+    return {'status': 'ok'}
+
+
+def _welcome_screen_config(church, event):
+    cfg = _welcome_cfg(church)
+    slides = []
+    for sl in cfg.get('slides', []):
+        photo = sl.get('photo')
+        slides.append({
+            'title': sl.get('title', ''),
+            'text': sl.get('text', ''),
+            'image_url': media_url(church.id, 'welcome/' + photo) if photo else ''})
+    start_local = ''
+    if event and event.time:
+        start_local = f'{event.date.isoformat()}T{event.time}:00'
+    return {'slide_seconds': cfg.get('slide_seconds', 8),
+            'start_local': start_local,
+            'event_name': event.name if event else '',
+            'slides': slides}
+
+
+@events_bp.get('/c/<church_id>/welcome/screen')
+@require_membership('muzyk')
+def welcome_screen(church_id, membership):
+    church = db.session.get(Church, church_id)
+    eid = request.args.get('eid', type=int)
+    event = _get_event(church_id, eid) if eid else _next_event(church_id)
+    config = _welcome_screen_config(church, event)
+    return render_template('events/welcome_screen.html', church=church,
+                           config=config)

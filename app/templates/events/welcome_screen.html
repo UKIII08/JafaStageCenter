@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang() }}">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ church.name }} — {{ _('Welcome screen') }}</title>
+  <style>
+    @font-face{font-family:'League Spartan';font-weight:500;font-display:swap;
+      src:url("{{ url_for('static', filename='fonts/LeagueSpartan-500.ttf') }}") format('truetype')}
+    @font-face{font-family:'League Spartan';font-weight:700;font-display:swap;
+      src:url("{{ url_for('static', filename='fonts/LeagueSpartan-700.ttf') }}") format('truetype')}
+    @font-face{font-family:'League Spartan';font-weight:800;font-display:swap;
+      src:url("{{ url_for('static', filename='fonts/LeagueSpartan-800.ttf') }}") format('truetype')}
+    @font-face{font-family:'League Spartan';font-weight:900;font-display:swap;
+      src:url("{{ url_for('static', filename='fonts/LeagueSpartan-900.ttf') }}") format('truetype')}
+
+    :root{ --brand-cyan:#0eb1df; --brand-black:#111111; --brand-white:#ffffff; }
+    body,html{ margin:0; padding:0; width:100vw; height:100vh; background:var(--brand-black);
+      overflow:hidden; font-family:'League Spartan',sans-serif; }
+
+    #countdown-view{ position:absolute; inset:0; overflow:hidden; container-type:size;
+      aspect-ratio:16/9; max-width:100vw; max-height:100vh; margin:auto;
+      background:var(--brand-white); color:var(--brand-black); }
+
+    .cv-main-layout{ position:absolute; inset:0; z-index:10; display:grid;
+      grid-template-columns:1.1fr 1fr; padding:10cqi 8cqi; align-items:center; }
+    .cv-text-col{ display:flex; flex-direction:column; justify-content:center; z-index:15; }
+
+    .cv-badge{ align-self:flex-start; background:var(--brand-cyan); color:var(--brand-white);
+      padding:1cqi 2.5cqi; font-size:1.8cqi; font-weight:800; letter-spacing:.05em;
+      text-transform:uppercase; clip-path:polygon(0 0,100% 5%,98% 100%,2% 95%); margin-bottom:3cqi; }
+    .cv-title{ color:var(--brand-black); font-size:9cqi; font-weight:900; line-height:.85;
+      text-transform:uppercase; letter-spacing:-.04em; margin:0 0 3cqi 0; }
+    .cv-title-line{ display:block; overflow:hidden; padding-bottom:1.5cqi; }
+    .cv-title-line span{ display:block; }
+    .cv-desc{ color:var(--brand-black); font-size:2.5cqi; line-height:1.3; font-weight:700; margin:0;
+      max-width:45cqi; border-left:.5cqi solid var(--brand-cyan); padding-left:2cqi; }
+
+    .cv-image-col{ position:relative; height:100%; width:100%; z-index:10; }
+    .cv-photo-strip{ position:absolute; background-size:cover; background-position:center;
+      background-repeat:no-repeat;
+      transition:clip-path 1.2s cubic-bezier(.77,0,.175,1), transform 1.2s cubic-bezier(.77,0,.175,1); }
+    .cv-strip-1{ top:0; left:0; right:5%; height:35%; clip-path:polygon(0 0,0 0,0 100%,0 100%); transition-delay:0s; }
+    .cv-strip-2{ top:32%; left:-8%; right:0; height:38%; clip-path:polygon(100% 0,100% 0,100% 100%,100% 100%); transition-delay:.1s; }
+    .cv-strip-3{ top:68%; left:2%; right:2%; height:32%; clip-path:polygon(0 0,0 0,0 100%,0 100%); transition-delay:.2s; }
+    .transition-stage.active .cv-strip-1{ clip-path:polygon(0 5%,100% 0,98% 100%,2% 95%); }
+    .transition-stage.active .cv-strip-2{ clip-path:polygon(2% 0,100% 4%,99% 100%,0 96%); }
+    .transition-stage.active .cv-strip-3{ clip-path:polygon(0 2%,100% 0,97% 95%,3% 100%); }
+
+    .cv-timer-container{ position:absolute; top:6cqi; right:6cqi; z-index:20;
+      background:var(--brand-cyan); color:var(--brand-white); padding:1cqi 3cqi;
+      clip-path:polygon(5% 0,100% 5%,95% 100%,0 95%); display:flex; flex-direction:column; align-items:flex-end; }
+    .cv-timer-label{ font-size:1.2cqi; font-weight:800; letter-spacing:.1em; opacity:.9; }
+    .cv-timer-value{ font-size:4cqi; font-weight:900; font-variant-numeric:tabular-nums; line-height:1; }
+
+    .cv-footer-logo{ position:absolute; top:6cqi; left:8cqi; z-index:20; height:6cqi; max-width:30cqi; object-fit:contain; }
+
+    .transition-stage .cv-badge{ opacity:0; transform:translateX(-4cqi); transition:all .5s .2s ease-out; }
+    .transition-stage.active .cv-badge{ opacity:1; transform:translateX(0); }
+    .transition-stage .cv-title-line span{ transform:translateY(110%); transition:transform .7s cubic-bezier(.2,.8,.2,1); }
+    .transition-stage.active .cv-title-line:nth-child(1) span{ transform:translateY(0); transition-delay:.3s; }
+    .transition-stage.active .cv-title-line:nth-child(2) span{ transform:translateY(0); transition-delay:.4s; }
+    .transition-stage.active .cv-title-line:nth-child(3) span{ transform:translateY(0); transition-delay:.5s; }
+    .transition-stage .cv-desc{ opacity:0; transform:translateX(-4cqi); transition:all .7s .6s ease-out; }
+    .transition-stage.active .cv-desc{ opacity:1; transform:translateX(0); }
+
+    .cv-empty{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+      z-index:12; font-size:2.4cqi; font-weight:700; color:#999; text-align:center; padding:10cqi; }
+  </style>
+</head>
+<body>
+  <div id="countdown-view">
+    <div class="cv-timer-container" id="cv-timer" style="display:none;">
+      <span class="cv-timer-label">{{ _('STARTS IN') }}</span>
+      <span class="cv-timer-value" id="cv-timer-value">00:00</span>
+    </div>
+
+    <main class="cv-main-layout transition-stage" id="cv-stage" style="display:none;">
+      <div class="cv-text-col">
+        <div class="cv-badge" id="cv-badge">{{ _('ANNOUNCEMENT') }}</div>
+        <h1 class="cv-title">
+          <span class="cv-title-line"><span id="cv-title-1"></span></span>
+          <span class="cv-title-line"><span id="cv-title-2"></span></span>
+          <span class="cv-title-line"><span id="cv-title-3"></span></span>
+        </h1>
+        <p class="cv-desc" id="cv-desc"></p>
+      </div>
+      <div class="cv-image-col" id="cv-image-container">
+        <div class="cv-photo-strip cv-strip-1" id="strip-1"></div>
+        <div class="cv-photo-strip cv-strip-2" id="strip-2"></div>
+        <div class="cv-photo-strip cv-strip-3" id="strip-3"></div>
+      </div>
+    </main>
+
+    <div class="cv-empty" id="cv-empty" style="display:none;">{{ _('Add announcements in the event planner to show them here.') }}</div>
+
+    <img src="{{ url_for('studio.media', church_id=church.id, filename='logo.png') }}" class="cv-footer-logo" alt="{{ church.name }}" onerror="this.style.display='none'">
+  </div>
+
+  <script>
+    const CONFIG = {{ config|tojson }};
+    const BADGE = {{ _('ANNOUNCEMENT')|tojson }};
+    let countdownInterval = null, rotationInterval = null, currentSlideIndex = 0;
+    let slideData = CONFIG.slides || [];
+    const SLIDE_DURATION = (CONFIG.slide_seconds || 8) * 1000;
+
+    function start() {
+      const stage = document.getElementById('cv-stage');
+      if (slideData.length > 0) {
+        stage.style.display = 'grid';
+        updateSlideContent(0);
+        setTimeout(function(){ stage.classList.add('active'); }, 120);
+        if (slideData.length > 1) rotationInterval = setInterval(nextSlide, SLIDE_DURATION);
+      } else {
+        document.getElementById('cv-empty').style.display = 'flex';
+      }
+      if (CONFIG.start_local) {
+        const endTs = new Date(CONFIG.start_local).getTime();
+        if (!isNaN(endTs)) {
+          document.getElementById('cv-timer').style.display = 'flex';
+          updateTimer(endTs);
+          countdownInterval = setInterval(function(){ updateTimer(endTs); }, 1000);
+        }
+      }
+    }
+
+    function nextSlide() {
+      const stage = document.getElementById('cv-stage');
+      stage.classList.remove('active');
+      setTimeout(function(){
+        currentSlideIndex = (currentSlideIndex + 1) % slideData.length;
+        updateSlideContent(currentSlideIndex);
+        requestAnimationFrame(function(){ stage.classList.add('active'); });
+      }, 1000);
+    }
+
+    function updateSlideContent(index) {
+      const d = slideData[index];
+      const words = (d.title || '').split(' ');
+      let lines = ['', '', ''];
+      if (words.length <= 1) { lines[0] = words[0] || ''; }
+      else if (words.length === 2) { lines[0] = words[0]; lines[1] = words[1]; }
+      else {
+        const third = Math.ceil(words.length / 3);
+        lines[0] = words.slice(0, third).join(' ');
+        lines[1] = words.slice(third, third * 2).join(' ');
+        lines[2] = words.slice(third * 2).join(' ');
+      }
+      document.getElementById('cv-title-1').innerText = lines[0];
+      document.getElementById('cv-title-2').innerText = lines[1];
+      document.getElementById('cv-title-3').innerText = lines[2];
+      document.getElementById('cv-badge').innerText = BADGE;
+      document.getElementById('cv-desc').innerText = d.text || '';
+
+      const imgCol = document.getElementById('cv-image-container');
+      if (d.image_url) {
+        imgCol.style.display = 'block';
+        const url = "url('" + d.image_url.replace(/'/g, "\\'") + "')";
+        document.getElementById('strip-1').style.backgroundImage = url;
+        document.getElementById('strip-2').style.backgroundImage = url;
+        document.getElementById('strip-3').style.backgroundImage = url;
+      } else {
+        imgCol.style.display = 'none';
+      }
+    }
+
+    function updateTimer(endTs) {
+      const dist = endTs - new Date().getTime();
+      const el = document.getElementById('cv-timer-value');
+      if (dist <= 0) { el.innerText = '00:00'; return; }
+      const h = Math.floor(dist / 3600000);
+      const m = Math.floor((dist % 3600000) / 60000);
+      const s = Math.floor((dist % 60000) / 1000);
+      const pad = function(n){ return String(n).padStart(2, '0'); };
+      el.innerText = h > 0 ? (pad(h) + ':' + pad(m) + ':' + pad(s)) : (pad(m) + ':' + pad(s));
+    }
+
+    start();
+  </script>
+</body>
+</html>

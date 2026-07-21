@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Welcome screen') }} — {{ church.name }}{% endblock %}
+{% block content %}
+<style>
+  .wl-photos { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:var(--s3); }
+  .wl-photo { position:relative; aspect-ratio:16/10; border-radius:var(--r-md); overflow:hidden;
+    background:var(--bg-inset); border:1px solid var(--border-default); }
+  .wl-photo img { width:100%; height:100%; object-fit:cover; display:block; }
+  .wl-photo .del { position:absolute; top:6px; right:6px; background:rgba(0,0,0,.6); color:#fff;
+    border:none; border-radius:50%; width:26px; height:26px; cursor:pointer; font-size:15px; line-height:1; }
+  .wl-add { display:flex; align-items:center; justify-content:center; aspect-ratio:16/10; cursor:pointer;
+    border:1px dashed var(--border-strong,var(--border-default)); border-radius:var(--r-md);
+    color:var(--text-tertiary); font-size:2rem; background:var(--bg-surface); }
+  .wl-slide { display:flex; gap:var(--s3); align-items:flex-start; background:var(--bg-inset);
+    border:1px solid var(--border-default); border-radius:var(--r-md); padding:var(--s3); margin-bottom:var(--s3); }
+  .wl-slide .body { flex:1; display:flex; flex-direction:column; gap:var(--s2); min-width:0; }
+  .wl-slide select { max-width:180px; }
+  .wl-slide .rm { background:none; border:none; color:var(--text-tertiary); cursor:pointer; font-size:1.2rem; }
+  .wl-slide .rm:hover { color:var(--red); }
+  .wl-thumb { width:120px; height:74px; flex:0 0 auto; border-radius:var(--r-sm); object-fit:cover;
+    background:var(--bg-surface); border:1px solid var(--border-default); }
+</style>
+
+<div class="panel" style="max-width:820px;">
+  <div class="panel-header">
+    <h2>{{ _('Welcome screen') }}</h2>
+    <div style="display:flex; gap:var(--s2);">
+      <a class="btn btn-ghost" href="{{ url_for('events.welcome_screen', church_id=church.id) }}" target="_blank" rel="noopener">{{ _('Open on projector ↗') }}</a>
+      <a class="btn btn-ghost" href="{{ url_for('events.events_list', church_id=church.id) }}">{{ _('Back') }}</a>
+    </div>
+  </div>
+  <p class="hint" style="margin:0 0 var(--s4);">{{ _('A countdown to your next service plus rotating announcements — shown on the projector before the first song. Set it once; it reuses your photos across services.') }}</p>
+
+  <div class="section-title">{{ _('Photo library') }} <span class="muted" id="wl-count"></span></div>
+  <p class="hint" style="margin:0 0 var(--s2);">{{ _('Up to 10 photos, reused across announcements.') }}</p>
+  <div class="wl-photos" id="wl-photos"></div>
+  <input type="file" id="wl-file" accept="image/*" hidden>
+
+  <div class="section-title" style="margin-top:var(--s5);">{{ _('Announcements') }}</div>
+  <div id="wl-slides"></div>
+  <button class="btn btn-ghost" onclick="wlAddSlide()">{{ _('+ Add announcement') }}</button>
+
+  <div class="set-row" style="margin-top:var(--s5); max-width:320px;">
+    <span>{{ _('Seconds per announcement') }}</span>
+    <input type="number" id="wl-seconds" min="3" max="60" value="{{ slide_seconds }}" style="width:90px; text-align:center;">
+  </div>
+
+  <div style="margin-top:var(--s5); display:flex; gap:var(--s2); align-items:center;">
+    <button onclick="wlSave()">{{ _('Save') }}</button>
+    <span class="muted" id="wl-status"></span>
+  </div>
+</div>
+
+<script>
+  const CHURCH = {{ church.id|tojson }};
+  const MAX = {{ max_photos }};
+  let PHOTOS = {{ photos|tojson }};
+  let SLIDES = {{ slides|tojson }};
+  const L = {
+    zdjecie: {{ _('Photo')|tojson }},
+    none: {{ _('— no photo —')|tojson }},
+    title: {{ _('Announcement title')|tojson }},
+    text: {{ _('Short description')|tojson }},
+    del: {{ _('Delete this photo?')|tojson }},
+    saved: {{ _('Saved.')|tojson }}
+  };
+  const photoUrl = n => '/c/' + CHURCH + '/media/welcome/' + n;
+
+  function renderPhotos() {
+    const box = document.getElementById('wl-photos');
+    document.getElementById('wl-count').textContent = '(' + PHOTOS.length + '/' + MAX + ')';
+    box.innerHTML = PHOTOS.map(function(n){
+      return '<div class="wl-photo"><img src="' + photoUrl(n) + '" alt="">' +
+             '<button class="del" title="×" onclick="wlDeletePhoto(\'' + n + '\')">×</button></div>';
+    }).join('');
+    if (PHOTOS.length < MAX) {
+      const add = document.createElement('div');
+      add.className = 'wl-add'; add.textContent = '+'; add.title = 'Upload';
+      add.onclick = function(){ document.getElementById('wl-file').click(); };
+      box.appendChild(add);
+    }
+  }
+
+  function photoOptions(sel) {
+    let o = '<option value="">' + L.none + '</option>';
+    PHOTOS.forEach(function(n, i){
+      o += '<option value="' + n + '"' + (n === sel ? ' selected' : '') + '>' + L.zdjecie + ' ' + (i + 1) + '</option>';
+    });
+    return o;
+  }
+
+  function renderSlides() {
+    const box = document.getElementById('wl-slides');
+    box.innerHTML = '';
+    SLIDES.forEach(function(s, i){
+      const row = document.createElement('div');
+      row.className = 'wl-slide';
+      row.innerHTML =
+        '<img class="wl-thumb" src="' + (s.photo ? photoUrl(s.photo) : '') + '"' + (s.photo ? '' : ' style="visibility:hidden"') + '>' +
+        '<div class="body">' +
+          '<input type="text" placeholder="' + L.title + '" maxlength="80" value="' + (s.title || '').replace(/"/g,'&quot;') + '" data-f="title">' +
+          '<input type="text" placeholder="' + L.text + '" maxlength="220" value="' + (s.text || '').replace(/"/g,'&quot;') + '" data-f="text">' +
+          '<select data-f="photo">' + photoOptions(s.photo) + '</select>' +
+        '</div>' +
+        '<button class="rm" title="×" onclick="wlRemoveSlide(' + i + ')">✕</button>';
+      row.querySelectorAll('[data-f]').forEach(function(el){
+        el.addEventListener('input', function(){ SLIDES[i][el.dataset.f] = el.value; if (el.dataset.f === 'photo') renderSlides(); });
+        el.addEventListener('change', function(){ SLIDES[i][el.dataset.f] = el.value; if (el.dataset.f === 'photo') renderSlides(); });
+      });
+      box.appendChild(row);
+    });
+  }
+
+  function wlAddSlide(){ SLIDES.push({ title:'', text:'', photo: PHOTOS[0] || '' }); renderSlides(); }
+  function wlRemoveSlide(i){ SLIDES.splice(i, 1); renderSlides(); }
+
+  document.getElementById('wl-file').addEventListener('change', function(){
+    if (!this.files[0]) return;
+    const fd = new FormData(); fd.append('photo', this.files[0]);
+    this.value = '';
+    fetch('/c/' + CHURCH + '/welcome/photos', { method:'POST', body: fd })
+      .then(r => r.json()).then(function(res){
+        if (res.name) { PHOTOS.push(res.name); renderPhotos(); renderSlides(); }
+        else alert(res.message || 'Error');
+      });
+  });
+
+  function wlDeletePhoto(n){
+    if (!confirm(L.del)) return;
+    fetch('/c/' + CHURCH + '/welcome/photos/' + n + '/delete', { method:'POST' })
+      .then(function(){
+        PHOTOS = PHOTOS.filter(x => x !== n);
+        SLIDES.forEach(function(s){ if (s.photo === n) s.photo = ''; });
+        renderPhotos(); renderSlides();
+      });
+  }
+
+  function wlSave(){
+    let secs = parseInt(document.getElementById('wl-seconds').value, 10) || 8;
+    fetch('/c/' + CHURCH + '/welcome', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ slide_seconds: secs, slides: SLIDES }) })
+      .then(r => r.json()).then(function(){
+        document.getElementById('wl-status').textContent = L.saved;
+        setTimeout(function(){ document.getElementById('wl-status').textContent = ''; }, 2500);
+      });
+  }
+
+  renderPhotos(); renderSlides();
+</script>
+{% endblock %}
