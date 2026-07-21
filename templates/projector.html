@@ -34,10 +34,13 @@
             text-shadow: 2px 2px 10px rgba(0,0,0,0.8);
         }
         #countdown-view.show { display: flex; }
-        #cd-heading { font-size: 3vw; font-weight: 700; opacity: 0.85; margin-bottom: 1vh; }
-        #cd-clock { font-size: 15vw; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-        #cd-announce { font-size: 3.2vw; font-weight: 700; margin-top: 3vh; min-height: 4vw;
-            max-width: 85vw; transition: opacity .5s ease; }
+        #cd-heading { font-size: 2.6vw; font-weight: 700; opacity: 0.85; margin-bottom: 0.5vh; letter-spacing: .02em; }
+        #cd-clock { font-size: 13vw; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+        #cd-card { display: flex; flex-direction: column; align-items: center; gap: 2.2vh;
+            margin-top: 4vh; max-width: 80vw; transition: opacity .5s ease; }
+        #cd-card-img { max-width: 70vw; max-height: 42vh; object-fit: contain;
+            border-radius: 1.2vw; box-shadow: 0 1vh 4vh rgba(0,0,0,0.45); display: none; }
+        #cd-card-text { font-size: 3vw; font-weight: 700; line-height: 1.3; max-width: 78vw; }
         #logo-image { display: none; max-width: 80vw; max-height: 80vh; object-fit: contain; z-index: 20; }
         #canva-frame { display: none; width: 100vw; height: 100vh; border: none; z-index: 15; position: absolute; }
         #pres-image { display: none; width: 100vw; height: 100vh; object-fit: contain; z-index: 15; position: absolute; background: black; }
@@ -51,7 +54,10 @@
     <div id="countdown-view">
         <div id="cd-heading"></div>
         <div id="cd-clock">00:00</div>
-        <div id="cd-announce"></div>
+        <div id="cd-card">
+            <img id="cd-card-img" src="" alt="">
+            <div id="cd-card-text"></div>
+        </div>
     </div>
 
     <script>
@@ -63,7 +69,7 @@
         const presImage = document.getElementById('pres-image');
 
         const countdownView = document.getElementById('countdown-view');
-        var cdTick = null, cdRotate = null, cdEnd = 0, cdAnnounce = [], cdIdx = 0;
+        var cdTick = null, cdRotate = null, cdEnd = 0, cdItems = [], cdIdx = 0;
 
         function stopCountdown() {
             if (cdTick) { clearInterval(cdTick); cdTick = null; }
@@ -72,28 +78,42 @@
         }
         function renderCdClock() {
             var left = Math.max(0, Math.round((cdEnd - Date.now()) / 1000));
-            var m = Math.floor(left / 60), s = left % 60;
+            var h = Math.floor(left / 3600), m = Math.floor((left % 3600) / 60), s = left % 60;
+            var pad = function (n) { return (n < 10 ? '0' : '') + n; };
             document.getElementById('cd-clock').innerText =
-                (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+                (h > 0 ? h + ':' + pad(m) : m) + ':' + pad(s);
+        }
+        function showCdCard(idx) {
+            var card = document.getElementById('cd-card');
+            var img = document.getElementById('cd-card-img');
+            var txt = document.getElementById('cd-card-text');
+            var it = cdItems[idx] || {};
+            if (it.image) { img.src = it.image; img.style.display = 'block'; }
+            else { img.removeAttribute('src'); img.style.display = 'none'; }
+            txt.innerText = it.text || '';
+            card.style.opacity = 1;
         }
         function startCountdown(data) {
             cdEnd = data.end_ts || Date.now();
-            cdAnnounce = (data.announcements || []).filter(function (a) { return a && a.trim(); });
+            // Zgodność wstecz: starsze payloady niosły announcements jako stringi.
+            cdItems = (data.items || (data.announcements || []).map(function (a) { return {text: a, image: ''}; }))
+                .filter(function (it) { return it && (it.text || it.image); });
             cdIdx = 0;
             document.getElementById('cd-heading').innerText = data.heading || '';
-            var annEl = document.getElementById('cd-announce');
-            annEl.innerText = cdAnnounce[0] || '';
+            document.getElementById('cd-card').style.display = cdItems.length ? 'flex' : 'none';
+            if (cdItems.length) showCdCard(0);
             renderCdClock();
             countdownView.classList.add('show');
             if (cdTick) clearInterval(cdTick);
             cdTick = setInterval(renderCdClock, 1000);
             if (cdRotate) clearInterval(cdRotate);
-            if (cdAnnounce.length > 1) {
+            if (cdItems.length > 1) {
                 cdRotate = setInterval(function () {
-                    cdIdx = (cdIdx + 1) % cdAnnounce.length;
-                    annEl.style.opacity = 0;
-                    setTimeout(function () { annEl.innerText = cdAnnounce[cdIdx]; annEl.style.opacity = 1; }, 400);
-                }, 7000);
+                    cdIdx = (cdIdx + 1) % cdItems.length;
+                    var card = document.getElementById('cd-card');
+                    card.style.opacity = 0;
+                    setTimeout(function () { showCdCard(cdIdx); }, 500);
+                }, 8000);
             }
         }
 

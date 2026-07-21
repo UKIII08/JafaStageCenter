@@ -1697,6 +1697,62 @@ def delete_background():
         socketio.emit('refresh_background', {'has_bg': False})
     return redirect(url_for('control'))
 
+# ── Ekran powitalny: odliczanie + ogłoszenia ze zdjęciami (tylko offline) ──
+_ANNOUNCE_IMG_EXT = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+
+def _announce_dir():
+    d = os.path.join(app.static_folder, 'announcements')
+    os.makedirs(d, exist_ok=True)
+    return d
+
+def _announce_config_path():
+    return os.path.join(_announce_dir(), 'config.json')
+
+@app.route('/announcements/upload_image', methods=['POST'])
+def announce_upload_image():
+    f = request.files.get('image')
+    if not f or not f.filename:
+        return {'status': 'error', 'message': 'Brak pliku.'}, 400
+    ext = os.path.splitext(f.filename)[1].lower()
+    if ext not in _ANNOUNCE_IMG_EXT:
+        return {'status': 'error', 'message': 'Dozwolone: PNG/JPG/GIF/WebP.'}, 400
+    name = uuid.uuid4().hex[:12] + ext
+    f.save(os.path.join(_announce_dir(), name))
+    return {'status': 'ok', 'filename': name,
+            'url': '/static/announcements/' + name}
+
+@app.route('/announcements', methods=['GET'])
+def announce_get():
+    try:
+        with open(_announce_config_path(), 'r', encoding='utf-8') as fh:
+            return json.load(fh)
+    except (FileNotFoundError, ValueError):
+        return {'start_time': '', 'heading': '', 'items': []}
+
+@app.route('/announcements', methods=['POST'])
+def announce_save():
+    data = request.json or {}
+    items = []
+    for it in (data.get('items') or [])[:20]:
+        text = (it.get('text') or '').strip()[:300]
+        image = (it.get('image') or '').strip()[:200]
+        if text or image:
+            items.append({'text': text, 'image': image})
+    cfg = {'start_time': (data.get('start_time') or '')[:5],
+           'heading': (data.get('heading') or '').strip()[:120],
+           'items': items}
+    with open(_announce_config_path(), 'w', encoding='utf-8') as fh:
+        json.dump(cfg, fh, ensure_ascii=False)
+    # Sprzątanie: usuń pliki obrazków, do których nie ma już odwołania.
+    used = {it['image'].rsplit('/', 1)[-1] for it in items if it.get('image')}
+    for fn in os.listdir(_announce_dir()):
+        if fn != 'config.json' and fn not in used:
+            try:
+                os.remove(os.path.join(_announce_dir(), fn))
+            except OSError:
+                pass
+    return {'status': 'ok'}
+
 @app.route('/print_setlist', methods=['POST'])
 def print_setlist():
     data = request.json

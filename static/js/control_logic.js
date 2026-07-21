@@ -731,6 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateEngineDesc();
     renderCanvaLinks();
     renderPresentationList();
+    loadAnnouncements();
 });
 // Asekuracyjne wywołanie (gdyby skrypt załadował się po DOMContentLoaded)
 setTimeout(() => { renderCanvaLinks(); renderPresentationList(); }, 500);
@@ -1803,17 +1804,80 @@ function showLogo(){
         resendCurrentSlide();
     }
 }
-// Odliczanie przed nabożeństwem + przewijane ogłoszenia na rzutniku.
-// end_ts liczony po stronie kontroli; rzutnik tyka lokalnie (ta sama maszyna/LAN).
+// ── Ekran powitalny: odliczanie do godziny startu + ogłoszenia ze zdjęciami ──
+// Konfiguracja (godzina, nagłówek, ogłoszenia) trzymana lokalnie i wczytywana
+// przy starcie panelu; end_ts liczony po stronie kontroli (rzutnik tyka lokalnie).
+var announceItems = [];   // [{text, image}]
+
+function renderAnnounceRows(){
+    var box = document.getElementById('cd-items');
+    if (!box) return;
+    box.innerHTML = '';
+    announceItems.forEach(function(it, i){
+        var row = document.createElement('div');
+        row.className = 'cd-item';
+        var thumb = it.image
+            ? '<img class="cd-thumb" src="' + it.image + '" alt="">'
+            : '<button type="button" class="cd-thumb-btn" title="+">🖼</button>';
+        row.innerHTML = thumb +
+            '<input class="cd-text" type="text" value="' +
+                (it.text || '').replace(/"/g, '&quot;') + '" placeholder="' +
+                ((typeof t === 'function' && t('countdown_item_ph')) || 'Treść ogłoszenia…') + '">' +
+            '<button type="button" class="cd-del" title="×">✕</button>' +
+            '<input type="file" accept="image/*" style="display:none;">';
+        var imgEl = row.querySelector('.cd-thumb, .cd-thumb-btn');
+        var textEl = row.querySelector('.cd-text');
+        var delEl = row.querySelector('.cd-del');
+        var fileEl = row.querySelector('input[type=file]');
+        imgEl.addEventListener('click', function(){ fileEl.click(); });
+        fileEl.addEventListener('change', function(){ uploadAnnounceImage(i, fileEl); });
+        textEl.addEventListener('input', function(){ announceItems[i].text = textEl.value; });
+        delEl.addEventListener('click', function(){ announceItems.splice(i, 1); renderAnnounceRows(); });
+        box.appendChild(row);
+    });
+}
+function addAnnounceRow(){ announceItems.push({text:'', image:''}); renderAnnounceRows(); }
+
+function uploadAnnounceImage(i, fileEl){
+    if (!fileEl.files || !fileEl.files[0]) return;
+    var fd = new FormData();
+    fd.append('image', fileEl.files[0]);
+    fetch('/announcements/upload_image', {method:'POST', body: fd})
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+            if (res && res.url) { announceItems[i].image = res.url; renderAnnounceRows(); }
+            else { alert((res && res.message) || 'Nie udało się wgrać zdjęcia.'); }
+        });
+}
+
+function loadAnnouncements(){
+    fetch('/announcements').then(function(r){ return r.json(); }).then(function(cfg){
+        if (cfg.start_time) { var el = document.getElementById('cd-start-time'); if (el) el.value = cfg.start_time; }
+        if (cfg.heading) { var h = document.getElementById('cd-heading-input'); if (h) h.value = cfg.heading; }
+        announceItems = Array.isArray(cfg.items) ? cfg.items.slice() : [];
+        if (!announceItems.length) announceItems = [{text:'', image:''}];
+        renderAnnounceRows();
+    }).catch(function(){ if (!announceItems.length) { announceItems = [{text:'', image:''}]; renderAnnounceRows(); } });
+}
+
+function _cdStartTs(hhmm){
+    var p = (hhmm || '').split(':');
+    if (p.length < 2) return Date.now();
+    var d = new Date();
+    d.setHours(parseInt(p[0], 10) || 0, parseInt(p[1], 10) || 0, 0, 0);
+    return d.getTime();
+}
+
 function castCountdown(){
-    var mins = parseInt(document.getElementById('cd-minutes').value, 10);
-    if (isNaN(mins) || mins < 0) mins = 0;
+    var startTime = (document.getElementById('cd-start-time').value || '').trim();
     var heading = (document.getElementById('cd-heading-input').value || '').trim();
-    var announcements = (document.getElementById('cd-announce-input').value || '')
-        .split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+    var items = announceItems.filter(function(it){ return (it.text && it.text.trim()) || it.image; });
+    // Zapisz konfigurację lokalnie (przetrwa restart), potem wyślij na ekrany.
+    fetch('/announcements', {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({start_time: startTime, heading: heading, items: items})});
     fetch('/send_text', {method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({mode:'countdown', end_ts: Date.now() + mins*60000,
-                              heading: heading, announcements: announcements})});
+        body: JSON.stringify({mode:'countdown', end_ts: _cdStartTs(startTime),
+                              heading: heading, items: items})});
     var box = document.getElementById('live-preview-box');
     if (box) box.innerText = (typeof t === 'function' && t('countdown_preview')) || 'ODLICZANIE';
 }

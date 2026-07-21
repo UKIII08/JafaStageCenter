@@ -1008,6 +1008,22 @@
     }
     .conf-time-row { display: flex; gap: var(--s3); justify-content: center; }
     .conf-timer-input { width: 120px; text-align: center; font-size: var(--font-lg); font-weight: 800; }
+    /* Edytor ogłoszeń ekranu powitalnego */
+    .cd-row2 { display: flex; gap: var(--s3); margin: var(--s2) 0 var(--s3); flex-wrap: wrap; }
+    .cd-row2 > div { display: flex; flex-direction: column; }
+    #cd-start-time { width: 120px; }
+    .cd-item { display: flex; gap: var(--s2); align-items: center; margin-bottom: var(--s2);
+        background: var(--bg-inset); border: 1px solid var(--border-default);
+        border-radius: var(--r-md); padding: var(--s2); }
+    .cd-item .cd-thumb { width: 56px; height: 42px; flex: 0 0 auto; border-radius: var(--r-sm);
+        object-fit: cover; background: var(--bg-surface); border: 1px solid var(--border-default); }
+    .cd-item .cd-thumb-btn { width: 56px; height: 42px; flex: 0 0 auto; border-radius: var(--r-sm);
+        border: 1px dashed var(--border-default); background: var(--bg-surface); cursor: pointer;
+        color: var(--text-tertiary); font-size: 1.4rem; line-height: 1; }
+    .cd-item input.cd-text { flex: 1; min-width: 0; }
+    .cd-item .cd-del { flex: 0 0 auto; background: none; border: none; color: var(--text-tertiary);
+        cursor: pointer; font-size: 1.2rem; padding: 0 var(--s1); }
+    .cd-item .cd-del:hover { color: var(--red); }
     .conf-set-btn, .conf-add-btn, .conf-upload-btn, .conf-show-btn, .conf-presenter-btn {
         border-radius: var(--r-md); border: 1px solid var(--border-default);
         background: var(--bg-surface); color: var(--text-primary);
@@ -1516,19 +1532,24 @@
                         Odliczanie przed nabożeństwem
                     </h3>
                     <div class="conf-hint" data-t="countdown_hint">
-                        Pokaż na rzutniku odliczanie do startu i przewijające się ogłoszenia — zanim wejdzie pierwsza pieśń.
+                        Zegar cały czas odlicza do godziny startu, a ogłoszenia ze zdjęciami przewijają się na rzutniku.
                     </div>
-                    <div style="text-align:center; margin:var(--s3) 0;">
-                        <label class="conf-time-label" data-t="time_label">Czas (min):</label>
-                        <div class="conf-time-row">
-                            <input type="number" id="cd-minutes" value="10" min="0" max="180" class="conf-timer-input">
+                    <div class="cd-row2">
+                        <div>
+                            <label class="conf-msg-label" data-t="countdown_start_label">Godzina startu:</label>
+                            <input type="time" id="cd-start-time" value="10:00" class="conf-msg-area">
+                        </div>
+                        <div style="flex:1;">
+                            <label class="conf-msg-label" data-t="countdown_heading_label">Nagłówek nad zegarem:</label>
+                            <input type="text" id="cd-heading-input" value="Zaczynamy o" data-t-ph="countdown_heading_ph" class="conf-msg-area">
                         </div>
                     </div>
-                    <label class="conf-msg-label" data-t="countdown_heading_label">Nagłówek nad zegarem:</label>
-                    <input type="text" id="cd-heading-input" value="Zaczynamy za" data-t-ph="countdown_heading_ph" class="conf-msg-area" style="margin-bottom:var(--s3);">
-                    <label class="conf-msg-label" data-t="countdown_announce_label">Ogłoszenia (jedno na linię — przewijają się):</label>
-                    <textarea id="cd-announce-input" rows="4" placeholder="Witamy!&#10;Kawa po nabożeństwie w holu&#10;Spotkanie młodzieży w piątek 19:00" data-t-ph="countdown_announce_ph" class="conf-msg-area"></textarea>
-                    <div class="conf-msg-actions">
+
+                    <label class="conf-msg-label" data-t="countdown_announce_label">Ogłoszenia (tekst + zdjęcie, przewijają się):</label>
+                    <div id="cd-items"></div>
+                    <button class="conf-set-btn" style="width:100%; margin-top:var(--s2);" onclick="addAnnounceRow()" data-t="countdown_add_btn">+ Dodaj ogłoszenie</button>
+
+                    <div class="conf-msg-actions" style="margin-top:var(--s3);">
                         <button class="secondary" style="flex:2;" onclick="castCountdown()" data-t="countdown_show_btn">POKAŻ NA EKRANIE</button>
                         <button class="danger" style="flex:1;" onclick="stopCountdown()" data-t="countdown_stop_btn">ZATRZYMAJ</button>
                     </div>
