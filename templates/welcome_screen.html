@@ -40,9 +40,12 @@
     /* ── Zdjęcie (crossfade A/B) w morphującym kadrze ── */
     .cv-image-morph{ position:absolute; inset:0; z-index:10; overflow:hidden;
       transition:clip-path var(--flow) var(--ease); }
-    .cv-img-layer{ position:absolute; inset:-4%; background-size:cover; background-position:center;
+    /* Overscan (inset) MUSI być większy niż zasięg pan-a (scale+translate),
+       inaczej zdjęcie odsuwa się od ukośnej krawędzi kadru i przy dolnym rogu
+       (48%/34%) wychodzi biały klin. -12% daje zapas na scale 1.06 + translate. */
+    .cv-img-layer{ position:absolute; inset:-12%; background-size:cover; background-position:center;
       background-repeat:no-repeat; transition:opacity .8s ease-in-out;
-      animation:gentlePan 22s infinite alternate ease-in-out; }
+      transform-origin:center center; animation:gentlePan 22s infinite alternate ease-in-out; }
     @keyframes gentlePan{ 0%{transform:scale(1.06) translate(0,0)} 100%{transform:scale(1.06) translate(-1.6%,1.4%)} }
     .cv-img-b{ opacity:0; }
     .show-b .cv-img-a{ opacity:0; }
