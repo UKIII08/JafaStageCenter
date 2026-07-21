@@ -1509,6 +1509,31 @@
                     </div>
                 </div>
 
+                <!-- Pre-service countdown Card -->
+                <div class="conf-card">
+                    <h3 class="conf-card-header" data-t="countdown_title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M9 2h6"/></svg>
+                        Odliczanie przed nabożeństwem
+                    </h3>
+                    <div class="conf-hint" data-t="countdown_hint">
+                        Pokaż na rzutniku odliczanie do startu i przewijające się ogłoszenia — zanim wejdzie pierwsza pieśń.
+                    </div>
+                    <div style="text-align:center; margin:var(--s3) 0;">
+                        <label class="conf-time-label" data-t="time_label">Czas (min):</label>
+                        <div class="conf-time-row">
+                            <input type="number" id="cd-minutes" value="10" min="0" max="180" class="conf-timer-input">
+                        </div>
+                    </div>
+                    <label class="conf-msg-label" data-t="countdown_heading_label">Nagłówek nad zegarem:</label>
+                    <input type="text" id="cd-heading-input" value="Zaczynamy za" data-t-ph="countdown_heading_ph" class="conf-msg-area" style="margin-bottom:var(--s3);">
+                    <label class="conf-msg-label" data-t="countdown_announce_label">Ogłoszenia (jedno na linię — przewijają się):</label>
+                    <textarea id="cd-announce-input" rows="4" placeholder="Witamy!&#10;Kawa po nabożeństwie w holu&#10;Spotkanie młodzieży w piątek 19:00" data-t-ph="countdown_announce_ph" class="conf-msg-area"></textarea>
+                    <div class="conf-msg-actions">
+                        <button class="secondary" style="flex:2;" onclick="castCountdown()" data-t="countdown_show_btn">POKAŻ NA EKRANIE</button>
+                        <button class="danger" style="flex:1;" onclick="stopCountdown()" data-t="countdown_stop_btn">ZATRZYMAJ</button>
+                    </div>
+                </div>
+
                 <!-- Multimedia Card -->
                 <div class="conf-card">
                     <h3 class="conf-card-header" data-t="multimedia_pres_title">

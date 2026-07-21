@@ -27,6 +27,17 @@
             padding: 50px;
             z-index: 10;
         }
+        #countdown-view {
+            display: none; position: absolute; inset: 0; z-index: 18;
+            flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 4vw; box-sizing: border-box;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.8);
+        }
+        #countdown-view.show { display: flex; }
+        #cd-heading { font-size: 3vw; font-weight: 700; opacity: 0.85; margin-bottom: 1vh; }
+        #cd-clock { font-size: 15vw; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+        #cd-announce { font-size: 3.2vw; font-weight: 700; margin-top: 3vh; min-height: 4vw;
+            max-width: 85vw; transition: opacity .5s ease; }
         #logo-image { display: none; max-width: 80vw; max-height: 80vh; object-fit: contain; z-index: 20; }
         #canva-frame { display: none; width: 100vw; height: 100vh; border: none; z-index: 15; position: absolute; }
         #pres-image { display: none; width: 100vw; height: 100vh; object-fit: contain; z-index: 15; position: absolute; background: black; }
@@ -37,6 +48,11 @@
     <img id="logo-image" src="{{ url_for('static', filename='logo.png') }}?v={{ range(1,1000)|random }}" alt="Logo">
     <iframe id="canva-frame" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>
     <img id="pres-image" src="">
+    <div id="countdown-view">
+        <div id="cd-heading"></div>
+        <div id="cd-clock">00:00</div>
+        <div id="cd-announce"></div>
+    </div>
 
     <script>
         var socket = io();
@@ -46,12 +62,52 @@
         const canvaFrame = document.getElementById('canva-frame');
         const presImage = document.getElementById('pres-image');
 
+        const countdownView = document.getElementById('countdown-view');
+        var cdTick = null, cdRotate = null, cdEnd = 0, cdAnnounce = [], cdIdx = 0;
+
+        function stopCountdown() {
+            if (cdTick) { clearInterval(cdTick); cdTick = null; }
+            if (cdRotate) { clearInterval(cdRotate); cdRotate = null; }
+            countdownView.classList.remove('show');
+        }
+        function renderCdClock() {
+            var left = Math.max(0, Math.round((cdEnd - Date.now()) / 1000));
+            var m = Math.floor(left / 60), s = left % 60;
+            document.getElementById('cd-clock').innerText =
+                (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+        }
+        function startCountdown(data) {
+            cdEnd = data.end_ts || Date.now();
+            cdAnnounce = (data.announcements || []).filter(function (a) { return a && a.trim(); });
+            cdIdx = 0;
+            document.getElementById('cd-heading').innerText = data.heading || '';
+            var annEl = document.getElementById('cd-announce');
+            annEl.innerText = cdAnnounce[0] || '';
+            renderCdClock();
+            countdownView.classList.add('show');
+            if (cdTick) clearInterval(cdTick);
+            cdTick = setInterval(renderCdClock, 1000);
+            if (cdRotate) clearInterval(cdRotate);
+            if (cdAnnounce.length > 1) {
+                cdRotate = setInterval(function () {
+                    cdIdx = (cdIdx + 1) % cdAnnounce.length;
+                    annEl.style.opacity = 0;
+                    setTimeout(function () { annEl.innerText = cdAnnounce[cdIdx]; annEl.style.opacity = 1; }, 400);
+                }, 7000);
+            }
+        }
+
         socket.on('update_slide', function(data) {
             slide.style.display = 'none';
             logo.style.display = 'none';
             canvaFrame.style.display = 'none';
             presImage.style.display = 'none';
-            if (data.mode === 'logo') {
+            if (data.mode !== 'countdown') stopCountdown();
+            if (data.mode === 'countdown') {
+                if (data.is_blackout) { stopCountdown(); }
+                else { startCountdown(data); }
+            }
+            else if (data.mode === 'logo') {
                 logo.style.display = 'block';
             }
             else if (data.mode === 'blackout') {}

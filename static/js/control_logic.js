@@ -1803,6 +1803,27 @@ function showLogo(){
         resendCurrentSlide();
     }
 }
+// Odliczanie przed nabożeństwem + przewijane ogłoszenia na rzutniku.
+// end_ts liczony po stronie kontroli; rzutnik tyka lokalnie (ta sama maszyna/LAN).
+function castCountdown(){
+    var mins = parseInt(document.getElementById('cd-minutes').value, 10);
+    if (isNaN(mins) || mins < 0) mins = 0;
+    var heading = (document.getElementById('cd-heading-input').value || '').trim();
+    var announcements = (document.getElementById('cd-announce-input').value || '')
+        .split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+    fetch('/send_text', {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({mode:'countdown', end_ts: Date.now() + mins*60000,
+                              heading: heading, announcements: announcements})});
+    var box = document.getElementById('live-preview-box');
+    if (box) box.innerText = (typeof t === 'function' && t('countdown_preview')) || 'ODLICZANIE';
+}
+function stopCountdown(){
+    // Zdejmij odliczanie — wróć do logo jako ekranu „przed nabożeństwem".
+    fetch('/send_text', {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({logo:true})});
+    var box = document.getElementById('live-preview-box');
+    if (box) box.innerText = 'LOGO';
+}
 // Wybranie slajdu na żywo zawsze wyłącza tryb logo (i podświetlenie przycisku).
 function clearLogoActive(){
     if (!isLogoActive) return;
