@@ -324,7 +324,9 @@ def welcome_edit(church_id, eid, membership):
                            slides=cfg.get('slides', []),
                            slide_seconds=cfg.get('slide_seconds', 8),
                            photos=_welcome_photos(church_id),
-                           max_photos=WELCOME_MAX_PHOTOS)
+                           max_photos=WELCOME_MAX_PHOTOS,
+                           icons=_welcome_icons(church_id),
+                           max_icons=WELCOME_MAX_ICONS)
 
 
 @events_bp.post('/c/<church_id>/granie/<int:eid>/welcome')
@@ -382,6 +384,51 @@ def welcome_photo_delete(church_id, name, membership):
     return {'status': 'ok'}
 
 
+# ── Ikony w tle (znak wodny) — własne symbole wspólnoty ──────────────────
+# Renderowane przez mix-blend-mode:multiply, więc działają z KAŻDYM obrazem:
+# białe tło „znika", ciemny kształt zostaje. Nie trzeba przezroczystości.
+WELCOME_MAX_ICONS = 8
+
+
+def _welcome_icons_dir(church_id):
+    return media_dir(church_id, 'welcome_icons')
+
+
+def _welcome_icons(church_id):
+    d = _welcome_icons_dir(church_id)
+    return sorted(f for f in os.listdir(d) if not f.startswith('.') and '.' in f)
+
+
+@events_bp.post('/c/<church_id>/welcome/icons')
+@require_membership('prowadzacy')
+def welcome_icon_upload(church_id, membership):
+    if len(_welcome_icons(church_id)) >= WELCOME_MAX_ICONS:
+        return {'status': 'error', 'message': _('Icon limit reached.')}, 400
+    f = request.files.get('icon')
+    if not f or not f.filename:
+        return {'status': 'error', 'message': _('No file.')}, 400
+    data = _read_image(f)
+    if data is None:
+        return {'status': 'error',
+                'message': _('Must be an image up to 8 MB.')}, 400
+    name = _uuid.uuid4().hex[:12] + '.' + _img_ext(data)
+    with open(os.path.join(_welcome_icons_dir(church_id), name), 'wb') as out:
+        out.write(data)
+    return {'status': 'ok', 'name': name,
+            'url': media_url(church_id, 'welcome_icons/' + name)}
+
+
+@events_bp.post('/c/<church_id>/welcome/icons/<name>/delete')
+@require_membership('prowadzacy')
+def welcome_icon_delete(church_id, name, membership):
+    if '/' in name or '\\' in name or name.startswith('.'):
+        abort(400)
+    p = os.path.join(_welcome_icons_dir(church_id), name)
+    if os.path.exists(p):
+        os.remove(p)
+    return {'status': 'ok'}
+
+
 def _welcome_screen_config(church, event):
     cfg = _ev_welcome(event) if event else {}
     slides = []
@@ -395,9 +442,12 @@ def _welcome_screen_config(church, event):
     start_local = ''
     if event and event.time:
         start_local = f'{event.date.isoformat()}T{event.time}:00'
+    icons = [media_url(church.id, 'welcome_icons/' + n)
+             for n in _welcome_icons(church.id)]
     return {'slide_seconds': cfg.get('slide_seconds', 8),
             'start_local': start_local,
             'event_name': event.name if event else '',
+            'icons': icons,
             'slides': slides}
 
 

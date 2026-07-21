@@ -219,6 +219,10 @@ PL = {
     "Announcement title": "Tytuł ogłoszenia",
     "Short description": "Krótki opis",
     "Badge (optional)": "Etykieta (opcjonalnie)",
+    "Background icons (watermark)": "Ikony w tle (znak wodny)",
+    "Your church symbols, shown faintly behind the announcements — a dark shape on a light or white background works best. Leave empty to use the built-in ones.":
+        "Symbole Twojej wspólnoty, pokazywane subtelnie w tle ogłoszeń — najlepiej ciemny kształt na jasnym lub białym tle. Zostaw puste, aby użyć wbudowanych.",
+    "Icon limit reached.": "Osiągnięto limit ikon.",
     "Delete this photo?": "Usunąć to zdjęcie?",
     "Saved.": "Zapisano.",
     "STARTS IN": "START ZA",

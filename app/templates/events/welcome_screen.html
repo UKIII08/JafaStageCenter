@@ -30,11 +30,12 @@
     .cv-logo-ui{ position:absolute; top:4.5cqi; left:6cqi; z-index:50; height:6cqi; max-width:30cqi;
       object-fit:contain; object-position:left center; transition:filter var(--flow) ease; }
 
-    .cv-watermark{ position:absolute; inset:-20%; z-index:1; pointer-events:none;
-      -webkit-mask-size:52cqi; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
-      mask-size:52cqi; mask-repeat:no-repeat; mask-position:center;
-      background-color:var(--jafa-cyan); opacity:.1;
-      transition:transform 1.4s var(--ease), background-color var(--flow) ease, opacity var(--flow) ease; }
+    /* Znak wodny przez multiply: białe tło ikony znika, ciemny kształt zostaje
+       na dowolnym tle. Działa z każdym plikiem (nie wymaga przezroczystości). */
+    .cv-watermark{ position:absolute; inset:-20%; z-index:2; pointer-events:none;
+      background-size:52cqi; background-repeat:no-repeat; background-position:center;
+      mix-blend-mode:multiply; opacity:.12;
+      transition:transform 1.4s var(--ease), opacity var(--flow) ease; }
 
     /* ── Zdjęcie (crossfade A/B) w morphującym kadrze ── */
     .cv-image-morph{ position:absolute; inset:0; z-index:10; overflow:hidden;
@@ -89,7 +90,7 @@
     #countdown-view[data-layout="1"] .cv-desc{ border-color:var(--jafa-cyan); }
     #countdown-view[data-layout="1"] .cv-timer-box{ background:var(--jafa-cyan); color:var(--jafa-white); }
     #countdown-view[data-layout="1"] .cv-logo-ui{ filter:brightness(0); }
-    #countdown-view[data-layout="1"] .cv-watermark{ transform:translate(-18%,10%) rotate(-14deg); opacity:.07; background-color:var(--jafa-cyan); }
+    #countdown-view[data-layout="1"] .cv-watermark{ transform:translate(-18%,10%) rotate(-14deg); opacity:.10; }
 
     /* ── LAYOUT 2: tekst P / zdjęcie L (cyan tło) ── */
     #countdown-view[data-layout="2"]{ background:var(--jafa-cyan); }
@@ -102,7 +103,7 @@
     #countdown-view[data-layout="2"] .cv-desc{ border-color:var(--jafa-black); }
     #countdown-view[data-layout="2"] .cv-timer-box{ background:var(--jafa-black); color:var(--jafa-white); }
     #countdown-view[data-layout="2"] .cv-logo-ui{ filter:brightness(0) invert(1); }
-    #countdown-view[data-layout="2"] .cv-watermark{ transform:translate(28%,-10%) rotate(22deg); opacity:.06; background-color:var(--jafa-black); }
+    #countdown-view[data-layout="2"] .cv-watermark{ transform:translate(28%,-10%) rotate(22deg); opacity:.11; }
 
     /* ── LAYOUT 3: wielki tekst na górze / pas zdjęcia na dole (białe tło) ── */
     #countdown-view[data-layout="3"]{ background:var(--jafa-white); }
@@ -113,7 +114,7 @@
     #countdown-view[data-layout="3"] .cv-desc{ border-color:var(--jafa-cyan); }
     #countdown-view[data-layout="3"] .cv-timer-box{ background:var(--jafa-black); color:var(--jafa-white); }
     #countdown-view[data-layout="3"] .cv-logo-ui{ filter:brightness(0); }
-    #countdown-view[data-layout="3"] .cv-watermark{ transform:translate(14%,-24%) rotate(-5deg); opacity:.09; background-color:var(--jafa-cyan); }
+    #countdown-view[data-layout="3"] .cv-watermark{ transform:translate(14%,-24%) rotate(-5deg); opacity:.12; }
 
     /* ── Slajd bez zdjęcia: pełna szerokość, jeszcze większy tytuł ── */
     #countdown-view.no-photo .cv-image-morph,
@@ -169,11 +170,13 @@
     const SLIDE_MS = Math.max(3, (CONFIG.slide_seconds || 8)) * 1000;
     let idx = 0, showB = false, rot = null, tick = null;
 
-    const ICONS = [
+    // Ikony w tle: własne wspólnoty (jeśli wgrane) albo wbudowane domyślne.
+    const DEFAULT_ICONS = [
       "data:image/svg+xml;utf8,<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><rect x='42' y='8' width='16' height='84' fill='black'/><rect x='20' y='30' width='60' height='16' fill='black'/></svg>",
       "data:image/svg+xml;utf8,<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><path fill='black' d='M14 52c22-30 52-30 72 0-20 30-50 30-72 0z'/><circle cx='68' cy='46' r='5' fill='white'/></svg>",
       "data:image/svg+xml;utf8,<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><path fill='black' d='M50 8l10 26 28 2-22 18 8 28-24-16-24 16 8-28-22-18 28-2z'/></svg>"
     ];
+    const ICONS = (CONFIG.icons && CONFIG.icons.length) ? CONFIG.icons : DEFAULT_ICONS;
 
     /* ═══ SILNIK TYPOGRAFII ═══
        Tytuł ma WYPEŁNIAĆ kolumnę: mierzymy szerokość każdego wariantu łamania
@@ -286,8 +289,7 @@
       }
 
       const wm = document.getElementById('cv-watermark');
-      const iu = "url(\"" + ICONS[i % ICONS.length] + "\")";
-      wm.style.webkitMaskImage = iu; wm.style.maskImage = iu;
+      wm.style.backgroundImage = "url(\"" + ICONS[i % ICONS.length] + "\")";
 
       fitText();
     }
