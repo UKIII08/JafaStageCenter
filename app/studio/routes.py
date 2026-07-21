@@ -369,6 +369,21 @@ def export_songs(church_id):
         'Content-disposition': 'attachment; filename=baza_piosenek.txt'})
 
 
+@studio_bp.get('/studio/api/songs')
+@studio_auth('prowadzacy', allow_member=True)
+def api_songs(church_id):
+    """Pełny zrzut biblioteki pieśni jako JSON — używany przez synchronizację
+    aplikacji offline (niesie też link/CCLI/autora, których eksport .txt gubił)."""
+    songs = Song.query.filter_by(church_id=church_id, deleted=False) \
+        .order_by(Song.title).all()
+    return [{
+        'id': s.id, 'title': s.title, 'content': s.content or '',
+        'key': s.key or '', 'bpm': s.bpm or 0,
+        'ccli_number': s.ccli_number or '', 'author': s.author or '',
+        'copyright': s.copyright or '', 'link': s.link or '',
+    } for s in songs]
+
+
 @studio_bp.post('/studio/convert_song_format')
 @studio_auth('prowadzacy')
 def convert_song_format(church_id):

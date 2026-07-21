@@ -34,8 +34,24 @@ def _get_song(church_id, song_id):
     return song
 
 
+def _clean_link(raw):
+    """Zwraca bezpieczny URL (http/https) albo ''. Chroni przed javascript:/data:
+    w atrybucie href. Sam URL nie może zawierać znaków białych."""
+    url = (raw or '').strip()
+    if not url:
+        return ''
+    if url.lower().startswith(('javascript:', 'data:', 'vbscript:', 'file:')):
+        return ''                       # niebezpieczne schematy — odrzuć
+    if not re.match(r'^https?://', url, re.I):
+        url = 'https://' + url          # użytkownik wkleił bez schematu
+    if re.match(r'^https?://\S+$', url, re.I):
+        return url[:500]
+    return ''
+
+
 def _save_song_fields(song, form):
     song.title = (form.get('title') or '').strip()[:200]
+    song.link = _clean_link(form.get('link'))
     input_notation = form.get('input_notation', 'international')
     if input_notation not in NOTATIONS:
         input_notation = 'international'

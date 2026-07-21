@@ -78,6 +78,9 @@
             <span class="muted" id="save-status" style="min-width:110px;">{{ _('my key') }}</span>
             {% if song.bpm %}<button class="btn-ghost btn btn-sm" id="metro">{{ _('Metronome') }}</button>{% endif %}
             <button class="btn-ghost btn btn-sm" id="scroll">{{ _('Auto-scroll') }}</button>
+            {% if song.link %}
+            <a class="btn-ghost btn btn-sm" href="{{ song.link }}" target="_blank" rel="noopener noreferrer" title="{{ song.link }}">▶ {{ _('Recording') }}</a>
+            {% endif %}
         </div>
     </div>
 </div>

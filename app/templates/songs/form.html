@@ -8,6 +8,10 @@
             <input name="key" id="song-key" placeholder="{{ _('Key') }}" style="flex:1; min-width:90px;" value="{{ song.key if song else '' }}">
             <input name="bpm" type="number" min="0" max="300" placeholder="{{ _('BPM') }}" style="flex:1; min-width:90px;" value="{{ song.bpm if song and song.bpm else '' }}">
         </div>
+        <label>{{ _('Recording link (optional)') }}</label>
+        <input name="link" type="url" inputmode="url"
+               placeholder="{{ _('YouTube, Spotify, Google Drive… — anything to practice with') }}"
+               value="{{ song.link if song and song.link else '' }}">
         <label>{{ _('Input notation') }}</label>
         <select name="input_notation">
             <option value="international">{{ _('International (Bb, B)') }}</option>

@@ -485,6 +485,10 @@ PL = {
     "Songs": "Piosenek", "Transpose": "Transpozycja", "Songs count": "Piosenek",
     "Practice — %(title)s": "Ćwiczenie — %(title)s", "my key": "moja tonacja",
     "Auto-scroll": "Autoprzewijanie", "Metronome": "Metronom", "Stop": "Stop",
+    "Recording": "Nagranie",
+    "Recording link (optional)": "Link do nagrania (opcjonalnie)",
+    "YouTube, Spotify, Google Drive… — anything to practice with":
+        "YouTube, Spotify, Google Drive… — cokolwiek do ćwiczenia",
     "saved": "zapisano", "saving…": "zapisywanie…",
     "Practice:": "Ćwiczenie:", "my key": "moja tonacja",
     "Chords": "Akordy", "Guitar": "Gitara", "Piano": "Pianino",

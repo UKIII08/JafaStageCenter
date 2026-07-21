@@ -108,6 +108,7 @@ def _ensure_columns():
             ('ccli_number', "VARCHAR(20) DEFAULT ''"),
             ('author', "VARCHAR(300) DEFAULT ''"),
             ('copyright', "VARCHAR(300) DEFAULT ''"),
+            ('link', "VARCHAR(500) DEFAULT ''"),
         ],
     }
     for table, cols in wanted.items():

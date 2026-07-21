@@ -109,6 +109,8 @@ class Song(db.Model):
     key = db.Column(db.String(10), default='')
     bpm = db.Column(db.Integer, default=0)
     tags = db.Column(db.JSON, default=list)
+    # Link do nagrania/ćwiczenia (YouTube, Spotify, Google Drive, dowolny URL)
+    link = db.Column(db.String(500), default='')
     # CCLI (rynek USA): numer piosenki, autorzy, wlasciciel praw
     ccli_number = db.Column(db.String(20), default='')
     author = db.Column(db.String(300), default='')
