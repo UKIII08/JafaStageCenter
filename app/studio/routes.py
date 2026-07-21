@@ -913,10 +913,39 @@ def update_song_settings(church_id, pid, sid):
 def get_setlist_history(church_id):
     items = StudioSetlist.query.filter_by(church_id=church_id) \
         .order_by(StudioSetlist.id.desc()).all()
+    icons = _welcome_icon_names(church_id)
     return [{'id': h.id, 'name': h.name, 'date': h.date,
              'songs': json.loads(h.songs),
              'has_welcome': _setlist_has_welcome(h),
+             'welcome': _setlist_welcome_export(h, icons),
              'song_count': len(json.loads(h.songs))} for h in items]
+
+
+def _welcome_icon_names(church_id):
+    """Nazwy plików ikon-znaków wodnych wspólnoty (do pobrania przez offline)."""
+    import os
+    d = media_dir(church_id, 'welcome_icons')
+    try:
+        return sorted(f for f in os.listdir(d)
+                      if not f.startswith('.') and '.' in f)
+    except OSError:
+        return []
+
+
+def _setlist_welcome_export(h, icons):
+    """Pełna konfiguracja ekranu powitalnego setlisty dla aplikacji offline:
+    surowe ogłoszenia (nazwy plików zdjęć) + nazwy ikon wspólnoty. None, gdy
+    setlista nie ma ogłoszeń. Offline dociągnie pliki z /c/<id>/media/...."""
+    try:
+        cfg = json.loads((h.welcome_json or '') or '{}') or {}
+    except (ValueError, TypeError):
+        return None
+    if not cfg.get('slides'):
+        return None
+    return {'slide_seconds': cfg.get('slide_seconds', 8),
+            'start_time': cfg.get('start_time', ''),
+            'slides': cfg.get('slides', []),
+            'icons': icons}
 
 
 @studio_bp.post('/studio/api/setlist-history')
