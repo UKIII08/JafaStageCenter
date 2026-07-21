@@ -180,6 +180,8 @@ class Song(db.Model):
     content = db.Column(db.Text, nullable=False)
     key = db.Column(db.String(10), nullable=True, default='')
     bpm = db.Column(db.Integer, nullable=True, default=0)
+    # Link do nagrania/ćwiczenia (YouTube/Spotify/Drive) — synchronizowany z chmury
+    link = db.Column(db.String(500), nullable=True, default='')
 
 class Settings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -271,6 +273,10 @@ def check_db_schema():
             if 'bpm' not in song_columns:
                 with db.engine.connect() as conn:
                     conn.execute(text('ALTER TABLE song ADD COLUMN bpm INTEGER DEFAULT 0'))
+                    conn.commit()
+            if 'link' not in song_columns:
+                with db.engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE song ADD COLUMN link VARCHAR(500) DEFAULT ''"))
                     conn.commit()
 
             # Check Settings table
@@ -1097,6 +1103,7 @@ def get_song_for_band(song_id):
         'title': song.title,
         'key': key,
         'bpm': song.bpm or 0,
+        'link': song.link or '',
         'sections': rendered
     }
 
@@ -1447,9 +1454,17 @@ import cloud_sync
 
 
 def _apply_cloud_songs(songs, input_notation='international'):
-    """Upsert piosenek z chmury po tytule (nie usuwa lokalnych nadmiarowych)."""
+    """Upsert piosenek z chmury po tytule (nie usuwa lokalnych nadmiarowych).
+    Wejście: lista dictów {title, content, key, bpm, link}."""
     added = updated = 0
-    for title, body, key, bpm in songs:
+    for s in songs:
+        title = (s.get('title') or '').strip()
+        body = s.get('content') or ''
+        key = s.get('key') or ''
+        bpm = s.get('bpm') or 0
+        link = (s.get('link') or '').strip()
+        if not title:
+            continue
         content = normalize_song_chords_to_international(
             body, input_notation=input_notation)
         k = normalize_chord_to_international(
@@ -1461,9 +1476,11 @@ def _apply_cloud_songs(songs, input_notation='international'):
         existing = Song.query.filter_by(title=title).first()
         if existing:
             existing.content, existing.key, existing.bpm = content, k, bpm or 0
+            existing.link = link
             updated += 1
         else:
-            db.session.add(Song(title=title, content=content, key=k, bpm=bpm or 0))
+            db.session.add(Song(title=title, content=content, key=k,
+                                bpm=bpm or 0, link=link))
             added += 1
     return added, updated
 

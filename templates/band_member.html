@@ -1157,6 +1157,7 @@
             <button id="browse-tiles-close" onclick="closeBrowseTiles()">✕</button>
             <span id="browse-tiles-title"></span>
             <span id="browse-tiles-key"></span>
+            <a id="browse-tiles-link" href="#" target="_blank" rel="noopener noreferrer" style="display:none;"></a>
         </div>
         <div id="browse-tiles-grid"></div>
     </div>
@@ -2005,6 +2006,14 @@
             var tilesView = document.getElementById('browse-tiles-view');
             document.getElementById('browse-tiles-title').textContent = browseData.title;
             document.getElementById('browse-tiles-key').textContent = browseData.key ? (t('bm_key_prefix') + ' ' + browseData.key) : '';
+            var linkEl = document.getElementById('browse-tiles-link');
+            if (browseData.link) {
+                linkEl.href = browseData.link;
+                linkEl.textContent = '▶ ' + (t('bm_recording') || 'Recording');
+                linkEl.style.display = '';
+            } else {
+                linkEl.style.display = 'none';
+            }
 
             var songId = browseData.id;
             var notes = currentProfile ? getSongNotes(songId) : {};

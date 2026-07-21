@@ -92,9 +92,28 @@ def _get_json(opener, url):
 
 
 def fetch_songs(opener, base_url, church_id):
-    """Lista (title, content, key, bpm) z chmury (format .txt eksportu).
-    None -> brak dostępu (np. konto bez roli prowadzącego)."""
+    """Lista dictów {title, content, key, bpm, link} z chmury.
+    None -> brak dostępu (np. konto bez roli prowadzącego).
+
+    Najpierw próbuje endpointu JSON (niesie też link do nagrania); starsze
+    serwery bez niego -> fallback na eksport .txt (link pusty)."""
     base = (base_url or DEFAULT_URL).rstrip('/')
+
+    data = _get_json(opener, f'{base}/c/{church_id}/studio/api/songs')
+    if isinstance(data, list):
+        songs = []
+        for s in data:
+            title = (s.get('title') or '').strip()
+            body = (s.get('content') or '').strip()
+            if not title or not body:
+                continue
+            songs.append({'title': title, 'content': body,
+                          'key': (s.get('key') or '').strip(),
+                          'bpm': s.get('bpm') or 0,
+                          'link': (s.get('link') or '').strip()})
+        return songs
+
+    # Fallback: stary serwer bez endpointu JSON -> eksport .txt.
     raw = _get_text(opener, f'{base}/c/{church_id}/studio/export_songs')
     if raw is None:
         return None
@@ -116,7 +135,8 @@ def fetch_songs(opener, base_url, church_id):
             title, key, bpm = lines[0].strip(), '', 0
         body = '\n'.join(lines[1:]).strip()
         if title and body:
-            songs.append((title, body, key, bpm))
+            songs.append({'title': title, 'content': body,
+                          'key': key, 'bpm': bpm, 'link': ''})
     return songs
 
 
