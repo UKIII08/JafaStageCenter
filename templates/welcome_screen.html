@@ -88,7 +88,10 @@
     #countdown-view[data-layout="1"]{ background:var(--jafa-white); }
     #countdown-view[data-layout="1"] .cv-text{ left:6cqi; width:43cqi; top:13cqi; bottom:5cqi; }
     #countdown-view[data-layout="1"] .cv-image-morph{ clip-path:polygon(56% 0,100% 0,100% 100%,48% 100%); }
-    #countdown-view[data-layout="1"] .cv-tape{ clip-path:polygon(54% -5%,56% -5%,48% 105%,46% 105%); background:var(--jafa-cyan); }
+    /* Prawa krawędź taśmy = lewa krawędź zdjęcia (ten sam kąt), z lekkim
+       zachodzeniem NA zdjęcie — taśma jest nad zdjęciem (z-index), więc nigdy
+       nie zostaje biała szpara między linią a zdjęciem. */
+    #countdown-view[data-layout="1"] .cv-tape{ clip-path:polygon(54.8% -5%,57.6% -5%,48.8% 105%,46% 105%); background:var(--jafa-cyan); }
     #countdown-view[data-layout="1"] .cv-badge{ background:var(--jafa-cyan); color:var(--jafa-white); }
     #countdown-view[data-layout="1"] .cv-desc{ border-color:var(--jafa-cyan); }
     #countdown-view[data-layout="1"] .cv-timer-box{ background:var(--jafa-cyan); color:var(--jafa-white); }
@@ -99,7 +102,7 @@
     #countdown-view[data-layout="2"]{ background:var(--jafa-cyan); }
     #countdown-view[data-layout="2"] .cv-text{ left:51cqi; width:43cqi; top:13cqi; bottom:5cqi; }
     #countdown-view[data-layout="2"] .cv-image-morph{ clip-path:polygon(0 0,44% 0,34% 100%,0 100%); }
-    #countdown-view[data-layout="2"] .cv-tape{ clip-path:polygon(42% -5%,44% -5%,34% 105%,32% 105%); background:var(--jafa-black); }
+    #countdown-view[data-layout="2"] .cv-tape{ clip-path:polygon(43.3% -5%,46.1% -5%,35.1% 105%,32.3% 105%); background:var(--jafa-black); }
     #countdown-view[data-layout="2"] .cv-badge{ background:var(--jafa-black); color:var(--jafa-white); }
     #countdown-view[data-layout="2"] .cv-title,
     #countdown-view[data-layout="2"] .cv-desc{ color:var(--jafa-white); }
@@ -112,7 +115,7 @@
     #countdown-view[data-layout="3"]{ background:var(--jafa-white); }
     #countdown-view[data-layout="3"] .cv-text{ left:6cqi; width:86cqi; top:12cqi; bottom:25cqi; }
     #countdown-view[data-layout="3"] .cv-image-morph{ clip-path:polygon(0 68%,100% 60%,100% 100%,0 100%); }
-    #countdown-view[data-layout="3"] .cv-tape{ clip-path:polygon(-5% 66.5%,105% 58.5%,105% 60%,-5% 68%); background:var(--jafa-cyan); }
+    #countdown-view[data-layout="3"] .cv-tape{ clip-path:polygon(-5% 66.8%,105% 58%,105% 60.8%,-5% 69.6%); background:var(--jafa-cyan); }
     #countdown-view[data-layout="3"] .cv-badge{ background:var(--jafa-black); color:var(--jafa-white); }
     #countdown-view[data-layout="3"] .cv-desc{ border-color:var(--jafa-cyan); }
     #countdown-view[data-layout="3"] .cv-timer-box{ background:var(--jafa-black); color:var(--jafa-white); }
