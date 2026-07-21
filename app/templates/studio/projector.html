@@ -140,9 +140,12 @@
         });
 
         socket.on('apply_settings', function(data) {
-            root.style.setProperty('--bg-color', data.bg_color);
-            root.style.setProperty('--text-color', data.text_color);
-            root.style.setProperty('--font-family', data.font_family);
+            // Ustawiaj TYLKO pola obecne w zdarzeniu. Zdarzenia częściowe (np.
+            // sama zmiana języka) nie niosą bg_color — bez tej straży
+            // setProperty('--bg-color', undefined) czyściło tło rzutnika na białe.
+            if (data.bg_color) root.style.setProperty('--bg-color', data.bg_color);
+            if (data.text_color) root.style.setProperty('--text-color', data.text_color);
+            if (data.font_family) root.style.setProperty('--font-family', data.font_family);
             if (data.lang) {
                 initI18n(data.lang);
             }
