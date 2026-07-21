@@ -62,6 +62,7 @@
     none: {{ _('— no photo —')|tojson }},
     title: {{ _('Announcement title')|tojson }},
     text: {{ _('Short description')|tojson }},
+    cat: {{ _('Badge (optional)')|tojson }},
     del: {{ _('Delete this photo?')|tojson }},
     saved: {{ _('Saved.')|tojson }}
   };
@@ -99,7 +100,10 @@
       row.innerHTML =
         '<img class="wl-thumb" src="' + (s.photo ? photoUrl(s.photo) : '') + '"' + (s.photo ? '' : ' style="visibility:hidden"') + '>' +
         '<div class="body">' +
-          '<input type="text" placeholder="' + L.title + '" maxlength="80" value="' + (s.title || '').replace(/"/g,'&quot;') + '" data-f="title">' +
+          '<div style="display:flex; gap:var(--s2);">' +
+            '<input type="text" placeholder="' + L.cat + '" maxlength="24" value="' + (s.category || '').replace(/"/g,'&quot;') + '" data-f="category" style="max-width:150px;">' +
+            '<input type="text" placeholder="' + L.title + '" maxlength="80" value="' + (s.title || '').replace(/"/g,'&quot;') + '" data-f="title" style="flex:1;">' +
+          '</div>' +
           '<input type="text" placeholder="' + L.text + '" maxlength="220" value="' + (s.text || '').replace(/"/g,'&quot;') + '" data-f="text">' +
           '<select data-f="photo">' + photoOptions(s.photo) + '</select>' +
         '</div>' +
@@ -112,7 +116,7 @@
     });
   }
 
-  function wlAddSlide(){ SLIDES.push({ title:'', text:'', photo: PHOTOS[0] || '' }); renderSlides(); }
+  function wlAddSlide(){ SLIDES.push({ title:'', text:'', category:'', photo: PHOTOS[0] || '' }); renderSlides(); }
   function wlRemoveSlide(i){ SLIDES.splice(i, 1); renderSlides(); }
 
   document.getElementById('wl-file').addEventListener('change', function(){

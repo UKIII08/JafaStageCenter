@@ -2,178 +2,277 @@
 <html lang="{{ current_lang() }}">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ church.name }} — {{ _('Welcome screen') }}</title>
   <style>
-    @font-face{font-family:'League Spartan';font-weight:500;font-display:swap;
-      src:url("{{ url_for('static', filename='fonts/LeagueSpartan-500.ttf') }}") format('truetype')}
     @font-face{font-family:'League Spartan';font-weight:700;font-display:swap;
       src:url("{{ url_for('static', filename='fonts/LeagueSpartan-700.ttf') }}") format('truetype')}
-    @font-face{font-family:'League Spartan';font-weight:800;font-display:swap;
-      src:url("{{ url_for('static', filename='fonts/LeagueSpartan-800.ttf') }}") format('truetype')}
     @font-face{font-family:'League Spartan';font-weight:900;font-display:swap;
       src:url("{{ url_for('static', filename='fonts/LeagueSpartan-900.ttf') }}") format('truetype')}
 
-    :root{ --brand-cyan:#0eb1df; --brand-black:#111111; --brand-white:#ffffff; }
-    body,html{ margin:0; padding:0; width:100vw; height:100vh; background:var(--brand-black);
+    :root{ --jafa-cyan:#0eb1df; --jafa-black:#111111; --jafa-white:#ffffff; --flow:1.2s;
+      --ease:cubic-bezier(0.77,0,0.175,1); }
+    body,html{ margin:0; padding:0; width:100vw; height:100vh; background:#000;
       overflow:hidden; font-family:'League Spartan',sans-serif; }
 
-    #countdown-view{ position:absolute; inset:0; overflow:hidden; container-type:size;
-      aspect-ratio:16/9; max-width:100vw; max-height:100vh; margin:auto;
-      background:var(--brand-white); color:var(--brand-black); }
+    #countdown-view{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      z-index:18; overflow:hidden; container-type:size; aspect-ratio:16/9;
+      width:100vw; max-height:100vh; max-width:calc(100vh*(16/9));
+      background:var(--jafa-white); transition:background-color var(--flow) var(--ease); }
 
-    .cv-main-layout{ position:absolute; inset:0; z-index:10; display:grid;
-      grid-template-columns:1.1fr 1fr; padding:10cqi 8cqi; align-items:center; }
-    .cv-text-col{ display:flex; flex-direction:column; justify-content:center; z-index:15; }
+    /* ── Stałe elementy (nie ruszają się) ── */
+    .cv-timer-box{ position:absolute; top:5cqi; right:5cqi; z-index:50; padding:1.5cqi 3cqi;
+      display:flex; flex-direction:column; align-items:flex-end;
+      clip-path:polygon(6% 0,100% 0,94% 100%,0 100%);
+      transition:background-color var(--flow) ease, color var(--flow) ease; }
+    .cv-timer-label{ font-size:1.1cqi; font-weight:900; letter-spacing:.18em; opacity:.9; }
+    .cv-timer-value{ font-size:4.6cqi; font-weight:900; font-variant-numeric:tabular-nums; line-height:.9; }
+    .cv-logo-ui{ position:absolute; top:5cqi; left:5cqi; z-index:50; height:6cqi; max-width:32cqi;
+      object-fit:contain; object-position:left center; transition:filter var(--flow) ease; }
 
-    .cv-badge{ align-self:flex-start; background:var(--brand-cyan); color:var(--brand-white);
-      padding:1cqi 2.5cqi; font-size:1.8cqi; font-weight:800; letter-spacing:.05em;
-      text-transform:uppercase; clip-path:polygon(0 0,100% 5%,98% 100%,2% 95%); margin-bottom:3cqi; }
-    .cv-title{ color:var(--brand-black); font-size:9cqi; font-weight:900; line-height:.85;
-      text-transform:uppercase; letter-spacing:-.04em; margin:0 0 3cqi 0; }
-    .cv-title-line{ display:block; overflow:hidden; padding-bottom:1.5cqi; }
-    .cv-title-line span{ display:block; }
-    .cv-desc{ color:var(--brand-black); font-size:2.5cqi; line-height:1.3; font-weight:700; margin:0;
-      max-width:45cqi; border-left:.5cqi solid var(--brand-cyan); padding-left:2cqi; }
+    .cv-watermark{ position:absolute; inset:-20%; z-index:1; pointer-events:none;
+      -webkit-mask-size:52cqi; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
+      mask-size:52cqi; mask-repeat:no-repeat; mask-position:center;
+      background-color:var(--jafa-cyan); opacity:.1;
+      transition:transform 1.4s var(--ease), background-color var(--flow) ease, opacity var(--flow) ease; }
 
-    .cv-image-col{ position:relative; height:100%; width:100%; z-index:10; }
-    .cv-photo-strip{ position:absolute; background-size:cover; background-position:center;
-      background-repeat:no-repeat;
-      transition:clip-path 1.2s cubic-bezier(.77,0,.175,1), transform 1.2s cubic-bezier(.77,0,.175,1); }
-    .cv-strip-1{ top:0; left:0; right:5%; height:35%; clip-path:polygon(0 0,0 0,0 100%,0 100%); transition-delay:0s; }
-    .cv-strip-2{ top:32%; left:-8%; right:0; height:38%; clip-path:polygon(100% 0,100% 0,100% 100%,100% 100%); transition-delay:.1s; }
-    .cv-strip-3{ top:68%; left:2%; right:2%; height:32%; clip-path:polygon(0 0,0 0,0 100%,0 100%); transition-delay:.2s; }
-    .transition-stage.active .cv-strip-1{ clip-path:polygon(0 5%,100% 0,98% 100%,2% 95%); }
-    .transition-stage.active .cv-strip-2{ clip-path:polygon(2% 0,100% 4%,99% 100%,0 96%); }
-    .transition-stage.active .cv-strip-3{ clip-path:polygon(0 2%,100% 0,97% 95%,3% 100%); }
+    /* ── Zdjęcie (crossfade A/B) w morphujacym kadrze ── */
+    .cv-image-morph{ position:absolute; inset:0; z-index:10; overflow:hidden;
+      transition:clip-path var(--flow) var(--ease); }
+    .cv-img-layer{ position:absolute; inset:-4%; background-size:cover; background-position:center;
+      background-repeat:no-repeat; transition:opacity .8s ease-in-out;
+      animation:gentlePan 22s infinite alternate ease-in-out; }
+    @keyframes gentlePan{ 0%{transform:scale(1.06) translate(0,0)} 100%{transform:scale(1.06) translate(-1.6%,1.4%)} }
+    .cv-img-b{ opacity:0; }
+    .show-b .cv-img-a{ opacity:0; }
+    .show-b .cv-img-b{ opacity:1; }
+    .cv-tape{ position:absolute; inset:0; z-index:11; pointer-events:none; background:var(--jafa-cyan);
+      transition:clip-path var(--flow) var(--ease), background var(--flow) ease; }
 
-    .cv-timer-container{ position:absolute; top:6cqi; right:6cqi; z-index:20;
-      background:var(--brand-cyan); color:var(--brand-white); padding:1cqi 3cqi;
-      clip-path:polygon(5% 0,100% 5%,95% 100%,0 95%); display:flex; flex-direction:column; align-items:flex-end; }
-    .cv-timer-label{ font-size:1.2cqi; font-weight:800; letter-spacing:.1em; opacity:.9; }
-    .cv-timer-value{ font-size:4cqi; font-weight:900; font-variant-numeric:tabular-nums; line-height:1; }
+    /* ── Kinetyczny tekst — pozycja zmienia się TYLKO gdy tekst jest schowany (bez przeskoku) ── */
+    .cv-text{ position:absolute; z-index:15; display:flex; flex-direction:column; justify-content:center;
+      box-sizing:border-box; }
+    .cv-badge-wrap{ overflow:hidden; margin-bottom:1.4cqi; }
+    .cv-badge{ display:inline-block; padding:.8cqi 2cqi; font-size:1.5cqi; font-weight:900;
+      letter-spacing:.12em; text-transform:uppercase; clip-path:polygon(0 0,100% 0,95% 100%,0 100%);
+      transform:translateY(110%); transition:transform .55s var(--ease), background-color var(--flow), color var(--flow); }
+    .cv-title{ font-size:7cqi; font-weight:900; line-height:.86; text-transform:uppercase;
+      letter-spacing:-.02em; margin:0 0 2cqi 0; display:flex; flex-direction:column;
+      color:var(--jafa-black); word-break:break-word; overflow-wrap:break-word;
+      transition:color var(--flow); }
+    .title-wrap{ overflow:hidden; padding-bottom:.4cqi; }
+    .title-line{ display:block; white-space:nowrap; transform:translateY(108%); transition:transform .6s var(--ease); }
+    .title-line:empty{ display:none; }
+    .title-wrap:has(.title-line:empty){ display:none; }
+    .cv-desc-wrap{ overflow:hidden; }
+    .cv-desc{ font-size:2.1cqi; line-height:1.28; font-weight:700; margin:0; padding-left:1.6cqi;
+      border-left:.7cqi solid var(--jafa-cyan); color:var(--jafa-black);
+      transform:translateY(108%);
+      transition:color var(--flow), border-color var(--flow), transform .7s var(--ease);
+      display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
 
-    .cv-footer-logo{ position:absolute; top:6cqi; left:8cqi; z-index:20; height:6cqi; max-width:30cqi; object-fit:contain; }
+    .cv-text.active .cv-badge{ transform:translateY(0); }
+    .cv-text.active .title-line{ transform:translateY(0); }
+    .cv-text.active .title-line-1{ transition-delay:.08s; }
+    .cv-text.active .title-line-2{ transition-delay:.16s; }
+    .cv-text.active .title-line-3{ transition-delay:.24s; }
+    .cv-text.active .cv-desc{ transform:translateY(0); transition-delay:.34s; }
+    .cv-badge.hide{ display:none; }
 
-    .transition-stage .cv-badge{ opacity:0; transform:translateX(-4cqi); transition:all .5s .2s ease-out; }
-    .transition-stage.active .cv-badge{ opacity:1; transform:translateX(0); }
-    .transition-stage .cv-title-line span{ transform:translateY(110%); transition:transform .7s cubic-bezier(.2,.8,.2,1); }
-    .transition-stage.active .cv-title-line:nth-child(1) span{ transform:translateY(0); transition-delay:.3s; }
-    .transition-stage.active .cv-title-line:nth-child(2) span{ transform:translateY(0); transition-delay:.4s; }
-    .transition-stage.active .cv-title-line:nth-child(3) span{ transform:translateY(0); transition-delay:.5s; }
-    .transition-stage .cv-desc{ opacity:0; transform:translateX(-4cqi); transition:all .7s .6s ease-out; }
-    .transition-stage.active .cv-desc{ opacity:1; transform:translateX(0); }
+    /* ── LAYOUT 1: tekst L / zdjęcie P (białe) ── */
+    #countdown-view[data-layout="1"]{ background:var(--jafa-white); }
+    #countdown-view[data-layout="1"] .cv-text{ left:6cqi; top:20cqi; max-width:38cqi; }
+    #countdown-view[data-layout="1"] .cv-image-morph{ clip-path:polygon(50% 0,100% 0,100% 100%,42% 100%); }
+    #countdown-view[data-layout="1"] .cv-tape{ clip-path:polygon(48% -5%,50% -5%,42% 105%,40% 105%); background:var(--jafa-cyan); }
+    #countdown-view[data-layout="1"] .cv-badge{ background:var(--jafa-cyan); color:var(--jafa-white); }
+    #countdown-view[data-layout="1"] .cv-desc{ border-color:var(--jafa-cyan); }
+    #countdown-view[data-layout="1"] .cv-timer-box{ background:var(--jafa-cyan); color:var(--jafa-white); }
+    #countdown-view[data-layout="1"] .cv-logo-ui{ filter:brightness(0); }
+    #countdown-view[data-layout="1"] .cv-watermark{ transform:translate(-18%,10%) rotate(-14deg); opacity:.07; background-color:var(--jafa-cyan); }
 
-    .cv-empty{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-      z-index:12; font-size:2.4cqi; font-weight:700; color:#999; text-align:center; padding:10cqi; }
+    /* ── LAYOUT 2: tekst P / zdjęcie L (cyan) ── */
+    #countdown-view[data-layout="2"]{ background:var(--jafa-cyan); }
+    #countdown-view[data-layout="2"] .cv-text{ left:54cqi; top:20cqi; max-width:40cqi; }
+    #countdown-view[data-layout="2"] .cv-image-morph{ clip-path:polygon(0 0,45% 0,35% 100%,0 100%); }
+    #countdown-view[data-layout="2"] .cv-tape{ clip-path:polygon(43% -5%,45% -5%,35% 105%,33% 105%); background:var(--jafa-black); }
+    #countdown-view[data-layout="2"] .cv-badge{ background:var(--jafa-black); color:var(--jafa-white); }
+    #countdown-view[data-layout="2"] .cv-title,
+    #countdown-view[data-layout="2"] .cv-desc{ color:var(--jafa-white); }
+    #countdown-view[data-layout="2"] .cv-desc{ border-color:var(--jafa-black); }
+    #countdown-view[data-layout="2"] .cv-timer-box{ background:var(--jafa-black); color:var(--jafa-white); }
+    #countdown-view[data-layout="2"] .cv-logo-ui{ filter:brightness(0) invert(1); }
+    #countdown-view[data-layout="2"] .cv-watermark{ transform:translate(28%,-10%) rotate(22deg); opacity:.06; background-color:var(--jafa-black); }
+
+    /* ── LAYOUT 3: tekst góra / zdjęcie dół (białe) ── */
+    #countdown-view[data-layout="3"]{ background:var(--jafa-white); }
+    #countdown-view[data-layout="3"] .cv-text{ left:6cqi; top:14cqi; max-width:62cqi; }
+    #countdown-view[data-layout="3"] .cv-image-morph{ clip-path:polygon(0 58%,100% 44%,100% 100%,0 100%); }
+    #countdown-view[data-layout="3"] .cv-tape{ clip-path:polygon(-5% 56%,105% 42%,105% 44%,-5% 58%); background:var(--jafa-cyan); }
+    #countdown-view[data-layout="3"] .cv-badge{ background:var(--jafa-black); color:var(--jafa-white); }
+    #countdown-view[data-layout="3"] .cv-desc{ border-color:var(--jafa-cyan); }
+    #countdown-view[data-layout="3"] .cv-timer-box{ background:var(--jafa-black); color:var(--jafa-white); }
+    #countdown-view[data-layout="3"] .cv-logo-ui{ filter:brightness(0); }
+    #countdown-view[data-layout="3"] .cv-watermark{ transform:translate(14%,-24%) rotate(-5deg); opacity:.09; background-color:var(--jafa-cyan); }
+
+    /* Pusty stan (brak ogłoszeń) — sam zegar + logo na czysto */
+    .cv-empty{ position:absolute; inset:0; z-index:15; display:none; align-items:center; justify-content:center;
+      text-align:center; padding:14cqi; font-size:3cqi; font-weight:900; text-transform:uppercase;
+      color:var(--jafa-black); letter-spacing:-.01em; }
+    #countdown-view.is-empty .cv-empty{ display:flex; }
+    #countdown-view.is-empty .cv-image-morph,
+    #countdown-view.is-empty .cv-tape,
+    #countdown-view.is-empty .cv-text{ display:none; }
   </style>
 </head>
 <body>
-  <div id="countdown-view">
-    <div class="cv-timer-container" id="cv-timer" style="display:none;">
+  <div id="countdown-view" data-layout="1">
+    <div class="cv-watermark" id="cv-watermark"></div>
+
+    <div class="cv-timer-box" id="cv-timer" style="display:none;">
       <span class="cv-timer-label">{{ _('STARTS IN') }}</span>
       <span class="cv-timer-value" id="cv-timer-value">00:00</span>
     </div>
 
-    <main class="cv-main-layout transition-stage" id="cv-stage" style="display:none;">
-      <div class="cv-text-col">
-        <div class="cv-badge" id="cv-badge">{{ _('ANNOUNCEMENT') }}</div>
-        <h1 class="cv-title">
-          <span class="cv-title-line"><span id="cv-title-1"></span></span>
-          <span class="cv-title-line"><span id="cv-title-2"></span></span>
-          <span class="cv-title-line"><span id="cv-title-3"></span></span>
-        </h1>
-        <p class="cv-desc" id="cv-desc"></p>
-      </div>
-      <div class="cv-image-col" id="cv-image-container">
-        <div class="cv-photo-strip cv-strip-1" id="strip-1"></div>
-        <div class="cv-photo-strip cv-strip-2" id="strip-2"></div>
-        <div class="cv-photo-strip cv-strip-3" id="strip-3"></div>
-      </div>
-    </main>
+    <img src="{{ url_for('studio.media', church_id=church.id, filename='logo.png') }}" class="cv-logo-ui" alt="{{ church.name }}" onerror="this.style.display='none'">
 
-    <div class="cv-empty" id="cv-empty" style="display:none;">{{ _('Add announcements in the event planner to show them here.') }}</div>
+    <div class="cv-image-morph" id="cv-image">
+      <div class="cv-img-layer cv-img-a" id="cv-img-a"></div>
+      <div class="cv-img-layer cv-img-b" id="cv-img-b"></div>
+    </div>
+    <div class="cv-tape"></div>
 
-    <img src="{{ url_for('studio.media', church_id=church.id, filename='logo.png') }}" class="cv-footer-logo" alt="{{ church.name }}" onerror="this.style.display='none'">
+    <div class="cv-text active" id="cv-text">
+      <div class="cv-badge-wrap"><div class="cv-badge" id="cv-badge"></div></div>
+      <h1 class="cv-title">
+        <div class="title-wrap"><span class="title-line title-line-1" id="cv-title-1"></span></div>
+        <div class="title-wrap"><span class="title-line title-line-2" id="cv-title-2"></span></div>
+        <div class="title-wrap"><span class="title-line title-line-3" id="cv-title-3"></span></div>
+      </h1>
+      <div class="cv-desc-wrap"><p class="cv-desc" id="cv-desc"></p></div>
+    </div>
+
+    <div class="cv-empty" id="cv-empty">{{ church.name }}</div>
   </div>
 
   <script>
     const CONFIG = {{ config|tojson }};
-    const BADGE = {{ _('ANNOUNCEMENT')|tojson }};
-    let countdownInterval = null, rotationInterval = null, currentSlideIndex = 0;
-    let slideData = CONFIG.slides || [];
-    const SLIDE_DURATION = (CONFIG.slide_seconds || 8) * 1000;
+    const view = document.getElementById('countdown-view');
+    let slides = (CONFIG.slides || []).filter(function(s){ return s.title || s.text || s.image_url; });
+    const SLIDE_MS = Math.max(3, (CONFIG.slide_seconds || 8)) * 1000;
+    let idx = 0, showB = false, rot = null, tick = null;
+
+    // Wbudowane ozdobne ikony (maska znaku wodnego) — bez zależności zewnętrznych.
+    const ICONS = [
+      "data:image/svg+xml;utf8,<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><rect x='42' y='8' width='16' height='84' fill='black'/><rect x='20' y='30' width='60' height='16' fill='black'/></svg>",
+      "data:image/svg+xml;utf8,<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><path fill='black' d='M14 52c22-30 52-30 72 0-20 30-50 30-72 0z'/><circle cx='68' cy='46' r='5' fill='white'/></svg>",
+      "data:image/svg+xml;utf8,<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><path fill='black' d='M50 8l10 26 28 2-22 18 8 28-24-16-24 16 8-28-22-18 28-2z'/></svg>"
+    ];
+
+    function splitTitle(t) {
+      const w = (t || '').trim().split(/\s+/).filter(Boolean);
+      if (w.length <= 1) return [w[0] || '', '', ''];
+      if (w.length === 2) return [w[0], w[1], ''];
+      if (w.length === 3) return [w[0], w[1], w[2]];
+      const k = Math.ceil(w.length / 3);
+      return [w.slice(0, k).join(' '), w.slice(k, 2 * k).join(' '), w.slice(2 * k).join(' ')];
+    }
+
+    function paint(i) {
+      const d = slides[i];
+      const lines = splitTitle(d.title);
+      document.getElementById('cv-title-1').innerText = lines[0];
+      document.getElementById('cv-title-2').innerText = lines[1];
+      document.getElementById('cv-title-3').innerText = lines[2];
+      const badge = document.getElementById('cv-badge');
+      badge.innerText = d.category || '';
+      badge.classList.toggle('hide', !d.category);
+      document.getElementById('cv-desc').innerText = d.text || '';
+
+      // Crossfade zdjęcia (podwójny bufor A/B)
+      const img = document.getElementById('cv-image');
+      if (d.image_url) {
+        img.style.visibility = 'visible';
+        const url = "url('" + d.image_url.replace(/'/g, "\\'") + "')";
+        showB = !showB;
+        if (showB) { document.getElementById('cv-img-b').style.backgroundImage = url; img.classList.add('show-b'); }
+        else { document.getElementById('cv-img-a').style.backgroundImage = url; img.classList.remove('show-b'); }
+      } else { img.style.visibility = 'hidden'; }
+
+      // Znak wodny — ikona per slajd
+      const wm = document.getElementById('cv-watermark');
+      const iu = "url(\"" + ICONS[i % ICONS.length] + "\")";
+      wm.style.webkitMaskImage = iu; wm.style.maskImage = iu;
+
+      fitText();
+    }
+
+    // Dopasuj rozmiar tytułu, żeby żadna linia nie wyszła poza kolumnę (bez
+    // łamania słów w środku) i cały blok zmieścił się w kadrze pionowo.
+    function fitText() {
+      const text = document.getElementById('cv-text');
+      const title = text.querySelector('.cv-title');
+      const lines = [].slice.call(title.querySelectorAll('.title-line'));
+      const cw = view.clientWidth;
+      // Kolumna = max-width layoutu (stała), nie szerokość shrink-to-fit.
+      const availW = (parseFloat(getComputedStyle(text).maxWidth) || text.clientWidth) - 2;
+      const topPx = parseFloat(getComputedStyle(text).top) || 0;
+      // Layout 3 ma zdjęcie na dole (~58%), więc tekst musi zmieścić się NAD nim
+      // (inaczej opis ląduje na ciemnym zdjęciu i znika). Reszta: pełna wysokość.
+      const bottom = view.getAttribute('data-layout') === '3'
+        ? view.clientHeight * 0.54 : view.clientHeight * 0.94;
+      const availH = bottom - topPx;
+      // .title-line ma white-space:nowrap, więc scrollWidth pokazuje realną
+      // szerokość słowa nawet gdy rodzic ją przycina.
+      function tooWide() { return lines.some(function (l) { return l.scrollWidth > availW; }); }
+      let size = cw * 0.075;                 // start ~7.5cqi
+      const min = cw * 0.028;
+      title.style.fontSize = size + 'px';
+      let guard = 80;
+      while (guard-- > 0 && size > min && (tooWide() || text.scrollHeight > availH)) {
+        size -= cw * 0.002;
+        title.style.fontSize = size + 'px';
+      }
+    }
+
+    function next() {
+      const text = document.getElementById('cv-text');
+      text.classList.remove('active');            // 1) schowaj tekst
+      setTimeout(function () {
+        idx = (idx + 1) % slides.length;
+        paint(idx);                               // 2) podmień treść (niewidoczne)
+        view.setAttribute('data-layout', String((idx % 3) + 1)); // 3) morph kształtu/koloru
+        requestAnimationFrame(function () {
+          setTimeout(function () { text.classList.add('active'); }, 120); // 4) odsłoń
+        });
+      }, 620);
+    }
+
+    function pad(n){ return String(n).padStart(2, '0'); }
+    function updateTimer(endTs) {
+      const dist = endTs - new Date().getTime();
+      const el = document.getElementById('cv-timer-value');
+      if (dist <= 0) { el.innerText = '00:00'; return; }
+      const h = Math.floor(dist / 3600000), m = Math.floor((dist % 3600000) / 60000), s = Math.floor((dist % 60000) / 1000);
+      el.innerText = h > 0 ? (pad(h) + ':' + pad(m) + ':' + pad(s)) : (pad(m) + ':' + pad(s));
+    }
 
     function start() {
-      const stage = document.getElementById('cv-stage');
-      if (slideData.length > 0) {
-        stage.style.display = 'grid';
-        updateSlideContent(0);
-        setTimeout(function(){ stage.classList.add('active'); }, 120);
-        if (slideData.length > 1) rotationInterval = setInterval(nextSlide, SLIDE_DURATION);
-      } else {
-        document.getElementById('cv-empty').style.display = 'flex';
+      if (slides.length === 0) { view.classList.add('is-empty'); }
+      else {
+        paint(0);
+        view.setAttribute('data-layout', '1');
+        document.getElementById('cv-text').classList.add('active');
+        if (slides.length > 1) rot = setInterval(next, SLIDE_MS);
       }
       if (CONFIG.start_local) {
         const endTs = new Date(CONFIG.start_local).getTime();
         if (!isNaN(endTs)) {
           document.getElementById('cv-timer').style.display = 'flex';
           updateTimer(endTs);
-          countdownInterval = setInterval(function(){ updateTimer(endTs); }, 1000);
+          tick = setInterval(function () { updateTimer(endTs); }, 1000);
         }
       }
     }
-
-    function nextSlide() {
-      const stage = document.getElementById('cv-stage');
-      stage.classList.remove('active');
-      setTimeout(function(){
-        currentSlideIndex = (currentSlideIndex + 1) % slideData.length;
-        updateSlideContent(currentSlideIndex);
-        requestAnimationFrame(function(){ stage.classList.add('active'); });
-      }, 1000);
-    }
-
-    function updateSlideContent(index) {
-      const d = slideData[index];
-      const words = (d.title || '').split(' ');
-      let lines = ['', '', ''];
-      if (words.length <= 1) { lines[0] = words[0] || ''; }
-      else if (words.length === 2) { lines[0] = words[0]; lines[1] = words[1]; }
-      else {
-        const third = Math.ceil(words.length / 3);
-        lines[0] = words.slice(0, third).join(' ');
-        lines[1] = words.slice(third, third * 2).join(' ');
-        lines[2] = words.slice(third * 2).join(' ');
-      }
-      document.getElementById('cv-title-1').innerText = lines[0];
-      document.getElementById('cv-title-2').innerText = lines[1];
-      document.getElementById('cv-title-3').innerText = lines[2];
-      document.getElementById('cv-badge').innerText = BADGE;
-      document.getElementById('cv-desc').innerText = d.text || '';
-
-      const imgCol = document.getElementById('cv-image-container');
-      if (d.image_url) {
-        imgCol.style.display = 'block';
-        const url = "url('" + d.image_url.replace(/'/g, "\\'") + "')";
-        document.getElementById('strip-1').style.backgroundImage = url;
-        document.getElementById('strip-2').style.backgroundImage = url;
-        document.getElementById('strip-3').style.backgroundImage = url;
-      } else {
-        imgCol.style.display = 'none';
-      }
-    }
-
-    function updateTimer(endTs) {
-      const dist = endTs - new Date().getTime();
-      const el = document.getElementById('cv-timer-value');
-      if (dist <= 0) { el.innerText = '00:00'; return; }
-      const h = Math.floor(dist / 3600000);
-      const m = Math.floor((dist % 3600000) / 60000);
-      const s = Math.floor((dist % 60000) / 1000);
-      const pad = function(n){ return String(n).padStart(2, '0'); };
-      el.innerText = h > 0 ? (pad(h) + ':' + pad(m) + ':' + pad(s)) : (pad(m) + ':' + pad(s));
-    }
-
     start();
   </script>
 </body>

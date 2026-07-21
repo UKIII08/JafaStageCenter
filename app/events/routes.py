@@ -344,6 +344,7 @@ def welcome_save(church_id, eid, membership):
             photo = ''
         slides.append({'title': (sl.get('title') or '').strip()[:80],
                        'text': (sl.get('text') or '').strip()[:220],
+                       'category': (sl.get('category') or '').strip()[:24],
                        'photo': photo})
     ev.welcome_json = json.dumps({'slide_seconds': secs, 'slides': slides})
     db.session.commit()
@@ -389,6 +390,7 @@ def _welcome_screen_config(church, event):
         slides.append({
             'title': sl.get('title', ''),
             'text': sl.get('text', ''),
+            'category': sl.get('category', ''),
             'image_url': media_url(church.id, 'welcome/' + photo) if photo else ''})
     start_local = ''
     if event and event.time:

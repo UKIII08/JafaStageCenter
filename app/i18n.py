@@ -218,6 +218,7 @@ PL = {
     "— no photo —": "— bez zdjęcia —",
     "Announcement title": "Tytuł ogłoszenia",
     "Short description": "Krótki opis",
+    "Badge (optional)": "Etykieta (opcjonalnie)",
     "Delete this photo?": "Usunąć to zdjęcie?",
     "Saved.": "Zapisano.",
     "STARTS IN": "START ZA",
