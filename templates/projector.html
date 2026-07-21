@@ -51,6 +51,7 @@
     <img id="logo-image" src="{{ url_for('static', filename='logo.png') }}?v={{ range(1,1000)|random }}" alt="Logo">
     <iframe id="canva-frame" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>
     <img id="pres-image" src="">
+    <iframe id="welcome-frame" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; border:none; z-index:16;"></iframe>
     <div id="countdown-view">
         <div id="cd-heading"></div>
         <div id="cd-clock">00:00</div>
@@ -67,6 +68,12 @@
         const root = document.documentElement;
         const canvaFrame = document.getElementById('canva-frame');
         const presImage = document.getElementById('pres-image');
+        const welcomeFrame = document.getElementById('welcome-frame');
+
+        function welcomeUrl(sid) {
+            var u = '/welcome/screen';
+            return sid ? u + '?setlist_id=' + encodeURIComponent(sid) : u;
+        }
 
         const countdownView = document.getElementById('countdown-view');
         var cdTick = null, cdRotate = null, cdEnd = 0, cdItems = [], cdIdx = 0;
@@ -122,8 +129,18 @@
             logo.style.display = 'none';
             canvaFrame.style.display = 'none';
             presImage.style.display = 'none';
+            if (data.mode !== 'welcome') welcomeFrame.style.display = 'none';
             if (data.mode !== 'countdown') stopCountdown();
-            if (data.mode === 'countdown') {
+            if (data.mode === 'welcome') {
+                // Ekran powitalny setlisty (odliczanie + ogłoszenia). Reładuj
+                // tylko przy zmianie, żeby nie restartować animacji.
+                var url = welcomeUrl(data.setlist_id);
+                if (welcomeFrame.getAttribute('data-url') !== url) {
+                    welcomeFrame.src = url; welcomeFrame.setAttribute('data-url', url);
+                }
+                welcomeFrame.style.display = data.is_blackout ? 'none' : 'block';
+            }
+            else if (data.mode === 'countdown') {
                 if (data.is_blackout) { stopCountdown(); }
                 else { startCountdown(data); }
             }

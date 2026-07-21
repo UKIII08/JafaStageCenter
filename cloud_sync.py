@@ -148,3 +148,17 @@ def fetch_profiles(opener, base_url, church_id):
 def fetch_setlists(opener, base_url, church_id):
     base = (base_url or DEFAULT_URL).rstrip('/')
     return _get_json(opener, f'{base}/c/{church_id}/studio/api/setlist-history')
+
+
+def fetch_media(opener, base_url, church_id, subpath):
+    """Pobiera binarny plik z /c/<id>/media/<subpath> (zdjęcie/ikona ekranu
+    powitalnego). Zwraca bytes albo None, gdy brak dostępu/pliku. Best-effort —
+    brak sieci rzuca CloudUnavailable jak reszta."""
+    base = (base_url or DEFAULT_URL).rstrip('/')
+    url = f'{base}/c/{church_id}/media/{subpath}'
+    try:
+        return _open(opener, url).read()
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403, 404):
+            return None
+        raise CloudUnavailable()

@@ -244,6 +244,9 @@ class SetlistHistory(db.Model):
     date = db.Column(db.String(30), nullable=False)
     songs = db.Column(db.Text, nullable=False)  # JSON array of {id, title, key, bpm, transpose}
     share_code = db.Column(db.String(8), unique=True, nullable=True)
+    # Ekran powitalny tej setlisty (JSON: start_time + slide_seconds + slides),
+    # synchronizowany z chmury. Zdjęcia/ikony pobierane lokalnie do static/.
+    welcome_json = db.Column(db.Text, default='')
 
 def get_notation():
     s = Settings.query.first()
@@ -362,6 +365,10 @@ def check_db_schema():
                 if 'share_code' not in sh_columns:
                     with db.engine.connect() as conn:
                         conn.execute(text("ALTER TABLE setlist_history ADD COLUMN share_code VARCHAR(8)"))
+                        conn.commit()
+                if 'welcome_json' not in sh_columns:
+                    with db.engine.connect() as conn:
+                        conn.execute(text("ALTER TABLE setlist_history ADD COLUMN welcome_json TEXT DEFAULT ''"))
                         conn.commit()
 
         except Exception as e:
@@ -1197,11 +1204,21 @@ def update_song_settings(pid, sid):
     return {'status': 'ok'}
 
 # --- SETLIST HISTORY ---
+def _sl_has_welcome(h):
+    """Czy setlista ma sensowny ekran powitalny (choć jedno ogłoszenie)."""
+    try:
+        cfg = json.loads((getattr(h, 'welcome_json', '') or '') or '{}') or {}
+    except (ValueError, TypeError):
+        return False
+    return bool(cfg.get('slides'))
+
+
 @app.route('/api/setlist-history', methods=['GET'])
 def get_setlist_history():
     items = SetlistHistory.query.order_by(SetlistHistory.id.desc()).all()
     return [{'id': h.id, 'name': h.name, 'date': h.date,
-             'songs': json.loads(h.songs), 'song_count': len(json.loads(h.songs))} for h in items]
+             'songs': json.loads(h.songs), 'has_welcome': _sl_has_welcome(h),
+             'song_count': len(json.loads(h.songs))} for h in items]
 
 @app.route('/api/setlist-history', methods=['POST'])
 def save_setlist_history():
@@ -1219,7 +1236,8 @@ def get_setlist_history_item(hid):
     h = SetlistHistory.query.get(hid)
     if not h:
         return {'error': 'not found'}, 404
-    return {'id': h.id, 'name': h.name, 'date': h.date, 'songs': json.loads(h.songs)}
+    return {'id': h.id, 'name': h.name, 'date': h.date,
+            'songs': json.loads(h.songs), 'has_welcome': _sl_has_welcome(h)}
 
 @app.route('/api/setlist-history/<int:hid>', methods=['DELETE'])
 def delete_setlist_history(hid):
@@ -1515,19 +1533,75 @@ def _apply_cloud_profiles(profiles):
     return touched
 
 
-def _apply_cloud_setlists(setlists):
-    """Dokłada setlisty z chmury (po nazwie+dacie), nie duplikując."""
+def _welcome_json_from_cloud(w):
+    """Zamienia eksport 'welcome' z chmury na welcome_json setlisty (bez ikon —
+    ikony są wspólne dla wspólnoty i trzymamy je w static/welcome_icons/)."""
+    if not w or not w.get('slides'):
+        return ''
+    return json.dumps({'slide_seconds': w.get('slide_seconds', 8),
+                       'start_time': w.get('start_time', ''),
+                       'slides': w.get('slides', [])})
+
+
+def _download_welcome_media(setlists, opener, base_url, church_id):
+    """Dociąga zdjęcia ogłoszeń (welcome/<name>) i ikony wspólnoty
+    (welcome_icons/<name>) do static/, żeby ekran powitalny działał offline."""
+    if not opener:
+        return
+    photo_dir = os.path.join(app.static_folder, 'welcome')
+    icon_dir = os.path.join(app.static_folder, 'welcome_icons')
+    os.makedirs(photo_dir, exist_ok=True)
+    os.makedirs(icon_dir, exist_ok=True)
+
+    def _grab(subdir, local_dir, name):
+        name = (name or '').strip()
+        if not name or '/' in name or '\\' in name or name.startswith('.'):
+            return
+        dest = os.path.join(local_dir, name)
+        if os.path.exists(dest):
+            return                      # już mamy — nie pobieramy ponownie
+        try:
+            data = cloud_sync.fetch_media(
+                opener, base_url, church_id, f'{subdir}/{name}')
+        except cloud_sync.CloudUnavailable:
+            return
+        if data:
+            with open(dest, 'wb') as fh:
+                fh.write(data)
+
+    for s in setlists or []:
+        w = s.get('welcome')
+        if not w:
+            continue
+        for sl in w.get('slides', []):
+            _grab('welcome', photo_dir, sl.get('photo'))
+        for icon in w.get('icons', []):
+            _grab('welcome_icons', icon_dir, icon)
+
+
+def _apply_cloud_setlists(setlists, opener=None, base_url=None, church_id=None):
+    """Dokłada setlisty z chmury (po nazwie+dacie), nie duplikując. Ekran
+    powitalny (welcome_json) aktualizujemy też dla istniejących setlist, żeby
+    zmienione ogłoszenia dotarły offline. Media dociągamy osobno."""
     added = 0
     for s in setlists or []:
         name = (s.get('name') or '').strip()
         date = s.get('date') or ''
-        if not name or SetlistHistory.query.filter_by(name=name, date=date).first():
+        if not name:
+            continue
+        wjson = _welcome_json_from_cloud(s.get('welcome'))
+        existing = SetlistHistory.query.filter_by(name=name, date=date).first()
+        if existing:
+            if wjson and getattr(existing, 'welcome_json', '') != wjson:
+                existing.welcome_json = wjson
             continue
         h = SetlistHistory()
         h.name, h.date = name, date
         h.songs = json.dumps(s.get('songs', []))
+        h.welcome_json = wjson
         db.session.add(h)
         added += 1
+    _download_welcome_media(setlists, opener, base_url, church_id)
     return added
 
 
@@ -1561,7 +1635,8 @@ def run_cloud_sync():
     if profiles is not None:
         c['profiles'] = _apply_cloud_profiles(profiles)
     if setlists is not None:
-        c['setlists'] = _apply_cloud_setlists(setlists)
+        c['setlists'] = _apply_cloud_setlists(
+            setlists, opener, s.cloud_url, church_id)
     from datetime import datetime as _dt
     s.cloud_church_id = church_id
     s.cloud_last_sync = _dt.now().strftime('%Y-%m-%d %H:%M')
@@ -1697,7 +1772,54 @@ def delete_background():
         socketio.emit('refresh_background', {'has_bg': False})
     return redirect(url_for('control'))
 
-# ── Ekran powitalny: odliczanie + ogłoszenia ze zdjęciami (tylko offline) ──
+# ── Ekran powitalny per-setlista (odliczanie + ogłoszenia, sync z chmury) ──
+# Ogłoszenia należą do setlisty (SetlistHistory.welcome_json), tak jak w apce
+# online — dzięki temu odpalają się, gdy wczytasz setlistę z Historii. Zdjęcia
+# i ikony pobieramy z chmury do static/welcome/ i static/welcome_icons/.
+def _welcome_screen_config(h):
+    try:
+        cfg = json.loads((getattr(h, 'welcome_json', '') or '') or '{}') or {}
+    except (ValueError, TypeError):
+        cfg = {}
+    slides = []
+    for s in cfg.get('slides', []):
+        photo = (s.get('photo') or '').strip()
+        slides.append({
+            'title': s.get('title', ''),
+            'text': s.get('text', ''),
+            'category': s.get('category', ''),
+            'image_url': ('/static/welcome/' + photo) if photo else ''})
+    start_local = ''
+    start_time = cfg.get('start_time', '')
+    if start_time:
+        from datetime import date as _date
+        start_local = f'{_date.today().isoformat()}T{start_time}:00'
+    icons = []
+    idir = os.path.join(app.static_folder, 'welcome_icons')
+    if os.path.isdir(idir):
+        icons = ['/static/welcome_icons/' + n
+                 for n in sorted(os.listdir(idir))
+                 if not n.startswith('.') and '.' in n]
+    return {'slide_seconds': cfg.get('slide_seconds', 8),
+            'start_local': start_local,
+            'event_name': (h.name or h.date or '') if h else '',
+            'icons': icons,
+            'slides': slides}
+
+
+@app.route('/welcome/screen')
+def welcome_screen():
+    sid = request.args.get('setlist_id', type=int)
+    h = SetlistHistory.query.get(sid) if sid else None
+    s = Settings.query.first()
+    lang = (s.language if s and s.language else 'pl')
+    config = _welcome_screen_config(h)
+    return render_template('welcome_screen.html', config=config, lang=lang,
+                           church_name=config.get('event_name') or 'JAFA',
+                           starts_label=('START ZA' if lang == 'pl' else 'STARTS IN'))
+
+
+# ── Stary, globalny ekran ogłoszeń (config.json) — zostaje dla zgodności ──
 _ANNOUNCE_IMG_EXT = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
 
 def _announce_dir():
@@ -1840,7 +1962,7 @@ def send_text():
         LAST_SLIDE_DATA = {'mode': 'logo'}
         socketio.emit('update_slide', LAST_SLIDE_DATA)
         return {'status': 'ok'}
-    if data.get('mode') in ['conference', 'canva', 'presentation', 'countdown']:
+    if data.get('mode') in ['conference', 'canva', 'presentation', 'countdown', 'welcome']:
         # Ujednolić flagę blackoutu: widoki czytają 'is_blackout', a klient
         # wysyła 'blackout'. Bez tego blackout nie gasił projektora w prezentacji.
         data['is_blackout'] = bool(data.get('blackout', data.get('is_blackout', False)))

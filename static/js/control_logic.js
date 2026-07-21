@@ -1968,6 +1968,12 @@ function loadSetlistHistory(id) {
         renderSetlist();
         if (setlist.length) selectForLive(0);
         updateServerState();
+        // Ekran powitalny należy do setlisty — zapamiętaj, którą gramy, i
+        // powiadom UI (web/desktop podpina swój przycisk „Ogłoszenia").
+        window.currentSetlistId = id;
+        if (typeof onSetlistLoaded === 'function') {
+            try { onSetlistLoaded(id, !!data.has_welcome); } catch (e) {}
+        }
         document.querySelectorAll('div[style*="fixed"][style*="z-index:99999"]').forEach(function(el) { el.remove(); });
         showToast((t('setlist_loaded') || 'Setlista wczytana!') + ' (' + setlist.length + ' ' + (t('songs_count') || 'piosenek') + ')', 'success');
     });

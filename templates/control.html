@@ -1461,6 +1461,7 @@
             <div class="bottom-controls">
                 <button class="danger" onclick="blackout()">BLACKOUT</button>
                 <button class="secondary" onclick="showLogo()">LOGO</button>
+                <button id="btn-announcements" class="secondary" onclick="playAnnouncements()" data-t="play_announcements" title="Ekran powitalny: odliczanie + ogłoszenia tej setlisty" style="display:none;">OGŁOSZENIA</button>
                 <button id="silent-md-btn" class="secondary silent-md-btn" onclick="toggleSilentMD()" title="Silent Music Director — pianino MIDI">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="14"/><line x1="10" y1="10" x2="10" y2="14"/><line x1="14" y1="10" x2="14" y2="14"/><line x1="18" y1="10" x2="18" y2="14"/></svg>
                     <span id="silent-md-label">SILENT MD</span>
@@ -2073,5 +2074,22 @@
 
     <script src="{{ url_for('static', filename='js/control_logic.js') }}"></script>
     <script>initI18n();</script>
+    <script>
+    // ── Ekran powitalny setlisty (odliczanie + ogłoszenia) — offline ──
+    // Przycisk pokazujemy, gdy wczytana setlista ma ogłoszenia (has_welcome).
+    window.onSetlistLoaded = function (id, hasWelcome) {
+        var btn = document.getElementById('btn-announcements');
+        if (btn) btn.style.display = hasWelcome ? '' : 'none';
+    };
+    window.playAnnouncements = function () {
+        var sid = window.currentSetlistId || null;
+        fetch('/send_text', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode: 'welcome', setlist_id: sid })
+        });
+        var box = document.getElementById('live-preview-box');
+        if (box) box.innerText = 'OGŁOSZENIA';
+    };
+    </script>
 </body>
 </html>
