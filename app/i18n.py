@@ -205,6 +205,13 @@ PL = {
         "Odliczanie do tego grania i przewijające się ogłoszenia — pokazywane na rzutniku przed pierwszą pieśnią. Zdjęcia są wspólne dla wszystkich grań.",
     "Countdown to this service plus rotating announcements, shown on the projector before the first song. Launch it live from Studio with “Play announcements”.":
         "Odliczanie do tego grania i przewijające się ogłoszenia na rzutniku przed pierwszą pieśnią. Odpal na żywo ze Studia przyciskiem „Ogłoszenia”.",
+    "Countdown to this service plus rotating announcements, shown on the projector before the first song. They belong to this service's setlist, so they also play when you load it from History in Studio. Launch it live with “Play announcements”.":
+        "Odliczanie do tego grania i przewijające się ogłoszenia na rzutniku przed pierwszą pieśnią. Należą do setlisty tego grania, więc odtworzą się także, gdy wczytasz ją z Historii w Studiu. Odpal na żywo przyciskiem „Ogłoszenia”.",
+    "Announcements belong to a setlist. Arrange or attach a setlist above first, then you can add the countdown and announcements here.":
+        "Ogłoszenia należą do setlisty. Najpierw ułóż lub podepnij setlistę powyżej, a potem dodasz tu odliczanie i ogłoszenia.",
+    "A countdown to your service start plus rotating announcements — shown on the projector before the first song. These belong to this setlist, so they follow it into Studio and the offline app. Photos are shared across your services.":
+        "Odliczanie do startu nabożeństwa i przewijające się ogłoszenia — pokazywane na rzutniku przed pierwszą pieśnią. Należą do tej setlisty, więc podążają za nią do Studia i aplikacji offline. Zdjęcia są wspólne dla wszystkich grań.",
+    "Service start time": "Godzina rozpoczęcia",
     "Open on projector ↗": "Otwórz na rzutniku ↗",
     "Open on projector": "Otwórz na rzutniku",
     "A countdown to your next service plus rotating announcements — shown on the projector before the first song. Set it once; it reuses your photos across services.":

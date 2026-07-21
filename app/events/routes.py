@@ -299,40 +299,59 @@ def _img_ext(data):
     return 'png'
 
 
-def _ev_welcome(ev):
+def _sl_welcome(sl):
+    """Ogłoszenia trzymamy PER SETLISTA (StudioSetlist.welcome_json) — dzięki
+    temu działają też, gdy odpalasz zapisaną setlistę z Historii w Studio,
+    i synchronizują się do aplikacji offline (która nie zna modelu Event)."""
     try:
-        return json.loads(ev.welcome_json or '{}') or {}
+        return json.loads((sl.welcome_json or '') or '{}') or {}
     except (ValueError, TypeError):
         return {}
 
 
-def _next_event(church_id):
-    return (Event.query.filter(Event.church_id == church_id,
-                               Event.deleted == False,
-                               Event.date >= date.today())
-            .order_by(Event.date.asc(), Event.time.asc()).first())
+def _get_setlist(church_id, sid):
+    sl = StudioSetlist.query.filter_by(id=sid, church_id=church_id).first()
+    if not sl:
+        abort(404)
+    return sl
 
 
-@events_bp.get('/c/<church_id>/granie/<int:eid>/welcome')
+def _valid_start_time(v):
+    """Zwraca 'HH:MM' albo '' — sanity check formatu godziny."""
+    v = (v or '').strip()
+    try:
+        datetime.strptime(v, '%H:%M')
+        return v
+    except ValueError:
+        return ''
+
+
+@events_bp.get('/c/<church_id>/studio/setlist/<int:sid>/welcome')
 @require_membership('prowadzacy')
-def welcome_edit(church_id, eid, membership):
+def welcome_edit(church_id, sid, membership):
     church = db.session.get(Church, church_id)
-    ev = _get_event(church_id, eid)
-    cfg = _ev_welcome(ev)
-    return render_template('events/welcome_edit.html', church=church, event=ev,
+    sl = _get_setlist(church_id, sid)
+    cfg = _sl_welcome(sl)
+    # Domyślna godzina startu: zapisana w setliście, a jak jej nie ma — z
+    # wydarzenia z którego tu weszliśmy (query ?start=HH:MM).
+    start_time = cfg.get('start_time', '') or _valid_start_time(
+        request.args.get('start'))
+    return render_template('events/welcome_edit.html', church=church,
+                           setlist=sl,
                            membership=membership, user=current_user(),
                            slides=cfg.get('slides', []),
                            slide_seconds=cfg.get('slide_seconds', 8),
+                           start_time=start_time,
                            photos=_welcome_photos(church_id),
                            max_photos=WELCOME_MAX_PHOTOS,
                            icons=_welcome_icons(church_id),
                            max_icons=WELCOME_MAX_ICONS)
 
 
-@events_bp.post('/c/<church_id>/granie/<int:eid>/welcome')
+@events_bp.post('/c/<church_id>/studio/setlist/<int:sid>/welcome')
 @require_membership('prowadzacy')
-def welcome_save(church_id, eid, membership):
-    ev = _get_event(church_id, eid)
+def welcome_save(church_id, sid, membership):
+    sl = _get_setlist(church_id, sid)
     data = request.get_json(silent=True) or {}
     try:
         secs = max(3, min(60, int(data.get('slide_seconds', 8))))
@@ -340,15 +359,18 @@ def welcome_save(church_id, eid, membership):
         secs = 8
     valid = set(_welcome_photos(church_id))
     slides = []
-    for sl in (data.get('slides') or [])[:40]:
-        photo = (sl.get('photo') or '').strip()
+    for s in (data.get('slides') or [])[:40]:
+        photo = (s.get('photo') or '').strip()
         if photo not in valid:
             photo = ''
-        slides.append({'title': (sl.get('title') or '').strip()[:80],
-                       'text': (sl.get('text') or '').strip()[:220],
-                       'category': (sl.get('category') or '').strip()[:24],
+        slides.append({'title': (s.get('title') or '').strip()[:80],
+                       'text': (s.get('text') or '').strip()[:220],
+                       'category': (s.get('category') or '').strip()[:24],
                        'photo': photo})
-    ev.welcome_json = json.dumps({'slide_seconds': secs, 'slides': slides})
+    sl.welcome_json = json.dumps({
+        'slide_seconds': secs,
+        'start_time': _valid_start_time(data.get('start_time')),
+        'slides': slides})
     db.session.commit()
     return {'status': 'ok'}
 
@@ -429,24 +451,29 @@ def welcome_icon_delete(church_id, name, membership):
     return {'status': 'ok'}
 
 
-def _welcome_screen_config(church, event):
-    cfg = _ev_welcome(event) if event else {}
+def _welcome_screen_config(church, setlist):
+    cfg = _sl_welcome(setlist) if setlist else {}
     slides = []
-    for sl in cfg.get('slides', []):
-        photo = sl.get('photo')
+    for s in cfg.get('slides', []):
+        photo = s.get('photo')
         slides.append({
-            'title': sl.get('title', ''),
-            'text': sl.get('text', ''),
-            'category': sl.get('category', ''),
+            'title': s.get('title', ''),
+            'text': s.get('text', ''),
+            'category': s.get('category', ''),
             'image_url': media_url(church.id, 'welcome/' + photo) if photo else ''})
+    # Odliczanie celuje w dzisiejszą godzinę startu (setlistę puszczasz w dniu
+    # nabożeństwa) — brak Eventu w apce offline, więc data z serwera nie działa.
     start_local = ''
-    if event and event.time:
-        start_local = f'{event.date.isoformat()}T{event.time}:00'
+    start_time = cfg.get('start_time', '')
+    if start_time:
+        start_local = f'{date.today().isoformat()}T{start_time}:00'
+    name = (setlist.name if setlist and getattr(setlist, 'name', None)
+            else (setlist.date if setlist else '')) or ''
     icons = [media_url(church.id, 'welcome_icons/' + n)
              for n in _welcome_icons(church.id)]
     return {'slide_seconds': cfg.get('slide_seconds', 8),
             'start_local': start_local,
-            'event_name': event.name if event else '',
+            'event_name': name,
             'icons': icons,
             'slides': slides}
 
@@ -473,8 +500,17 @@ def welcome_screen(church_id):
     if not _welcome_view_ok(church_id):
         abort(403)
     church = db.session.get(Church, church_id)
-    eid = request.args.get('eid', type=int)
-    event = _get_event(church_id, eid) if eid else _next_event(church_id)
-    config = _welcome_screen_config(church, event)
+    sid = request.args.get('setlist_id', type=int)
+    # Zgodność wstecz: ?eid=<event> mapujemy na jego setlistę.
+    if not sid:
+        eid = request.args.get('eid', type=int)
+        if eid:
+            ev = Event.query.filter_by(id=eid, church_id=church_id,
+                                       deleted=False).first()
+            if ev:
+                sid = ev.setlist_id
+    setlist = (StudioSetlist.query.filter_by(id=sid, church_id=church_id).first()
+               if sid else None)
+    config = _welcome_screen_config(church, setlist)
     return render_template('events/welcome_screen.html', church=church,
                            config=config)

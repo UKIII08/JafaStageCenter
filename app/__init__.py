@@ -113,6 +113,9 @@ def _ensure_columns():
         'events': [
             ('welcome_json', "TEXT DEFAULT ''"),
         ],
+        'studio_setlists': [
+            ('welcome_json', "TEXT DEFAULT ''"),
+        ],
     }
     for table, cols in wanted.items():
         if table not in insp.get_table_names():

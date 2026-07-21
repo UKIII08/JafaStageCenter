@@ -88,10 +88,10 @@
         const presImage = document.getElementById('pres-image');
         const welcomeFrame = document.getElementById('welcome-frame');
 
-        function welcomeUrl(eid) {
+        function welcomeUrl(sid) {
             var u = '/c/' + window.CHURCH_ID + '/welcome/screen';
             var q = [];
-            if (eid) q.push('eid=' + encodeURIComponent(eid));
+            if (sid) q.push('setlist_id=' + encodeURIComponent(sid));
             if (window.SCREEN_TOKEN) q.push('token=' + encodeURIComponent(window.SCREEN_TOKEN));
             return q.length ? u + '?' + q.join('&') : u;
         }
@@ -104,7 +104,7 @@
             if (data.mode !== 'welcome') welcomeFrame.style.display = 'none';
             if (data.mode === 'welcome') {
                 // Reładuj tylko przy zmianie (nie restartuj animacji przy każdym slajdzie).
-                var url = welcomeUrl(data.eid);
+                var url = welcomeUrl(data.setlist_id);
                 if (welcomeFrame.getAttribute('data-url') !== url) {
                     welcomeFrame.src = url; welcomeFrame.setAttribute('data-url', url);
                 }

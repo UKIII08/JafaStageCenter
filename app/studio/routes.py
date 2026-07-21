@@ -915,6 +915,7 @@ def get_setlist_history(church_id):
         .order_by(StudioSetlist.id.desc()).all()
     return [{'id': h.id, 'name': h.name, 'date': h.date,
              'songs': json.loads(h.songs),
+             'has_welcome': _setlist_has_welcome(h),
              'song_count': len(json.loads(h.songs))} for h in items]
 
 
@@ -949,7 +950,17 @@ def get_setlist_history_item(church_id, hid):
     if not h:
         return {'error': 'not found'}, 404
     return {'id': h.id, 'name': h.name, 'date': h.date,
-            'songs': json.loads(h.songs)}
+            'songs': json.loads(h.songs),
+            'has_welcome': _setlist_has_welcome(h)}
+
+
+def _setlist_has_welcome(h):
+    """Czy setlista ma sensowny ekran powitalny (jest choć jedno ogłoszenie)."""
+    try:
+        cfg = json.loads((h.welcome_json or '') or '{}') or {}
+    except (ValueError, TypeError):
+        return False
+    return bool(cfg.get('slides'))
 
 
 @studio_bp.delete('/studio/api/setlist-history/<int:hid>')

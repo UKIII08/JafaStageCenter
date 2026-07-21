@@ -33,13 +33,17 @@
 
 <div class="panel" style="max-width:820px;">
   <div class="panel-header">
-    <h2>{{ _('Welcome screen') }} — {{ event.name }}</h2>
+    <h2>{{ _('Welcome screen') }} — {{ setlist.name or setlist.date or _('Setlist') }}</h2>
     <div style="display:flex; gap:var(--s2);">
-      <a class="btn btn-ghost" href="{{ url_for('events.welcome_screen', church_id=church.id, eid=event.id) }}" target="_blank" rel="noopener">{{ _('Open on projector ↗') }}</a>
-      <a class="btn btn-ghost" href="{{ url_for('events.event_detail', church_id=church.id, eid=event.id) }}">{{ _('Back') }}</a>
+      <a class="btn btn-ghost" href="{{ url_for('events.welcome_screen', church_id=church.id, setlist_id=setlist.id) }}" target="_blank" rel="noopener">{{ _('Open on projector ↗') }}</a>
     </div>
   </div>
-  <p class="hint" style="margin:0 0 var(--s4);">{{ _('A countdown to this service plus rotating announcements — shown on the projector before the first song. Photos are shared across your services.') }}</p>
+  <p class="hint" style="margin:0 0 var(--s4);">{{ _('A countdown to your service start plus rotating announcements — shown on the projector before the first song. These belong to this setlist, so they follow it into Studio and the offline app. Photos are shared across your services.') }}</p>
+
+  <div class="set-row" style="margin:0 0 var(--s5); max-width:320px;">
+    <span>{{ _('Service start time') }}</span>
+    <input type="time" id="wl-start" value="{{ start_time }}" style="width:120px; text-align:center;">
+  </div>
 
   <div class="section-title">{{ _('Photo library') }} <span class="muted" id="wl-count"></span></div>
   <p class="hint" style="margin:0 0 var(--s2);">{{ _('Up to 10 photos, reused across announcements.') }}</p>
@@ -68,7 +72,7 @@
 
 <script>
   const CHURCH = {{ church.id|tojson }};
-  const EID = {{ event.id }};
+  const SID = {{ setlist.id }};
   const MAX = {{ max_photos }};
   const IMAX = {{ max_icons }};
   let ICONS = {{ icons|tojson }};
@@ -160,8 +164,9 @@
 
   function wlSave(){
     let secs = parseInt(document.getElementById('wl-seconds').value, 10) || 8;
-    fetch('/c/' + CHURCH + '/granie/' + EID + '/welcome', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ slide_seconds: secs, slides: SLIDES }) })
+    let startTime = document.getElementById('wl-start').value || '';
+    fetch('/c/' + CHURCH + '/studio/setlist/' + SID + '/welcome', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ slide_seconds: secs, start_time: startTime, slides: SLIDES }) })
       .then(r => r.json()).then(function(){
         document.getElementById('wl-status').textContent = L.saved;
         setTimeout(function(){ document.getElementById('wl-status').textContent = ''; }, 2500);

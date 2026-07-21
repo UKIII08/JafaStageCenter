@@ -1996,12 +1996,16 @@
     <script>
     // ── Tryb "setlista dla grania" + preferowane tonacje zespołu (web) ──
     (function () {
+        // Przycisk „Ogłoszenia" pokazujemy, gdy wczytana setlista ma ekran
+        // powitalny — czy to z wydarzenia, czy z Historii. Ogłoszenia należą
+        // do setlisty, więc wiadomo które puścić.
+        window.onSetlistLoaded = function (id, hasWelcome) {
+            var annBtn = document.getElementById('btn-announcements');
+            if (annBtn) annBtn.style.display = hasWelcome ? '' : 'none';
+        };
+
         // 1. Baner grania + auto-wczytanie podpiętej setlisty
         if (window.JAFA_EVENT) {
-            // Przycisk „Ogłoszenia" pokazujemy TYLKO w trybie grania — wtedy
-            // wiadomo, czyje ogłoszenia puścić (tego konkretnego wydarzenia).
-            var annBtn = document.getElementById('btn-announcements');
-            if (annBtn) annBtn.style.display = '';
             var bar = document.querySelector('.top-bar');
             var chip = document.createElement('div');
             chip.style.cssText = 'display:inline-flex;align-items:center;gap:8px;' +
@@ -2096,11 +2100,11 @@
 
         window.playAnnouncements = function () {
             // Ekran powitalny (odliczanie + ogłoszenia) na rzutnik — ogłoszenia
-            // tego konkretnego grania (przycisk widoczny tylko w trybie grania).
-            var eid = window.JAFA_EVENT ? window.JAFA_EVENT.id : null;
+            // wczytanej setlisty (przycisk widoczny, gdy setlista je ma).
+            var sid = window.currentSetlistId || null;
             fetch('/send_text', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mode: 'welcome', eid: eid })
+                body: JSON.stringify({ mode: 'welcome', setlist_id: sid })
             });
             var box = document.getElementById('live-preview-box');
             if (box) box.innerText = 'OGŁOSZENIA';

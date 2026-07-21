@@ -84,12 +84,18 @@
 <div class="panel">
     <div class="panel-header">
         <div class="section-title" style="margin:0;">{{ _('Welcome screen') }}</div>
+        {% if ev.setlist_id %}
         <div style="display:flex; gap:var(--s2);">
-            <a class="btn" href="{{ url_for('events.welcome_edit', church_id=church.id, eid=ev.id) }}">{{ _('Edit announcements') }}</a>
-            <a class="btn btn-ghost" href="{{ url_for('events.welcome_screen', church_id=church.id, eid=ev.id) }}" target="_blank" rel="noopener">{{ _('Open on projector ↗') }}</a>
+            <a class="btn" href="{{ url_for('events.welcome_edit', church_id=church.id, sid=ev.setlist_id, start=ev.time or '') }}">{{ _('Edit announcements') }}</a>
+            <a class="btn btn-ghost" href="{{ url_for('events.welcome_screen', church_id=church.id, setlist_id=ev.setlist_id) }}" target="_blank" rel="noopener">{{ _('Open on projector ↗') }}</a>
         </div>
+        {% endif %}
     </div>
-    <p class="hint" style="margin-bottom:0;">{{ _('Countdown to this service plus rotating announcements, shown on the projector before the first song. Launch it live from Studio with “Play announcements”.') }}</p>
+    {% if ev.setlist_id %}
+    <p class="hint" style="margin-bottom:0;">{{ _('Countdown to this service plus rotating announcements, shown on the projector before the first song. They belong to this service\'s setlist, so they also play when you load it from History in Studio. Launch it live with “Play announcements”.') }}</p>
+    {% else %}
+    <p class="hint" style="margin-bottom:0;">{{ _('Announcements belong to a setlist. Arrange or attach a setlist above first, then you can add the countdown and announcements here.') }}</p>
+    {% endif %}
 </div>
 {% endif %}
 

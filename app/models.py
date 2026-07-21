@@ -216,6 +216,8 @@ class StudioSetlist(db.Model):
     date = db.Column(db.String(30), nullable=False, default='')
     songs = db.Column(db.Text, nullable=False, default='[]')  # JSON [{id,title,key,bpm,transpose}]
     share_code = db.Column(db.String(8), unique=True, nullable=True, index=True)
+    # Ekran powitalny tej setlisty (JSON: start_time + slide_seconds + slides)
+    welcome_json = db.Column(db.Text, default='')
 
 
 class Event(db.Model):
