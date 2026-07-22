@@ -106,10 +106,10 @@ def test_event_lifecycle_and_learning_view(app, client):
         assert EventAssignment.query.filter_by(event_id=eid).count() == 2
     client.get('/logout')
 
-    # muzyk widzi na czym gra
+    # muzyk widzi na czym gra (etykiety instrumentów tłumaczone; EN domyślnie)
     login(client, 'muzyk@x.pl')
     r = client.get(f'/c/{cid}/granie/{eid}')
-    assert b'bas' in r.data and b'gitara' in r.data
+    assert b'Bass' in r.data and b'Guitar' in r.data
 
 
 def test_signup_after_deadline_still_allowed(app, client):

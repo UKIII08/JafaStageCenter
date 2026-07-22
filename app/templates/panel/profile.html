@@ -13,7 +13,7 @@
         <label>{{ _('Instrument') }}</label>
         <select name="instrument">
             {% for i in instruments %}
-            <option value="{{ i }}" {% if profile.instrument == i %}selected{% endif %}>{{ i or '—' }}</option>
+            <option value="{{ i }}" {% if profile.instrument == i %}selected{% endif %}>{{ instrument_label(i) or '—' }}</option>
             {% endfor %}
         </select>
         <label>{{ _('Chord notation') }}</label>

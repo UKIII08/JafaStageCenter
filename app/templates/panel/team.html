@@ -20,7 +20,7 @@
               {% else %}{{ _(m.role) }}{% endif %}
             </td>
             <td class="muted">
-              {% for p in profiles %}{% if p.user_id == m.user_id %}{{ p.instrument or '—' }}{% endif %}{% endfor %}
+              {% for p in profiles %}{% if p.user_id == m.user_id %}{{ instrument_label(p.instrument) or '—' }}{% endif %}{% endfor %}
             </td>
             <td style="text-align:right;">
               {% if membership.role == 'admin' and m.user_id != church.owner_user_id %}
@@ -34,7 +34,7 @@
         {% endfor %}
     </table>
     {% for p in profiles %}{% if not p.user_id %}
-        <p class="muted">{{ _('Profile without an account:') }} <b>{{ p.name }}</b> ({{ p.instrument or '—' }}) {{ _('— from the desktop app') }}</p>
+        <p class="muted">{{ _('Profile without an account:') }} <b>{{ p.name }}</b> ({{ instrument_label(p.instrument) or '—' }}) {{ _('— from the desktop app') }}</p>
     {% endif %}{% endfor %}
 </div>
 {% if membership.role == 'admin' %}

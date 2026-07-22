@@ -33,7 +33,7 @@
     {% endif %}
     {% if my_instruments %}
     <p style="margin:var(--s3) 0 0;">{{ _("You're playing this service:") }}
-        {% for i in my_instruments %}<span class="badge" style="background:var(--accent-subtle); color:var(--accent); margin-right:4px;">{{ i or _('instrument unspecified') }}</span>{% endfor %}
+        {% for i in my_instruments %}<span class="badge" style="background:var(--accent-subtle); color:var(--accent); margin-right:4px;">{{ instrument_label(i) or _('instrument unspecified') }}</span>{% endfor %}
     </p>
     {% endif %}
 </div>
@@ -124,7 +124,7 @@
         {% for x in assignments %}
         <tr>
             <td>{{ x.user.display_name if x.user else '?' }}</td>
-            <td>{{ x.a.instrument or '—' }}</td>
+            <td>{{ instrument_label(x.a.instrument) or '—' }}</td>
             {% if membership.role != 'muzyk' %}
             <td style="text-align:right;">
                 <form method="POST" action="{{ url_for('events.event_assign', church_id=church.id, eid=ev.id) }}" style="display:inline;">
@@ -147,7 +147,7 @@
             {% endfor %}
         </select>
         <select name="instrument" style="flex:1; min-width:130px;">
-            {% for i in instruments %}<option value="{{ i }}">{{ i or _('— instrument —') }}</option>{% endfor %}
+            {% for i in instruments %}<option value="{{ i }}">{{ instrument_label(i) or _('— instrument —') }}</option>{% endfor %}
         </select>
         <button type="submit" style="flex:0;">{{ _('Add to lineup') }}</button>
     </form>

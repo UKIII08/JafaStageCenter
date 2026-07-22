@@ -656,3 +656,36 @@ def translate(text):
     if get_lang() == 'pl':
         return PL.get(text, text)
     return text
+
+
+# ── Instrumenty ──────────────────────────────────────────────────────────
+# Wartości w bazie są po polsku (zgodność ze starymi danymi), ale ETYKIETĘ
+# wyświetlamy tłumaczoną: EN domyślnie (rynek USA), PL jako fallback.
+INSTRUMENT_LABELS = {
+    'wokal': 'Vocals',
+    'gitara': 'Guitar',
+    'gitara elektryczna': 'Electric guitar',
+    'bas': 'Bass',
+    'klawisze': 'Keys',
+    'perkusja': 'Drums',
+    'skrzypce': 'Violin',
+    'inny': 'Other',
+}
+PL.update({
+    'Vocals': 'Wokal',
+    'Guitar': 'Gitara',
+    'Electric guitar': 'Gitara elektryczna',
+    'Bass': 'Bas',
+    'Keys': 'Klawisze',
+    'Drums': 'Perkusja',
+    'Violin': 'Skrzypce',
+    'Other': 'Inny',
+})
+
+
+def instrument_label(value):
+    """Przetłumaczona etykieta instrumentu dla podanej (polskiej) wartości."""
+    v = (value or '').strip()
+    if not v:
+        return ''
+    return translate(INSTRUMENT_LABELS.get(v, v))
