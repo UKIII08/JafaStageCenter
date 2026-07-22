@@ -2191,10 +2191,10 @@ function saveBackupDesktop() {
     }
 }
 
-socket.on('refresh_logo', function() { 
-    var logo = document.getElementById('control-logo'); 
-    if(window.SERVER_DATA && window.SERVER_DATA.logoUrl) {
-        logo.src = window.SERVER_DATA.logoUrl + "?v=" + new Date().getTime(); 
+socket.on('refresh_logo', function() {
+    var logo = document.getElementById('control-logo');
+    if(logo && window.SERVER_DATA && window.SERVER_DATA.logoUrl) {
+        logo.src = window.SERVER_DATA.logoUrl + "?v=" + new Date().getTime();
     }
 });
 // --- INICJALIZACJA DRAG & DROP W SETLIŚCIE ---
