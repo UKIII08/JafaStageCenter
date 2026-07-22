@@ -107,14 +107,19 @@ input:focus, textarea:focus, select:focus {
 }
 *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* ── Tło atmosferyczne strony (subtelna poświata) ── */
-.shell {
+/* ── Tło atmosferyczne strony (subtelna poświata) ──
+   Na BODY, nie na .shell — żeby poświata sięgała prawej krawędzi ekranu,
+   a nie urywała się na węższej (wyśrodkowanej) kolumnie treści. */
+body {
     background-image: var(--ambient);
     background-repeat: no-repeat;
     background-attachment: fixed;
     background-position: top right;
-    max-width: 1040px;
 }
+.shell { max-width: 1040px; }
+/* Wąskie karty (profil, ustawienia, konto) same ograniczają szerokość —
+   wyśrodkuj je w kolumnie zamiast przyklejać do lewej. */
+.panel[style*="max-width"] { margin-left: auto; margin-right: auto; }
 
 /* ── Panele: dokładamy delikatny połysk ── */
 .panel { background-image: var(--panel-grad); box-shadow: var(--shadow-md); }
