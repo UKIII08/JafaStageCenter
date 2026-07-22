@@ -118,7 +118,7 @@ def test_anonymous_sees_landing(client):
     # '/' to publiczny landing; panel nadal wymaga logowania
     r = client.get('/', follow_redirects=False)
     assert r.status_code == 200
-    assert b'Create account' in r.data           # domyslnie EN (rynek USA)
+    assert b'Start free' in r.data                # domyslnie EN (rynek USA)
     r = client.get('/pl')
     assert 'Załóż konto'.encode() in r.data      # polska wersja pod /pl
     r = client.get('/account', follow_redirects=False)
@@ -131,7 +131,7 @@ def test_profile_prefs_roundtrip(app, client):
     cid = church_id_by_name(app, 'Zbor P')
     r = client.post(f'/c/{cid}/profile', data={
         'name': 'Piotrek', 'instrument': 'gitara', 'notation': 'polish',
-        'capo_default': '2', 'show_chords': 'on', 'lowercase_minor': 'on'},
+        'show_chords': 'on', 'lowercase_minor': 'on'},
         follow_redirects=True)
     assert r.status_code == 200
     with app.app_context():
@@ -139,7 +139,7 @@ def test_profile_prefs_roundtrip(app, client):
         p = Profile.query.filter_by(church_id=cid).first()
         assert p.instrument == 'gitara'
         assert p.prefs['notation'] == 'polish'
-        assert p.prefs['capo_default'] == 2
+        assert 'capo_default' not in p.prefs      # ustawienie usunięte
         assert p.prefs['lowercase_minor'] is True
         assert p.prefs['beginner_mode'] is False
 
