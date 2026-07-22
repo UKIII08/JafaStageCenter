@@ -21,8 +21,6 @@
             <option value="international" {% if profile.prefs.get('notation','international') == 'international' %}selected{% endif %}>{{ _('International (Bb, B)') }}</option>
             <option value="polish" {% if profile.prefs.get('notation') == 'polish' %}selected{% endif %}>{{ _('Polish (B, H, Cis, Fis)') }}</option>
         </select>
-        <label>{{ _('Default capo (frets)') }}</label>
-        <input name="capo_default" type="number" min="0" max="11" value="{{ profile.prefs.get('capo_default', 0) }}">
         <div style="margin-top:var(--s3);">
             <div class="check"><input type="checkbox" id="c1" name="show_chords" {% if profile.prefs.get('show_chords', True) %}checked{% endif %}><label for="c1">{{ _('Show chords') }}</label></div>
             <div class="check"><input type="checkbox" id="c2" name="lowercase_minor" {% if profile.prefs.get('lowercase_minor') %}checked{% endif %}><label for="c2">{{ _('Lowercase = minor') }}</label></div>

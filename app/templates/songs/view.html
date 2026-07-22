@@ -31,7 +31,7 @@
     // — inaczej byłaby podwójna transpozycja.
     (function () {
         var prefs = Object.assign({}, {{ prefs|tojson }}, {
-            capo_default: 0, capo_fret: 0, key: {{ (shown_key or '')|tojson }}
+            capo_fret: 0, key: {{ (shown_key or '')|tojson }}
         });
         document.querySelectorAll('.song-render').forEach(function (el) {
             if (window.applyChordPrefs) window.applyChordPrefs(el, prefs);

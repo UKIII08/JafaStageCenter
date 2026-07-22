@@ -323,10 +323,7 @@ def my_profile(church_id, membership):
         prefs['show_chords'] = bool(request.form.get('show_chords'))
         prefs['lowercase_minor'] = bool(request.form.get('lowercase_minor'))
         prefs['beginner_mode'] = bool(request.form.get('beginner_mode'))
-        try:
-            prefs['capo_default'] = max(0, min(11, int(request.form.get('capo_default') or 0)))
-        except ValueError:
-            prefs['capo_default'] = 0
+        prefs.pop('capo_default', None)   # per-service capo tylko na telefonie
         profile.prefs = prefs
         db.session.commit()
         flash(_('Profile saved.'))

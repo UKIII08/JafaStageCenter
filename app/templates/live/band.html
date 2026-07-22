@@ -53,8 +53,7 @@ function render(st) {
     main.innerHTML = '<div class="song-render">' + st.band_html + '</div>';
     applyChordPrefs(main, PREFS);
     let m = st.song_title || '';
-    if (st.key) m += ' · ' + (PREFS.capo_default > 0
-        ? st.key + ' (capo ' + PREFS.capo_default + ')' : st.key);
+    if (st.key) m += ' · ' + st.key;
     if (st.bpm) m += ' · ' + st.bpm + ' BPM';
     meta.textContent = m;
     if (st.next_band_html) {

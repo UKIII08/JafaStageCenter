@@ -143,7 +143,7 @@ const CHURCH = '{{ church.id }}', SONG = '{{ song.id }}';
 const PREFS = {{ prefs|tojson }};
 let transpose = {{ transpose }};
 const BPM = {{ song.bpm or 0 }};
-const viewPrefs = Object.assign({}, PREFS, { capo_default: 0, capo_fret: 0, key: {{ (shown_key or '')|tojson }} });
+const viewPrefs = Object.assign({}, PREFS, { capo_fret: 0, key: {{ (shown_key or '')|tojson }} });
 // WAŻNE: zapisujemy surową (międzynarodową) nazwę akordu ZANIM applyChordPrefs
 // zamieni ją na formę wyświetlaną (np. Em -> "e" przy „małe litery = moll",
 // albo notacja polska). Diagramy muszą używać nazwy międzynarodowej, inaczej

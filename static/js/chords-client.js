@@ -84,11 +84,10 @@
                 .forEach(function (el) { el.remove(); });
             return;
         }
-        // Zgodność ze schematami OBU zapisów prefów: panel profilu zapisuje
-        // capo_default/notation, ustawienia z telefonu zespołu — capo_fret/
-        // chord_notation. Czytamy oba, żeby preferencja nie była gubiona.
-        var capo = parseInt((prefs.capo_default != null ? prefs.capo_default
-                             : prefs.capo_fret) || 0, 10) || 0;
+        // Capo jest per-pieśń (ustawiane na telefonie zespołu: capo_fret).
+        // Nie ma "domyślnego capo" na profilu — kapodaster zależy od tonacji
+        // konkretnej pieśni, więc globalna wartość nie miała sensu.
+        var capo = parseInt(prefs.capo_fret || 0, 10) || 0;
         var notation = prefs.notation || prefs.chord_notation || 'international';
         var nashKey = (prefs.key || '').replace(/m$/, '');
         container.querySelectorAll('.chord').forEach(function (el) {
