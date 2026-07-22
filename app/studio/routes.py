@@ -1167,11 +1167,12 @@ def song_team_prefs(church_id, sid):
                 Profile.church_id == church_id,
                 Profile.deleted.is_(False)) \
         .all()
+    from app.i18n import instrument_label
     prefs = []
     for sp, prof in rows:
         if sp.preferred_key or sp.preferred_transpose:
             prefs.append({'name': prof.name,
-                          'instrument': prof.instrument or '',
+                          'instrument': instrument_label(prof.instrument),
                           'key': sp.preferred_key or '',
                           'transpose': sp.preferred_transpose or 0})
     return {'song_key': song.key or '', 'prefs': prefs}

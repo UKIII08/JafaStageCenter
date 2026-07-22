@@ -689,3 +689,26 @@ def instrument_label(value):
     if not v:
         return ''
     return translate(INSTRUMENT_LABELS.get(v, v))
+
+
+# ── Studio: napisy dotąd zaszyte po polsku (teraz EN domyślnie, PL fallback) ──
+PL.update({
+    'Back to panel': 'Wróć do panelu',
+    'Fullscreen': 'Pełny ekran',
+    'Collapse / expand library': 'Zwiń / rozwiń bibliotekę',
+    'Collapse library': 'Zwiń bibliotekę',
+    'Restore defaults?': 'Przywrócić domyślne?',
+    'Connect screens': 'Połącz ekrany',
+    'Manage connected screens (names, disconnecting)':
+        'Zarządzaj podłączonymi ekranami (nazwy, odłączanie)',
+    "Band's preferred keys": 'Preferowane tonacje zespołu',
+    'Original key:': 'Oryginalna tonacja:',
+    'Set the transpose for whoever leads the vocal.':
+        'Ustaw transpozycję pod osobę prowadzącą wokal.',
+    'No one on the team has saved their key for this song yet '
+    '(they do it in the practice view: the −1 / +1 “my key” buttons).':
+        'Nikt z zespołu nie zapisał jeszcze swojej tonacji dla tej piosenki '
+        '(robi się to w widoku ćwiczenia: przyciski −1 / +1 „moja tonacja”).',
+    "Click: the band's preferred keys for this song":
+        'Kliknij: preferowane tonacje zespołu dla tej piosenki',
+})

@@ -1382,7 +1382,7 @@
         <div class="top-bar-spacer"></div>
 
         <a class="top-btn desktop-only" style="text-decoration:none;"
-           href="{{ url_for('events.events_list', church_id=church.id) }}" title="Wróć do panelu">
+           href="{{ url_for('events.events_list', church_id=church.id) }}" title="{{ _('Back to panel') }}">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             <span>Panel</span>
         </a>
@@ -1390,7 +1390,7 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             <span data-t="settings_btn">Ustawienia</span>
         </button>
-        <button id="fs-btn-desktop" class="top-btn desktop-only" onclick="toggleFullscreen()" title="Pełny ekran">
+        <button id="fs-btn-desktop" class="top-btn desktop-only" onclick="toggleFullscreen()" title="{{ _('Fullscreen') }}">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
         </button>
         <button class="top-btn top-btn-accent desktop-only" onclick="openQRModal()">
@@ -1406,7 +1406,7 @@
         <div id="col-library" class="col">
             <div class="col-header">
                 <div class="col-header-left">
-                    <button class="lib-collapse-btn" onclick="toggleLibrary()" title="Zwiń / rozwiń bibliotekę" aria-label="Zwiń bibliotekę">
+                    <button class="lib-collapse-btn" onclick="toggleLibrary()" title="{{ _('Collapse / expand library') }}" aria-label="{{ _('Collapse library') }}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                     </button>
                     <h2 class="col-title" data-t="library_header">Biblioteka</h2>
@@ -1892,7 +1892,7 @@
                 <h4 data-t="system_section">System</h4>
                 <div class="system-actions">
                     <button type="button" class="backup-btn" onclick="saveBackupDesktop()" data-t="backup_btn">Kopia bazy</button>
-                    <form action="{{ base }}/reset_settings" method="POST" style="flex:1;" onsubmit="return confirm('Przywrócić domyślne?');">
+                    <form action="{{ base }}/reset_settings" method="POST" style="flex:1;" onsubmit="return confirm('{{ _('Restore defaults?') }}');">
                         <button type="submit" class="reset-btn" style="width:100%;">&#8635; RESET</button>
                     </form>
                 </div>
@@ -1904,7 +1904,7 @@
     <div id="qrModal" class="modal">
         <div class="modal-content qr-modal-content">
             <div class="modal-top">
-                <span class="modal-title">Połącz ekrany</span>
+                <span class="modal-title">{{ _('Connect screens') }}</span>
                 <button class="modal-x" onclick="closeQRModal()">&#10005;</button>
             </div>
             <div class="qr-server-ip">SERWER: {{ server_ip }}</div>
@@ -1932,7 +1932,7 @@
             </div>
             <div style="text-align:center; margin-top:var(--s3);">
                 <a href="{{ url_for('live.screens', church_id=church.id) }}"
-                   style="color:var(--text-tertiary); font-size:var(--font-xs);">Zarządzaj podłączonymi ekranami (nazwy, odłączanie)</a>
+                   style="color:var(--text-tertiary); font-size:var(--font-xs);">{{ _('Manage connected screens (names, disconnecting)') }}</a>
             </div>
         </div>
     </div>
@@ -2029,7 +2029,7 @@
         var keyEl = document.getElementById('live-key');
         if (!keyEl) return;
         keyEl.style.cursor = 'pointer';
-        keyEl.title = 'Kliknij: preferowane tonacje zespołu dla tej piosenki';
+        keyEl.title = {{ _("Click: the band's preferred keys for this song")|tojson }};
         keyEl.style.textDecoration = 'underline dotted';
         keyEl.style.textUnderlineOffset = '3px';
 
@@ -2060,7 +2060,7 @@
                         'border-radius:var(--r-md,10px);padding:12px;box-shadow:0 12px 32px rgba(0,0,0,.5);';
                     var h = '<div style="font-size:0.7rem;font-weight:800;letter-spacing:.1em;' +
                         'text-transform:uppercase;color:var(--text-tertiary,#7C7C87);margin-bottom:8px;">' +
-                        'Preferowane tonacje zespołu</div>';
+                        {{ _("Band's preferred keys")|tojson }} + '</div>';
                     if (d.prefs && d.prefs.length) {
                         d.prefs.forEach(function (p) {
                             h += '<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;' +
@@ -2069,10 +2069,11 @@
                                  '<b style="color:var(--accent,#4F7FFF);">' + (p.key || ((p.transpose > 0 ? '+' : '') + p.transpose)) + '</b></div>';
                         });
                         h += '<div style="font-size:0.72rem;color:var(--text-tertiary);margin-top:8px;">' +
-                             'Oryginalna tonacja: <b>' + (d.song_key || '—') + '</b>. Ustaw transpozycję pod osobę prowadzącą wokal.</div>';
+                             {{ _('Original key:')|tojson }} + ' <b>' + (d.song_key || '—') + '</b>. ' +
+                             {{ _('Set the transpose for whoever leads the vocal.')|tojson }} + '</div>';
                     } else {
-                        h += '<div style="font-size:0.85rem;color:var(--text-secondary);">Nikt z zespołu nie zapisał ' +
-                             'jeszcze swojej tonacji dla tej piosenki (robi się to w widoku ćwiczenia: przyciski −1 / +1 „moja tonacja").</div>';
+                        h += '<div style="font-size:0.85rem;color:var(--text-secondary);">' +
+                             {{ _('No one on the team has saved their key for this song yet (they do it in the practice view: the −1 / +1 “my key” buttons).')|tojson }} + '</div>';
                     }
                     pop.innerHTML = h;
                     document.body.appendChild(pop);
@@ -2107,7 +2108,7 @@
                 body: JSON.stringify({ mode: 'welcome', setlist_id: sid })
             });
             var box = document.getElementById('live-preview-box');
-            if (box) box.innerText = 'OGŁOSZENIA';
+            if (box) box.innerText = (window.t ? t('play_announcements') : 'OGŁOSZENIA');
             if (typeof clearLogoActive === 'function') clearLogoActive();
         };
 
