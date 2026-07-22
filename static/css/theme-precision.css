@@ -4,32 +4,35 @@
    i app.css — nadpisuje tokeny i dokłada układ bento. Bez neonu.
    ============================================================ */
 
-/* ── Font: Instrument Sans (neutralny, produktowy) ── */
+/* ── Font: Hanken Grotesk (spójny z landingiem) + JetBrains Mono do etykiet ── */
 body {
-    font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* ── Tokeny — motyw CIEMNY (domyślny) ── */
+/* ── Tokeny — motyw CIEMNY (domyślny) — dokładnie paleta landingu ── */
 :root {
-    --bg-app: #0B0C10;
-    --bg-panel: #16181D;
-    --bg-surface: #1F2128;
-    --bg-surface-hover: #262932;
-    --bg-elevated: #2A2D36;
-    --bg-input: #0E0F13;
-    --bg-preview: #08090C;
-    --bg-inset: #0E0F13;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-    --border-subtle: rgba(255, 255, 255, 0.04);
-    --border-default: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.17);
+    --bg-app: #0C0C0E;
+    --bg-panel: #111218;
+    --bg-surface: #16181D;
+    --bg-surface-hover: #1E2027;
+    --bg-elevated: #22242B;
+    --bg-input: #0A0A0C;
+    --bg-preview: #08090C;
+    --bg-inset: #0A0A0C;
+
+    --border-subtle: rgba(255, 255, 255, 0.045);
+    --border-default: rgba(255, 255, 255, 0.09);
+    --border-strong: rgba(255, 255, 255, 0.16);
     --border-focus: rgba(79, 127, 255, 0.45);
 
-    --text-primary: #ECEDF0;
-    --text-secondary: #969AA4;
-    --text-tertiary: #65686F;
-    --text-inverse: #141518;
-    --text-accent: #6690FF;
+    /* Neutrale ciepłe — jak na landingu (nie chłodne, sinawe) */
+    --text-primary: #ECEBE7;
+    --text-secondary: #A5A39C;
+    --text-tertiary: #6E6D66;
+    --text-inverse: #0C0C0E;
+    --text-accent: #7EB0FF;
 
     /* Akcent — niebieski marki (spójny z landingiem), stonowany, bez neonu */
     --accent: #4F7FFF;
@@ -213,3 +216,39 @@ input:focus, textarea:focus, select:focus {
     cursor: pointer; text-decoration: none;
 }
 .seg a.active, .seg button.active { background: var(--text-primary); color: var(--bg-panel); }
+
+/* ============================================================
+   Zgranie z landingiem: monospace przy mikro-etykietach,
+   łagodniejsze promienie, delikatne obramowania — bez zmian w treści.
+   ============================================================ */
+:root {
+    --r-sm: 8px;
+    --r-md: 11px;
+    --r-lg: 16px;
+    --r-xl: 22px;
+    --radius-sm: 8px;
+    --radius-md: 11px;
+    --radius-lg: 16px;
+    --radius-xl: 22px;
+}
+
+/* Mikro-etykiety (wersaliki) — JetBrains Mono, jak §-nagłówki na landingu */
+.card-header,
+.settings-section h4,
+.db-eyebrow,
+.db-tag,
+.qr-box h3,
+.instruction-box pre,
+.mono-url {
+    font-family: var(--font-mono);
+    letter-spacing: 0.12em;
+}
+.db-tag, .qr-box h3, .card-header { font-weight: 600; }
+
+/* Karty i panele: subtelny gradient-połysk + cieplejsze cienie (jak bento) */
+.panel { border-radius: var(--r-lg); }
+.panel h2 { letter-spacing: -0.02em; }
+.page-head h1, .dash-hi h1 { letter-spacing: -0.03em; font-weight: 800; }
+
+/* Przycisk główny — miękki, zaokrąglony, z cieniem jak CTA na landingu */
+.btn-primary { border-radius: var(--r-md); box-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 14px 34px -18px rgba(0,0,0,0.6); }

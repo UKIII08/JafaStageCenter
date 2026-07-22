@@ -264,11 +264,21 @@ td a.row-link:hover { color: var(--accent); }
 .toolbar b { min-width: 34px; text-align: center; }
 
 /* ── Pasek nawigacji w stylu Studia (control.html .top-btn) ── */
+/* Sticky, przezroczysty z rozmyciem i cienką krawędzią — jak nawigacja
+   na landingu. Bez zmian w treści/linkach — tylko wygląd. */
 .topbar.topbar-studio {
     gap: var(--s3);
     min-height: 60px;
     padding: 12px var(--s6);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--bg-app) 72%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border-subtle);
 }
+.topbar.topbar-studio .brand { font-weight: 800; letter-spacing: -0.02em; }
 .top-btn {
     display: inline-flex;
     align-items: center;
