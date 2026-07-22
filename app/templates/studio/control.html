@@ -468,6 +468,8 @@
         opacity: 0.5;
     }
     .branding-img { max-width: 88px; height: auto; opacity: 0.9; }
+    .brand-wordmark { font-weight: 800; font-size: 1.05rem; letter-spacing: -0.02em; color: var(--text-primary); }
+    .brand-wordmark span { color: var(--accent); }
     .version-text { font-size: 0.62rem; color: var(--text-tertiary); letter-spacing: 0.08em; margin-top: var(--s1); }
 
     /* ── Setlist ── */
@@ -1428,7 +1430,7 @@
             <div class="scrollable" id="library-list"></div>
 
             <div class="branding-area">
-                <img id="control-logo" src="{{ media }}/logo.png?v=2" class="branding-img" alt="Logo">
+                <div class="brand-wordmark">Jonathan<span>.</span></div>
                 <div class="version-text">v1.0</div>
             </div>
         </div>

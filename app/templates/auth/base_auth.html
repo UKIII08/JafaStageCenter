@@ -12,7 +12,7 @@
         .auth-aside { position: relative; overflow: hidden; background: var(--bg-panel); border-right: 1px solid var(--border-default); padding: var(--s12) var(--s10); display: flex; flex-direction: column; justify-content: space-between; }
         .auth-aside::before { content: ""; position: absolute; inset: 0; background: radial-gradient(60% 50% at 22% 12%, var(--accent-subtle), transparent 70%); pointer-events: none; }
         .auth-aside > * { position: relative; }
-        .auth-brand { font-weight: 700; font-size: 1.15rem; letter-spacing: -0.01em; }
+        .auth-brand { font-weight: 800; font-size: 1.15rem; letter-spacing: -0.02em; }
         .auth-brand span { color: var(--accent); }
         .aside-body { max-width: 420px; }
         .aside-eyebrow { font-size: var(--font-xs); font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin-bottom: var(--s4); }
@@ -46,7 +46,7 @@
         @media (max-width: 880px) {
             .auth { grid-template-columns: 1fr; }
             .auth-aside { display: none; }
-            .auth-mobile-brand { display: block; font-weight: 700; font-size: 1.1rem; margin-bottom: var(--s8); }
+            .auth-mobile-brand { display: block; font-weight: 800; font-size: 1.1rem; margin-bottom: var(--s8); }
             .auth-mobile-brand span { color: var(--accent); }
             .auth-main { align-items: flex-start; padding-top: var(--s12); }
         }
@@ -55,7 +55,7 @@
 <body>
 <div class="auth">
     <aside class="auth-aside">
-        <a class="auth-brand" href="/">Jonathan<span> App</span></a>
+        <a class="auth-brand" href="/">Jonathan<span>.</span></a>
         <div class="aside-body">
             <div class="aside-eyebrow">{{ _('For worship teams') }}</div>
             <h2 class="aside-headline">{% block aside_headline %}{{ _('One place for the whole Sunday.') }}{% endblock %}</h2>
@@ -75,7 +75,7 @@
     </aside>
     <main class="auth-main">
         <div class="auth-card">
-            <a class="auth-mobile-brand" href="/">Jonathan<span> App</span></a>
+            <a class="auth-mobile-brand" href="/">Jonathan<span>.</span></a>
             {% with messages = get_flashed_messages() %}{% for m in messages %}<div class="auth-flash">{{ m }}</div>{% endfor %}{% endwith %}
             {% block content %}{% endblock %}
         </div>

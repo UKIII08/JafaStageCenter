@@ -24,7 +24,7 @@
 </head>
 <body>
 <div class="topbar topbar-studio">
-    <a class="brand" href="{{ url_for('panel.dashboard') if user else url_for('auth.login') }}">Jonathan<span> App</span></a>
+    <a class="brand" href="{{ url_for('panel.dashboard') if user else url_for('auth.login') }}">Jonathan<span>.</span></a>
     {% if church is defined and church and membership is defined and membership %}
     <nav class="topbar-nav">
         {% if membership.role in ('prowadzacy', 'admin') %}
