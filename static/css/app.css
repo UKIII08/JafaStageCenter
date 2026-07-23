@@ -279,6 +279,36 @@ td a.row-link:hover { color: var(--accent); }
     border-bottom: 1px solid var(--border-subtle);
 }
 .topbar.topbar-studio .brand { font-weight: 800; letter-spacing: -0.02em; }
+
+/* ── Przełącznik wspólnoty (gdy user jest w kilku) ── */
+.church-label { color: var(--text-tertiary); font-size: 0.85rem; font-weight: 600;
+    padding: 6px 10px; border-left: 1px solid var(--border-default); }
+.church-switch { position: relative; }
+.church-switch > summary { list-style: none; cursor: pointer; display: inline-flex;
+    align-items: center; gap: 7px; padding: 7px 11px; border-radius: var(--r-md);
+    border: 1px solid var(--border-default); background: var(--bg-surface);
+    color: var(--text-secondary); font-size: 0.85rem; font-weight: 600;
+    max-width: 220px; }
+.church-switch > summary::-webkit-details-marker { display: none; }
+.church-switch > summary .cs-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.church-switch[open] > summary { border-color: var(--border-strong); color: var(--text-primary); }
+.church-switch > summary svg { flex: none; opacity: 0.7; transition: transform .2s var(--ease-out); }
+.church-switch[open] > summary svg { transform: rotate(180deg); }
+.church-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 60;
+    min-width: 240px; background: var(--bg-elevated); border: 1px solid var(--border-default);
+    border-radius: var(--r-lg); box-shadow: var(--shadow-lg); padding: var(--s2); }
+.cs-head { font-family: var(--font-mono, monospace); font-size: 0.62rem; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-tertiary);
+    padding: 8px 10px 6px; }
+.church-menu a { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 9px 10px; border-radius: var(--r-md); text-decoration: none;
+    color: var(--text-primary); font-size: 0.9rem; font-weight: 500; }
+.church-menu a:hover { background: var(--bg-surface-hover); }
+.church-menu a.active { background: var(--accent-subtle); color: var(--accent); }
+.church-menu a.active .muted { color: var(--accent); }
+.church-menu .cs-new { color: var(--text-secondary); font-weight: 600; margin-top: 4px;
+    border-top: 1px solid var(--border-subtle); border-radius: 0 0 var(--r-md) var(--r-md); }
+@media (max-width: 720px) { .church-switch > summary .cs-name { max-width: 90px; } .church-label { display: none; } }
 .top-btn {
     display: inline-flex;
     align-items: center;

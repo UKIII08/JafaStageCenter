@@ -17,7 +17,7 @@
                       <option value="admin" {% if m.role=='admin' %}selected{% endif %}>{{ _('admin') }}</option>
                   </select>
               </form>
-              {% else %}{{ _(m.role) }}{% endif %}
+              {% else %}{{ role_label(m.role) }}{% endif %}
             </td>
             <td class="muted">
               {% for p in profiles %}{% if p.user_id == m.user_id %}{{ instrument_label(p.instrument) or '—' }}{% endif %}{% endfor %}

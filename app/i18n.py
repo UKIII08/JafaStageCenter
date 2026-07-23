@@ -691,6 +691,16 @@ def instrument_label(value):
     return translate(INSTRUMENT_LABELS.get(v, v))
 
 
+# ── Role (wartości w bazie po polsku) ─────────────────────────────────────
+ROLE_LABELS = {'muzyk': 'Musician', 'prowadzacy': 'Leader', 'admin': 'Admin'}
+PL.update({'Musician': 'Muzyk', 'Leader': 'Prowadzący', 'Admin': 'Admin'})
+
+
+def role_label(value):
+    v = (value or '').strip()
+    return translate(ROLE_LABELS.get(v, v)) if v else ''
+
+
 # ── Studio: napisy dotąd zaszyte po polsku (teraz EN domyślnie, PL fallback) ──
 PL.update({
     'Back to panel': 'Wróć do panelu',
@@ -711,4 +721,20 @@ PL.update({
         '(robi się to w widoku ćwiczenia: przyciski −1 / +1 „moja tonacja”).',
     "Click: the band's preferred keys for this song":
         'Kliknij: preferowane tonacje zespołu dla tej piosenki',
+    # Ekran startowy (brak wspólnoty) + przełącznik wspólnot
+    'Get started': 'Zacznij',
+    'Welcome to Jonathan': 'Witaj w Jonathan',
+    "You're not in any community yet. Start your own team, or join one you were invited to.":
+        'Nie należysz jeszcze do żadnej wspólnoty. Załóż własny zespół albo dołącz do tego, do którego masz zaproszenie.',
+    'Create a community': 'Załóż wspólnotę',
+    "A space for your team — songs, setlists, service planning and musician profiles. You'll be its admin.":
+        'Przestrzeń dla Twojego zespołu — pieśni, setlisty, planowanie służby i profile muzyków. Będziesz jej administratorem.',
+    'Create community': 'Utwórz wspólnotę',
+    'Join an existing team': 'Dołącz do istniejącego zespołu',
+    'Ask your worship leader for the invite code (they find it in the Team tab), then enter it here.':
+        'Poproś prowadzącego o kod zaproszenia (znajdzie go w zakładce Zespół) i wpisz go tutaj.',
+    'e.g. 7KQ2AB': 'np. 7KQ2AB',
+    'Join': 'Dołącz',
+    'Switch community': 'Zmień wspólnotę',
+    'New / join community': 'Nowa / dołącz do wspólnoty',
 })

@@ -12,7 +12,8 @@ from flask import (Blueprint, render_template, request, redirect,
                    url_for, flash, abort, session)
 
 from app import db
-from app.models import Church, Membership, Profile, Invitation, ROLES
+from app.models import (Church, Membership, Profile, Invitation, ROLES,
+                        Event, EventAssignment, EventSignup, SongPersonal)
 
 NOTATIONS = ('international', 'polish')
 ENGINES = ('v2', 'v3', 'v4')
@@ -278,6 +279,26 @@ def team_invite(church_id, membership):
     return redirect(url_for('panel.team', church_id=church_id))
 
 
+@panel_bp.app_context_processor
+def _inject_user_churches():
+    """Lista wspólnot zalogowanego usera — do przełącznika w górnym pasku."""
+    u = current_user()
+    if not u:
+        return {}
+    ms = (Membership.query.filter_by(user_id=u.id, status='active')
+          .join(Church, Church.id == Membership.church_id).all())
+    return {'user_churches': ms}
+
+
+@panel_bp.get('/join')
+def join_by_code():
+    """Dołączanie kodem z formularza (ekran startowy) — przekierowuje na /join/<kod>."""
+    code = (request.args.get('code') or '').strip().upper()
+    if not code:
+        return redirect(url_for('panel.create_church'))
+    return redirect(url_for('panel.join', code=code))
+
+
 @panel_bp.get('/join/<code>')
 def join(code):
     inv = Invitation.query.filter_by(code=code.upper()).first()
@@ -289,15 +310,26 @@ def join(code):
                                 next=url_for('panel.join', code=code)))
     existing = Membership.query.filter_by(
         user_id=user.id, church_id=inv.church_id).first()
-    if not existing:
+    if existing and existing.status == 'active':
+        return redirect(url_for('panel.church_home', church_id=inv.church_id))
+    if existing:
+        # ktoś wcześniej usunięty — reaktywujemy zamiast tworzyć duplikat
+        existing.status = 'active'
+        existing.role = inv.role
+    else:
         db.session.add(Membership(user_id=user.id, church_id=inv.church_id,
                                   role=inv.role))
+    prof = Profile.query.filter_by(
+        church_id=inv.church_id, user_id=user.id).first()
+    if prof:
+        prof.deleted = False
+    else:
         db.session.add(Profile(church_id=inv.church_id, user_id=user.id,
                                name=user.display_name))
-        inv.uses += 1
-        db.session.commit()
-        flash(_('You joined the team! Set your instrument and preferences.'))
-    return redirect(url_for('panel.team', church_id=inv.church_id))
+    inv.uses += 1
+    db.session.commit()
+    flash(_('You joined the team! Set your instrument and preferences.'))
+    return redirect(url_for('panel.church_home', church_id=inv.church_id))
 
 
 # ── Mój profil w tej wspólnocie (instrument + preferencje wyświetlania) ──
@@ -361,9 +393,37 @@ def team_remove(church_id, member_id, membership):
         flash(_('The community owner can\'t be removed.'))
         return redirect(url_for('panel.team', church_id=church_id))
     m.status = 'removed'
+    _purge_member_from_church(church_id, m.user_id)
     db.session.commit()
     flash(_('Removed from the team.'))
     return redirect(url_for('panel.team', church_id=church_id))
+
+
+def _purge_member_from_church(church_id, user_id):
+    """Po usunięciu z zespołu czyścimy WSZYSTKIE „miękkie" ślady tej osoby w tej
+    wspólnocie: profil (ukryty), zgłoszenia i obsadę w wydarzeniach oraz jej
+    prywatne ustawienia pieśni. Konto globalne i inne wspólnoty nie ruszamy."""
+    if not user_id:
+        return
+    prof_ids = [pid for (pid,) in Profile.query
+                .filter_by(church_id=church_id, user_id=user_id)
+                .with_entities(Profile.id).all()]
+    Profile.query.filter_by(church_id=church_id, user_id=user_id) \
+        .update({'deleted': True}, synchronize_session=False)
+    ev_ids = [eid for (eid,) in Event.query
+              .filter_by(church_id=church_id)
+              .with_entities(Event.id).all()]
+    if ev_ids:
+        EventAssignment.query.filter(
+            EventAssignment.event_id.in_(ev_ids),
+            EventAssignment.user_id == user_id).delete(synchronize_session=False)
+        EventSignup.query.filter(
+            EventSignup.event_id.in_(ev_ids),
+            EventSignup.user_id == user_id).delete(synchronize_session=False)
+    if prof_ids:
+        SongPersonal.query.filter(
+            SongPersonal.profile_id.in_(prof_ids)).delete(
+                synchronize_session=False)
 
 
 # ── Ustawienia wspólnoty (admin) ──

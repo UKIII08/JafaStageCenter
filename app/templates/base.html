@@ -25,6 +25,27 @@
 <body>
 <div class="topbar topbar-studio">
     <a class="brand" href="{{ url_for('panel.dashboard') if user else url_for('auth.login') }}">Jonathan<span>.</span></a>
+    {% if church is defined and church %}
+      {% if user_churches is defined and user_churches and user_churches|length > 1 %}
+      <details class="church-switch">
+        <summary>
+          <span class="cs-name">{{ church.name }}</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="church-menu">
+          <div class="cs-head">{{ _('Switch community') }}</div>
+          {% for m in user_churches %}
+          <a href="{{ url_for('panel.church_home', church_id=m.church_id) }}" class="{{ 'active' if m.church_id == church.id }}">
+            <span>{{ m.church.name }}</span><span class="muted">{{ role_label(m.role) }}</span>
+          </a>
+          {% endfor %}
+          <a href="{{ url_for('panel.create_church') }}" class="cs-new">＋ {{ _('New / join community') }}</a>
+        </div>
+      </details>
+      {% else %}
+      <span class="church-label">{{ church.name }}</span>
+      {% endif %}
+    {% endif %}
     {% if church is defined and church and membership is defined and membership %}
     <nav class="topbar-nav">
         {% if membership.role in ('prowadzacy', 'admin') %}

@@ -7,7 +7,7 @@
         {% for m in memberships %}
         <tr>
             <td><a class="row-link" href="{{ url_for('panel.church_home', church_id=m.church_id) }}">{{ m.church.name }}</a></td>
-            <td class="muted" style="text-align:right;">{{ _(m.role) }}</td>
+            <td class="muted" style="text-align:right;">{{ role_label(m.role) }}</td>
         </tr>
         {% endfor %}
     </table>

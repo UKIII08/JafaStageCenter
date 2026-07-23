@@ -1,14 +1,29 @@
 {% extends 'base.html' %}
-{% block title %}{{ _('Create your church') }}{% endblock %}
+{% block title %}{{ _('Get started') }}{% endblock %}
 {% block content %}
 <div class="shell-narrow">
+    <div class="page-head" style="text-align:center;">
+        <h1>{{ _('Welcome to Jonathan') }}</h1>
+        <p class="page-sub">{{ _("You're not in any community yet. Start your own team, or join one you were invited to.") }}</p>
+    </div>
+
     <div class="panel">
-        <h2>{{ _('Create your church') }}</h2>
-        <p class="hint">{{ _("You'll create a space for your team — songs, setlists and musician profiles.") }}</p>
-        <form method="POST">
+        <div class="card-header">{{ _('Create a community') }}</div>
+        <p class="hint">{{ _("A space for your team — songs, setlists, service planning and musician profiles. You'll be its admin.") }}</p>
+        <form method="POST" action="{{ url_for('panel.create_church') }}">
             <label>{{ _('Church / community name') }}</label>
-            <input name="name" required minlength="3" placeholder="{{ _('e.g. Grace Community Church') }}" autofocus>
-            <div style="margin-top:var(--s4);"><button type="submit">{{ _('Create') }}</button></div>
+            <input name="name" required minlength="3" placeholder="{{ _('e.g. Grace Community Church') }}">
+            <div style="margin-top:var(--s4);"><button type="submit">{{ _('Create community') }}</button></div>
+        </form>
+    </div>
+
+    <div class="panel">
+        <div class="card-header">{{ _('Join an existing team') }}</div>
+        <p class="hint">{{ _('Ask your worship leader for the invite code (they find it in the Team tab), then enter it here.') }}</p>
+        <form method="GET" action="{{ url_for('panel.join_by_code') }}" class="form-row">
+            <input name="code" required placeholder="{{ _('e.g. 7KQ2AB') }}"
+                   style="flex:1; text-transform:uppercase; letter-spacing:0.1em; font-weight:700;">
+            <button type="submit" class="btn-ghost btn" style="flex:0 0 auto;">{{ _('Join') }}</button>
         </form>
     </div>
 </div>
