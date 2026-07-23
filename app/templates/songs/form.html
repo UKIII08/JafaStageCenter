@@ -1,34 +1,77 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="panel" style="max-width:780px;">
+<div class="panel" style="max-width:1060px;">
     <h2>{{ _('Add song') if is_new else _('Edit:') + ' ' + song.title }}</h2>
-    <form method="POST">
-        <div class="form-row">
-            <input name="title" placeholder="{{ _('Title') }}" required style="flex:3; min-width:220px;" value="{{ song.title if song else '' }}">
-            <input name="key" id="song-key" placeholder="{{ _('Key') }}" style="flex:1; min-width:90px;" value="{{ song.key if song else '' }}">
-            <input name="bpm" type="number" min="0" max="300" placeholder="{{ _('BPM') }}" style="flex:1; min-width:90px;" value="{{ song.bpm if song and song.bpm else '' }}">
-        </div>
-        <label>{{ _('Recording link (optional)') }}</label>
-        <input name="link" type="url" inputmode="url"
-               placeholder="{{ _('YouTube, Spotify, Google Drive… — anything to practice with') }}"
-               value="{{ song.link if song and song.link else '' }}">
-        <label>{{ _('Input notation') }}</label>
-        <select name="input_notation">
-            <option value="international">{{ _('International (Bb, B)') }}</option>
-            <option value="polish">{{ _('Polish (B, H, Cis, Fis)') }}</option>
-        </select>
-        <p class="hint" style="margin:var(--s3) 0 var(--s2);">
-            {{ _('Chords in square brackets:') }} <code>[Am]lyrics [G]more</code>.
-            {{ _('Separate sections (Verse, Chorus) with a blank line. Pasted a song with chords above the lyrics (e.g. from a tabs site)? Use the convert button.') }}
-        </p>
-        <button type="button" class="btn-ghost btn" id="convert-format-btn">{{ _('Convert chords-above-lyrics') }}</button>
-        <textarea name="content" id="song-content" rows="14" style="font-family:monospace; margin-top:var(--s3);" placeholder="Verse 1&#10;[C]Song lyrics [Am]with chords&#10;&#10;Chorus&#10;[F]Chorus lyrics [C]more">{{ song.content if song else '' }}</textarea>
-        <div id="chord-status" class="muted" style="min-height:1.3em; margin-top:var(--s1);"></div>
-        <div style="margin-top:var(--s3); display:flex; gap:var(--s2);">
-            <button type="submit">{{ _('Save to library') if is_new else _('Save changes') }}</button>
-            <a class="btn-ghost btn" href="{{ url_for('songs.songs_list', church_id=church.id) }}">{{ _('Cancel') }}</a>
-        </div>
-    </form>
+
+    <div class="song-editor-grid">
+        <form method="POST" class="song-editor-form">
+            <div class="form-row">
+                <input name="title" placeholder="{{ _('Title') }}" required style="flex:3; min-width:220px;" value="{{ song.title if song else '' }}">
+                <input name="key" id="song-key" placeholder="{{ _('Key') }}" style="flex:1; min-width:90px;" value="{{ song.key if song else '' }}">
+                <input name="bpm" type="number" min="0" max="300" placeholder="{{ _('BPM') }}" style="flex:1; min-width:90px;" value="{{ song.bpm if song and song.bpm else '' }}">
+            </div>
+            <label>{{ _('Recording link (optional)') }}</label>
+            <input name="link" type="url" inputmode="url"
+                   placeholder="{{ _('YouTube, Spotify, Google Drive… — anything to practice with') }}"
+                   value="{{ song.link if song and song.link else '' }}">
+            <div class="form-row" style="align-items:center; margin-top:var(--s3);">
+                <div style="flex:1; min-width:200px;">
+                    <label style="margin-top:0;">{{ _('Input notation') }}</label>
+                    <select name="input_notation">
+                        <option value="international">{{ _('International (Bb, B)') }}</option>
+                        <option value="polish">{{ _('Polish (B, H, Cis, Fis)') }}</option>
+                    </select>
+                </div>
+                <button type="button" class="btn-ghost btn" id="convert-format-btn" style="flex:0 0 auto; align-self:flex-end;">{{ _('Convert chords-above-lyrics') }}</button>
+            </div>
+
+            <label>{{ _('Song') }}</label>
+            <textarea name="content" id="song-content" rows="16" spellcheck="false"
+                style="font-family:'JetBrains Mono',ui-monospace,monospace; line-height:1.7;"
+                placeholder="Intro&#10;[G] [D] [Em] [C]&#10;&#10;Verse 1&#10;[C]Song lyrics [Am]with chords&#10;&#10;Chorus&#10;[F]Chorus lyrics [C]more">{{ song.content if song else '' }}</textarea>
+            <div id="chord-status" class="song-status" style="min-height:1.4em; margin-top:var(--s2);"></div>
+
+            <div style="margin-top:var(--s4); display:flex; gap:var(--s2);">
+                <button type="submit">{{ _('Save to library') if is_new else _('Save changes') }}</button>
+                <a class="btn-ghost btn" href="{{ url_for('songs.songs_list', church_id=church.id) }}">{{ _('Cancel') }}</a>
+            </div>
+        </form>
+
+        <aside class="song-help">
+            <div class="card-header" style="margin-bottom:var(--s3);">{{ _('How to format a song') }}</div>
+            <ul class="song-help-rules">
+                <li>{{ _('Put chords in square brackets, right before the word:') }} <code>[Am]word [G]next</code></li>
+                <li>{{ _('Start each section with a label on its own line — Intro, Verse, Chorus, Bridge… (any language).') }}</li>
+                <li>{{ _('Separate sections with one blank line.') }}</li>
+                <li>{{ _('A section can be chords only, with no lyrics — perfect for an intro or instrumental. Just write a line of chords.') }}</li>
+            </ul>
+            <div class="song-help-eg-label">{{ _('Example') }}</div>
+<pre class="song-help-eg"><span class="hl-sec">Intro</span>
+<span class="hl-ch">[G] [D] [Em] [C]</span>
+
+<span class="hl-sec">Verse 1</span>
+<span class="hl-ch">[G]</span>Here's a line <span class="hl-ch">[C]</span>with some <span class="hl-ch">[G]</span>chords
+<span class="hl-ch">[Em]</span>and the next <span class="hl-ch">[C]</span>line be<span class="hl-ch">[D]</span>low
+
+<span class="hl-sec">Chorus</span>
+<span class="hl-ch">[G]</span>Sections split <span class="hl-ch">[C]</span>with a blank <span class="hl-ch">[D]</span>line</pre>
+            <p class="hint" style="margin:var(--s3) 0 0;">{{ _('The Intro above has chords only — no lyrics. Any section can be like that.') }}</p>
+        </aside>
+    </div>
 </div>
+
+<script>
+  window.SONG_EDITOR_I18N = {
+    chords: {{ _('chords')|tojson }},
+    sections: {{ _('sections')|tojson }},
+    allValid: {{ _('all recognized')|tojson }},
+    notRecognized: {{ _('not recognized')|tojson }},
+    unclosed: {{ _('Unclosed bracket “[” — every chord needs a closing “]”.')|tojson }},
+    noChords: {{ _('No chords yet — put them in [brackets], e.g. [Am].')|tojson }},
+    converted: {{ _('Converted — check the result')|tojson }},
+    convertNone: {{ _('No chords-above-lyrics detected')|tojson }},
+    convertBtn: {{ _('Convert chords-above-lyrics')|tojson }}
+  };
+</script>
 <script src="{{ url_for('static', filename='js/song-editor.js') }}"></script>
 {% endblock %}

@@ -166,6 +166,93 @@ button:hover, .btn:hover { background: var(--accent-hover); }
 .btn-live:hover { background: #f88; }
 .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
 
+/* ── Edytor piosenki: formularz + trwała ściąga formatu obok ── */
+.song-editor-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: var(--s5);
+    align-items: start;
+}
+.song-editor-form { min-width: 0; }
+.song-help {
+    position: sticky;
+    top: var(--s4);
+    background: var(--bg-inset);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-lg);
+    padding: var(--s4);
+}
+.song-help-rules {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
+}
+.song-help-rules li {
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    padding-left: 18px;
+    position: relative;
+}
+.song-help-rules li::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 8px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+.song-help-rules code {
+    background: var(--bg-surface);
+    border-radius: 5px;
+    padding: 1px 5px;
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 0.8rem;
+    color: var(--text-accent);
+}
+.song-help-eg-label {
+    font-size: var(--font-xs, 0.72rem);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin: var(--s4) 0 var(--s2);
+}
+.song-help-eg {
+    margin: 0;
+    background: var(--bg-app, #0c0c0e);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    padding: var(--s3);
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 0.78rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-x: auto;
+    color: var(--text-secondary);
+}
+.song-help-eg .hl-sec { color: var(--text-tertiary); font-weight: 700; }
+.song-help-eg .hl-ch  { color: var(--text-accent); font-weight: 700; }
+.song-status {
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+.song-status.is-ok   { color: #2dce89; }
+.song-status.is-warn { color: #f0a832; }
+.song-status.is-hint { color: var(--text-secondary); }
+
+@media (max-width: 880px) {
+    .song-editor-grid { grid-template-columns: 1fr; }
+    .song-help { position: static; order: -1; }
+}
+
 /* ── Tabele ── */
 table { width: 100%; border-collapse: collapse; }
 th {

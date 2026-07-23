@@ -738,3 +738,34 @@ PL.update({
     'Switch community': 'Zmień wspólnotę',
     'New / join community': 'Nowa / dołącz do wspólnoty',
 })
+
+
+# ── Formularz piosenki: trwała ściąga formatu + walidacja na żywo ──
+PL.update({
+    'How to format a song': 'Jak zapisać piosenkę',
+    'Put chords in square brackets, right before the word:':
+        'Akordy wpisuj w nawiasach kwadratowych, tuż przed słowem:',
+    'Start each section with a label on its own line — Intro, Verse, Chorus, Bridge… (any language).':
+        'Każdą sekcję zaczynaj od etykiety w osobnej linii — Intro, Zwrotka, '
+        'Refren, Bridge… (w dowolnym języku).',
+    'Separate sections with one blank line.':
+        'Sekcje oddzielaj jedną pustą linią.',
+    'A section can be chords only, with no lyrics — perfect for an intro or '
+    'instrumental. Just write a line of chords.':
+        'Sekcja może zawierać same akordy, bez tekstu — idealne na intro albo '
+        'przejście instrumentalne. Wpisz po prostu linię z akordami.',
+    'Example': 'Przykład',
+    'The Intro above has chords only — no lyrics. Any section can be like that.':
+        'Intro powyżej ma same akordy — bez tekstu. Każda sekcja może tak wyglądać.',
+    # Etykiety pól / statusy na żywo (klient czyta z SONG_EDITOR_I18N)
+    'chords': 'akordów',
+    'sections': 'sekcji',
+    'all recognized': 'wszystkie rozpoznane',
+    'not recognized': 'nierozpoznane',
+    'Unclosed bracket “[” — every chord needs a closing “]”.':
+        'Niezamknięty nawias „[” — każdy akord potrzebuje domykającego „]”.',
+    'No chords yet — put them in [brackets], e.g. [Am].':
+        'Jeszcze brak akordów — wpisuj je w [nawiasach], np. [Am].',
+    'Converted — check the result': 'Przekonwertowano — sprawdź wynik',
+    'No chords-above-lyrics detected': 'Nie wykryto akordów nad tekstem',
+})
