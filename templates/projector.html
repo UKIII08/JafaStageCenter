@@ -44,6 +44,10 @@
         #logo-image { display: none; max-width: 80vw; max-height: 80vh; object-fit: contain; z-index: 20; }
         #canva-frame { display: none; width: 100vw; height: 100vh; border: none; z-index: 15; position: absolute; }
         #pres-image { display: none; width: 100vw; height: 100vh; object-fit: contain; z-index: 15; position: absolute; background: black; }
+        /* Przejście-wideo: bez natywnych kontrolek (pasek z czasem) — ma być płynne. */
+        #transition-video::-webkit-media-controls,
+        #transition-video::-webkit-media-controls-enclosure { display: none !important; }
+        #transition-video::-webkit-media-controls-panel { display: none !important; }
     </style>
 </head>
 <body>
@@ -154,6 +158,30 @@
             trHtml.style.display = 'none';
             trHtml.src = 'about:blank';
         }
+        function styleTransitionFrame() {
+            // Przejście HTML bywa cienką otoczką na <video> z domyślnymi
+            // kontrolkami — chowamy je, rozciągamy na pełny ekran i wymuszamy
+            // płynne, wyciszone autoodtwarzanie. Ten sam origin => mamy dostęp.
+            try {
+                var d = trHtml.contentDocument;
+                if (!d) return;
+                var st = d.createElement('style');
+                st.textContent =
+                    'html,body{margin:0;height:100%;overflow:hidden;background:#000}' +
+                    'video::-webkit-media-controls,video::-webkit-media-controls-enclosure{display:none!important}' +
+                    'video{width:100%!important;height:100%!important;object-fit:cover!important}';
+                (d.head || d.documentElement).appendChild(st);
+                var vids = d.querySelectorAll('video');
+                for (var i = 0; i < vids.length; i++) {
+                    var v = vids[i];
+                    v.removeAttribute('controls'); v.controls = false;
+                    v.muted = true; v.loop = true;
+                    v.setAttribute('playsinline', '');
+                    var pr = v.play && v.play();
+                    if (pr && pr.catch) pr.catch(function () {});
+                }
+            } catch (e) { /* inny origin / brak dostępu — pomiń */ }
+        }
         function playTransition() {
             if (!TR.url || !TR.kind) return;
             if (TR.kind === 'video') {
@@ -164,6 +192,7 @@
                 if (p && p.catch) p.catch(function () { hideTransition(); });
             } else {
                 trVideo.style.display = 'none';
+                trHtml.onload = styleTransitionFrame;
                 trHtml.src = TR.url;
                 trHtml.style.display = 'block';
                 clearTimeout(trTimer);

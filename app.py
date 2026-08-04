@@ -1800,14 +1800,17 @@ def _read_transition(f):
     data = f.read(TRANSITION_MAX_BYTES + 1)
     if len(data) > TRANSITION_MAX_BYTES:
         return None
+    name = (f.filename or '').lower()
     head = data[:32]
-    if head[4:8] == b'ftyp':
+    # Rozszerzenie ma pierwszeństwo — film nigdy nie trafi do iframe jako
+    # „dokument wideo" (przeglądarka pokazałaby wtedy pasek z kontrolkami).
+    if name.endswith(('.mp4', '.m4v', '.mov')) or head[4:8] == b'ftyp':
         return data, 'mp4', 'video'
-    if head.startswith(b'\x1aE\xdf\xa3'):
+    if name.endswith('.webm') or head.startswith(b'\x1aE\xdf\xa3'):
         return data, 'webm', 'video'
     low = data[:2048].lstrip().lower()
-    if (low.startswith(b'<!doctype html') or low.startswith(b'<html')
-            or b'<html' in low):
+    if (name.endswith(('.html', '.htm')) or low.startswith(b'<!doctype html')
+            or low.startswith(b'<html') or b'<html' in low):
         return data, 'html', 'html'
     return None
 
