@@ -195,6 +195,10 @@ class Settings(db.Model):
     chord_notation = db.Column(db.String(15), default='international')
     minor_display = db.Column(db.String(10), default='uppercase')
     chords_standardized = db.Column(db.Boolean, default=False)
+    # Przejście (stinger) między trybami ekranu (Ogłoszenia/Uwielbienie/Konferencja)
+    transition_kind = db.Column(db.String(10), default='')   # '' / 'video' / 'html'
+    transition_file = db.Column(db.String(60), default='')   # nazwa pliku w static/
+    transition_ms = db.Column(db.Integer, default=4000)      # czas przejścia HTML
     # Synchronizacja z chmurą (web app) — apka pobiera piosenki/setlisty/profile
     # z konta prowadzącego, jeśli jest sieć; inaczej działa offline.
     cloud_enabled = db.Column(db.Boolean, default=False)
@@ -309,6 +313,18 @@ def check_db_schema():
                 with db.engine.connect() as conn:
                     conn.execute(text("ALTER TABLE settings ADD COLUMN minor_display VARCHAR(10) DEFAULT 'uppercase'"))
                     conn.commit()
+
+            # Przejście (stinger) między trybami ekranu — dokładane do starych baz
+            _transition_cols = [
+                ("transition_kind", "VARCHAR(10) DEFAULT ''"),
+                ("transition_file", "VARCHAR(60) DEFAULT ''"),
+                ("transition_ms", "INTEGER DEFAULT 4000"),
+            ]
+            for _name, _ddl in _transition_cols:
+                if _name not in settings_columns:
+                    with db.engine.connect() as conn:
+                        conn.execute(text(f"ALTER TABLE settings ADD COLUMN {_name} {_ddl}"))
+                        conn.commit()
 
             # Kolumny synchronizacji z chmurą (dokładane do starych baz)
             _cloud_cols = [
@@ -1770,6 +1786,90 @@ def delete_background():
     if os.path.exists(bg_path):
         os.remove(bg_path)
         socketio.emit('refresh_background', {'has_bg': False})
+    return redirect(url_for('control'))
+
+
+# ── Przejście (stinger) między trybami ekranu ─────────────────────────────
+TRANSITION_MAX_BYTES = 60 * 1024 * 1024   # 60 MB
+TRANSITION_NAMES = ('transition.mp4', 'transition.webm', 'transition.html')
+
+
+def _read_transition(f):
+    """MP4/WebM (wideo) albo HTML (np. eksport z narzędzia projektowego).
+    Zwraca (bytes, ext, kind) albo None."""
+    data = f.read(TRANSITION_MAX_BYTES + 1)
+    if len(data) > TRANSITION_MAX_BYTES:
+        return None
+    head = data[:32]
+    if head[4:8] == b'ftyp':
+        return data, 'mp4', 'video'
+    if head.startswith(b'\x1aE\xdf\xa3'):
+        return data, 'webm', 'video'
+    low = data[:2048].lstrip().lower()
+    if (low.startswith(b'<!doctype html') or low.startswith(b'<html')
+            or b'<html' in low):
+        return data, 'html', 'html'
+    return None
+
+
+def _clean_secs_to_ms(v):
+    try:
+        n = float(v)
+    except (TypeError, ValueError):
+        return 4000
+    return int(max(0.5, min(20.0, n)) * 1000)
+
+
+def _transition_payload(settings):
+    ms = int((settings.transition_ms if settings else 4000) or 4000)
+    kind = (settings.transition_kind if settings else '') or ''
+    fname = (settings.transition_file if settings else '') or ''
+    if not kind or not fname:
+        return {'kind': '', 'url': '', 'ms': ms}
+    return {'kind': kind, 'url': url_for('static', filename=fname), 'ms': ms}
+
+
+@app.route('/upload_transition', methods=['POST'])
+def upload_transition():
+    settings = Settings.query.first()
+    f = request.files.get('transition_file')
+    secs = request.form.get('transition_secs')
+    if f and f.filename:
+        res = _read_transition(f)
+        if not res:
+            return "Wgraj film MP4/WebM albo plik HTML do 60 MB.", 400
+        data, ext, kind = res
+        for old in TRANSITION_NAMES:
+            p = os.path.join(app.static_folder, old)
+            if os.path.exists(p):
+                try: os.remove(p)
+                except OSError: pass
+        fname = 'transition.' + ext
+        with open(os.path.join(app.static_folder, fname), 'wb') as out:
+            out.write(data)
+        settings.transition_file = fname
+        settings.transition_kind = kind
+        if secs is not None:
+            settings.transition_ms = _clean_secs_to_ms(secs)
+    elif secs is not None:
+        settings.transition_ms = _clean_secs_to_ms(secs)
+    db.session.commit()
+    socketio.emit('refresh_transition', _transition_payload(settings))
+    return redirect(url_for('control'))
+
+
+@app.route('/delete_transition', methods=['POST'])
+def delete_transition():
+    settings = Settings.query.first()
+    for old in TRANSITION_NAMES:
+        p = os.path.join(app.static_folder, old)
+        if os.path.exists(p):
+            try: os.remove(p)
+            except OSError: pass
+    settings.transition_file = ''
+    settings.transition_kind = ''
+    db.session.commit()
+    socketio.emit('refresh_transition', _transition_payload(settings))
     return redirect(url_for('control'))
 
 # ── Ekran powitalny per-setlista (odliczanie + ogłoszenia, sync z chmury) ──

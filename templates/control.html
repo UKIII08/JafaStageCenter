@@ -1861,6 +1861,32 @@
                         <button type="submit" class="btn-primary btn-sm" data-t="upload_btn">WGRAJ</button>
                     </form>
                 </div>
+
+                <div style="margin-top:var(--s4);">
+                    <label style="font-weight:700; font-size:var(--font-xs);" data-t="transition_label">Przejście między ekranami:</label>
+                    <p class="shortcuts-hint" data-t="transition_hint">Film MP4/WebM albo animacja HTML odtwarzana przy przełączaniu między Ogłoszeniami, Uwielbieniem i Konferencją. Do 60 MB.</p>
+                    <form action="/upload_transition" method="POST" enctype="multipart/form-data" class="file-upload-row">
+                        <label for="transition-file-input" class="custom-file-label" data-t="choose_file_label">Wybierz plik...</label>
+                        <input type="file" id="transition-file-input" name="transition_file" accept=".mp4,.webm,.html,.htm" required style="display:none;" onchange="updateFileName(this)">
+                        <button type="submit" class="btn-primary btn-sm" data-t="upload_btn">WGRAJ</button>
+                    </form>
+                    {% if settings and settings.transition_kind %}
+                    <div style="margin-top:var(--s1); display:flex; align-items:center; gap:var(--s2); justify-content:space-between;">
+                        <span style="font-size:var(--font-xs); opacity:.7;">{{ settings.transition_file }}</span>
+                        <form action="/delete_transition" method="POST">
+                            <button type="submit" class="btn-danger btn-sm" data-t="delete_current">USUŃ OBECNE</button>
+                        </form>
+                    </div>
+                    {% if settings.transition_kind == 'html' %}
+                    <form action="/upload_transition" method="POST" class="settings-row" style="margin-top:var(--s2); align-items:center;">
+                        <label data-t="transition_len_label" style="font-size:var(--font-xs);">Długość HTML (sek.):</label>
+                        <input type="number" name="transition_secs" min="1" max="20" step="0.5"
+                               value="{{ '%.1f'|format((settings.transition_ms or 4000) / 1000) }}" style="width:80px;">
+                        <button type="submit" class="btn-sm" data-t="transition_len_save">ZAPISZ</button>
+                    </form>
+                    {% endif %}
+                    {% endif %}
+                </div>
             </div>
 
             <div class="settings-section">

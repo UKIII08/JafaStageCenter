@@ -60,8 +60,17 @@
             <div id="cd-card-text"></div>
         </div>
     </div>
+    <!-- Warstwa przejścia — nad wszystkim, zakrywa moment zmiany trybu. -->
+    <video id="transition-video" muted playsinline preload="auto" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; object-fit:cover; background:#000; z-index:60;"></video>
+    <iframe id="transition-html" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; border:none; background:#000; z-index:60;"></iframe>
 
     <script>
+        {% set _tf = settings.transition_file if (settings and settings.transition_kind) else '' %}
+        window.JAFA_TRANSITION = {
+            kind: {{ ((settings.transition_kind if settings else '') or '')|tojson }},
+            url: {{ (url_for('static', filename=_tf) if _tf else '')|tojson }},
+            ms: {{ ((settings.transition_ms if settings else 4000) or 4000)|int }}
+        };
         var socket = io();
         const slide = document.getElementById('slide-content');
         const logo = document.getElementById('logo-image');
@@ -124,7 +133,60 @@
             }
         }
 
+        // ── Przejście (stinger) między trybami: Ogłoszenia / Uwielbienie / Konferencja ──
+        var TR = window.JAFA_TRANSITION || {kind: '', url: '', ms: 4000};
+        var trVideo = document.getElementById('transition-video');
+        var trHtml = document.getElementById('transition-html');
+        var currentMajor = null;
+        var trTimer = null;
+        if (TR.url && TR.kind === 'video') trVideo.src = TR.url;
+
+        function majorMode(m) {
+            if (m === 'welcome' || m === 'countdown') return 'announcements';
+            if (m === 'worship' || m === 'note') return 'worship';
+            if (m === 'conference' || m === 'canva' || m === 'presentation') return 'conference';
+            return null;   // logo / blackout — bez przejścia
+        }
+        function hideTransition() {
+            clearTimeout(trTimer); trTimer = null;
+            trVideo.style.display = 'none';
+            try { trVideo.pause(); } catch (e) {}
+            trHtml.style.display = 'none';
+            trHtml.src = 'about:blank';
+        }
+        function playTransition() {
+            if (!TR.url || !TR.kind) return;
+            if (TR.kind === 'video') {
+                trHtml.style.display = 'none';
+                trVideo.style.display = 'block';
+                try { trVideo.currentTime = 0; } catch (e) {}
+                var p = trVideo.play();
+                if (p && p.catch) p.catch(function () { hideTransition(); });
+            } else {
+                trVideo.style.display = 'none';
+                trHtml.src = TR.url;
+                trHtml.style.display = 'block';
+                clearTimeout(trTimer);
+                trTimer = setTimeout(hideTransition, TR.ms || 4000);
+            }
+        }
+        trVideo.addEventListener('ended', hideTransition);
+        trVideo.addEventListener('play', function () {
+            clearTimeout(trTimer);
+            trTimer = setTimeout(hideTransition, 20000);
+        });
+        socket.on('refresh_transition', function (data) {
+            TR = data || {kind: '', url: '', ms: 4000};
+            hideTransition();
+            trVideo.src = (TR.kind === 'video' && TR.url) ? TR.url : '';
+        });
+
         socket.on('update_slide', function(data) {
+            var nm = majorMode(data.mode);
+            if (nm) {
+                if (currentMajor !== null && nm !== currentMajor) playTransition();
+                currentMajor = nm;
+            }
             slide.style.display = 'none';
             logo.style.display = 'none';
             canvaFrame.style.display = 'none';
