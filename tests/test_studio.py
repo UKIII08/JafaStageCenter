@@ -242,6 +242,65 @@ def test_transition_endpoint(app, client):
     assert data['engine_used'] == 'v4'
 
 
+def test_screen_transition_upload_and_projector_wiring(app, client):
+    """Stinger między trybami ekranu: upload MP4/HTML, walidacja typu,
+    podmiana pliku, wpięcie w rzutnik, kasowanie."""
+    import io
+    import os
+    cid = make_church(app, client, 'tr@a.pl', 'Zbor TR')
+    with app.app_context():
+        st = ScreenToken(church_id=cid, token='p' * 43, type='projector')
+        db.session.add(st)
+        db.session.commit()
+        tok = st.token
+
+    # MP4 (pudełko ftyp) + długość HTML w sekundach
+    mp4 = b'\x00\x00\x00\x18ftypmp42' + b'\x00' * 64
+    r = client.post(f'/c/{cid}/studio/upload_transition', data={
+        'transition_file': (io.BytesIO(mp4), 'sting.mp4'),
+        'transition_secs': '3'}, content_type='multipart/form-data')
+    assert r.status_code in (200, 302)
+    from app.studio.routes import get_settings, media_dir
+    with app.app_context():
+        s = get_settings(db.session.get(Church, cid))
+        assert s['transition_kind'] == 'video'
+        assert s['transition_file'] == 'transition.mp4'
+        assert s['transition_ms'] == '3000'
+
+    # serwowany z właściwym typem, rzutnik wpięty
+    assert client.get(f'/c/{cid}/media/transition.mp4').status_code == 200
+    page = client.get(f'/screen/{tok}').get_data(as_text=True)
+    assert 'window.JAFA_TRANSITION' in page
+    assert 'transition.mp4' in page
+    assert 'id="transition-video"' in page and 'id="transition-html"' in page
+
+    # śmieciowy plik odrzucony
+    bad = client.post(f'/c/{cid}/studio/upload_transition', data={
+        'transition_file': (io.BytesIO(b'junk junk junk'), 'x.mp4')},
+        content_type='multipart/form-data')
+    assert bad.status_code == 400
+
+    # HTML podmienia MP4 (zostaje jedno aktywne przejście)
+    htmlf = b'<!doctype html><html><body>x</body></html>'
+    client.post(f'/c/{cid}/studio/upload_transition', data={
+        'transition_file': (io.BytesIO(htmlf), 'anim.html'),
+        'transition_secs': '6'}, content_type='multipart/form-data')
+    with app.app_context():
+        s = get_settings(db.session.get(Church, cid))
+        assert s['transition_kind'] == 'html'
+        assert s['transition_ms'] == '6000'
+        md = media_dir(cid)
+        assert not os.path.exists(os.path.join(md, 'transition.mp4'))
+        assert os.path.exists(os.path.join(md, 'transition.html'))
+
+    # kasowanie czyści ustawienie
+    client.post(f'/c/{cid}/studio/delete_transition')
+    with app.app_context():
+        s = get_settings(db.session.get(Church, cid))
+        assert not s.get('transition_kind')
+        assert not s.get('transition_file')
+
+
 def test_global_pads_serving(app, client):
     import os
     # Wspólne pady (jeden zestaw wgrywany przez dewelopera na serwer) —

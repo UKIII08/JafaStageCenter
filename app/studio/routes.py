@@ -88,6 +88,10 @@ SETTINGS_DEFAULTS = {
     'chord_notation': 'international', 'minor_display': 'uppercase',
     'ccli_license': '',   # numer licencji CCLI wspólnoty (rynek USA)
     'ccli_notice': '1',   # notka copyright na rzutniku: '1' wł. / '0' wył.
+    # Przejście (stinger) odtwarzane przy zmianie trybu ekranu
+    # (Ogłoszenia / Uwielbienie / Konferencja). Plik trzymamy na dysku;
+    # tu tylko meta. transition_kind: '' (brak) / 'video' / 'html'.
+    'transition_ms': '4000',   # jak długo pokazać przejście HTML (ms)
 }
 
 
@@ -130,6 +134,51 @@ def _read_image(f):
     if not any(data.startswith(m) for m in IMAGE_MAGICS):
         return None
     return data
+
+
+# Przejścia (stingery) między trybami ekranu — krótki klip, więc limit
+# wyższy niż dla obrazów, ale wciąż ciasny, by nie zapchać dysku VPS-a.
+TRANSITION_MAX_BYTES = 60 * 1024 * 1024   # 60 MB
+TRANSITION_NAMES = ('transition.mp4', 'transition.webm', 'transition.html')
+
+
+def _read_transition(f):
+    """Wczytuje plik przejścia z limitem rozmiaru i weryfikacją typu.
+    Akceptuje MP4/WebM (wideo) oraz HTML (np. eksport z narzędzia
+    projektowego — „JSX" bundluje się do HTML). Zwraca (bytes, ext, kind)
+    albo None."""
+    data = f.read(TRANSITION_MAX_BYTES + 1)
+    if len(data) > TRANSITION_MAX_BYTES:
+        return None
+    head = data[:32]
+    if head[4:8] == b'ftyp':                 # MP4 (ISO BMFF)
+        return data, 'mp4', 'video'
+    if head.startswith(b'\x1aE\xdf\xa3'):    # WebM / Matroska
+        return data, 'webm', 'video'
+    low = data[:2048].lstrip().lower()       # HTML (sygnatura tekstowa)
+    if (low.startswith(b'<!doctype html') or low.startswith(b'<html')
+            or b'<html' in low):
+        return data, 'html', 'html'
+    return None
+
+
+def _clean_secs_to_ms(v):
+    """Sekundy z formularza → ms (0.5–20 s). Domyślnie 4000 ms."""
+    try:
+        n = float(v)
+    except (TypeError, ValueError):
+        return '4000'
+    return str(int(max(0.5, min(20.0, n)) * 1000))
+
+
+def _transition_payload(church_id, s):
+    """Ładunek dla rzutnika: URL klipu, rodzaj, czas trwania HTML."""
+    ms = int(s.get('transition_ms') or 4000)
+    fname = s.get('transition_file') or ''
+    kind = s.get('transition_kind') or ''
+    if not fname or not kind:
+        return {'kind': '', 'url': '', 'ms': ms}
+    return {'kind': kind, 'url': media_url(church_id, fname), 'ms': ms}
 
 
 @studio_bp.get('/media/<path:filename>')
@@ -558,6 +607,54 @@ def delete_background(church_id):
         os.remove(bg)
         socketio.emit('refresh_background', {'has_bg': False},
                       room=f'live:{church_id}')
+    return _redirect_back(church_id)
+
+
+# ── przejście (stinger) między trybami ekranu ─────────────────────────────
+@studio_bp.post('/studio/upload_transition')
+@studio_auth('prowadzacy')
+def upload_transition(church_id):
+    church = db.session.get(Church, church_id)
+    f = request.files.get('transition_file')
+    secs = request.form.get('transition_secs')
+    if f and f.filename:
+        res = _read_transition(f)
+        if not res:
+            return {'status': 'error', 'message': _(
+                'Upload an MP4/WebM video or an HTML file up to 60 MB.')}, 400
+        data, ext, kind = res
+        # Zostaje tylko jedno aktywne przejście — kasujemy poprzednie warianty.
+        for old in TRANSITION_NAMES:
+            p = os.path.join(media_dir(church_id), old)
+            if os.path.exists(p):
+                os.remove(p)
+        fname = 'transition.' + ext
+        with open(os.path.join(media_dir(church_id), fname), 'wb') as out:
+            out.write(data)
+        updates = {'transition_file': fname, 'transition_kind': kind}
+        if secs is not None:
+            updates['transition_ms'] = _clean_secs_to_ms(secs)
+        save_settings(church, updates)
+    elif secs is not None:
+        save_settings(church, {'transition_ms': _clean_secs_to_ms(secs)})
+    socketio.emit('refresh_transition',
+                  _transition_payload(church_id, get_settings(church)),
+                  room=f'live:{church_id}')
+    return _redirect_back(church_id)
+
+
+@studio_bp.post('/studio/delete_transition')
+@studio_auth('prowadzacy')
+def delete_transition(church_id):
+    church = db.session.get(Church, church_id)
+    for old in TRANSITION_NAMES:
+        p = os.path.join(media_dir(church_id), old)
+        if os.path.exists(p):
+            os.remove(p)
+    save_settings(church, {'transition_file': '', 'transition_kind': ''})
+    socketio.emit('refresh_transition',
+                  _transition_payload(church_id, get_settings(church)),
+                  room=f'live:{church_id}')
     return _redirect_back(church_id)
 
 

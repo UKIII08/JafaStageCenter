@@ -10,6 +10,13 @@
         window.JAFA_MEDIA = {{ media|tojson }};
         window.CHURCH_ID = {{ church_id|tojson }};
         window.SCREEN_TOKEN = {{ screen_token|tojson }};
+        // Przejście (stinger) między trybami ekranu — patrz ustawienia wspólnoty.
+        {% set _tf = settings.transition_file if settings.transition_kind else '' %}
+        window.JAFA_TRANSITION = {
+            kind: {{ (settings.transition_kind or '')|tojson }},
+            url: {{ ((media ~ '/' ~ _tf) if _tf else '')|tojson }},
+            ms: {{ (settings.transition_ms or 4000)|int }}
+        };
         (function () {
             var of = window.fetch.bind(window);
             window.fetch = function (u, o) {
@@ -78,6 +85,9 @@
     <iframe id="canva-frame" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>
     <img id="pres-image" src="">
     <iframe id="welcome-frame" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; border:none; z-index:16;"></iframe>
+    <!-- Warstwa przejścia — nad wszystkim (z-index 60), zakrywa moment zmiany trybu. -->
+    <video id="transition-video" muted playsinline preload="auto" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; object-fit:cover; background:#000; z-index:60;"></video>
+    <iframe id="transition-html" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; border:none; background:#000; z-index:60;"></iframe>
 
     <script>
         var socket = io();
@@ -96,7 +106,63 @@
             return q.length ? u + '?' + q.join('&') : u;
         }
 
+        // ── Przejście (stinger) między trybami: Ogłoszenia / Uwielbienie / Konferencja ──
+        var TR = window.JAFA_TRANSITION || {kind: '', url: '', ms: 4000};
+        var trVideo = document.getElementById('transition-video');
+        var trHtml = document.getElementById('transition-html');
+        var currentMajor = null;   // ostatnio pokazany „duży" tryb
+        var trTimer = null;
+        if (TR.url && TR.kind === 'video') trVideo.src = TR.url;
+
+        function majorMode(m) {
+            if (m === 'welcome') return 'announcements';
+            if (m === 'worship' || m === 'note') return 'worship';
+            if (m === 'conference' || m === 'canva' || m === 'presentation') return 'conference';
+            return null;   // logo / blackout — bez przejścia
+        }
+        function hideTransition() {
+            clearTimeout(trTimer); trTimer = null;
+            trVideo.style.display = 'none';
+            try { trVideo.pause(); } catch (e) {}
+            trHtml.style.display = 'none';
+            trHtml.src = 'about:blank';
+        }
+        function playTransition() {
+            if (!TR.url || !TR.kind) return;
+            if (TR.kind === 'video') {
+                trHtml.style.display = 'none';
+                trVideo.style.display = 'block';
+                try { trVideo.currentTime = 0; } catch (e) {}
+                var p = trVideo.play();
+                if (p && p.catch) p.catch(function () { hideTransition(); });
+            } else {
+                trVideo.style.display = 'none';
+                trHtml.src = TR.url;   // przeładowanie => animacja startuje od zera
+                trHtml.style.display = 'block';
+                clearTimeout(trTimer);
+                trTimer = setTimeout(hideTransition, TR.ms || 4000);
+            }
+        }
+        trVideo.addEventListener('ended', hideTransition);
+        // Bezpiecznik: gdyby 'ended' nie przyszło (uszkodzony plik) — chowaj po 20 s.
+        trVideo.addEventListener('play', function () {
+            clearTimeout(trTimer);
+            trTimer = setTimeout(hideTransition, 20000);
+        });
+        socket.on('refresh_transition', function (data) {
+            TR = data || {kind: '', url: '', ms: 4000};
+            hideTransition();
+            trVideo.src = (TR.kind === 'video' && TR.url) ? TR.url : '';
+        });
+
         socket.on('update_slide', function(data) {
+            // Zmiana „dużego" trybu => odtwórz przejście (nowa treść i tak
+            // renderuje się pod spodem; stinger tylko zakrywa moment cięcia).
+            var nm = majorMode(data.mode);
+            if (nm) {
+                if (currentMajor !== null && nm !== currentMajor) playTransition();
+                currentMajor = nm;
+            }
             slide.style.display = 'none';
             logo.style.display = 'none';
             canvaFrame.style.display = 'none';

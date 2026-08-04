@@ -769,3 +769,21 @@ PL.update({
     'Converted — check the result': 'Przekonwertowano — sprawdź wynik',
     'No chords-above-lyrics detected': 'Nie wykryto akordów nad tekstem',
 })
+
+
+# ── Przejście (stinger) między trybami ekranu ──
+PL.update({
+    'Transition between screens (optional)':
+        'Przejście między ekranami (opcjonalnie)',
+    'A short MP4/WebM video or an HTML animation that plays whenever you '
+    'switch between Announcements, Worship and Conference. Up to 60 MB.':
+        'Krótki film MP4/WebM albo animacja HTML odtwarzana przy każdym '
+        'przełączeniu między Ogłoszeniami, Uwielbieniem i Konferencją. '
+        'Do 60 MB.',
+    'Choose transition file': 'Wybierz plik przejścia',
+    'Remove transition': 'Usuń przejście',
+    'HTML transition length (seconds)': 'Długość przejścia HTML (sekundy)',
+    'Save length': 'Zapisz długość',
+    'Upload an MP4/WebM video or an HTML file up to 60 MB.':
+        'Wgraj film MP4/WebM albo plik HTML do 60 MB.',
+})

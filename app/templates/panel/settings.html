@@ -96,6 +96,37 @@
         {% endif %}
     </div>
 
+    <label>{{ _('Transition between screens (optional)') }}</label>
+    <p class="hint" style="margin:0 0 var(--s2);">{{ _('A short MP4/WebM video or an HTML animation that plays whenever you switch between Announcements, Worship and Conference. Up to 60 MB.') }}</p>
+    <div style="display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap; margin-bottom:var(--s3);">
+        <form method="POST" action="{{ url_for('studio.upload_transition', church_id=church.id) }}" enctype="multipart/form-data" style="display:inline;">
+            <input type="hidden" name="next" value="{{ next_url }}">
+            <label class="btn" style="cursor:pointer;">{{ _('Choose transition file') }}
+                <input type="file" name="transition_file" accept=".mp4,.webm,.html,.htm,video/mp4,video/webm,text/html" hidden onchange="this.form.submit()">
+            </label>
+        </form>
+        {% if appearance.transition_kind %}
+        <span class="badge">{{ appearance.transition_file }}</span>
+        <form method="POST" action="{{ url_for('studio.delete_transition', church_id=church.id) }}" style="display:inline;">
+            <input type="hidden" name="next" value="{{ next_url }}">
+            <button class="btn btn-ghost btn-sm" type="submit">{{ _('Remove transition') }}</button>
+        </form>
+        {% endif %}
+    </div>
+    {% if appearance.transition_kind == 'html' %}
+    <form method="POST" action="{{ url_for('studio.upload_transition', church_id=church.id) }}" style="display:flex; gap:var(--s2); align-items:flex-end; flex-wrap:wrap; margin-bottom:var(--s4);">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <div>
+            <label style="margin-top:0;">{{ _('HTML transition length (seconds)') }}</label>
+            <input type="number" name="transition_secs" min="1" max="20" step="0.5"
+                   value="{{ '%.1f'|format((appearance.transition_ms|int) / 1000) }}" style="width:120px;">
+        </div>
+        <button class="btn btn-ghost btn-sm" type="submit">{{ _('Save length') }}</button>
+    </form>
+    {% else %}
+    <div style="margin-bottom:var(--s4);"></div>
+    {% endif %}
+
     <form method="POST" action="{{ url_for('studio.update_settings', church_id=church.id) }}">
         <input type="hidden" name="next" value="{{ next_url }}">
         <label>{{ _('Projection font') }}</label>
