@@ -274,11 +274,19 @@ def test_screen_transition_upload_and_projector_wiring(app, client):
     assert 'transition.mp4' in page
     assert 'id="transition-video"' in page and 'id="transition-html"' in page
 
-    # śmieciowy plik odrzucony
+    # śmieciowy plik (obce rozszerzenie, brak sygnatury) odrzucony
     bad = client.post(f'/c/{cid}/studio/upload_transition', data={
-        'transition_file': (io.BytesIO(b'junk junk junk'), 'x.mp4')},
+        'transition_file': (io.BytesIO(b'junk junk junk'), 'x.txt')},
         content_type='multipart/form-data')
     assert bad.status_code == 400
+
+    # plik .mp4 bez pełnej sygnatury i tak rozpoznany jako wideo (nie iframe)
+    from app.studio.routes import _read_transition
+    from werkzeug.datastructures import FileStorage
+    probe = _read_transition(FileStorage(
+        stream=io.BytesIO(b'\x00\x00\x00\x20styp' + b'\x00' * 32),
+        filename='clip.mp4'))
+    assert probe is not None and probe[2] == 'video'
 
     # HTML podmienia MP4 (zostaje jedno aktywne przejście)
     htmlf = b'<!doctype html><html><body>x</body></html>'
