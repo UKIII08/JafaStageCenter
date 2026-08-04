@@ -116,6 +116,28 @@ def test_import_txt_skips_duplicates(app, client):
     assert b'Skipped' in r.data
 
 
+def test_import_txt_splits_on_dash_separators(app, client):
+    """Zbiorczy śpiewnik rozdzielony linią myślników — także pauzą „———"
+    (U+2014), nie tylko ASCII „---". Regresja: cały plik szedł jako 1 piosenka."""
+    import io
+    cid = setup_church(client, app)
+    payload = (
+        "Piesn A (D)\n[D]tekst a\n"
+        "\n———\n\n"          # pauza (em dash) — realny wariant z klawiatury
+        "Piesn B (a)\n[a]tekst b\n"
+        "\n---\n\n"          # ASCII, ten sam plik
+        "Piesn C (G)\n[G]tekst c"
+    )
+    r = client.post(f'/c/{cid}/songs/import', data={
+        'files': (io.BytesIO(payload.encode()), 'spiewnik.txt')},
+        content_type='multipart/form-data', follow_redirects=True)
+    assert b'Imported' in r.data
+    with app.app_context():
+        assert Song.query.count() == 3
+        assert {s.title for s in Song.query.all()} == {
+            'Piesn A', 'Piesn B', 'Piesn C'}
+
+
 def test_import_chordpro_from_songselect(app, client):
     import io
     cid = setup_church(client, app)

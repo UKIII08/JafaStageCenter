@@ -25,6 +25,13 @@ SONG_MAX_CHARS = 20000          # górny limit długości treści pojedynczej pi
 # (m.in. pobrania z CCLI SongSelect, OnSong, OpenSong).
 IMPORT_EXTS = ('.txt', '.cho', '.pro', '.chopro', '.chordpro', '.crd', '.onsong')
 
+# Separator między piosenkami w zbiorczym pliku .txt: CAŁA linia złożona z
+# 3+ znaków „myślnika". Akceptujemy warianty, które ludzie realnie wstawiają:
+# ASCII (---), podkreślenie (___), półpauzę (–), pauzę (—), myślnik poziomy (―)
+# itd. Dawniej dzieliliśmy tylko po dokładnym „---", więc plik z „———" trafiał
+# w całości jako jedna piosenka.
+SONG_SEPARATOR_RE = re.compile(r'(?m)^[ \t]*[-_‐-―]{3,}[ \t]*$')
+
 
 def _get_song(church_id, song_id):
     song = Song.query.filter_by(id=song_id, church_id=church_id,
@@ -208,8 +215,9 @@ def songs_import(church_id, membership):
                      ccli=song['ccli'])
             continue
 
-        # ── Format eksportu aplikacji desktop (.txt) ──
-        chunks = content.split('---') if '---' in content else None
+        # ── Format eksportu aplikacji desktop / zbiorczy śpiewnik (.txt) ──
+        chunks = (SONG_SEPARATOR_RE.split(content)
+                  if SONG_SEPARATOR_RE.search(content) else None)
         if chunks is None:
             # jeden plik = jedna piosenka; tytuł z nazwy pliku
             raw = f.filename.rsplit('.', 1)[0]
