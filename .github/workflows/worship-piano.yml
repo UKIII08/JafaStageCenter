@@ -10,6 +10,21 @@ on:
       - 'WorshipPiano/**'
       - '.github/workflows/worship-piano.yml'
   workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Which platforms to build'
+        type: choice
+        default: windows
+        options:
+          - windows
+          - all
+
+# A superseded run is worthless, and every queued job competes for the same
+# runner pool. Cancelling the previous one keeps the queue short enough that the
+# current one actually gets a machine.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 defaults:
   run:
@@ -17,24 +32,30 @@ defaults:
 
 jobs:
   build:
-    name: ${{ matrix.name }}
+    name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: windows-latest
-            name: Windows x64
-            artifact: JafaWorshipPiano-Windows-x64
-          - os: macos-latest
-            name: macOS universal
-            artifact: JafaWorshipPiano-macOS
-          - os: ubuntu-latest
-            name: Linux x64
-            artifact: JafaWorshipPiano-Linux-x64
+        # Windows by default: it is what gets installed, and asking for three
+        # runners at once is what leaves the queue unserved. Dispatch with
+        # "all" when a mac or Linux build is actually wanted.
+        os: ${{ fromJSON( (github.event_name == 'workflow_dispatch' && inputs.platforms == 'all') && '["windows-latest","macos-latest","ubuntu-latest"]' || '["windows-latest"]' ) }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Name this platform
+        id: plat
+        shell: bash
+        run: |
+          case "${{ matrix.os }}" in
+            windows-latest) echo "name=Windows-x64" >> "$GITHUB_OUTPUT" ;;
+            macos-latest)   echo "name=macOS"       >> "$GITHUB_OUTPUT" ;;
+            *)              echo "name=Linux-x64"   >> "$GITHUB_OUTPUT" ;;
+          esac
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
@@ -58,7 +79,7 @@ jobs:
         run: cmake --build build --config Release --parallel 4
 
       # Renders every factory preset offline and fails the build on NaNs,
-      # runaway feedback or silence.
+      # runaway feedback, silence, or the sampled source not actually playing.
       - name: DSP smoke test
         if: runner.os != 'Windows'
         run: ./build/WorshipPianoRender_artefacts/Release/WorshipPianoRender
@@ -70,13 +91,13 @@ jobs:
       - name: Upload VST3
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
+          name: JafaWorshipPiano-${{ steps.plat.outputs.name }}
           path: WorshipPiano/build/JafaWorshipPiano_artefacts/Release/VST3/
           if-no-files-found: error
 
       - name: Upload standalone
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}-standalone
+          name: JafaWorshipPiano-${{ steps.plat.outputs.name }}-standalone
           path: WorshipPiano/build/JafaWorshipPiano_artefacts/Release/Standalone/
           if-no-files-found: warn
