@@ -78,7 +78,7 @@ Wtyczka pojawi się jako **VSTi: Jafa Worship Piano (Jafa Stage)** — wstaw ją
 
 ## Presety
 
-15 presetów fabrycznych, pogrupowanych w cztery kategorie. Strzałki `<` `>` na górnym pasku
+11 presetów fabrycznych, pogrupowanych w cztery kategorie. Strzałki `<` `>` na górnym pasku
 przeskakują po kolei, kliknięcie nazwy otwiera pełne menu. Presety są też widoczne jako
 programy hosta, więc możesz je przełączać z Reapera.
 
