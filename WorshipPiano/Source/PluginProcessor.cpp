@@ -37,6 +37,9 @@ void WorshipPianoProcessor::prepareToPlay (double newSampleRate, int samplesPerB
     pad.prepare (newSampleRate, samplesPerBlock);
     effects.prepare (newSampleRate, samplesPerBlock);
 
+    padBuffer.setSize (2, jmax (16, samplesPerBlock), false, false, true);
+    setLatencySamples (effects.getLatencySamples());
+
     keyboardState.reset();
     outputLevel.store (0.0f);
 }
@@ -66,6 +69,12 @@ float WorshipPianoProcessor::delaySamplesForDivision (int division) const
 
 void WorshipPianoProcessor::updateSettings()
 {
+    // Soak is a macro, not a mode: it lifts whatever the preset already does
+    // towards a full ambient wash, so it is useful on every preset and does
+    // nothing at all at zero.
+    const float soak = param (pid::soak);
+    const float soak2 = soak * soak;
+
     wp::EngineSettings es;
     es.model        = param<int> (pid::model);
     es.tone         = param (pid::tone);
@@ -77,38 +86,36 @@ void WorshipPianoProcessor::updateSettings()
 
     wp::PadSettings ps;
     const float padDb = param (pid::padLevel);
-    ps.level       = padDb <= -59.5f ? 0.0f : Decibels::decibelsToGain (padDb);
-    ps.cutoffHz    = param (pid::padTone);
-    ps.attackMs    = param (pid::padAttack);
-    ps.releaseMs   = param (pid::padRelease);
-    ps.detuneCents = 12.0f;
+    const float padGain = padDb <= -59.5f ? 0.0f : Decibels::decibelsToGain (padDb);
+
+    // even with the pad switched off in the preset, Soak brings one in
+    ps.level       = jmax (padGain, soak2 * Decibels::decibelsToGain (-7.0f));
+    ps.cutoffHz    = param (pid::padTone) * (1.0f - 0.35f * soak);
+    ps.attackMs    = param (pid::padAttack) * (1.0f + 1.6f * soak);
+    ps.releaseMs   = param (pid::padRelease) * (1.0f + 1.4f * soak);
+    ps.detuneCents = 12.0f + 8.0f * soak;
     pad.setSettings (ps);
 
     wp::EffectSettings fx;
     fx.eqLow         = param (pid::eqLow);
-    fx.eqMid         = 0.0f;
     fx.eqHigh        = param (pid::eqHigh);
     fx.eqAir         = param (pid::eqAir);
     fx.compAmount    = param (pid::compAmount);
-    fx.compMix       = 1.0f;
     fx.drive         = param (pid::drive);
-    fx.driveTone     = 0.5f;
-    fx.chorusAmount  = param (pid::chorusAmount);
+    fx.chorusAmount  = jmax (param (pid::chorusAmount), soak * 0.30f);
     fx.chorusRate    = 0.32f;
-    fx.delayMix      = param (pid::delayMix);
+
+    const float delayMix = param (pid::delayMix);
+    fx.delayMix      = delayMix + (1.0f - delayMix) * soak * 0.30f;
     fx.delayFeedback = param (pid::delayFeedback);
     fx.delayTone     = 0.45f;
     fx.delayPingPong = 0.80f;
-    fx.reverbMix     = param (pid::reverbMix);
-    fx.reverbSize    = param (pid::reverbSize);
-    fx.reverbDecay   = param (pid::reverbDecay);
-    fx.reverbTone    = 0.50f;
-    fx.shimmer       = param (pid::shimmer);
+
+    const float reverbMix = param (pid::reverbMix);
+    fx.reverbMix     = reverbMix + (1.0f - reverbMix) * soak * 0.72f;
+    fx.padSend       = 0.85f + 0.85f * soak;
     fx.width         = param (pid::width);
     fx.outputGain    = Decibels::decibelsToGain (param (pid::outputGain));
-
-    // a bigger room naturally puts more distance before the first reflection
-    fx.reverbPredelay = 10.0f + 65.0f * fx.reverbSize;
 
     const float delayTime = param<int> (pid::delaySync) != 0
                               ? delaySamplesForDivision (param<int> (pid::delayDiv))
@@ -118,6 +125,24 @@ void WorshipPianoProcessor::updateSettings()
     fx.delaySamplesR = delayTime;
 
     effects.setSettings (fx);
+
+    wp::AmbienceSettings amb;
+    const int machine = param<int> (pid::reverbMachine);
+
+    // past halfway Soak pushes the reverb into its bigger, slower machines
+    amb.machine = soak > 0.55f && machine < 3 ? (soak > 0.8f ? 3 : 4) : machine;
+
+    const float size = param (pid::reverbSize);
+    amb.size    = size + (1.0f - size) * soak * 0.65f;
+    amb.decay   = param (pid::reverbDecay) * (1.0f + 3.2f * soak2);
+
+    const float shimmer = param (pid::shimmer);
+    amb.shimmer = shimmer + (1.0f - shimmer) * soak2 * 0.60f;
+    amb.shimmerMode = param<int> (pid::shimmerMode);
+    amb.duck    = param (pid::reverbDuck);
+    amb.freeze  = param<int> (pid::reverbFreeze) != 0;
+
+    effects.setAmbience (amb);
 }
 
 //==============================================================================
@@ -169,7 +194,8 @@ void WorshipPianoProcessor::renderSegment (AudioBuffer<float>& buffer, int start
     auto* r = buffer.getNumChannels() > 1 ? buffer.getWritePointer (1) + start : l;
 
     piano.render (l, r, numSamples);
-    pad.render (l, r, numSamples);
+    pad.render (padBuffer.getWritePointer (0) + start,
+                padBuffer.getWritePointer (1) + start, numSamples);
 }
 
 void WorshipPianoProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midi)
@@ -182,6 +208,11 @@ void WorshipPianoProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
         buffer.clear (ch, 0, numSamples);
 
     buffer.clear();
+
+    if (padBuffer.getNumSamples() < numSamples)
+        padBuffer.setSize (2, numSamples, false, false, true);
+
+    padBuffer.clear (0, numSamples);
 
     if (auto* transport = getPlayHead())
         if (const auto position = transport->getPosition())
@@ -213,8 +244,7 @@ void WorshipPianoProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
 
     buffer.applyGain (pianoGain);
 
-
-    effects.process (buffer);
+    effects.process (buffer, padBuffer);
 
 
     float peak = 0.0f;

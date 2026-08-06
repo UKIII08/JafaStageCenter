@@ -163,7 +163,9 @@ void PadLayer::render (float* left, float* right, int numSamples)
         }
     }
 
-    const float gain = settings.level * 0.22f;
+    // calibrated so that a Pad setting of 0 dB puts the layer at roughly the
+    // same level as the piano: the knob then reads as dB below the instrument
+    const float gain = settings.level * 1.40f;
     const float res = 0.85f;                       // gentle, no self oscillation
     const float k = 1.0f / jmax (0.05f, res);
 
@@ -173,10 +175,8 @@ void PadLayer::render (float* left, float* right, int numSamples)
         if (lfoPhase >= 1.0f) lfoPhase -= 1.0f;
 
         const float lfo = std::sin (lfoPhase * MathConstants<float>::twoPi);
-        const float cutoff = jlimit (60.0f, (float) (sr * 0.45),
-                                     settings.cutoffHz * (1.0f + 0.12f * lfo));
-        const float g = std::tan (MathConstants<float>::pi * cutoff / (float) sr);
-        const float a1 = 1.0f / (1.0f + g * (g + k));
+        const float baseCutoff = jlimit (60.0f, (float) (sr * 0.45),
+                                         settings.cutoffHz * (1.0f + 0.12f * lfo));
 
         float sumL = 0.0f, sumR = 0.0f;
 
@@ -188,32 +188,57 @@ void PadLayer::render (float* left, float* right, int numSamples)
             const float coef = v.target > 0.5f ? v.attackCoef : v.releaseCoef;
             v.env += coef * (v.target - v.env);
 
+            // the filter opens as the note swells in, so the pad grows rather
+            // than simply getting louder
+            const float cutoff = jlimit (60.0f, (float) (sr * 0.45),
+                                         baseCutoff * (0.32f + 0.68f * v.env));
+            const float g = std::tan (MathConstants<float>::pi * cutoff / (float) sr);
+            const float a1 = 1.0f / (1.0f + g * (g + k));
+
             if (v.target <= 0.0f && v.env < 1.0e-4f)
             {
                 v.active = false;
                 v.env = 0.0f;
-                v.ic1 = v.ic2 = 0.0f;
+                v.ic1L = v.ic2L = v.ic1R = v.ic2R = 0.0f;
                 continue;
             }
 
-            float osc = 0.0f;
+            // the three detuned saws are spread hard across the field, which is
+            // what turns a pad from a block in the middle into something you can
+            // sit inside
+            static constexpr float oscPanL[oscsPerVoice] = { 0.92f, 0.70f, 0.36f };
+            static constexpr float oscPanR[oscsPerVoice] = { 0.36f, 0.70f, 0.92f };
+
+            float oscL = 0.0f, oscR = 0.0f;
 
             for (int i = 0; i < oscsPerVoice; ++i)
-                osc += polyBlepSaw (v.phase[(size_t) i], v.inc[(size_t) i]);
+            {
+                const float saw = polyBlepSaw (v.phase[(size_t) i], v.inc[(size_t) i]);
+                oscL += saw * oscPanL[i];
+                oscR += saw * oscPanR[i];
+            }
 
-            osc *= 1.0f / (float) oscsPerVoice;
+            constexpr float oscNorm = 1.0f / (float) oscsPerVoice;
+            oscL *= oscNorm;
+            oscR *= oscNorm;
 
-            // TPT state variable lowpass
-            const float hp = (osc - (k + g) * v.ic1 - v.ic2) * a1;
-            const float bp = g * hp + v.ic1;
-            v.ic1 = g * hp + bp;
-            const float lp = g * bp + v.ic2;
-            v.ic2 = g * bp + lp;
+            // TPT state variable lowpass, per side
+            const float hpL = (oscL - (k + g) * v.ic1L - v.ic2L) * a1;
+            const float bpL = g * hpL + v.ic1L;
+            v.ic1L = g * hpL + bpL;
+            const float lpL = g * bpL + v.ic2L;
+            v.ic2L = g * bpL + lpL;
 
-            const float out = lp * v.env * v.env * v.velocity;
+            const float hpR = (oscR - (k + g) * v.ic1R - v.ic2R) * a1;
+            const float bpR = g * hpR + v.ic1R;
+            v.ic1R = g * hpR + bpR;
+            const float lpR = g * bpR + v.ic2R;
+            v.ic2R = g * bpR + lpR;
 
-            sumL += out * v.panL;
-            sumR += out * v.panR;
+            const float shape = v.env * v.env * v.velocity;
+
+            sumL += lpL * shape * v.panL;
+            sumR += lpR * shape * v.panR;
         }
 
         left[n]  += dcL.processSample (sumL * gain);

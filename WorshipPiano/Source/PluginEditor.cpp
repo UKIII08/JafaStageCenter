@@ -32,7 +32,9 @@ namespace
 }
 
 //==============================================================================
-ParamKnob::ParamKnob (AudioProcessorValueTreeState& apvts, const String& paramID, const String& caption)
+ParamKnob::ParamKnob (AudioProcessorValueTreeState& apvts, const String& paramID,
+                      const String& caption, int maxDia)
+    : maxDiameter (maxDia)
 {
     parameter = apvts.getParameter (paramID);
 
@@ -73,7 +75,7 @@ void ParamKnob::resized()
     constexpr int textHeight = 13;
 
     auto area = getLocalBounds().reduced (1, 2);
-    const int diameter = jmin (area.getWidth(), area.getHeight() - 2 * textHeight, 64);
+    const int diameter = jmin (area.getWidth(), area.getHeight() - 2 * textHeight, maxDiameter);
 
     auto block = area.withSizeKeepingCentre (area.getWidth(), diameter + 2 * textHeight);
     name.setBounds (block.removeFromTop (textHeight));
@@ -168,13 +170,33 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
     tempoLabel.setJustificationType (Justification::centred);
     tempoLabel.setColour (Label::textColourId, colours::textDim);
 
-    // ---- space & output ----------------------------------------------------
-    addKnob (spaceKnobs, pid::reverbMix,   "Reverb");
-    addKnob (spaceKnobs, pid::reverbSize,  "Size");
-    addKnob (spaceKnobs, pid::reverbDecay, "Decay");
-    addKnob (spaceKnobs, pid::shimmer,     "Shimmer");
-    addKnob (spaceKnobs, pid::width,       "Width");
-    addKnob (spaceKnobs, pid::outputGain,  "Output");
+    // ---- ambience ----------------------------------------------------------
+    addAndMakeVisible (machineBox);
+    machineBox.addItemList ({ "Room", "Hall", "Plate", "Cloud", "Bloom", "Shimmer" }, 1);
+    machineAttachment = std::make_unique<AudioProcessorValueTreeState::ComboBoxAttachment> (
+        processor.apvts, pid::reverbMachine, machineBox);
+
+    addAndMakeVisible (shimmerModeBox);
+    shimmerModeBox.addItemList ({ "Octave Up", "Octave + 5th", "Octave Down", "Up & Down" }, 1);
+    shimmerModeAttachment = std::make_unique<AudioProcessorValueTreeState::ComboBoxAttachment> (
+        processor.apvts, pid::shimmerMode, shimmerModeBox);
+
+    addAndMakeVisible (freezeButton);
+    freezeAttachment = std::make_unique<AudioProcessorValueTreeState::ButtonAttachment> (
+        processor.apvts, pid::reverbFreeze, freezeButton);
+
+    addKnob (ambienceKnobs, pid::reverbMix,   "Reverb");
+    addKnob (ambienceKnobs, pid::reverbSize,  "Size");
+    addKnob (ambienceKnobs, pid::reverbDecay, "Decay");
+    addKnob (ambienceKnobs, pid::shimmer,     "Shimmer");
+    addKnob (ambienceKnobs, pid::reverbDuck,  "Duck");
+
+    // ---- soak & output -----------------------------------------------------
+    soakKnob = std::make_unique<ParamKnob> (processor.apvts, pid::soak, "SOAK", 104);
+    addAndMakeVisible (soakKnob.get());
+
+    addKnob (outputKnobs, pid::width,      "Width");
+    addKnob (outputKnobs, pid::outputGain, "Output");
 
     addAndMakeVisible (meter);
 
@@ -185,8 +207,8 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
     addAndMakeVisible (keyboard);
 
     setResizable (true, true);
-    setResizeLimits (860, 600, 1500, 1000);
-    setSize (940, 660);
+    setResizeLimits (920, 660, 1600, 1100);
+    setSize (1000, 730);
 
     startTimerHz (10);
     timerCallback();
@@ -197,9 +219,10 @@ WorshipPianoEditor::~WorshipPianoEditor()
     setLookAndFeel (nullptr);
 }
 
-void WorshipPianoEditor::addKnob (OwnedArray<ParamKnob>& group, const String& paramID, const String& caption)
+void WorshipPianoEditor::addKnob (OwnedArray<ParamKnob>& group, const String& paramID,
+                                  const String& caption, int maxDiameter)
 {
-    auto* knob = group.add (new ParamKnob (processor.apvts, paramID, caption));
+    auto* knob = group.add (new ParamKnob (processor.apvts, paramID, caption, maxDiameter));
     addAndMakeVisible (knob);
 }
 
@@ -251,7 +274,8 @@ void WorshipPianoEditor::paint (Graphics& g)
     drawPanel (g, padPanel,      "Pad layer");
     drawPanel (g, tonePanel,     "Tone & drive");
     drawPanel (g, movementPanel, "Movement & delay");
-    drawPanel (g, spacePanel,    "Space & output");
+    drawPanel (g, ambiencePanel, "Ambience");
+    drawPanel (g, soakPanel,     "Soak & output");
 }
 
 void WorshipPianoEditor::resized()
@@ -322,14 +346,32 @@ void WorshipPianoEditor::resized()
         tempoLabel.setBounds (sync.removeFromTop (16));
     }
 
-    // --- row three: space + output ------------------------------------------
-    spacePanel = area;
+    // --- row three: ambience + soak -----------------------------------------
+    auto rowC = area;
 
-    auto spaceInner = spacePanel.reduced (10, 6);
-    spaceInner.removeFromTop (panelTitleH + 6);
+    ambiencePanel = rowC.removeFromLeft (roundToInt (rowC.getWidth() * 0.655f));
+    rowC.removeFromLeft (gap);
+    soakPanel = rowC;
 
-    auto meterArea = spaceInner.removeFromRight (34);
-    meter.setBounds (meterArea.reduced (6, 4));
+    auto ambInner = ambiencePanel.reduced (10, 6);
+    ambInner.removeFromTop (panelTitleH);
 
-    layoutGrid (spaceKnobs, spaceInner, 6);
+    auto ambTop = ambInner.removeFromTop (28).reduced (2, 2);
+    machineBox.setBounds (ambTop.removeFromLeft (roundToInt (ambTop.getWidth() * 0.38f)));
+    ambTop.removeFromLeft (6);
+    freezeButton.setBounds (ambTop.removeFromRight (78));
+    ambTop.removeFromRight (6);
+    shimmerModeBox.setBounds (ambTop);
+
+    ambInner.removeFromTop (4);
+    layoutGrid (ambienceKnobs, ambInner, 5);
+
+    auto soakInner = soakPanel.reduced (10, 6);
+    soakInner.removeFromTop (panelTitleH);
+
+    auto meterArea = soakInner.removeFromRight (28);
+    meter.setBounds (meterArea.reduced (6, 8));
+
+    soakKnob->setBounds (soakInner.removeFromLeft (roundToInt (soakInner.getWidth() * 0.52f)));
+    layoutGrid (outputKnobs, soakInner, 1);
 }

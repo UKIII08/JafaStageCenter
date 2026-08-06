@@ -51,8 +51,9 @@ private:
         int   note = -1;
         bool  held = false, sustained = false, active = false;
 
-        // state variable filter
-        float ic1 = 0.0f, ic2 = 0.0f;
+        // one state variable filter per side: the oscillators are spread across
+        // the stereo field rather than summed and panned as a block
+        float ic1L = 0.0f, ic2L = 0.0f, ic1R = 0.0f, ic2R = 0.0f;
     };
 
     inline float polyBlepSaw (float& phase, float inc) noexcept;

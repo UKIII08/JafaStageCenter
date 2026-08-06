@@ -75,5 +75,9 @@ private:
 
     std::atomic<float> outputLevel { 0.0f };
 
+    // the pad is rendered separately so it can be sent into the ambience much
+    // harder than the piano is - that difference is the whole soaking layer
+    juce::AudioBuffer<float> padBuffer;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WorshipPianoProcessor)
 };

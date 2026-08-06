@@ -85,11 +85,25 @@ AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     c.add (std::make_unique<AudioParameterChoice> (pv (pid::delayDiv), "Delay Div",
               StringArray { "1/4", "1/4T", "1/8.", "1/8", "1/8T", "1/16.", "1/16" }, 2));
 
-    // ---- Space -------------------------------------------------------------
+    // ---- Ambience ----------------------------------------------------------
+    c.add (std::make_unique<AudioParameterChoice> (pv (pid::reverbMachine), "Machine",
+              StringArray { "Room", "Hall", "Plate", "Cloud", "Bloom", "Shimmer" }, 1));
+
     c.add (f (pid::reverbMix,   "Reverb",  range (0.0f, 1.0f, 0.35f), 0.26f, pct));
     c.add (f (pid::reverbSize,  "Size",    range (0.0f, 1.0f, 0.5f),  0.55f, pct));
-    c.add (f (pid::reverbDecay, "Decay",   range (0.4f, 15.0f, 3.5f), 3.0f,  sec));
+    c.add (f (pid::reverbDecay, "Decay",   range (0.4f, 30.0f, 4.0f), 3.0f,  sec));
     c.add (f (pid::shimmer,     "Shimmer", range (0.0f, 1.0f, 0.4f),  0.0f,  pct));
+
+    c.add (std::make_unique<AudioParameterChoice> (pv (pid::shimmerMode), "Shimmer Voice",
+              StringArray { "Octave Up", "Octave + 5th", "Octave Down", "Up & Down" }, 0));
+
+    c.add (f (pid::reverbDuck,  "Duck",    range (0.0f, 1.0f, 0.5f),  0.0f,  pct));
+    c.add (std::make_unique<AudioParameterBool> (pv (pid::reverbFreeze), "Freeze", false));
+
+    // ---- Soak --------------------------------------------------------------
+    // One control that lifts the whole ambient layer on top of whatever the
+    // preset already does: pad, reverb depth, decay, shimmer and bloom together.
+    c.add (f (pid::soak, "Soak", range (0.0f, 1.0f, 0.5f), 0.0f, pct));
 
     // ---- Output ------------------------------------------------------------
     c.add (f (pid::width,      "Width",  range (0.0f, 2.0f, 1.0f),    1.0f, pct));

@@ -167,6 +167,191 @@ namespace
         }
     }
 
+    /*  Worst case for the ambience: maximum decay, maximum shimmer in both
+        directions, and freeze latched on halfway through. Freeze drives the tank
+        to unity gain with a pitch shifter inside the loop, so if anything in
+        there can run away, it runs away here.
+    */
+    bool stressAmbience (String& report)
+    {
+        WorshipPianoProcessor processor;
+        processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+        processor.prepareToPlay (sampleRate, blockSize);
+        processor.loadPreset (13);   // Infinite Wash
+
+        auto set = [&processor] (const char* id, float v)
+        {
+            if (auto* p = processor.apvts.getParameter (id))
+                p->setValueNotifyingHost (p->convertTo0to1 (v));
+        };
+
+        set (pid::reverbDecay, 30.0f);
+        set (pid::reverbSize, 1.0f);
+        set (pid::shimmer, 1.0f);
+        set (pid::shimmerMode, 3.0f);
+        set (pid::reverbMix, 1.0f);
+        set (pid::soak, 1.0f);
+
+        const int totalSamples = (int) (45.0 * sampleRate);
+        const int freezeAt = (int) (8.0 * sampleRate);
+
+        AudioBuffer<float> block (2, blockSize);
+        int written = 0;
+        bool notesSent = false, frozen = false;
+
+        float worstPeak = 0.0f;
+        int bad = 0;
+        std::vector<float> secondPeaks;
+        float peakThisSecond = 0.0f;
+        int samplesThisSecond = 0;
+
+        while (written < totalSamples)
+        {
+            const int numSamples = jmin (blockSize, totalSamples - written);
+            block.setSize (2, numSamples, false, false, true);
+            block.clear();
+
+            MidiBuffer midi;
+
+            if (! notesSent)
+            {
+                midi.addEvent (MidiMessage::controllerEvent (1, 64, 127), 0);
+                for (int n : { 48, 55, 60, 64, 67, 72 })
+                    midi.addEvent (MidiMessage::noteOn (1, n, 0.9f), 1);
+                notesSent = true;
+            }
+
+            if (! frozen && written >= freezeAt)
+            {
+                set (pid::reverbFreeze, 1.0f);
+                frozen = true;
+            }
+
+            processor.processBlock (block, midi);
+
+            for (int ch = 0; ch < 2; ++ch)
+                for (int n = 0; n < numSamples; ++n)
+                {
+                    const float v = block.getSample (ch, n);
+
+                    if (! std::isfinite (v)) { ++bad; continue; }
+
+                    worstPeak = jmax (worstPeak, std::abs (v));
+                    peakThisSecond = jmax (peakThisSecond, std::abs (v));
+                }
+
+            samplesThisSecond += numSamples;
+
+            if (samplesThisSecond >= (int) sampleRate)
+            {
+                secondPeaks.push_back (peakThisSecond);
+                peakThisSecond = 0.0f;
+                samplesThisSecond = 0;
+            }
+
+            written += numSamples;
+        }
+
+        // after the freeze the tail must hold roughly steady: neither collapse
+        // to nothing nor climb away
+        float lateMin = 1.0f, lateMax = 0.0f;
+
+        for (size_t i = 20; i < secondPeaks.size(); ++i)
+        {
+            lateMin = jmin (lateMin, secondPeaks[i]);
+            lateMax = jmax (lateMax, secondPeaks[i]);
+        }
+
+        report << "ambience stress (max decay + dual shimmer + freeze):" << newLine
+               << "   worst peak " << String (Decibels::gainToDecibels (jmax (1.0e-6f, worstPeak)), 1) << " dB"
+               << "   frozen tail " << String (Decibels::gainToDecibels (jmax (1.0e-6f, lateMin)), 1)
+               << " .. " << String (Decibels::gainToDecibels (jmax (1.0e-6f, lateMax)), 1) << " dB"
+               << newLine;
+
+        bool ok = true;
+
+        if (bad > 0)            { report << "   !! " << bad << " non-finite samples" << newLine; ok = false; }
+        if (worstPeak > 1.05f)  { report << "   !! output exceeded full scale" << newLine; ok = false; }
+        if (lateMin < 1.0e-4f)  { report << "   !! frozen tail collapsed" << newLine; ok = false; }
+
+        report << newLine;
+        return ok;
+    }
+
+    /** Soak has to do something audible on a preset that starts bone dry. */
+    bool checkSoakMacro (String& report)
+    {
+        report << "soak sweep on Sunday Grand (dry preset):" << newLine;
+
+        std::vector<double> tails;
+
+        for (float soak : { 0.0f, 0.35f, 0.7f, 1.0f })
+        {
+            WorshipPianoProcessor processor;
+            processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+            processor.prepareToPlay (sampleRate, blockSize);
+            processor.loadPreset (0);
+
+            if (auto* p = processor.apvts.getParameter (pid::soak))
+                p->setValueNotifyingHost (p->convertTo0to1 (soak));
+
+            const int totalSamples = (int) (10.0 * sampleRate);
+            AudioBuffer<float> block (2, blockSize);
+            int written = 0;
+            bool sent = false;
+            double tailSum = 0.0;
+            int tailCount = 0;
+
+            while (written < totalSamples)
+            {
+                const int numSamples = jmin (blockSize, totalSamples - written);
+                block.setSize (2, numSamples, false, false, true);
+                block.clear();
+
+                MidiBuffer midi;
+
+                if (! sent)
+                {
+                    for (int n : { 48, 60, 64, 67 })
+                        midi.addEvent (MidiMessage::noteOn (1, n, 0.7f), 1);
+                    sent = true;
+                }
+
+                // everything released after two seconds: what is left is the wash
+                if (written < (int) (2.0 * sampleRate) && written + numSamples >= (int) (2.0 * sampleRate))
+                    for (int n : { 48, 60, 64, 67 })
+                        midi.addEvent (MidiMessage::noteOff (1, n), numSamples - 1);
+
+                processor.processBlock (block, midi);
+
+                if (written > (int) (6.0 * sampleRate))
+                    for (int ch = 0; ch < 2; ++ch)
+                        for (int n = 0; n < numSamples; ++n)
+                        {
+                            tailSum += std::abs (block.getSample (ch, n));
+                            ++tailCount;
+                        }
+
+                written += numSamples;
+            }
+
+            const double tail = tailSum / jmax (1, tailCount);
+            tails.push_back (tail);
+
+            report << "   soak " << String (roundToInt (soak * 100.0f)).paddedLeft (' ', 4) << " %"
+                   << "   wash after release " << String (Decibels::gainToDecibels (jmax (1.0e-7, tail)), 1)
+                   << " dB" << newLine;
+        }
+
+        const bool rising = tails.back() > tails.front() * 8.0;
+
+        if (! rising)
+            report << "   !! soak barely changes anything" << newLine;
+
+        report << newLine;
+        return rising;
+    }
+
     bool renderPreset (int presetIndex, const File& outputDir, String& report)
     {
         WorshipPianoProcessor processor;
@@ -324,6 +509,8 @@ int main (int argc, char** argv)
 
     String report;
     bool allOk = checkStateRoundTrip (report);
+    allOk &= stressAmbience (report);
+    allOk &= checkSoakMacro (report);
 
     for (int i = 0; i < (int) presets::factory().size(); ++i)
     {

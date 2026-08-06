@@ -27,187 +27,6 @@ namespace
 }
 
 //==============================================================================
-void OctaveShifter::prepare (double sampleRate)
-{
-    windowSamples = (float) (sampleRate * 0.045);   // ~45 ms grains
-    line.prepare ((int) windowSamples * 2 + 64);
-    reset();
-}
-
-void OctaveShifter::reset()
-{
-    line.reset();
-    readOffset = windowSamples * 0.5f;
-}
-
-float OctaveShifter::process (float input) noexcept
-{
-    line.write (input);
-
-    // one octave up means the read pointer has to travel twice as fast, i.e.
-    // the delay shrinks by exactly one sample per sample
-    readOffset -= 1.0f;
-
-    if (readOffset < 0.0f)
-        readOffset += windowSamples;
-
-    const float d1 = readOffset + 2.0f;
-    float o2 = readOffset + windowSamples * 0.5f;
-
-    if (o2 >= windowSamples)
-        o2 -= windowSamples;
-
-    const float d2 = o2 + 2.0f;
-
-    const float g1 = 0.5f * (1.0f - std::cos (MathConstants<float>::twoPi * readOffset / windowSamples));
-
-    return line.read (d1) * g1 + line.read (d2) * (1.0f - g1);
-}
-
-//==============================================================================
-void Reverb::prepare (double sampleRate, int maxBlockSize)
-{
-    ignoreUnused (maxBlockSize);
-    sr = sampleRate;
-
-    // mutually prime-ish lengths keep the modal density smooth
-    static constexpr float lengthsMs[numLines] = { 23.7f, 29.3f, 37.1f, 43.7f, 53.3f, 61.9f, 71.3f, 79.7f };
-
-    for (int i = 0; i < numLines; ++i)
-    {
-        baseLength[(size_t) i] = (float) (lengthsMs[i] * 0.001 * sampleRate);
-        lines[(size_t) i].prepare ((int) (baseLength[(size_t) i] * 1.8f) + 256);
-        lfoPhase[(size_t) i] = (float) i / (float) numLines;
-        lfoInc[(size_t) i] = (float) ((0.09 + 0.037 * i) / sampleRate);
-    }
-
-    const int maxPredelay = (int) (0.25 * sampleRate) + 64;
-    predelayL.prepare (maxPredelay);
-    predelayR.prepare (maxPredelay);
-
-    shifter.prepare (sampleRate);
-    shimmerLP.coefficients = dsp::IIR::Coefficients<float>::makeLowPass (sampleRate, 3800.0f);
-
-    reset();
-    setParameters (sizeAmount, decayTime, toneAmount, 20.0f, 0.0f);
-}
-
-void Reverb::reset()
-{
-    for (auto& l : lines) l.reset();
-    damper.fill (0.0f);
-    lowCut.fill (0.0f);
-    predelayL.reset();
-    predelayR.reset();
-    shifter.reset();
-    shimmerLP.reset();
-    shimmerState = 0.0f;
-}
-
-void Reverb::setParameters (float size, float decaySeconds, float tone, float predelayMs, float shimmerAmount)
-{
-    sizeAmount = jlimit (0.0f, 1.0f, size);
-    decayTime = jmax (0.2f, decaySeconds);
-    toneAmount = jlimit (0.0f, 1.0f, tone);
-    shimmer = jlimit (0.0f, 1.0f, shimmerAmount);
-    predelaySamples = jmax (1.0f, (float) (predelayMs * 0.001 * sr));
-
-    const float scale = 0.45f + sizeAmount * 1.15f;
-
-    for (int i = 0; i < numLines; ++i)
-    {
-        currentLength[(size_t) i] = baseLength[(size_t) i] * scale;
-        const float loops = currentLength[(size_t) i] / (float) sr;
-        feedback[(size_t) i] = jlimit (0.0f, 0.9995f, std::pow (10.0f, -3.0f * loops / decayTime));
-    }
-
-    dampCoef = onePole (jmap ((double) toneAmount, 1400.0, 15000.0), sr);
-    lowCutCoef = onePole (jmap (1.0 - (double) toneAmount, 40.0, 320.0), sr);
-}
-
-void Reverb::process (float* left, float* right, int numSamples)
-{
-    std::array<float, numLines> node {};
-
-    for (int n = 0; n < numSamples; ++n)
-    {
-        predelayL.write (left[n]);
-        predelayR.write (right[n]);
-
-        const float inL = predelayL.read (predelaySamples);
-        const float inR = predelayR.read (predelaySamples);
-
-        // --- read the network -------------------------------------------------
-        for (int i = 0; i < numLines; ++i)
-        {
-            lfoPhase[(size_t) i] += lfoInc[(size_t) i];
-            if (lfoPhase[(size_t) i] >= 1.0f) lfoPhase[(size_t) i] -= 1.0f;
-
-            const float mod = std::sin (lfoPhase[(size_t) i] * MathConstants<float>::twoPi)
-                              * (2.0f + 5.0f * sizeAmount);
-
-            node[(size_t) i] = lines[(size_t) i].read (currentLength[(size_t) i] + mod);
-        }
-
-        float outL = 0.0f, outR = 0.0f;
-
-        for (int i = 0; i < numLines; ++i)
-            ((i & 1) == 0 ? outL : outR) += node[(size_t) i];
-
-        outL *= 0.35f;
-        outR *= 0.35f;
-
-        // --- octave up fed back into the tail ---------------------------------
-        float shimmerIn = 0.0f;
-
-        if (shimmer > 0.001f)
-        {
-            const float mono = (outL + outR) * 0.5f;
-            shimmerState = shimmerLP.processSample (shifter.process (mono));
-            shimmerIn = shimmerState * shimmer * 0.42f;
-        }
-
-        // --- Hadamard mixing (in place butterflies) ---------------------------
-        for (int stride = 1; stride < numLines; stride <<= 1)
-        {
-            for (int i = 0; i < numLines; i += stride << 1)
-            {
-                for (int j = i; j < i + stride; ++j)
-                {
-                    const float a = node[(size_t) j];
-                    const float b = node[(size_t) (j + stride)];
-                    node[(size_t) j] = a + b;
-                    node[(size_t) (j + stride)] = a - b;
-                }
-            }
-        }
-
-        constexpr float norm = 0.35355339f;   // 1 / sqrt(8)
-
-        for (int i = 0; i < numLines; ++i)
-        {
-            float v = node[(size_t) i] * norm;
-
-            // damping
-            damper[(size_t) i] += dampCoef * (v - damper[(size_t) i]);
-            v = damper[(size_t) i];
-
-            // low cut, so the tail does not turn into mud
-            lowCut[(size_t) i] += lowCutCoef * (v - lowCut[(size_t) i]);
-            v -= lowCut[(size_t) i];
-
-            v *= feedback[(size_t) i];
-
-            const float src = ((i & 1) == 0 ? inL : inR) * 0.5f + shimmerIn;
-            lines[(size_t) i].write (v + src);
-        }
-
-        left[n] = outL;
-        right[n] = outR;
-    }
-}
-
-//==============================================================================
 void StereoDelay::prepare (double sampleRate, int)
 {
     sr = sampleRate;
@@ -230,7 +49,7 @@ void StereoDelay::setParameters (float delaySamplesL, float delaySamplesR, float
 {
     targetL = jlimit (8.0f, (float) lineL.getSize() - 8.0f, delaySamplesL);
     targetR = jlimit (8.0f, (float) lineR.getSize() - 8.0f, delaySamplesR);
-    feedback = jlimit (0.0f, 0.95f, fb);
+    feedback = jlimit (0.0f, 0.92f, fb);
     pingPongAmount = jlimit (0.0f, 1.0f, pingPong);
 
     lpCoef = onePole (jmap ((double) jlimit (0.0f, 1.0f, tone), 900.0, 12000.0), sr);
@@ -241,7 +60,6 @@ void StereoDelay::process (float* left, float* right, int numSamples, float mix)
 {
     if (mix <= 0.0001f)
     {
-        // keep the lines fed so turning the knob up does not reveal old audio
         for (int n = 0; n < numSamples; ++n) { lineL.write (0.0f); lineR.write (0.0f); }
         return;
     }
@@ -337,12 +155,14 @@ void EffectChain::prepare (double sampleRate, int maxBlockSize)
     oversampling = std::make_unique<dsp::Oversampling<float>> (
         2, 1, dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true, false);
     oversampling->initProcessing ((size_t) maxBlockSize);
+    latencySamples = roundToInt (oversampling->getLatencyInSamples());
 
     ensemble.prepare (sampleRate);
     delay.prepare (sampleRate, maxBlockSize);
-    reverb.prepare (sampleRate, maxBlockSize);
+    ambience.prepare (sampleRate, maxBlockSize);
 
     dryBuffer.setSize (2, maxBlockSize, false, false, true);
+    sendBuffer.setSize (2, maxBlockSize, false, false, true);
     wetBuffer.setSize (2, maxBlockSize, false, false, true);
 
     filtersDirty = true;
@@ -353,7 +173,6 @@ void EffectChain::prepare (double sampleRate, int maxBlockSize)
 void EffectChain::reset()
 {
     for (auto& f : lowShelf)  f.reset();
-    for (auto& f : midPeak)   f.reset();
     for (auto& f : highShelf) f.reset();
     for (auto& f : airShelf)  f.reset();
     for (auto& f : rumbleCut) f.reset();
@@ -365,39 +184,34 @@ void EffectChain::reset()
 
     ensemble.reset();
     delay.reset();
-    reverb.reset();
+    ambience.reset();
 
     driveState.fill (0.0f);
-    gainReduction = 0.0f;
     smoothedOutput = settings.outputGain;
+    smoothedReverbMix = settings.reverbMix;
 }
 
 void EffectChain::setSettings (const EffectSettings& s)
 {
-    const bool eqChanged = s.eqLow != settings.eqLow || s.eqMid != settings.eqMid
-                        || s.eqHigh != settings.eqHigh || s.eqAir != settings.eqAir;
+    const bool eqChanged = s.eqLow != settings.eqLow || s.eqHigh != settings.eqHigh
+                        || s.eqAir != settings.eqAir;
 
     settings = s;
 
     if (eqChanged || filtersDirty)
         updateFilters();
 
-    const float thresholdDb = jmap (settings.compAmount, 0.0f, 1.0f, -6.0f, -34.0f);
-    const float ratio = jmap (settings.compAmount, 0.0f, 1.0f, 1.2f, 5.5f);
-    compressor.setThreshold (thresholdDb);
-    compressor.setRatio (ratio);
+    compressor.setThreshold (jmap (settings.compAmount, 0.0f, 1.0f, -6.0f, -34.0f));
+    compressor.setRatio (jmap (settings.compAmount, 0.0f, 1.0f, 1.2f, 5.5f));
 
     ensemble.setParameters (settings.chorusAmount, settings.chorusRate);
     delay.setParameters (settings.delaySamplesL, settings.delaySamplesR,
                          settings.delayFeedback, settings.delayTone, settings.delayPingPong);
-    reverb.setParameters (settings.reverbSize, settings.reverbDecay, settings.reverbTone,
-                          settings.reverbPredelay, settings.shimmer);
 }
 
 void EffectChain::updateFilters()
 {
     auto low  = dsp::IIR::Coefficients<float>::makeLowShelf  (sr, 180.0f, 0.7f, Decibels::decibelsToGain (settings.eqLow));
-    auto mid  = dsp::IIR::Coefficients<float>::makePeakFilter (sr, 900.0f, 0.8f, Decibels::decibelsToGain (settings.eqMid));
     auto high = dsp::IIR::Coefficients<float>::makeHighShelf (sr, 3600.0f, 0.7f, Decibels::decibelsToGain (settings.eqHigh));
     auto air  = dsp::IIR::Coefficients<float>::makeHighShelf (sr, (float) jmin (14000.0, sr * 0.42), 0.6f,
                                                               Decibels::decibelsToGain (settings.eqAir));
@@ -406,7 +220,6 @@ void EffectChain::updateFilters()
     for (int ch = 0; ch < 2; ++ch)
     {
         lowShelf[(size_t) ch].coefficients  = low;
-        midPeak[(size_t) ch].coefficients   = mid;
         highShelf[(size_t) ch].coefficients = high;
         airShelf[(size_t) ch].coefficients  = air;
         rumbleCut[(size_t) ch].coefficients = rumble;
@@ -415,7 +228,7 @@ void EffectChain::updateFilters()
     filtersDirty = false;
 }
 
-void EffectChain::process (AudioBuffer<float>& buffer)
+void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>& padBuffer)
 {
     const int numSamples = buffer.getNumSamples();
     const int numChannels = jmin (2, buffer.getNumChannels());
@@ -426,13 +239,14 @@ void EffectChain::process (AudioBuffer<float>& buffer)
     if (dryBuffer.getNumSamples() < numSamples)
     {
         dryBuffer.setSize (2, numSamples, false, false, true);
+        sendBuffer.setSize (2, numSamples, false, false, true);
         wetBuffer.setSize (2, numSamples, false, false, true);
     }
 
     auto* l = buffer.getWritePointer (0);
     auto* r = numChannels > 1 ? buffer.getWritePointer (1) : l;
 
-    // ---- tone ---------------------------------------------------------------
+    // ---- tone (piano only) --------------------------------------------------
     for (int ch = 0; ch < numChannels; ++ch)
     {
         auto* d = buffer.getWritePointer (ch);
@@ -442,7 +256,6 @@ void EffectChain::process (AudioBuffer<float>& buffer)
         {
             float x = rumbleCut[c].processSample (d[n]);
             x = lowShelf[c].processSample (x);
-            x = midPeak[c].processSample (x);
             x = highShelf[c].processSample (x);
             x = airShelf[c].processSample (x);
             d[n] = x;
@@ -460,40 +273,24 @@ void EffectChain::process (AudioBuffer<float>& buffer)
         compressor.process (ctx);
 
         const float makeup = Decibels::decibelsToGain (settings.compAmount * 6.0f);
-        const float mix = settings.compMix;
-
-        float dryPeak = 0.0f, wetPeak = 0.0f;
 
         for (int ch = 0; ch < numChannels; ++ch)
         {
             auto* wet = buffer.getWritePointer (ch);
-            const auto* dry = dryBuffer.getReadPointer (ch);
 
             for (int n = 0; n < numSamples; ++n)
-            {
-                dryPeak = jmax (dryPeak, std::abs (dry[n]));
-                wetPeak = jmax (wetPeak, std::abs (wet[n]));
-                wet[n] = dry[n] * (1.0f - mix) + wet[n] * makeup * mix;
-            }
+                wet[n] *= makeup;
         }
-
-        const float gr = dryPeak > 1.0e-4f ? jlimit (0.0f, 1.0f, 1.0f - wetPeak / dryPeak) : 0.0f;
-        gainReduction += 0.25f * (gr - gainReduction);
-    }
-    else
-    {
-        gainReduction *= 0.8f;
     }
 
     // ---- saturation ---------------------------------------------------------
-    if (settings.drive > 0.001f && numChannels == 2)
+    // Always run, so the reported latency never changes underneath the host.
+    if (numChannels == 2)
     {
         const float k = 1.0f + settings.drive * 14.0f;
         const float comp = 1.0f / std::sqrt (k);
         const float bias = 0.06f * settings.drive;
         const float biasOffset = std::tanh (bias);
-        const float tilt = (settings.driveTone - 0.5f) * 2.0f;
-        const float tiltCoef = onePole (900.0, sr);
 
         dsp::AudioBlock<float> block (buffer.getArrayOfWritePointers(), (size_t) numChannels, (size_t) numSamples);
         auto up = oversampling->processSamplesUp (block);
@@ -502,55 +299,71 @@ void EffectChain::process (AudioBuffer<float>& buffer)
         {
             auto* d = up.getChannelPointer (ch);
             const auto n = (int) up.getNumSamples();
-            float& state = driveState[jmin ((size_t) 1, ch)];
 
             for (int i = 0; i < n; ++i)
-            {
-                float x = d[i];
-                state += tiltCoef * (x - state);
-                x += tilt * (x - state) * 0.8f;                 // pre emphasis
-                d[i] = (std::tanh (x * k + bias) - biasOffset) * comp;
-            }
+                d[i] = (std::tanh (d[i] * k + bias) - biasOffset) * comp;
         }
 
         oversampling->processSamplesDown (block);
     }
 
-    // ---- movement -----------------------------------------------------------
-    ensemble.process (l, r, numSamples);
+    // ---- fold the pad in ----------------------------------------------------
+    const auto* padL = padBuffer.getNumChannels() > 0 ? padBuffer.getReadPointer (0) : nullptr;
+    const auto* padR = padBuffer.getNumChannels() > 1 ? padBuffer.getReadPointer (1) : padL;
 
-    // ---- delay --------------------------------------------------------------
-    delay.process (l, r, numSamples, settings.delayMix);
-
-    // ---- reverb (parallel) --------------------------------------------------
-    if (settings.reverbMix > 0.0005f)
+    if (padL != nullptr)
     {
-        wetBuffer.clear (0, numSamples);
-        wetBuffer.copyFrom (0, 0, l, numSamples);
-        wetBuffer.copyFrom (1, 0, r, numSamples);
-
-        reverb.process (wetBuffer.getWritePointer (0), wetBuffer.getWritePointer (1), numSamples);
-
-        const auto* wl = wetBuffer.getReadPointer (0);
-        const auto* wr = wetBuffer.getReadPointer (1);
-        const float mix = settings.reverbMix;
-
         for (int n = 0; n < numSamples; ++n)
         {
-            l[n] += wl[n] * mix;
-            r[n] += wr[n] * mix;
+            l[n] += padL[n];
+            r[n] += padR[n];
         }
     }
 
-    // ---- width + output -----------------------------------------------------
+    // ---- movement -----------------------------------------------------------
+    ensemble.process (l, r, numSamples);
+    delay.process (l, r, numSamples, settings.delayMix);
+
+    // ---- ambience -----------------------------------------------------------
+    // The pad goes in hotter than the piano: that difference is what makes the
+    // pad read as a wash sitting behind the instrument rather than beside it.
+    auto* sendL = sendBuffer.getWritePointer (0);
+    auto* sendR = sendBuffer.getWritePointer (1);
+
+    for (int n = 0; n < numSamples; ++n)
+    {
+        sendL[n] = l[n];
+        sendR[n] = r[n];
+    }
+
+    if (padL != nullptr && settings.padSend > 0.001f)
+    {
+        for (int n = 0; n < numSamples; ++n)
+        {
+            sendL[n] += padL[n] * settings.padSend;
+            sendR[n] += padR[n] * settings.padSend;
+        }
+    }
+
+    ambience.process (sendL, sendR, l, r,
+                      wetBuffer.getWritePointer (0), wetBuffer.getWritePointer (1), numSamples);
+
+    const auto* wl = wetBuffer.getReadPointer (0);
+    const auto* wr = wetBuffer.getReadPointer (1);
+
+    // ---- width, output, safety ---------------------------------------------
     const float w = settings.width;
 
     for (int n = 0; n < numSamples; ++n)
     {
+        smoothedReverbMix += 0.0015f * (settings.reverbMix - smoothedReverbMix);
         smoothedOutput += 0.002f * (settings.outputGain - smoothedOutput);
 
-        const float mid = (l[n] + r[n]) * 0.5f;
-        const float side = (l[n] - r[n]) * 0.5f * w;
+        const float ol = l[n] + wl[n] * smoothedReverbMix;
+        const float orr = r[n] + wr[n] * smoothedReverbMix;
+
+        const float mid = (ol + orr) * 0.5f;
+        const float side = (ol - orr) * 0.5f * w;
 
         l[n] = softClip ((mid + side) * smoothedOutput);
         r[n] = softClip ((mid - side) * smoothedOutput);

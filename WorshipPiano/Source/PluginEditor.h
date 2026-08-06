@@ -12,7 +12,7 @@ class ParamKnob : public juce::Component
 {
 public:
     ParamKnob (juce::AudioProcessorValueTreeState& apvts, const juce::String& paramID,
-               const juce::String& caption);
+               const juce::String& caption, int maxDiameter = 64);
 
     void resized() override;
 
@@ -20,6 +20,7 @@ private:
     juce::Slider slider;
     juce::Label name, value;
     juce::RangedAudioParameter* parameter = nullptr;
+    int maxDiameter = 64;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParamKnob)
@@ -52,26 +53,29 @@ public:
 private:
     void timerCallback() override;
     void addKnob (juce::OwnedArray<ParamKnob>& group, const juce::String& paramID,
-                  const juce::String& caption);
+                  const juce::String& caption, int maxDiameter = 64);
     static void layoutGrid (juce::OwnedArray<ParamKnob>& group, juce::Rectangle<int> area, int columns);
 
     WorshipPianoProcessor& processor;
     wpui::WorshipLookAndFeel lookAndFeel;
     wpui::PresetBar presetBar;
 
-    juce::OwnedArray<ParamKnob> pianoKnobs, padKnobs, toneKnobs, moveKnobs, spaceKnobs;
+    juce::OwnedArray<ParamKnob> pianoKnobs, padKnobs, toneKnobs, moveKnobs, ambienceKnobs, outputKnobs;
+    std::unique_ptr<ParamKnob> soakKnob;
 
-    juce::ComboBox modelBox, delayDivBox;
-    juce::ToggleButton delaySyncButton { "SYNC" };
+    juce::ComboBox modelBox, delayDivBox, machineBox, shimmerModeBox;
+    juce::ToggleButton delaySyncButton { "SYNC" }, freezeButton { "FREEZE" };
     juce::Label tempoLabel;
 
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> modelAttachment, delayDivAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> delaySyncAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
+        modelAttachment, delayDivAttachment, machineAttachment, shimmerModeAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>
+        delaySyncAttachment, freezeAttachment;
 
     LevelMeter meter;
     juce::MidiKeyboardComponent keyboard;
 
-    juce::Rectangle<int> pianoPanel, padPanel, tonePanel, movementPanel, spacePanel;
+    juce::Rectangle<int> pianoPanel, padPanel, tonePanel, movementPanel, ambiencePanel, soakPanel;
     int lastPresetIndex = -2;
     bool lastModified = false;
 

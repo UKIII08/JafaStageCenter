@@ -37,11 +37,18 @@ namespace pid
     inline constexpr const char* delaySync    = "delaysync";
     inline constexpr const char* delayDiv     = "delaydiv";
 
-    // --- Space --------------------------------------------------------------
+    // --- Ambience -----------------------------------------------------------
+    inline constexpr const char* reverbMachine= "revmachine";
     inline constexpr const char* reverbMix    = "reverbmix";
     inline constexpr const char* reverbSize   = "reverbsize";
     inline constexpr const char* reverbDecay  = "reverbdecay";
     inline constexpr const char* shimmer      = "shimmer";
+    inline constexpr const char* shimmerMode  = "shimmermode";
+    inline constexpr const char* reverbDuck   = "reverbduck";
+    inline constexpr const char* reverbFreeze = "reverbfreeze";
+
+    // --- Soak macro ---------------------------------------------------------
+    inline constexpr const char* soak         = "soak";
 
     // --- Output -------------------------------------------------------------
     inline constexpr const char* width        = "width";
