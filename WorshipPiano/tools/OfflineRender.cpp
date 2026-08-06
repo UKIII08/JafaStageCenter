@@ -354,6 +354,7 @@ namespace
     }
 
     bool checkSampleSourceEndToEnd (const File& sfzFile, String& report);
+    bool checkSourceLevelMatch (const File& sfzFile, String& report);
 
     /*  Builds an SFZ on disk laid out the way a real piano library is - a
         <control> default_path, a <global> envelope, velocity <group>s, backslash
@@ -569,8 +570,223 @@ namespace
 
         report << newLine;
         ok &= checkSampleSourceEndToEnd (sfzFile, report);
+        ok &= checkSourceLevelMatch (sfzFile, report);
         dir.deleteRecursively();
         return ok;
+    }
+
+    /*  The two sources have to arrive at the same level. Everything downstream -
+        drive, compressor, the reverb send - was voiced against the modelled
+        engine, so a sampled source that runs hotter does not just sound louder,
+        it drives the saturator into audible distortion on chords while the
+        modelled one stays clean.
+    */
+    bool checkSourceLevelMatch (const File& sfzFile, String& report)
+    {
+        report << "source level match:" << newLine;
+
+        WorshipPianoProcessor processor;
+        processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+        processor.prepareToPlay (sampleRate, blockSize);
+        processor.loadSampleLibrary (sfzFile);
+
+        AudioBuffer<float> block (2, blockSize);
+        bool live = false;
+
+        for (int i = 0; i < 500 && ! live; ++i)
+        {
+            MessageManager::getInstance()->runDispatchLoopUntil (10);
+            block.clear();
+            MidiBuffer midi;
+            processor.processBlock (block, midi);
+            live = processor.isSampleSourceActive();
+        }
+
+        if (! live)
+        {
+            report << "   !! library never reached the audio thread" << newLine << newLine;
+            return false;
+        }
+
+        auto set = [&processor] (const char* id, float v)
+        {
+            if (auto* p = processor.apvts.getParameter (id))
+                p->setValueNotifyingHost (p->convertTo0to1 (v));
+        };
+
+        // A chord, because that is where the level difference actually bites,
+        // and dry, so what we measure is the source and not the tail.
+        const int chord[5] = { 48, 55, 60, 64, 67 };
+
+        auto measure = [&] (float sourceValue, bool dry, float& peak, float& clipped)
+        {
+            for (auto* id : { pid::reverbMix, pid::delayMix, pid::chorusAmount, pid::soak,
+                              pid::reverseMix, pid::eqAir, pid::eqLow, pid::eqHigh })
+                set (id, 0.0f);
+
+            if (dry)
+            {
+                set (pid::drive, 0.0f);
+                set (pid::compAmount, 0.0f);
+            }
+
+            set (pid::padLevel, -60.0f);
+            // low enough that neither source reaches the output safety clip, so
+            // the comparison measures the sources and not the limiter
+            set (pid::pianoLevel, dry ? -24.0f : 0.0f);
+            set (pid::outputGain, 0.0f);
+            set (pid::source, sourceValue);
+
+            processor.reset();
+
+            const int length = (int) (sampleRate * 1.5);
+            AudioBuffer<float> captured (2, length);
+            captured.clear();
+
+            int done = 0;
+            bool sent = false;
+
+            while (done < length)
+            {
+                const int n = jmin (blockSize, length - done);
+                block.setSize (2, n, false, false, true);
+                block.clear();
+
+                MidiBuffer midi;
+
+                if (! sent)
+                {
+                    for (int note : chord)
+                        midi.addEvent (MidiMessage::noteOn (1, note, 0.9f), 1);
+
+                    sent = true;
+                }
+
+                processor.processBlock (block, midi);
+
+                for (int ch = 0; ch < 2; ++ch)
+                    captured.copyFrom (ch, done, block, ch, 0, n);
+
+                done += n;
+            }
+
+            peak = captured.getMagnitude (0, length);
+
+            int over = 0;
+            for (int ch = 0; ch < 2; ++ch)
+            {
+                const auto* d = captured.getReadPointer (ch);
+                for (int n = 0; n < length; ++n)
+                    if (std::abs (d[n]) > 0.999f)
+                        ++over;
+            }
+
+            clipped = 100.0f * (float) over / (float) (length * 2);
+        };
+
+        auto db = [] (float v) { return String (Decibels::gainToDecibels (jmax (1.0e-6f, v)), 1); };
+
+        float modelledDry = 0.0f, sampledDry = 0.0f, unused = 0.0f;
+        measure (0.0f, true, modelledDry, unused);
+        measure (1.0f, true, sampledDry, unused);
+
+        float modelledWet = 0.0f, sampledWet = 0.0f, modelledClip = 0.0f, sampledClip = 0.0f;
+        measure (0.0f, false, modelledWet, modelledClip);
+        measure (1.0f, false, sampledWet, sampledClip);
+
+        const float deltaDb = Decibels::gainToDecibels (jmax (1.0e-6f, sampledDry))
+                            - Decibels::gainToDecibels (jmax (1.0e-6f, modelledDry));
+
+        report << "   5 note chord, dry:  modelled " << db (modelledDry)
+               << " dB   sampled " << db (sampledDry) << " dB   delta "
+               << String (deltaDb, 1) << " dB" << newLine
+               << "   through the chain:  modelled " << db (modelledWet)
+               << " dB (" << String (modelledClip, 2) << "% clipped)   sampled "
+               << db (sampledWet) << " dB (" << String (sampledClip, 2) << "% clipped)" << newLine;
+
+        // and now the real world: every factory preset, driven by the sampled
+        // source, because that is the combination the player actually hears
+        report << "   per preset, sampled source, 5 note chord:" << newLine;
+
+        // The output safety clip starts bending at -3 dBFS. Anything peaking
+        // above that is inside the limiter on every attack, which on a piano
+        // reads as distortion, not as loudness.
+        constexpr float kneeDb = -3.0f;
+        bool allBelowKnee = true;
+
+        for (int p = 0; p < (int) presets::factory().size(); ++p)
+        {
+            processor.loadPreset (p);
+            set (pid::source, 1.0f);
+            processor.reset();
+
+            const int length = (int) (sampleRate * 1.5);
+            AudioBuffer<float> captured (2, length);
+            captured.clear();
+
+            int done = 0;
+            bool sent = false;
+
+            while (done < length)
+            {
+                const int n = jmin (blockSize, length - done);
+                block.setSize (2, n, false, false, true);
+                block.clear();
+
+                MidiBuffer midi;
+
+                if (! sent)
+                {
+                    for (int note : chord)
+                        midi.addEvent (MidiMessage::noteOn (1, note, 0.9f), 1);
+
+                    sent = true;
+                }
+
+                processor.processBlock (block, midi);
+
+                for (int ch = 0; ch < 2; ++ch)
+                    captured.copyFrom (ch, done, block, ch, 0, n);
+
+                done += n;
+            }
+
+            int over = 0;
+            for (int ch = 0; ch < 2; ++ch)
+            {
+                const auto* d = captured.getReadPointer (ch);
+                for (int n = 0; n < length; ++n)
+                    if (std::abs (d[n]) > 0.99f)
+                        ++over;
+            }
+
+            const float presetPeak = captured.getMagnitude (0, length);
+            const float presetPeakDb = Decibels::gainToDecibels (jmax (1.0e-6f, presetPeak));
+            const bool hot = presetPeakDb > kneeDb;
+            allBelowKnee &= ! hot;
+
+            report << "     " << String (p).paddedLeft (' ', 2) << "  "
+                   << String (presets::factory()[(size_t) p].name).paddedRight (' ', 22)
+                   << " peak " << db (presetPeak).paddedLeft (' ', 6)
+                   << " dB   limited " << String (100.0 * over / (length * 2), 2) << " %"
+                   << (hot ? "   !! inside the limiter" : "")
+                   << newLine;
+        }
+
+        const bool matched = std::abs (deltaDb) < 1.5f;
+
+        if (! matched)
+            report << "   !! the sampled source is " << String (deltaDb, 1)
+                   << " dB off the modelled one - switching Source changes the"
+                   << " loudness and the drive stage is voiced for one of them"
+                   << newLine;
+
+        if (! allBelowKnee)
+            report << "   !! presets are peaking above " << String (kneeDb, 1)
+                   << " dBFS, so the safety clip runs on every attack" << newLine;
+
+        report << newLine;
+        return matched && allBelowKnee;
     }
 
     /*  End to end, through the processor exactly as a host drives it: load a

@@ -194,7 +194,52 @@ String SampleLibrary::loadFrom (const File& fileOrFolder,
 
     buildLookup (regions, lookup);
     buildLookup (releases, releaseLookup);
+    calibrateLevel();
     return {};
+}
+
+//==============================================================================
+/*  Sample libraries are mastered to whatever level their author felt like.
+    Salamander sits close to full scale; others are 10 dB below that. The rest of
+    the plugin - the saturator, the compressor, the output limiter - is voiced
+    against the modelled engine, so a hot library does not merely play louder, it
+    lands inside the limiter and every attack comes back squashed and distorted.
+
+    So measure the library instead of trusting it: take the loudest velocity layer
+    across the middle of the keyboard and scale it to a fixed target. Reading the
+    stored peak is free - normalisation already computed it, and `scale` is that
+    peak divided by 32767.
+*/
+void SampleLibrary::calibrateLevel() noexcept
+{
+    // A top-velocity note should peak here before the chain. Chosen to match
+    // what the modelled engine produces for the same note, which leaves the
+    // whole signal path in the range it was voiced for.
+    constexpr float targetPeak = 0.59f;
+
+    float loudest = 0.0f;
+    int counted = 0;
+
+    for (const auto& r : regions)
+    {
+        // the top layer only, and away from the extreme ends of the keyboard
+        // where a library may hold deliberately quieter samples
+        if (r.hiVel < 100 || r.rootNote < 36 || r.rootNote > 90)
+            continue;
+
+        loudest = juce::jmax (loudest, r.scale * 32767.0f * r.gain);
+        ++counted;
+    }
+
+    // nothing matched the filter - a small or unusually mapped library, so fall
+    // back to looking at everything rather than leaving the gain uncalibrated
+    if (counted == 0)
+        for (const auto& r : regions)
+            loudest = juce::jmax (loudest, r.scale * 32767.0f * r.gain);
+
+    calibrationGain = loudest > 1.0e-4f
+                    ? juce::jlimit (0.05f, 8.0f, targetPeak / loudest)
+                    : 1.0f;
 }
 
 String SampleLibrary::loadSfz (const File& file, std::function<void (float)>& onProgress,
@@ -627,7 +672,7 @@ void SamplerEngine::noteOn (int midiNote, float velocity)
     const float trimDb = (velocity - 1.0f) * dynamicRange * 0.30f;
 
     voice->gain = region->gain * layerGain * Decibels::decibelsToGain (trimDb)
-                * (1.0f - 0.28f * soft);
+                * (1.0f - 0.28f * soft) * active->getCalibrationGain();
 
     voice->env = 0.0f;
     voice->envTarget = 1.0f;
@@ -670,7 +715,10 @@ void SamplerEngine::startRelease (int midiNote, int heldSamples)
     const float heldSeconds = (float) heldSamples / (float) sr;
     const float decayDb = -region->rtDecay * heldSeconds;
 
-    voice->gain = region->gain * Decibels::decibelsToGain (jmax (-40.0f, decayDb));
+    // the same correction as the note samples, or the damper noise would sit
+    // proportionally louder than the notes it belongs to
+    voice->gain = region->gain * Decibels::decibelsToGain (jmax (-40.0f, decayDb))
+                * active->getCalibrationGain();
     voice->env = 1.0f;
     voice->envTarget = 1.0f;
     voice->attackCoef = 1.0f;

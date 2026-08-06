@@ -293,10 +293,18 @@ void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>&
     // Always run, so the reported latency never changes underneath the host.
     if (numChannels == 2)
     {
-        const float k = 1.0f + settings.drive * 14.0f;
-        const float comp = 1.0f / std::sqrt (k);
+        // 14x pre-gain turned a piano into a fuzz box on anything but the
+        // quietest playing. 5x still colours the top of a hard chord without
+        // touching the body of the note.
+        const float k = 1.0f + settings.drive * 5.0f;
+
+        // Unity for small signals: tanh(kx)/k -> x as x -> 0. The old 1/sqrt(k)
+        // gave the shaper a gain of sqrt(k) down there - up to +7 dB of level
+        // that the Drive knob was never supposed to add, which pushed the whole
+        // chain into the output limiter and came back as audible distortion.
+        const float comp = 1.0f / k;
         const float bias = 0.06f * settings.drive;
-        const float biasOffset = std::tanh (bias);
+        const float biasOffset = std::tanh (bias) / k;
 
         // Blend towards the shaper rather than always running it. tanh is not
         // the identity at unity gain, so without this the Drive knob at zero
@@ -314,7 +322,7 @@ void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>&
             for (int i = 0; i < n; ++i)
             {
                 const float x = d[i];
-                const float shaped = (std::tanh (x * k + bias) - biasOffset) * comp;
+                const float shaped = std::tanh (x * k + bias) * comp - biasOffset;
                 d[i] = x + wet * (shaped - x);
             }
         }
@@ -394,6 +402,16 @@ void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>&
     // ---- width, output, safety ---------------------------------------------
     const float w = settings.width;
 
+    // Headroom. A hard five note chord used to arrive here at about -0.5 dBFS,
+    // which put every attack inside the safety clip's knee at -3 dB - the
+    // limiter was effectively always on, and on a piano that reads as
+    // distortion rather than as loudness. A piano needs its crest factor: the
+    // whole point of the instrument is the transient. Trim the mix so normal
+    // playing peaks around -7 dBFS and the clip goes back to being what it says
+    // it is, a safety net for the rare stacked-tail peak. The Output knob is
+    // there for anyone who wants the level back.
+    constexpr float headroom = 0.45f;
+
     for (int n = 0; n < numSamples; ++n)
     {
         smoothedReverbMix += 0.0015f * (settings.reverbMix - smoothedReverbMix);
@@ -405,8 +423,8 @@ void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>&
         const float mid = (ol + orr) * 0.5f;
         const float side = (ol - orr) * 0.5f * w;
 
-        l[n] = softClip ((mid + side) * smoothedOutput);
-        r[n] = softClip ((mid - side) * smoothedOutput);
+        l[n] = softClip ((mid + side) * smoothedOutput * headroom);
+        r[n] = softClip ((mid - side) * smoothedOutput * headroom);
     }
 
     if (numChannels == 1)

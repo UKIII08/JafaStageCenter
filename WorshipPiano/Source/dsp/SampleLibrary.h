@@ -91,6 +91,12 @@ public:
     const juce::String& getName() const noexcept { return name; }
     const juce::String& getSourcePath() const noexcept { return sourcePath; }
 
+    /** Level correction that brings this library onto the same level as the
+        modelled engine, which is what the rest of the chain is voiced against.
+        Libraries are mastered to wildly different levels - a hot one otherwise
+        lands inside the output limiter and every attack comes back distorted. */
+    float getCalibrationGain() const noexcept { return calibrationGain; }
+
 private:
     static const Region* lookupIn (const std::vector<Region>& list, const std::vector<int>& table,
                                    int midiNote, int velocity) noexcept
@@ -107,10 +113,12 @@ private:
     juce::String loadFolder (const juce::File&, std::function<void (float)>&, const std::atomic<bool>*);
     bool readAudio (const juce::File&, Region&, juce::AudioFormatManager&);
     static void buildLookup (const std::vector<Region>&, std::vector<int>&);
+    void calibrateLevel() noexcept;
 
     std::vector<Region> regions, releases;
     std::vector<int> lookup, releaseLookup;
     juce::int64 memoryBytes = 0;
+    float calibrationGain = 1.0f;
     juce::String name, sourcePath;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SampleLibrary)
