@@ -1,11 +1,20 @@
 name: Build Worship Piano VST3
 
-# Manual only. Building on every push burns Actions minutes on commits nobody is
-# waiting for, and once the monthly allowance is gone the jobs are never
-# scheduled at all - they queue, time out, and leave a wall of red runs behind.
-# The local build (WorshipPiano/build-windows.bat) is the everyday path; this
-# workflow is for when a clean-machine build or a mac/Linux binary is wanted.
+# This repository is public, so Actions on standard runners cost nothing and do
+# not touch the account's 2000 included minutes - the billing page meters the
+# usage and then cancels it with a 100% discount. Earlier runs died because
+# GitHub never assigned a machine (runner_id 0, killed at the 15 minute queue
+# timeout), which is a capacity problem, not a quota one. So: build on every
+# push again, and keep the manual dispatch for mac and Linux binaries.
 on:
+  push:
+    paths:
+      - 'WorshipPiano/**'
+      - '.github/workflows/worship-piano.yml'
+  pull_request:
+    paths:
+      - 'WorshipPiano/**'
+      - '.github/workflows/worship-piano.yml'
   workflow_dispatch:
     inputs:
       platforms:

@@ -118,14 +118,22 @@ sudo apt install libasound2-dev libjack-jackd2-dev libx11-dev libxext-dev \
   libfreetype6-dev libfontconfig1-dev libgl1-mesa-dev
 ```
 
-### Wariant 3: gotowy build z GitHub Actions
+### Wariant 3: gotowy build z GitHub Actions (bez instalowania czegokolwiek)
 
-Workflow **Build Worship Piano VST3** buduje wtyczke i wrzuca `.vst3` jako artefakt, ale
-uruchamia sie **tylko recznie** (Actions → wybierz workflow → *Run workflow*), zeby nie
-zjadac minut przy kazdym pushu. Artefakt jest na dole strony przebiegu, w sekcji
-**Artifacts** — `JafaWorshipPiano-Windows-x64`.
+Po kazdym pushu w `WorshipPiano/` workflow **Build Worship Piano VST3** buduje wtyczke na
+Windows i wrzuca ja jako artefakt:
 
-Kiedy minut brakuje, jedyna droga jest lokalny build z wariantu 1.
+1. Zakladka **Actions** w tym repo
+2. Ostatni przebieg **Build Worship Piano VST3**
+3. Na dole strony, w sekcji **Artifacts**, pobierz `JafaWorshipPiano-Windows-x64`
+   (albo `...-standalone`, jesli chcesz odpalic wtyczke bez Reapera)
+4. Rozpakuj — w srodku jest folder `Jafa Worship Piano.vst3`
+
+Buildy na macOS i Linuksa robi sie z reki: Actions → *Run workflow* → **platforms: all**.
+
+Repo jest publiczne, wiec te buildy sa darmowe i nie zjadaja puli 2000 minut konta.
+Gdyby repo kiedys stalo sie prywatne, przestaje to obowiazywac — minuty na Windows licza
+sie wtedy podwojnie, a na macOS dziesieciokrotnie.
 
 ---
 
