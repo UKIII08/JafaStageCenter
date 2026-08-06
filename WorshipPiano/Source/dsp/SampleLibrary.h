@@ -172,6 +172,20 @@ public:
 private:
     static constexpr int maxVoices = 64;
 
+    /*  Start retiring the quietest voices here rather than at the hard ceiling.
+        A piano sample runs for many seconds after it has stopped being audible,
+        and with the sustain pedal down - which is how this instrument is
+        actually played - those voices pile up until every new note has to evict
+        a live one. Evicting a live voice restarts it from sample zero, and that
+        discontinuity is a click. Keeping a margin means eviction happens to
+        voices that have already faded out, silently.
+    */
+    static constexpr int softVoiceLimit = 44;
+
+    // ~90 dB below full scale: at this level a voice cannot be heard even with
+    // the whole polyphony stacked on top of it
+    static constexpr float inaudible = 3.0e-5f;
+
     struct Voice
     {
         const SampleLibrary::Region* region = nullptr;
@@ -182,12 +196,17 @@ private:
         float  toneStateL = 0.0f, toneStateR = 0.0f, toneCoef = 1.0f;
         int    note = -1;
         int    heldSamples = 0;
+        int    quietBlocks = 0;
         bool   held = false, sustained = false, active = false, isRelease = false;
+        bool   retiring = false;
         juce::uint32 order = 0;
     };
 
     Voice* findVoice (int midiNote, bool forRelease);
     void   startRelease (int midiNote, int heldSamples);
+    void   retire (Voice&) noexcept;
+    int    countActive() const noexcept;
+    void   cullToSoftLimit() noexcept;
 
     std::array<Voice, maxVoices> voices;
 

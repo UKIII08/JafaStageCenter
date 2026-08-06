@@ -356,12 +356,104 @@ namespace
     bool checkSampleSourceEndToEnd (const File& sfzFile, String& report);
     bool checkSourceLevelMatch (const File& sfzFile, String& report);
 
+    /*  What the plugin actually costs, stage by stage. Reported as a real time
+        factor: 1.0 means rendering one second of audio takes one second of CPU,
+        so anything approaching that on this machine will crackle on a laptop.
+
+        Attribution is by subtraction - measure everything, then measure again
+        with one stage silenced - which is crude but honest about where the
+        milliseconds go.
+    */
+    void benchmark (const File& sfzFile, String& report)
+    {
+        report << "cpu, sustained 10 note chord + pedal, sampled source:" << newLine;
+
+        struct Stage { const char* name; std::vector<std::pair<const char*, float>> off; };
+
+        const std::vector<Stage> stages = {
+            { "everything on",  {} },
+            { "no reverb",      { { pid::reverbMix, 0.0f } } },
+            { "no shimmer",     { { pid::shimmer, 0.0f } } },
+            { "no reverse",     { { pid::reverseMix, 0.0f } } },
+            { "no delay",       { { pid::delayMix, 0.0f } } },
+            { "no pad",         { { pid::padLevel, -60.0f } } },
+            { "no drive",       { { pid::drive, 0.0f } } },
+            { "no chorus",      { { pid::chorusAmount, 0.0f } } },
+        };
+
+        for (const auto& stage : stages)
+        {
+            WorshipPianoProcessor processor;
+            processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+            processor.prepareToPlay (sampleRate, blockSize);
+            processor.loadPreset (11);   // Soaking Cloud: the heaviest one
+            processor.loadSampleLibrary (sfzFile);
+
+            {
+                AudioBuffer<float> warm (2, blockSize);
+                bool ready = false;
+
+                for (int i = 0; i < 500 && ! ready; ++i)
+                {
+                    MessageManager::getInstance()->runDispatchLoopUntil (10);
+                    warm.clear();
+                    MidiBuffer empty;
+                    processor.processBlock (warm, empty);
+                    ready = processor.isSampleSourceActive();
+                }
+            }
+
+            for (auto& p : stage.off)
+                if (auto* param = processor.apvts.getParameter (p.first))
+                    param->setValueNotifyingHost (param->convertTo0to1 (p.second));
+
+            AudioBuffer<float> block (2, blockSize);
+
+            // ten notes held down with the sustain pedal, which is what a
+            // worship player actually does
+            MidiBuffer opening;
+            for (int i = 0; i < 10; ++i)
+                opening.addEvent (MidiMessage::noteOn (1, 40 + i * 4, 0.85f), i);
+
+            opening.addEvent (MidiMessage::controllerEvent (1, 64, 127), 10);
+
+            block.clear();
+            processor.processBlock (block, opening);
+
+            const int seconds = 6;
+            const int blocks = (int) (sampleRate * seconds / blockSize);
+            const double start = Time::getMillisecondCounterHiRes();
+
+            for (int i = 0; i < blocks; ++i)
+            {
+                block.clear();
+                MidiBuffer midi;
+
+                // keep retriggering so voices never all decay away
+                if (i % 40 == 0)
+                    for (int n = 0; n < 10; ++n)
+                        midi.addEvent (MidiMessage::noteOn (1, 40 + n * 4, 0.85f), n);
+
+                processor.processBlock (block, midi);
+            }
+
+            const double elapsed = (Time::getMillisecondCounterHiRes() - start) * 0.001;
+            const double factor = elapsed / seconds;
+
+            report << "   " << String (stage.name).paddedRight (' ', 16)
+                   << String (factor * 100.0, 2).paddedLeft (' ', 6) << " % of real time"
+                   << newLine;
+        }
+
+        report << newLine;
+    }
+
     /*  Builds an SFZ on disk laid out the way a real piano library is - a
         <control> default_path, a <global> envelope, velocity <group>s, backslash
         separators, and a release-triggered damper group - then loads it back and
         checks the parser and the mapping.
     */
-    bool checkSampleLoading (String& report)
+    File buildTestLibrary()
     {
         auto dir = File::getSpecialLocation (File::tempDirectory).getChildFile ("wp_sfz_test");
         dir.deleteRecursively();
@@ -442,6 +534,13 @@ namespace
 
         auto sfzFile = dir.getChildFile ("test.sfz");
         sfzFile.replaceWithText (sfz);
+        return sfzFile;
+    }
+
+    bool checkSampleLoading (String& report)
+    {
+        auto sfzFile = buildTestLibrary();
+        auto dir = sfzFile.getParentDirectory();
 
         wp::SampleLibrary::Ptr library = new wp::SampleLibrary();
         const auto error = library->loadFrom (sfzFile);
@@ -1266,6 +1365,8 @@ int main (int argc, char** argv)
     }
 
     String report;
+    benchmark (buildTestLibrary(), report);
+
     bool allOk = checkStateRoundTrip (report);
     allOk &= stressAmbience (report);
     allOk &= checkSoakMacro (report);

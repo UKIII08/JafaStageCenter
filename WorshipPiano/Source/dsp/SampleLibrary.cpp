@@ -632,6 +632,70 @@ SamplerEngine::Voice* SamplerEngine::findVoice (int midiNote, bool forRelease)
     return oldest;
 }
 
+//==============================================================================
+/*  Fade a voice out over a few milliseconds instead of cutting it. Reusing a
+    sounding voice restarts it from sample zero, and that step in the waveform is
+    the click. A short ramp is inaudible; the step is not.
+*/
+void SamplerEngine::retire (Voice& v) noexcept
+{
+    if (! v.active || v.retiring)
+        return;
+
+    v.retiring = true;
+    v.held = false;
+    v.sustained = false;
+    v.envTarget = 0.0f;
+    v.releaseCoef = 1.0f - std::exp (-1.0f / (float) (0.006 * sr));   // 6 ms
+}
+
+int SamplerEngine::countActive() const noexcept
+{
+    int n = 0;
+
+    for (const auto& v : voices)
+        if (v.active && ! v.retiring)
+            ++n;
+
+    return n;
+}
+
+/*  Keep the polyphony under the soft limit by fading the least useful voices,
+    so that by the time a new note needs a slot there is a free one waiting and
+    nothing audible has to be cut short.
+*/
+void SamplerEngine::cullToSoftLimit() noexcept
+{
+    int over = countActive() - softVoiceLimit;
+
+    while (over > 0)
+    {
+        Voice* worst = nullptr;
+        float quietest = std::numeric_limits<float>::max();
+
+        for (auto& v : voices)
+        {
+            if (! v.active || v.retiring)
+                continue;
+
+            // damper noise first, then whatever is quietest; a key still under
+            // the finger is the last thing to go
+            float weight = v.env * (v.isRelease ? 0.2f : 1.0f);
+
+            if (v.held)
+                weight += 1000.0f;
+
+            if (weight < quietest) { quietest = weight; worst = &v; }
+        }
+
+        if (worst == nullptr)
+            break;
+
+        retire (*worst);
+        --over;
+    }
+}
+
 void SamplerEngine::noteOn (int midiNote, float velocity)
 {
     if (active == nullptr || active->isEmpty())
@@ -649,6 +713,9 @@ void SamplerEngine::noteOn (int midiNote, float velocity)
     if (region == nullptr)
         return;
 
+    // make room before taking a slot, not after running out of them
+    cullToSoftLimit();
+
     auto* voice = findVoice (midiNote, false);
 
     voice->region = region;
@@ -658,6 +725,8 @@ void SamplerEngine::noteOn (int midiNote, float velocity)
     voice->held = true;
     voice->isRelease = false;
     voice->heldSamples = 0;
+    voice->retiring = false;
+    voice->quietBlocks = 0;
     voice->sustained = pedal >= 0.45f;
     voice->order = ++orderCounter;
 
@@ -706,6 +775,8 @@ void SamplerEngine::startRelease (int midiNote, int heldSamples)
     voice->held = false;
     voice->isRelease = true;
     voice->sustained = false;
+    voice->retiring = false;
+    voice->quietBlocks = 0;
     voice->order = ++orderCounter;
 
     const double pitchRatio = std::pow (2.0, (midiNote - region->rootNote) / 12.0) * region->tuneRatio;
@@ -810,6 +881,7 @@ void SamplerEngine::render (float* left, float* right, int numSamples)
         float env = v.env;
         float toneL = v.toneStateL, toneR = v.toneStateR;
         const bool filtering = v.toneCoef < 0.999f;
+        float blockPeak = 0.0f;
 
         for (int n = 0; n < numSamples; ++n)
         {
@@ -864,10 +936,32 @@ void SamplerEngine::render (float* left, float* right, int numSamples)
             }
 
             const float g = env * v.gain;
-            left[n]  += sampleL * g;
-            right[n] += sampleR * g;
+            const float outL = sampleL * g;
+            const float outR = sampleR * g;
+
+            blockPeak = jmax (blockPeak, std::abs (outL), std::abs (outR));
+
+            left[n]  += outL;
+            right[n] += outR;
 
             position += v.increment;
+        }
+
+        /*  A piano sample keeps running for many seconds after it has stopped
+            being audible, and with the sustain pedal down those voices pile up -
+            all of them interpolating, filtering and summing to nothing. Retire
+            them once they have been inaudible for a while. Requiring several
+            consecutive quiet blocks rather than one keeps a genuinely soft
+            passage alive.
+        */
+        if (blockPeak < inaudible)
+        {
+            if (++v.quietBlocks > 24)
+                v.active = false;
+        }
+        else
+        {
+            v.quietBlocks = 0;
         }
 
         if (v.held)
