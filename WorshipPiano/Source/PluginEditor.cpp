@@ -140,22 +140,53 @@ void LevelMeter::paint (Graphics& g)
 //==============================================================================
 PresetList::PresetList()
 {
+    refreshUserPresets();
     list.setRowHeight (34);
     list.setColour (ListBox::backgroundColourId, Colours::transparentBlack);
     list.setColour (ListBox::outlineColourId, Colours::transparentBlack);
     addAndMakeVisible (list);
 }
 
-int PresetList::getNumRows() { return (int) presets::factory().size(); }
+int PresetList::getNumRows() { return (int) presets::factory().size() + userNames.size(); }
+
+void PresetList::refreshUserPresets()
+{
+    const auto keep = userNameForRow (selected);
+    userNames = presets::userPresetNames();
+    list.updateContent();
+
+    if (keep.isNotEmpty())
+    {
+        const int row = rowForUserName (keep);
+        selected = row >= 0 ? row : 0;
+    }
+
+    list.repaint();
+}
+
+String PresetList::userNameForRow (int row) const
+{
+    const int i = row - (int) presets::factory().size();
+    return isPositiveAndBelow (i, userNames.size()) ? userNames[i] : String();
+}
+
+int PresetList::rowForUserName (const String& name) const
+{
+    const int i = userNames.indexOf (name);
+    return i < 0 ? -1 : (int) presets::factory().size() + i;
+}
 
 void PresetList::paintListBoxItem (int row, Graphics& g, int width, int height, bool)
 {
     const auto& all = presets::factory();
 
-    if (! isPositiveAndBelow (row, (int) all.size()))
+    if (! isPositiveAndBelow (row, getNumRows()))
         return;
 
-    const auto& preset = all[(size_t) row];
+    const bool user = isUserRow (row);
+    const String name = user ? userNameForRow (row) : all[(size_t) row].name;
+    const String category = user ? "MOJE" : all[(size_t) row].category.toUpperCase();
+
     auto area = Rectangle<int> (0, 0, width, height).reduced (6, 2);
 
     if (row == selected)
@@ -171,11 +202,11 @@ void PresetList::paintListBoxItem (int row, Graphics& g, int width, int height, 
     // the category reads as a quiet tag on the right, so the eye lands on the name
     g.setColour (row == selected ? colours::textDim.brighter (0.4f) : colours::textDim.darker (0.2f));
     g.setFont (Font (FontOptions (10.5f)));
-    g.drawText (preset.category.toUpperCase(), text.removeFromRight (62), Justification::centredRight, false);
+    g.drawText (category, text.removeFromRight (62), Justification::centredRight, false);
 
     g.setColour (row == selected ? Colours::white : colours::text);
     g.setFont (Font (FontOptions (14.5f)).withStyle (row == selected ? Font::bold : Font::plain));
-    g.drawText (preset.name, text, Justification::centredLeft, true);
+    g.drawText (name, text, Justification::centredLeft, true);
 }
 
 void PresetList::listBoxItemClicked (int row, const MouseEvent&)
@@ -239,7 +270,30 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
 
     //---- live view -----------------------------------------------------------
     addAndMakeVisible (presetList);
-    presetList.onPresetChosen = [this] (int index) { processor.loadPreset (index); };
+    presetList.onPresetChosen = [this] (int index)
+    {
+        if (presetList.isUserRow (index))
+        {
+            const auto name = presetList.userNameForRow (index);
+
+            if (presets::applyUser (processor.apvts, name))
+            {
+                currentUserPreset = name;
+                lastPresetIndex = -2;       // force the header to refresh
+            }
+        }
+        else
+        {
+            currentUserPreset = {};
+            processor.loadPreset (index);
+        }
+    };
+
+    addAndMakeVisible (savePresetButton);
+    savePresetButton.onClick = [this] { savePreset(); };
+
+    addAndMakeVisible (deletePresetButton);
+    deletePresetButton.onClick = [this] { deletePreset(); };
 
     soakKnob = std::make_unique<ParamKnob> (processor.apvts, pid::soak, "SOAK", 150);
     soakKnob->setCaptionSize (14.0f);
@@ -322,24 +376,14 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
         processor.apvts, pid::reverbFreeze, freezeButton);
 
     //---- edit view: piano ----------------------------------------------------
-    addChildComponent (sourceBox);
-    sourceBox.addItemList ({ "Modelled", "Sample Library" }, 1);
-    sourceAttachment = std::make_unique<AudioProcessorValueTreeState::ComboBoxAttachment> (
-        processor.apvts, pid::source, sourceBox);
-
-    addChildComponent (loadButton);
+    addAndMakeVisible (loadButton);
     loadButton.setTriggeredOnMouseDown (true);
     loadButton.onClick = [this] { showLibraryMenu(); };
 
-    addChildComponent (libraryLabel);
+    addAndMakeVisible (libraryLabel);
     libraryLabel.setJustificationType (Justification::centredLeft);
     libraryLabel.setColour (Label::textColourId, colours::textDim);
     libraryLabel.setInterceptsMouseClicks (false, false);
-
-    addChildComponent (modelBox);
-    modelBox.addItemList ({ "Smooth Grand", "Bright Grand", "Warm Upright", "Felt Piano" }, 1);
-    modelAttachment = std::make_unique<AudioProcessorValueTreeState::ComboBoxAttachment> (
-        processor.apvts, pid::model, modelBox);
 
     addKnob (pianoKnobs, pid::tone,         "Tone");
     addKnob (pianoKnobs, pid::attack,       "Attack");
@@ -458,6 +502,8 @@ void WorshipPianoEditor::setLiveMode (bool shouldBeLive)
     editTab.setToggleState (! liveMode, dontSendNotification);
 
     presetList.setVisible (liveMode);
+    savePresetButton.setVisible (liveMode);
+    deletePresetButton.setVisible (liveMode);
     soakKnob->setVisible (liveMode);
     transposeDown.setVisible (liveMode);
     transposeUp.setVisible (liveMode);
@@ -477,7 +523,7 @@ void WorshipPianoEditor::setLiveMode (bool shouldBeLive)
 
     const std::initializer_list<Component*> editOnly
     {
-        &sourceBox, &loadButton, &libraryLabel, &modelBox, &delaySyncButton, &delayDivBox,
+        &delaySyncButton, &delayDivBox,
         &tempoLabel, &machineBox, &shimmerModeBox, &revTimeBox, &pedalBox
     };
 
@@ -486,6 +532,88 @@ void WorshipPianoEditor::setLiveMode (bool shouldBeLive)
 
     resized();
     repaint();
+}
+
+/*  Saving is asynchronous because a plugin editor must never block the host's
+    message thread with a modal loop - some hosts deadlock, and Reaper will stop
+    painting until the window goes away.
+*/
+void WorshipPianoEditor::savePreset()
+{
+    nameWindow = std::make_unique<AlertWindow> ("Zapisz preset",
+                                                "Pod jaka nazwa?",
+                                                MessageBoxIconType::NoIcon);
+
+    // offer the current name so overwriting your own preset is one click
+    const auto suggested = currentUserPreset.isNotEmpty() ? currentUserPreset
+                                                          : presetName.getText().upToFirstOccurrenceOf (" *", false, false);
+
+    nameWindow->addTextEditor ("name", suggested, "Nazwa:");
+    nameWindow->addButton ("Zapisz", 1, KeyPress (KeyPress::returnKey));
+    nameWindow->addButton ("Anuluj", 0, KeyPress (KeyPress::escapeKey));
+
+    nameWindow->enterModalState (true, ModalCallbackFunction::create ([this] (int result)
+    {
+        if (result != 1 || nameWindow == nullptr)
+        {
+            nameWindow.reset();
+            return;
+        }
+
+        const auto name = nameWindow->getTextEditorContents ("name");
+        nameWindow.reset();
+
+        const auto error = presets::saveUser (processor.apvts, name);
+
+        if (error.isNotEmpty())
+        {
+            NativeMessageBox::showAsync (MessageBoxOptions()
+                                             .withIconType (MessageBoxIconType::WarningIcon)
+                                             .withTitle ("Nie zapisano")
+                                             .withMessage (error)
+                                             .withButton ("OK"),
+                                         nullptr);
+            return;
+        }
+
+        currentUserPreset = presets::sanitiseName (name);
+        presetList.refreshUserPresets();
+        lastPresetIndex = -2;
+    }), true);
+}
+
+void WorshipPianoEditor::deletePreset()
+{
+    if (currentUserPreset.isEmpty())
+    {
+        NativeMessageBox::showAsync (MessageBoxOptions()
+                                         .withIconType (MessageBoxIconType::InfoIcon)
+                                         .withTitle ("Nie ma czego usunac")
+                                         .withMessage ("Usuwac mozna tylko wlasne presety - te oznaczone MOJE.")
+                                         .withButton ("OK"),
+                                     nullptr);
+        return;
+    }
+
+    const auto name = currentUserPreset;
+
+    NativeMessageBox::showAsync (MessageBoxOptions()
+                                     .withIconType (MessageBoxIconType::QuestionIcon)
+                                     .withTitle ("Usunac preset?")
+                                     .withMessage ("\"" + name + "\" zniknie z dysku na dobre.")
+                                     .withButton ("Usun")
+                                     .withButton ("Anuluj"),
+                                 [this, name] (int result)
+                                 {
+                                     if (result != 0)
+                                         return;
+
+                                     presets::deleteUser (name);
+                                     currentUserPreset = {};
+                                     presetList.refreshUserPresets();
+                                     processor.loadPreset (processor.getPresetIndex());
+                                     lastPresetIndex = -2;
+                                 });
 }
 
 void WorshipPianoEditor::showLibraryMenu()
@@ -528,9 +656,6 @@ void WorshipPianoEditor::showLibraryMenu()
             if (file != File())
             {
                 processor.loadSampleLibrary (file);
-
-                if (auto* p = processor.apvts.getParameter (pid::source))
-                    p->setValueNotifyingHost (1.0f);
             }
         });
     });
@@ -548,14 +673,20 @@ void WorshipPianoEditor::timerCallback()
 
         const auto& all = presets::factory();
 
-        if (isPositiveAndBelow (index, (int) all.size()))
+        if (currentUserPreset.isNotEmpty())
+        {
+            presetName.setText (currentUserPreset + (modified ? String (" *") : String()),
+                                dontSendNotification);
+            presetBlurb.setText ("Twoj preset", dontSendNotification);
+            presetList.setSelected (presetList.rowForUserName (currentUserPreset));
+        }
+        else if (isPositiveAndBelow (index, (int) all.size()))
         {
             presetName.setText (all[(size_t) index].name + (modified ? String (" *") : String()),
                                 dontSendNotification);
             presetBlurb.setText (all[(size_t) index].blurb, dontSendNotification);
+            presetList.setSelected (index);
         }
-
-        presetList.setSelected (index);
     }
 
     if (liveMode)
@@ -567,7 +698,10 @@ void WorshipPianoEditor::timerCallback()
     else
     {
         tempoLabel.setText (String (roundToInt (processor.getHostTempo())) + " BPM", dontSendNotification);
+    }
 
+    // the library lives in the top bar now, so it has to keep up in both views
+    {
         auto status = processor.getLibraryStatus();
 
         if (processor.isLoadingLibrary())
@@ -575,6 +709,16 @@ void WorshipPianoEditor::timerCallback()
 
         if (libraryLabel.getText() != status)
             libraryLabel.setText (status, dontSendNotification);
+
+        // the "no samples" banner is painted, not a component, so it needs a
+        // nudge when the library finally arrives
+        const bool live = processor.isSampleSourceActive();
+
+        if (live != lastLibraryLive)
+        {
+            lastLibraryLive = live;
+            repaint();
+        }
     }
 }
 
@@ -611,6 +755,31 @@ void WorshipPianoEditor::paint (Graphics& g)
         drawPanel (g, ambiencePanel, "Ambience");
         drawPanel (g, soakPanel,     "Output");
     }
+
+    /*  Without a library the instrument makes no sound at all. Saying so plainly
+        beats letting someone conclude the plugin is broken - that is exactly the
+        conclusion anyone would draw from a piano that answers nothing.
+    */
+    if (! processor.isSampleSourceActive() && ! processor.isLoadingLibrary())
+    {
+        auto banner = getLocalBounds().reduced (margin, 0)
+                          .withTop (topBarH + 4).withHeight (46);
+
+        g.setColour (Colours::orangered.withAlpha (0.16f));
+        g.fillRoundedRectangle (banner.toFloat(), 7.0f);
+        g.setColour (Colours::orangered.withAlpha (0.55f));
+        g.drawRoundedRectangle (banner.toFloat().reduced (0.5f), 7.0f, 1.0f);
+
+        g.setColour (Colours::white);
+        g.setFont (Font (FontOptions (14.0f)).withStyle (Font::bold));
+        g.drawText ("Brak biblioteki sampli - wtyczka nie wyda dzwieku",
+                    banner.reduced (16, 0).removeFromTop (24), Justification::bottomLeft, false);
+
+        g.setColour (colours::textDim.brighter (0.3f));
+        g.setFont (Font (FontOptions (12.0f)));
+        g.drawText ("Kliknij \"Sample library...\" u gory i wskaz rozpakowany folder z samplami.",
+                    banner.reduced (16, 0).removeFromBottom (20), Justification::topLeft, false);
+    }
 }
 
 void WorshipPianoEditor::resized()
@@ -631,6 +800,12 @@ void WorshipPianoEditor::resized()
         right.removeFromRight (8);
         editTab.setBounds (right.removeFromRight (62).reduced (2, 0));
         liveTab.setBounds (right.removeFromRight (62).reduced (2, 0));
+
+        inner.removeFromRight (14);
+
+        auto libraryArea = inner.removeFromRight (250);
+        loadButton.setBounds (libraryArea.removeFromTop (libraryArea.getHeight() / 2).reduced (2, 1));
+        libraryLabel.setBounds (libraryArea.reduced (4, 0));
 
         inner.removeFromRight (14);
 
@@ -667,7 +842,16 @@ void WorshipPianoEditor::layoutLive (Rectangle<int> area)
     right.removeFromBottom (gap);
     liveMixPanel = right;
 
-    presetList.setBounds (livePresetPanel.reduced (10, 8).withTrimmedTop (panelTitleH - 6));
+    {
+        auto panel = livePresetPanel.reduced (10, 8).withTrimmedTop (panelTitleH - 6);
+        auto buttons = panel.removeFromBottom (30);
+        panel.removeFromBottom (6);
+
+        savePresetButton.setBounds (buttons.removeFromLeft (roundToInt (buttons.getWidth() * 0.55f)).reduced (2));
+        deletePresetButton.setBounds (buttons.reduced (2));
+
+        presetList.setBounds (panel);
+    }
 
     //---- mix: one big macro plus the five things you actually reach for ------
     {
@@ -734,15 +918,6 @@ void WorshipPianoEditor::layoutEdit (Rectangle<int> area)
     auto pianoInner = pianoPanel.reduced (10, 6);
     pianoInner.removeFromTop (panelTitleH);
 
-    auto sourceRow = pianoInner.removeFromTop (28).reduced (2, 2);
-    sourceBox.setBounds (sourceRow.removeFromLeft (roundToInt (sourceRow.getWidth() * 0.30f)));
-    sourceRow.removeFromLeft (6);
-    loadButton.setBounds (sourceRow.removeFromRight (128));
-    sourceRow.removeFromRight (6);
-    modelBox.setBounds (sourceRow);
-
-    libraryLabel.setBounds (pianoInner.removeFromTop (15).reduced (4, 0));
-    pianoInner.removeFromTop (2);
     layoutGrid (pianoKnobs, pianoInner, 5);
 
     auto padInner = padPanel.reduced (10, 6);

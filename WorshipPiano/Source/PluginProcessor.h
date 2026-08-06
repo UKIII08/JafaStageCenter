@@ -3,7 +3,6 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include "Parameters.h"
-#include "dsp/PianoEngine.h"
 #include "dsp/PadLayer.h"
 #include "dsp/EffectChain.h"
 #include "dsp/SampleLibrary.h"
@@ -74,19 +73,12 @@ private:
     void handleMidiMessage (const juce::MidiMessage& m);
     float delaySamplesForDivision (int division) const;
 
-    /** Sampled source only counts once a library is actually in memory. */
-    bool useSampler() const noexcept
-    {
-        return apvts.getRawParameterValue (pid::source)->load() > 0.5f && sampler.hasLibrary();
-    }
-
     template <typename T = float>
     T param (const char* id) const
     {
         return (T) apvts.getRawParameterValue (id)->load();
     }
 
-    wp::PianoEngine piano;
     wp::PadLayer pad;
     wp::EffectChain effects;
 

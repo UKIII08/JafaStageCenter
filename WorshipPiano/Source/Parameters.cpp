@@ -62,12 +62,6 @@ AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
               StringArray { "Off", "Expression (CC11)", "Mod Wheel (CC1)" }, 1));
 
     // ---- Piano -------------------------------------------------------------
-    c.add (std::make_unique<AudioParameterChoice> (pv (pid::source), "Source",
-              StringArray { "Modelled", "Sample Library" }, 0));
-
-    c.add (std::make_unique<AudioParameterChoice> (pv (pid::model), "Model",
-              StringArray { "Smooth Grand", "Bright Grand", "Warm Upright", "Felt Piano" }, 0));
-
     c.add (f (pid::tone,         "Tone",     range (-1.0f, 1.0f, 0.0f),   0.0f,  bipolar));
     c.add (f (pid::attack,       "Attack",   range (0.0f, 1.0f, 0.5f),    0.35f, pct));
     c.add (f (pid::decayTime,    "Sustain",  range (0.5f, 2.0f, 1.0f),    1.0f,  mult));

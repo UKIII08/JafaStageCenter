@@ -131,7 +131,6 @@ void WorshipPianoProcessor::prepareToPlay (double newSampleRate, int samplesPerB
 {
     sampleRate = newSampleRate;
 
-    piano.prepare (newSampleRate, samplesPerBlock);
     sampler.prepare (newSampleRate, samplesPerBlock);
     pad.prepare (newSampleRate, samplesPerBlock);
     effects.prepare (newSampleRate, samplesPerBlock);
@@ -145,7 +144,6 @@ void WorshipPianoProcessor::prepareToPlay (double newSampleRate, int samplesPerB
 
 void WorshipPianoProcessor::releaseResources()
 {
-    piano.panic();
     sampler.panic();
     pad.reset();
     effects.reset();
@@ -175,18 +173,9 @@ void WorshipPianoProcessor::updateSettings()
     const float soak = jmax (param (pid::soak), pedalSoak.load());
     const float soak2 = soak * soak;
 
-    wp::EngineSettings es;
-    es.model        = param<int> (pid::model);
-    es.tone         = param (pid::tone);
-    es.attack       = param (pid::attack);
-    es.decayScale   = param (pid::decayTime);
-    es.dynamicRange = param (pid::dynamicRange);
-    es.spread       = 0.40f;
-    piano.setSettings (es);
-
-    sampler.setDynamics (es.dynamicRange);
-    sampler.setTone (es.tone);
-    sampler.setReleaseScale (es.decayScale);
+    sampler.setDynamics (param (pid::dynamicRange));
+    sampler.setTone (param (pid::tone));
+    sampler.setReleaseScale (param (pid::decayTime));
 
     wp::PadSettings ps;
     const float padDb = param (pid::padLevel);
@@ -276,12 +265,7 @@ void WorshipPianoProcessor::handleMidiMessage (const MidiMessage& m)
         notePadOnly[(size_t) played] = padOnly;
 
         if (! padOnly)
-        {
-            if (useSampler())
-                sampler.noteOn (sounded, m.getFloatVelocity());
-            else
-                piano.noteOn (sounded, m.getFloatVelocity());
-        }
+            sampler.noteOn (sounded, m.getFloatVelocity());
 
         pad.noteOn (sounded, m.getFloatVelocity());
     }
@@ -291,7 +275,6 @@ void WorshipPianoProcessor::handleMidiMessage (const MidiMessage& m)
         const int sounded = jlimit (0, 127, played + (int) noteTranspose[(size_t) played]);
 
         sampler.noteOff (sounded);
-        piano.noteOff (sounded);
         pad.noteOff (sounded);
     }
     else if (m.isController())
@@ -308,18 +291,16 @@ void WorshipPianoProcessor::handleMidiMessage (const MidiMessage& m)
 
         switch (cc)
         {
-            case 64:  piano.sustainPedal (value); sampler.sustainPedal (value);
+            case 64:  sampler.sustainPedal (value);
                       pad.sustainPedal (value >= 0.45f); break;
-            case 66:  piano.sostenutoPedal (value >= 0.5f); break;
-            case 67:  piano.softPedal (value); sampler.softPedal (value); break;
+            case 67:  sampler.softPedal (value); break;
             case 120: panic(); break;
-            case 123: piano.allNotesOff(); sampler.allNotesOff(); pad.allNotesOff(); break;
+            case 123: sampler.allNotesOff(); pad.allNotesOff(); break;
             default: break;
         }
     }
     else if (m.isAllNotesOff())
     {
-        piano.allNotesOff();
         sampler.allNotesOff();
         pad.allNotesOff();
     }
@@ -345,10 +326,7 @@ void WorshipPianoProcessor::renderSegment (AudioBuffer<float>& buffer, int start
     auto* l = buffer.getWritePointer (0) + start;
     auto* r = buffer.getNumChannels() > 1 ? buffer.getWritePointer (1) + start : l;
 
-    if (useSampler())
-        sampler.render (l, r, numSamples);
-    else
-        piano.render (l, r, numSamples);
+    sampler.render (l, r, numSamples);
 
     pad.render (padBuffer.getWritePointer (0) + start,
                 padBuffer.getWritePointer (1) + start, numSamples);
@@ -412,8 +390,7 @@ void WorshipPianoProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
         for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
             buffer.applyGainRamp (ch, 0, numSamples, 1.0f, 0.0f);
 
-        piano.panic();
-        sampler.panic();
+            sampler.panic();
         pad.reset();
         effects.reset();
         noteTranspose.fill (0);

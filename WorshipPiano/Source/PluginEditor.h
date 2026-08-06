@@ -4,6 +4,7 @@
 
 #include "PluginProcessor.h"
 #include "gui/WorshipLookAndFeel.h"
+#include "Presets.h"
 
 //==============================================================================
 /** Rotary control with a caption and a live readout underneath. */
@@ -56,10 +57,19 @@ public:
     void resized() override;
     void setSelected (int index);
 
+    /** Re-reads the user presets from disk and keeps the selection if it can. */
+    void refreshUserPresets();
+
+    /** Rows past the factory list are the user's own. */
+    bool isUserRow (int row) const noexcept { return row >= (int) presets::factory().size(); }
+    juce::String userNameForRow (int row) const;
+    int rowForUserName (const juce::String& name) const;
+
     std::function<void (int)> onPresetChosen;
 
 private:
     juce::ListBox list { "presets", this };
+    juce::StringArray userNames;
     int selected = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PresetList)
@@ -78,6 +88,8 @@ public:
 private:
     void timerCallback() override;
     void showLibraryMenu();
+    void savePreset();
+    void deletePreset();
     void setLiveMode (bool shouldBeLive);
     void addKnob (juce::OwnedArray<ParamKnob>& group, const juce::String& paramID,
                   const juce::String& caption, int maxDiameter = 64);
@@ -94,6 +106,9 @@ private:
     //---- top bar -------------------------------------------------------------
     juce::TextButton liveTab { "LIVE" }, editTab { "EDIT" }, panicButton { "PANIC" };
     juce::TextButton presetPrev { "<" }, presetNext { ">" };
+    juce::TextButton savePresetButton { "ZAPISZ" }, deletePresetButton { "USUN" };
+    juce::String currentUserPreset;
+    std::unique_ptr<juce::AlertWindow> nameWindow;
     juce::Label presetName, presetBlurb;
 
     //---- live view -----------------------------------------------------------
@@ -114,15 +129,15 @@ private:
     //---- edit view -----------------------------------------------------------
     juce::OwnedArray<ParamKnob> pianoKnobs, padKnobs, toneKnobs, moveKnobs, ambienceKnobs, outputKnobs;
 
-    juce::ComboBox modelBox, delayDivBox, machineBox, shimmerModeBox, sourceBox, revTimeBox, pedalBox;
+    juce::ComboBox delayDivBox, machineBox, shimmerModeBox, revTimeBox, pedalBox;
     juce::ToggleButton delaySyncButton { "SYNC" };
     juce::TextButton loadButton { "Sample library..." };
     juce::Label tempoLabel, libraryLabel;
     std::unique_ptr<juce::FileChooser> chooser;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
-        modelAttachment, delayDivAttachment, machineAttachment, shimmerModeAttachment,
-        sourceAttachment, revTimeAttachment, pedalAttachment;
+        delayDivAttachment, machineAttachment, shimmerModeAttachment,
+        revTimeAttachment, pedalAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> delaySyncAttachment;
 
     //---- shared --------------------------------------------------------------
@@ -134,6 +149,7 @@ private:
 
     int lastPresetIndex = -2;
     bool lastModified = false;
+    bool lastLibraryLive = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WorshipPianoEditor)
 };

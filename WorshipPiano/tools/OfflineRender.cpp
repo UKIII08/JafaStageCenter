@@ -10,6 +10,8 @@
 
 #include <juce_audio_formats/juce_audio_formats.h>
 
+#include <map>
+
 #include "../Source/PluginProcessor.h"
 #include "../Source/Presets.h"
 #include "../Source/Parameters.h"
@@ -64,6 +66,129 @@ namespace
         return events;
     }
 
+    /*  Every test needs a library now: without one the instrument is silent by
+        design. Load it and spin until it has actually reached the audio thread,
+        because loading happens on a background thread and the handoff is what
+        used to be broken.
+    */
+    bool attachLibrary (WorshipPianoProcessor& processor, const File& sfzFile)
+    {
+        processor.loadSampleLibrary (sfzFile);
+
+        AudioBuffer<float> warm (2, blockSize);
+
+        for (int i = 0; i < 500; ++i)
+        {
+            MessageManager::getInstance()->runDispatchLoopUntil (10);
+            warm.clear();
+            MidiBuffer empty;
+            processor.processBlock (warm, empty);
+
+            if (processor.isSampleSourceActive())
+                return true;
+        }
+
+        return false;
+    }
+
+    /*  A preset the player saved before a service has to come back exactly, on
+        the next launch and after a reinstall. Round trip it through disk.
+    */
+    bool checkUserPresets (String& report)
+    {
+        report << "user presets:" << newLine;
+
+        const String name = "__wp_test_preset";
+        presets::deleteUser (name);
+
+        WorshipPianoProcessor processor;
+        processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+        processor.prepareToPlay (sampleRate, blockSize);
+        processor.loadPreset (5);
+
+        auto set = [&processor] (const char* id, float v)
+        {
+            if (auto* p = processor.apvts.getParameter (id))
+                p->setValueNotifyingHost (p->convertTo0to1 (v));
+        };
+
+        // move things off the preset values so we are testing the file, not
+        // the preset that happened to be loaded
+        set (pid::reverbDecay, 7.5f);
+        set (pid::soak, 0.66f);
+        set (pid::transpose, -4.0f);
+        set (pid::eqAir, 3.5f);
+
+        std::map<String, float> before;
+
+        for (const auto& id : allParameterIDs())
+            before[id] = processor.apvts.getRawParameterValue (id)->load();
+
+        const auto error = presets::saveUser (processor.apvts, name);
+
+        if (error.isNotEmpty())
+        {
+            report << "   !! " << error << newLine << newLine;
+            return false;
+        }
+
+        if (! presets::userPresetNames().contains (name))
+        {
+            report << "   !! saved preset does not show up in the list" << newLine << newLine;
+            presets::deleteUser (name);
+            return false;
+        }
+
+        // wipe the state, then load it back from disk
+        processor.loadPreset (0);
+
+        WorshipPianoProcessor restored;
+        restored.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+        restored.prepareToPlay (sampleRate, blockSize);
+
+        if (! presets::applyUser (restored.apvts, name))
+        {
+            report << "   !! could not load the preset back" << newLine << newLine;
+            presets::deleteUser (name);
+            return false;
+        }
+
+        int mismatches = 0;
+
+        for (const auto& id : allParameterIDs())
+        {
+            const float a = before[id];
+            const float b = restored.apvts.getRawParameterValue (id)->load();
+
+            if (std::abs (a - b) > 1.0e-4f * jmax (1.0f, std::abs (a)))
+            {
+                report << "     mismatch on " << id << ": " << a << " vs " << b << newLine;
+                ++mismatches;
+            }
+        }
+
+        const bool deleted = presets::deleteUser (name);
+        const bool gone = ! presets::userPresetNames().contains (name);
+
+        report << "   round trip through disk: "
+               << (mismatches == 0 ? "OK" : String (mismatches) + " MISMATCHES") << newLine
+               << "   delete: " << (deleted && gone ? "OK" : "FAILED") << newLine;
+
+        // a name with characters no file system will take must not silently
+        // write somewhere unexpected
+        const auto awkward = presets::sanitiseName ("  ../../Sunday: \"Grand\" ?  ");
+        report << "   awkward name -> \"" << awkward << "\"" << newLine;
+
+        const bool safeName = ! awkward.contains ("..") && ! awkward.contains ("/")
+                           && ! awkward.contains ("\\") && awkward.isNotEmpty();
+
+        if (! safeName)
+            report << "   !! a preset name can escape the preset folder" << newLine;
+
+        report << newLine;
+        return mismatches == 0 && deleted && gone && safeName;
+    }
+
     /** A project reload in the host must bring every knob back exactly. */
     bool checkStateRoundTrip (String& report)
     {
@@ -74,7 +199,6 @@ namespace
 
         // nudge a few parameters so we are not just testing the preset itself
         if (auto* p = source.apvts.getParameter (pid::reverbDecay)) p->setValueNotifyingHost (0.63f);
-        if (auto* p = source.apvts.getParameter (pid::model))       p->setValueNotifyingHost (p->convertTo0to1 (1.0f));
         if (auto* p = source.apvts.getParameter (pid::delaySync))   p->setValueNotifyingHost (0.0f);
 
         MemoryBlock state;
@@ -173,12 +297,13 @@ namespace
         to unity gain with a pitch shifter inside the loop, so if anything in
         there can run away, it runs away here.
     */
-    bool stressAmbience (String& report)
+    bool stressAmbience (const File& sfzFile, String& report)
     {
         WorshipPianoProcessor processor;
         processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
         processor.prepareToPlay (sampleRate, blockSize);
         processor.loadPreset (13);   // Infinite Wash
+        attachLibrary (processor, sfzFile);
 
         auto set = [&processor] (const char* id, float v)
         {
@@ -280,7 +405,7 @@ namespace
     }
 
     /** Soak has to do something audible on a preset that starts bone dry. */
-    bool checkSoakMacro (String& report)
+    bool checkSoakMacro (const File& sfzFile, String& report)
     {
         report << "soak sweep on Sunday Grand (dry preset):" << newLine;
 
@@ -292,6 +417,7 @@ namespace
             processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
             processor.prepareToPlay (sampleRate, blockSize);
             processor.loadPreset (0);
+            attachLibrary (processor, sfzFile);
 
             if (auto* p = processor.apvts.getParameter (pid::soak))
                 p->setValueNotifyingHost (p->convertTo0to1 (soak));
@@ -537,10 +663,8 @@ namespace
         return sfzFile;
     }
 
-    bool checkSampleLoading (String& report)
+    bool checkSampleLoading (const File& sfzFile, String& report)
     {
-        auto sfzFile = buildTestLibrary();
-        auto dir = sfzFile.getParentDirectory();
 
         wp::SampleLibrary::Ptr library = new wp::SampleLibrary();
         const auto error = library->loadFrom (sfzFile);
@@ -550,7 +674,6 @@ namespace
         if (error.isNotEmpty())
         {
             report << "   !! " << error << newLine << newLine;
-            dir.deleteRecursively();
             return false;
         }
 
@@ -670,19 +793,18 @@ namespace
         report << newLine;
         ok &= checkSampleSourceEndToEnd (sfzFile, report);
         ok &= checkSourceLevelMatch (sfzFile, report);
-        dir.deleteRecursively();
         return ok;
     }
 
-    /*  The two sources have to arrive at the same level. Everything downstream -
-        drive, compressor, the reverb send - was voiced against the modelled
-        engine, so a sampled source that runs hotter does not just sound louder,
-        it drives the saturator into audible distortion on chords while the
-        modelled one stays clean.
+    /*  Sample libraries are mastered to wildly different levels, and the chain
+        behind them - saturator, compressor, output limiter - only behaves if the
+        signal arrives in the range it was voiced for. Calibration at load time is
+        what keeps a hot library out of the limiter, and this is the check that it
+        actually worked.
     */
     bool checkSourceLevelMatch (const File& sfzFile, String& report)
     {
-        report << "source level match:" << newLine;
+        report << "level calibration and headroom:" << newLine;
 
         WorshipPianoProcessor processor;
         processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
@@ -717,7 +839,7 @@ namespace
         // and dry, so what we measure is the source and not the tail.
         const int chord[5] = { 48, 55, 60, 64, 67 };
 
-        auto measure = [&] (float sourceValue, bool dry, float& peak, float& clipped)
+        auto measure = [&] (bool dry, float& peak, float& clipped)
         {
             for (auto* id : { pid::reverbMix, pid::delayMix, pid::chorusAmount, pid::soak,
                               pid::reverseMix, pid::eqAir, pid::eqLow, pid::eqHigh })
@@ -734,7 +856,6 @@ namespace
             // the comparison measures the sources and not the limiter
             set (pid::pianoLevel, dry ? -24.0f : 0.0f);
             set (pid::outputGain, 0.0f);
-            set (pid::source, sourceValue);
 
             processor.reset();
 
@@ -785,23 +906,17 @@ namespace
 
         auto db = [] (float v) { return String (Decibels::gainToDecibels (jmax (1.0e-6f, v)), 1); };
 
-        float modelledDry = 0.0f, sampledDry = 0.0f, unused = 0.0f;
-        measure (0.0f, true, modelledDry, unused);
-        measure (1.0f, true, sampledDry, unused);
+        float dryPeak = 0.0f, wetPeak = 0.0f, dryClip = 0.0f, wetClip = 0.0f;
+        measure (true, dryPeak, dryClip);
+        measure (false, wetPeak, wetClip);
 
-        float modelledWet = 0.0f, sampledWet = 0.0f, modelledClip = 0.0f, sampledClip = 0.0f;
-        measure (0.0f, false, modelledWet, modelledClip);
-        measure (1.0f, false, sampledWet, sampledClip);
+        // -24 dB of piano level on top of a calibrated library: this is the
+        // number that moves if calibration ever drifts
+        const float dryDb = Decibels::gainToDecibels (jmax (1.0e-6f, dryPeak));
 
-        const float deltaDb = Decibels::gainToDecibels (jmax (1.0e-6f, sampledDry))
-                            - Decibels::gainToDecibels (jmax (1.0e-6f, modelledDry));
-
-        report << "   5 note chord, dry:  modelled " << db (modelledDry)
-               << " dB   sampled " << db (sampledDry) << " dB   delta "
-               << String (deltaDb, 1) << " dB" << newLine
-               << "   through the chain:  modelled " << db (modelledWet)
-               << " dB (" << String (modelledClip, 2) << "% clipped)   sampled "
-               << db (sampledWet) << " dB (" << String (sampledClip, 2) << "% clipped)" << newLine;
+        report << "   5 note chord, dry at -24 dB piano: " << db (dryPeak) << " dB" << newLine
+               << "   through the chain:                 " << db (wetPeak)
+               << " dB (" << String (wetClip, 2) << "% clipped)" << newLine;
 
         // and now the real world: every factory preset, driven by the sampled
         // source, because that is the combination the player actually hears
@@ -816,7 +931,6 @@ namespace
         for (int p = 0; p < (int) presets::factory().size(); ++p)
         {
             processor.loadPreset (p);
-            set (pid::source, 1.0f);
             processor.reset();
 
             const int length = (int) (sampleRate * 1.5);
@@ -872,13 +986,14 @@ namespace
                    << newLine;
         }
 
-        const bool matched = std::abs (deltaDb) < 1.5f;
+        // a calibrated library lands here; drift either way means the loader
+        // stopped measuring the samples properly
+        const bool matched = dryDb > -27.0f && dryDb < -21.0f;
 
         if (! matched)
-            report << "   !! the sampled source is " << String (deltaDb, 1)
-                   << " dB off the modelled one - switching Source changes the"
-                   << " loudness and the drive stage is voiced for one of them"
-                   << newLine;
+            report << "   !! calibrated level is " << String (dryDb, 1)
+                   << " dB, expected around -24 dB - the library is arriving at"
+                   << " the wrong level for the chain behind it" << newLine;
 
         if (! allBelowKnee)
             report << "   !! presets are peaking above " << String (kneeDb, 1)
@@ -947,10 +1062,8 @@ namespace
         // Render the same note from each source and compare. The test samples are
         // pure sines and the modelled engine is all partials, so the ratio of the
         // fundamental to everything above it tells them apart.
-        auto measure = [&] (float sourceValue, float& peakOut)
+        auto measure = [&] (float& peakOut)
         {
-            set (pid::source, sourceValue);
-
             const int length = (int) (sampleRate * 1.0);
             AudioBuffer<float> captured (2, length);
             captured.clear();
@@ -1014,13 +1127,10 @@ namespace
             return 10.0 * std::log10 (jmax (1.0e-12, fundamental) / jmax (1.0e-12, rest));
         };
 
-        float peakModelled = 0.0f, peakSampled = 0.0f;
-        const double modelledRatio = measure (0.0f, peakModelled);
-        const double sampledRatio  = measure (1.0f, peakSampled);
+        float peakSampled = 0.0f;
+        const double sampledRatio = measure (peakSampled);
 
-        report << "   modelled: " << String (modelledRatio, 1) << " dB fundamental vs partials, peak "
-               << String (Decibels::gainToDecibels (jmax (1.0e-6f, peakModelled)), 1) << " dB" << newLine
-               << "   sampled:  " << String (sampledRatio, 1) << " dB fundamental vs partials, peak "
+        report << "   " << String (sampledRatio, 1) << " dB fundamental vs partials, peak "
                << String (Decibels::gainToDecibels (jmax (1.0e-6f, peakSampled)), 1) << " dB" << newLine;
 
         bool ok = true;
@@ -1031,9 +1141,11 @@ namespace
             ok = false;
         }
 
-        if (sampledRatio < modelledRatio + 20.0)
+        // the test samples are pure sines, so if what comes out is really the
+        // sample then almost all the energy sits on the fundamental
+        if (sampledRatio < 25.0)
         {
-            report << "   !! sampled source looks like the modelled engine" << newLine;
+            report << "   !! output does not look like the sample that was loaded" << newLine;
             ok = false;
         }
 
@@ -1044,13 +1156,14 @@ namespace
     /** Transpose has to move the pitch, and split has to keep the piano out of
         the left hand. Both rewrite note numbers on their way in, which is easy
         to get subtly wrong and impossible to notice until a rehearsal. */
-    bool checkPerformanceControls (String& report)
+    bool checkPerformanceControls (const File& sfzFile, String& report)
     {
         report << "performance controls:" << newLine;
 
         WorshipPianoProcessor processor;
         processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
         processor.prepareToPlay (sampleRate, blockSize);
+        attachLibrary (processor, sfzFile);
 
         auto set = [&processor] (const char* id, float v)
         {
@@ -1209,12 +1322,13 @@ namespace
         return ok;
     }
 
-    bool renderPreset (int presetIndex, const File& outputDir, String& report)
+    bool renderPreset (int presetIndex, const File& sfzFile, const File& outputDir, String& report)
     {
         WorshipPianoProcessor processor;
         processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
         processor.prepareToPlay (sampleRate, blockSize);
         processor.loadPreset (presetIndex);
+        attachLibrary (processor, sfzFile);
 
         const auto events = buildPerformance();
         const double lengthSeconds = 16.0;
@@ -1365,21 +1479,26 @@ int main (int argc, char** argv)
     }
 
     String report;
-    benchmark (buildTestLibrary(), report);
+    const File sfz = buildTestLibrary();
+
+    benchmark (sfz, report);
 
     bool allOk = checkStateRoundTrip (report);
-    allOk &= stressAmbience (report);
-    allOk &= checkSoakMacro (report);
-    allOk &= checkSampleLoading (report);
-    allOk &= checkPerformanceControls (report);
+    allOk &= checkUserPresets (report);
+    allOk &= stressAmbience (sfz, report);
+    allOk &= checkSoakMacro (sfz, report);
+    allOk &= checkSampleLoading (sfz, report);
+    allOk &= checkPerformanceControls (sfz, report);
 
     for (int i = 0; i < (int) presets::factory().size(); ++i)
     {
         if (single >= 0 && i != single)
             continue;
 
-        allOk &= renderPreset (i, outputDir, report);
+        allOk &= renderPreset (i, sfz, outputDir, report);
     }
+
+    sfz.getParentDirectory().deleteRecursively();
 
     std::cout << report << std::endl;
     std::cout << (allOk ? "ALL PRESETS OK" : "PROBLEMS FOUND") << std::endl;

@@ -3,64 +3,81 @@
 Wtyczka **VST3** (+ wersja standalone) — pianino do grania uwielbienia z warstwą **soaking**:
 padem i gęstym, płynącym pogłosem, które można nałożyć na fortepian jednym pokrętłem.
 
-Napisana w C++/JUCE, bez bibliotek sampli — cały dźwięk jest generowany w czasie rzeczywistym.
+Napisana w C++/JUCE. Gra z **własnej biblioteki sampli** — wskazujesz ją raz i wtyczka
+pamięta ścieżkę.
 
 ---
 
-## Dwa źródła dźwięku
+## Biblioteka sampli — wymagana
 
-Wtyczka ma dwa silniki fortepianu i przełącznik **Source** na górze panelu PIANO.
+Wtyczka **nie ma wbudowanego generatora dźwięku**. Gra wyłącznie z prawdziwych sampli
+fortepianowych, które wskazujesz sam. Dopóki nie wczytasz biblioteki, na górze widnieje
+czerwony pasek i nic nie zabrzmi — to nie usterka, tylko konstrukcja.
 
-### 1. Sample Library — jeśli chcesz brzmienie klasy top
+Wcześniej obok samplera był silnik modelowany (synteza addytywna). Został usunięty: brzmiał
+gorzej od byle jakiej biblioteki, a przy tym kosztował blisko **trzy razy więcej procesora**
+niż odtwarzanie sampli.
 
-Syntezowany fortepian ma sufit, którego nie da się przeskoczyć strojeniem parametrów.
-Uderzona struna to chaotyczne, nieliniowe zdarzenie i żadna synteza addytywna nie oszuka
-ucha na ataku. Jedyny modelowany fortepian, który realnie konkuruje z samplerami, to
-Pianoteq — dwadzieścia lat pracy zespołu akustyków.
-
-Dlatego wtyczka potrafi **wczytać prawdziwą bibliotekę sampli**, a cały tor za nią —
-pad, przestrzeń, shimmer, reverse, warstwa soaking — działa wtedy na prawdziwym fortepianie.
-
-#### Salamander Grand Piano — krok po kroku
+### Salamander Grand Piano — krok po kroku
 
 1. Pobierz `SalamanderGrandPianoV3+20161209_48khz24bit.tar` (Yamaha C5, 16 warstw dynamiki,
    licencja CC-BY). Na Windowsie do rozpakowania `.tar` przyda się 7-Zip.
 2. Rozpakuj gdziekolwiek — powstanie folder z plikiem `.sfz` i podfolderem `48khz24bit`.
-3. We wtyczce: `Sample library...` → **`Wczytaj folder z samplami...`** i wskaż rozpakowany
-   folder. Plik SFZ zostanie znaleziony sam (szukanie jest rekurencyjne).
-   Możesz też wybrać `Wczytaj plik .sfz...` i wskazać go bezpośrednio.
+3. We wtyczce: **`Sample library...`** na górnej belce → **`Wczytaj folder z samplami...`**
+   i wskaż rozpakowany folder. Plik SFZ zostanie znaleziony sam (szukanie jest rekurencyjne).
 
 Wczytywanie zajmuje kilkadziesiąt sekund i zjada około **700–900 MB RAM**. Idzie w tle,
-więc Reaper nie zamarza, a pasek pod przełącznikiem Source pokazuje postęp.
+więc Reaper nie zamarza, a pasek obok przycisku pokazuje postęp. Ścieżka jest zapisywana
+w projekcie, więc po ponownym otwarciu biblioteka wraca sama.
 
 Inne sprawdzone darmowe biblioteki: **Piano in 162** (Ivy Audio, Steinway Model B).
-Działa każda biblioteka SFZ.
+Działa każda biblioteka SFZ. Można też wskazać **folder z samymi plikami WAV** — wtedy
+wysokość dźwięku jest odczytywana z nazw plików (`Piano_C4.wav`, `A#2.wav` albo numer MIDI
+21–108), a pliki na tej samej nucie są traktowane jako kolejne warstwy dynamiki.
 
-Można też wskazać **folder z samymi plikami WAV** — wtedy wysokość dźwięku jest odczytywana
-z nazw plików (`Piano_C4.wav`, `A#2.wav` albo numer MIDI 21–108), a pliki na tej samej nucie
-są traktowane jako kolejne warstwy dynamiki.
+### Automatyczne wyrównanie poziomu
 
-Obsługiwane opcodes SFZ: dziedziczenie `<global>` / `<master>` / `<group>` / `<region>`,
-strefy klawiszy i dynamiki, `pitch_keycenter`, `key`, `tune`, `transpose`, `volume`, pętle
-(`loop_mode`, `loop_start`, `loop_end`, a także pętle zapisane w samym pliku WAV),
-`ampeg_attack`, `ampeg_release`, `default_path`, oraz **`trigger=release` z `rt_decay`** —
-czyli osobne sample tłumików, odtwarzane przy puszczeniu klawisza, tym ciszej im dłużej
-klawisz był trzymany.
+Biblioteki są masterowane do bardzo różnych poziomów — Salamander siedzi tuż pod pełną skalą,
+inne dziesięć decybeli niżej. Cały tor za samplerem (nasycenie, kompresor, limiter) działa
+poprawnie tylko wtedy, gdy sygnał przychodzi w spodziewanym zakresie. Dlatego przy wczytaniu
+mierzona jest najgłośniejsza warstwa dynamiki ze środka klawiatury i skalowana do stałego
+celu. Nie trzeba nic ustawiać, a żadna biblioteka nie wpadnie w limiter.
+
+### Obsługiwane opcodes SFZ
+
+Dziedziczenie `<global>` / `<master>` / `<group>` / `<region>`, strefy klawiszy i dynamiki,
+`pitch_keycenter`, `key`, `tune`, `transpose`, `volume`, pętle (`loop_mode`, `loop_start`,
+`loop_end`, a także pętle zapisane w samym pliku WAV), `ampeg_attack`, `ampeg_release`,
+`default_path`, oraz **`trigger=release` z `rt_decay`** — czyli osobne sample tłumików,
+odtwarzane przy puszczeniu klawisza, tym ciszej im dłużej klawisz był trzymany.
 
 Sample są trzymane w pamięci jako znormalizowane 16-bitowe, nie jako float — duża biblioteka
 fortepianowa to setki kilkunastosekundowych plików, które we float32 zajęłyby grubo ponad
-gigabajt. Normalizacja każdego sampla do jego własnego szczytu sprawia, że podłoga 16 bitów
-leży około 90 dB pod nim, czyli poniżej słyszalności. Ogony poniżej −90 dBFS są obcinane.
+gigabajt. Ogony poniżej −90 dBFS są obcinane.
 
-> Ładowanie idzie w tle, z paskiem postępu — Reaper nie zawiesza się na czas wczytywania.
-> Ścieżka do biblioteki jest zapisywana w projekcie, więc po ponownym otwarciu wraca sama.
+---
 
-### 2. Modelled — silnik wbudowany
+## Presety
 
-Synteza addytywna, około 5 MB, zero plików zewnętrznych. Nie dorówna dobrej bibliotece
-sampli, ale gra od razu po instalacji i pozwala płynnie przechodzić między barwami, których
-sampler nie ma (`Felt Piano` jest tu najlepszy). Przydaje się też jako zapasowe źródło,
-kiedy nie chcesz taszczyć gigabajtów na próbę.
+Szesnaście presetów fabrycznych w pięciu kategoriach plus **własne**, zapisywane na dysk.
+
+W widoku **LIVE**, pod listą presetów, są dwa przyciski:
+
+- **ZAPISZ** — pyta o nazwę i zapisuje wszystkie gałki do pliku. Jeśli grasz już na własnym
+  presecie, nazwa podpowiada się sama, więc nadpisanie to jedno kliknięcie.
+- **USUN** — kasuje własny preset (fabrycznych nie ruszy).
+
+Własne presety pojawiają się na dole listy z etykietą **MOJE**. Leżą jako osobne pliki
+`.wppreset` w:
+
+```
+Windows:  %APPDATA%\Jafa Stage\Worship Piano\Presets
+macOS:    ~/Library/Application Support/Jafa Stage/Worship Piano/Presets
+Linux:    ~/.config/Jafa Stage/Worship Piano/Presets
+```
+
+Dzięki temu przeżywają przeinstalowanie wtyczki i można je skopiować na inny komputer —
+brzmienia na niedzielę nie powinny siedzieć wyłącznie w pliku projektu jednego hosta.
 
 ---
 
@@ -199,10 +216,9 @@ któremu można mieć jednocześnie ogromną przestrzeń i czytelne nuty.
 
 ---
 
-## Presety
+## Lista presetów fabrycznych
 
-15 presetów fabrycznych, pogrupowanych w cztery kategorie. Strzałki `<` `>` na górnym pasku
-przeskakują po kolei, kliknięcie nazwy otwiera pełne menu. Presety są też widoczne jako
+Strzałki `<` `>` na górnym pasku przeskakują po kolei. Presety są też widoczne jako
 programy hosta, więc możesz je przełączać z Reapera.
 
 | Preset | Kategoria | Do czego |
@@ -239,9 +255,7 @@ zaszyte w kodzie. Presety mają być do grania, a nie do kręcenia.
 
 | Parametr | Co robi |
 |---|---|
-| **Source** | `Modelled` — silnik wbudowany, `Sample Library` — wczytana biblioteka |
-| **Sample library...** | Wczytanie pliku SFZ, folderu z WAV-ami, albo powrót do silnika modelowanego |
-| **Model** | Smooth Grand / Bright Grand / Warm Upright / Felt Piano — zmienia nachylenie widma, twardość filcu, sztywność strun i długość wybrzmienia |
+| **Sample library...** | Wczytanie pliku SFZ albo folderu z WAV-ami. Bez tego wtyczka milczy |
 | **Tone** | Ciemno ↔ jasno. Przesuwa filtr filcu i nachylenie widma jednocześnie |
 | **Attack** | Ile słychać uderzenia filcu o strunę i stuku mechaniki |
 | **Sustain** | Mnożnik czasu wybrzmiewania (0.5× – 2×) |
@@ -300,22 +314,21 @@ ReaDelay / ReaVerbate na ścieżce z Twoim pianinem. Wartości znajdziesz w
 
 ## Jak to działa w środku
 
-[`Source/dsp/PianoEngine.cpp`](Source/dsp/PianoEngine.cpp) — silnik addytywny. Uderzona
-struna to nie szarpnięta struna, więc nie ma tu żadnej pętli falowodu. Każdy dźwięk jest
-składany z osobnych zanikających sinusoid, a o barwie decyduje fizyka:
+[`Source/dsp/SampleLibrary.cpp`](Source/dsp/SampleLibrary.cpp) — parser SFZ i sampler.
+Sample trzymane jako znormalizowane int16, interpolacja Catmull-Rom przy przestrajaniu,
+osobne sample tłumików wyzwalane puszczeniem klawisza. Biblioteka jest wczytywana w wątku
+tle i podmieniana na wątku audio przez wskaźnik z licznikiem referencji, więc nic nie jest
+zwalniane w callbacku audio.
 
-* partial nr *k* leży na `k·f0·√(1 + B·k²)` — sztywność struny podnosi wyższe partiale,
-  ale delikatnie (B rzędu 10⁻⁴), a nie metalicznie
-* młoteczek uderza mniej więcej w 1/8 długości struny, więc partiale mające tam węzeł są
-  osłabione — osłabione, nie wycięte
-* filc działa jak filtr dolnoprzepustowy, który otwiera się im mocniej grasz; tu mieszka
-  praktycznie cała dynamika fortepianu
-* płyta rezonansowa słabo promieniuje najniższe częstotliwości, dlatego w basie barwa
-  pochodzi z 2. i 3. partiala, a nie z fundamentu
-* każdy partial ma własny czas zaniku i dwustopniową obwiednię: szybki początkowy spadek
-  i długie dobrzmiewanie
-* najniższe partiale są zdublowane i rozstrojone o **pół centa** — tak jak dwie lub trzy
-  struny jednego chóru — co daje powolne migotanie
+Poziom jest wyrównywany przy wczytaniu: mierzona jest najgłośniejsza warstwa dynamiki i
+skalowana do stałego celu, żeby biblioteka o dowolnym masteringu trafiła w zakres, pod
+który zestrojony jest cały tor za nią.
+
+Polifonia ma miękki limit 44 głosów. Powyżej niego najcichsze głosy są **wygaszane rampą
+6 ms**, a nie urywane — odebranie brzmiącego głosu przestawia go na zerową próbkę sampla,
+a ten skok w przebiegu słychać jako kliknięcie. Głos, który przez pół sekundy nie wyszedł
+ponad −90 dBFS, jest wycofywany: sample fortepianowe grają jeszcze długo po tym, jak
+przestają być słyszalne, a każdy z nich kosztuje interpolację i filtr.
 
 [`Source/dsp/SampleLibrary.cpp`](Source/dsp/SampleLibrary.cpp) — parser SFZ, ładowanie
 folderów i odtwarzanie sampli (interpolacja Catmull-Roma, pętle, warstwy dynamiki, pedały).
@@ -360,8 +373,11 @@ Sprawdza też trzy rzeczy osobno:
   realnie urosnąć
 * **round-trip stanu** — żeby Reaper nie gubił ustawień przy ponownym otwarciu projektu
 * **źródło samplowe od początku do końca** — wczytuje bibliotekę przez procesor tak, jak
-  robi to host, przełącza źródło i sprawdza, czy na wyjściu faktycznie są sample, a nie
-  silnik modelowany po cichu udający, że wszystko gra
+  robi to host, i sprawdza widmem, czy na wyjściu faktycznie jest wczytany sampel
+* **kalibracja poziomu i zapas na limiter** — czy biblioteka trafia w spodziewany poziom
+  i czy żaden preset nie wchodzi w kolano limitera na twardym akordzie
+* **presety użytkownika** — zapis na dysk, odczyt i skasowanie, plus nazwa z takimi znakami,
+  że nie da się nią wyjść poza folder presetów
 * **kontrolki sceniczne** — transpozycja musi przesuwać wysokość dźwięku (mierzone w centach)
   a split trzymać pianino poza lewą ręką; obie funkcje przepisują numery nut na wejściu,
   co łatwo zepsuć w sposób niewidoczny aż do próby

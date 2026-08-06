@@ -16,8 +16,6 @@ namespace pid
     inline constexpr const char* pedalTarget  = "pedaltarget";
 
     // --- Piano --------------------------------------------------------------
-    inline constexpr const char* source       = "source";    // modelled or sampled
-    inline constexpr const char* model        = "model";     // voicing
     inline constexpr const char* tone         = "tone";      // dark .. bright
     inline constexpr const char* attack       = "attack";    // hammer noise / thump
     inline constexpr const char* decayTime    = "decay";     // sustain length
