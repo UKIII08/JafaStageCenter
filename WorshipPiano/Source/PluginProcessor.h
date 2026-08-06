@@ -51,6 +51,10 @@ public:
 
     juce::MidiKeyboardState keyboardState;
 
+    /** Live value of the expression pedal, 0 when no pedal is being used. */
+    float getPedalSoak() const noexcept { return pedalSoak.load(); }
+    void panic();
+
     //--------------------------------------------------------------------------
     /** Sample library: loaded on a background thread, swapped in as a pointer. */
     void loadSampleLibrary (const juce::File& fileOrFolder);
@@ -93,6 +97,13 @@ private:
     std::atomic<bool> loadingPreset { false };
 
     std::atomic<float> outputLevel { 0.0f };
+    std::atomic<float> pedalSoak { 0.0f };
+    std::atomic<bool> panicRequested { false };
+
+    // A key can be released after the transpose has moved, so the shift used
+    // when it went down has to be remembered per key.
+    std::array<int8_t, 128> noteTranspose {};
+    std::array<bool, 128> notePadOnly {};
 
     // the pad is rendered separately so it can be sent into the ambience much
     // harder than the piano is - that difference is the whole soaking layer

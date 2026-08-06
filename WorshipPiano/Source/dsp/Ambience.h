@@ -174,6 +174,7 @@ struct AmbienceSettings
     float decay       = 3.0f;   // seconds
     float shimmer     = 0.0f;
     int   shimmerMode = 0;      // 0 up, 1 up + fifth, 2 down, 3 up and down
+    float lowCutHz    = 90.0f;
     float duck        = 0.0f;
     bool  freeze      = false;
 };

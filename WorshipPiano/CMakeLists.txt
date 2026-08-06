@@ -60,7 +60,6 @@ target_sources(JafaWorshipPiano PRIVATE
     Source/dsp/Ambience.cpp
     Source/dsp/SampleLibrary.cpp
     Source/gui/WorshipLookAndFeel.cpp
-    Source/gui/PresetBar.cpp
 )
 
 target_compile_definitions(JafaWorshipPiano PUBLIC
@@ -103,7 +102,6 @@ if(WORSHIPPIANO_BUILD_TOOLS)
     Source/dsp/Ambience.cpp
     Source/dsp/SampleLibrary.cpp
         Source/gui/WorshipLookAndFeel.cpp
-        Source/gui/PresetBar.cpp
     )
 
     target_compile_definitions(WorshipPianoRender PRIVATE

@@ -172,7 +172,7 @@ void WorshipPianoProcessor::updateSettings()
     // Soak is a macro, not a mode: it lifts whatever the preset already does
     // towards a full ambient wash, so it is useful on every preset and does
     // nothing at all at zero.
-    const float soak = param (pid::soak);
+    const float soak = jmax (param (pid::soak), pedalSoak.load());
     const float soak2 = soak * soak;
 
     wp::EngineSettings es;
@@ -251,6 +251,7 @@ void WorshipPianoProcessor::updateSettings()
     const float shimmer = param (pid::shimmer);
     amb.shimmer = shimmer + (1.0f - shimmer) * soak2 * 0.60f;
     amb.shimmerMode = param<int> (pid::shimmerMode);
+    amb.lowCutHz = param (pid::reverbLowCut);
     amb.duck    = param (pid::reverbDuck);
     amb.freeze  = param<int> (pid::reverbFreeze) != 0;
 
@@ -262,23 +263,48 @@ void WorshipPianoProcessor::handleMidiMessage (const MidiMessage& m)
 {
     if (m.isNoteOn())
     {
-        if (useSampler())
-            sampler.noteOn (m.getNoteNumber(), m.getFloatVelocity());
-        else
-            piano.noteOn (m.getNoteNumber(), m.getFloatVelocity());
+        const int played = m.getNoteNumber();
+        const int shift = param<int> (pid::transpose);
+        const int sounded = jlimit (0, 127, played + shift);
 
-        pad.noteOn (m.getNoteNumber(), m.getFloatVelocity());
+        // the split is decided by where the finger actually is, not by where
+        // the transpose has moved the note to
+        const bool padOnly = param<int> (pid::splitOn) != 0
+                          && played < param<int> (pid::splitPoint);
+
+        noteTranspose[(size_t) played] = (int8_t) (sounded - played);
+        notePadOnly[(size_t) played] = padOnly;
+
+        if (! padOnly)
+        {
+            if (useSampler())
+                sampler.noteOn (sounded, m.getFloatVelocity());
+            else
+                piano.noteOn (sounded, m.getFloatVelocity());
+        }
+
+        pad.noteOn (sounded, m.getFloatVelocity());
     }
     else if (m.isNoteOff())
     {
-        sampler.noteOff (m.getNoteNumber());
-        piano.noteOff (m.getNoteNumber());
-        pad.noteOff (m.getNoteNumber());
+        const int played = m.getNoteNumber();
+        const int sounded = jlimit (0, 127, played + (int) noteTranspose[(size_t) played]);
+
+        sampler.noteOff (sounded);
+        piano.noteOff (sounded);
+        pad.noteOff (sounded);
     }
     else if (m.isController())
     {
         const int cc = m.getControllerNumber();
         const float value = (float) m.getControllerValue() / 127.0f;
+
+        // expression pedal drives the ambient layer, so the space can be opened
+        // and closed with a foot while both hands are busy
+        const int pedalMode = param<int> (pid::pedalTarget);
+
+        if ((pedalMode == 1 && cc == 11) || (pedalMode == 2 && cc == 1))
+            pedalSoak.store (value);
 
         switch (cc)
         {
@@ -286,7 +312,7 @@ void WorshipPianoProcessor::handleMidiMessage (const MidiMessage& m)
                       pad.sustainPedal (value >= 0.45f); break;
             case 66:  piano.sostenutoPedal (value >= 0.5f); break;
             case 67:  piano.softPedal (value); sampler.softPedal (value); break;
-            case 120: piano.panic(); sampler.panic(); pad.reset(); break;
+            case 120: panic(); break;
             case 123: piano.allNotesOff(); sampler.allNotesOff(); pad.allNotesOff(); break;
             default: break;
         }
@@ -299,10 +325,16 @@ void WorshipPianoProcessor::handleMidiMessage (const MidiMessage& m)
     }
     else if (m.isAllSoundOff())
     {
-        piano.panic();
-        sampler.panic();
-        pad.reset();
+        panic();
     }
+}
+
+void WorshipPianoProcessor::panic()
+{
+    // Handled at the end of the next block so it can be faded. Cutting the
+    // engines and resetting the filters mid-tail is itself a loud click, which
+    // is the last thing a panic button should produce on a live desk.
+    panicRequested.store (true);
 }
 
 void WorshipPianoProcessor::renderSegment (AudioBuffer<float>& buffer, int start, int numSamples)
@@ -373,6 +405,21 @@ void WorshipPianoProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
 
     effects.process (buffer, padBuffer);
 
+
+    if (panicRequested.exchange (false))
+    {
+        // fade this block out, then clear everything from silence
+        for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
+            buffer.applyGainRamp (ch, 0, numSamples, 1.0f, 0.0f);
+
+        piano.panic();
+        sampler.panic();
+        pad.reset();
+        effects.reset();
+        noteTranspose.fill (0);
+        notePadOnly.fill (false);
+        keyboardState.allNotesOff (0);
+    }
 
     float peak = 0.0f;
 

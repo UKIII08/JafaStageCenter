@@ -9,6 +9,12 @@
 */
 namespace pid
 {
+    // --- Performance (live controls) ----------------------------------------
+    inline constexpr const char* transpose    = "transpose";
+    inline constexpr const char* splitOn      = "spliton";
+    inline constexpr const char* splitPoint   = "splitpoint";
+    inline constexpr const char* pedalTarget  = "pedaltarget";
+
     // --- Piano --------------------------------------------------------------
     inline constexpr const char* source       = "source";    // modelled or sampled
     inline constexpr const char* model        = "model";     // voicing
@@ -49,6 +55,7 @@ namespace pid
     inline constexpr const char* reverbDecay  = "reverbdecay";
     inline constexpr const char* shimmer      = "shimmer";
     inline constexpr const char* shimmerMode  = "shimmermode";
+    inline constexpr const char* reverbLowCut = "reverblowcut";
     inline constexpr const char* reverbDuck   = "reverbduck";
     inline constexpr const char* reverbFreeze = "reverbfreeze";
 

@@ -242,7 +242,8 @@ void Ambience::setSettings (const AmbienceSettings& s)
     predelaySamples = jmax (1.0f, (float) ((0.008 + 0.075 * (double) settings.size) * sr));
 
     dampCoef = onePole (jmap (1.0 - (double) m.damping, 1200.0, 16000.0), sr);
-    lowCutCoef = onePole ((double) m.lowCutHz, sr);
+    // the machine sets a floor, the control can only take more low end out
+    lowCutCoef = onePole ((double) jmax (m.lowCutHz, settings.lowCutHz), sr);
     modDepth = m.modDepth;
 
     for (int i = 0; i < numDiffusers; ++i)

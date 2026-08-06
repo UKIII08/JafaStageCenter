@@ -726,6 +726,174 @@ namespace
         return ok;
     }
 
+    /** Transpose has to move the pitch, and split has to keep the piano out of
+        the left hand. Both rewrite note numbers on their way in, which is easy
+        to get subtly wrong and impossible to notice until a rehearsal. */
+    bool checkPerformanceControls (String& report)
+    {
+        report << "performance controls:" << newLine;
+
+        WorshipPianoProcessor processor;
+        processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+        processor.prepareToPlay (sampleRate, blockSize);
+
+        auto set = [&processor] (const char* id, float v)
+        {
+            if (auto* p = processor.apvts.getParameter (id))
+                p->setValueNotifyingHost (p->convertTo0to1 (v));
+        };
+
+        // dry, so what is measured is the note and not the room around it
+        for (auto* id : { pid::reverbMix, pid::delayMix, pid::chorusAmount, pid::drive,
+                          pid::compAmount, pid::soak, pid::reverseMix })
+            set (id, 0.0f);
+
+        set (pid::padLevel, -60.0f);
+
+        auto playAndMeasure = [&] (int note, float& peakOut)
+        {
+            const int length = (int) (sampleRate * 0.7);
+            AudioBuffer<float> captured (2, length);
+            captured.clear();
+
+            AudioBuffer<float> block (2, blockSize);
+
+            // let the previous note and the panic fade fall away before the
+            // window opens, otherwise every measurement carries the last one
+            for (int i = 0; i < (int) (sampleRate * 0.6) / blockSize; ++i)
+            {
+                block.setSize (2, blockSize, false, false, true);
+                block.clear();
+                MidiBuffer empty;
+                processor.processBlock (block, empty);
+            }
+
+            int done = 0;
+            bool sent = false;
+
+            while (done < length)
+            {
+                const int n = jmin (blockSize, length - done);
+                block.setSize (2, n, false, false, true);
+                block.clear();
+
+                MidiBuffer midi;
+
+                if (! sent) { midi.addEvent (MidiMessage::noteOn (1, note, 0.8f), 1); sent = true; }
+
+                processor.processBlock (block, midi);
+
+                for (int ch = 0; ch < 2; ++ch)
+                    captured.copyFrom (ch, done, block, ch, 0, n);
+
+                done += n;
+            }
+
+            peakOut = captured.getMagnitude (0, 0, length);
+
+            const int fftOrder = 15;
+            const int fftSize = 1 << fftOrder;
+            dsp::FFT fft (fftOrder);
+            std::vector<float> data ((size_t) fftSize * 2, 0.0f);
+            const int offset = (int) (sampleRate * 0.05);
+
+            for (int i = 0; i < fftSize && i + offset < length; ++i)
+            {
+                const float w = 0.5f * (1.0f - std::cos (MathConstants<float>::twoPi
+                                                         * (float) i / (float) (fftSize - 1)));
+                data[(size_t) i] = captured.getSample (0, i + offset) * w;
+            }
+
+            fft.performFrequencyOnlyForwardTransform (data.data());
+
+            int bin = 1;
+            for (int i = 2; i < fftSize / 2; ++i)
+                if (data[(size_t) i] > data[(size_t) bin]) bin = i;
+
+            processor.panic();
+            return bin * sampleRate / fftSize;
+        };
+
+        bool ok = true;
+
+        auto check = [&report, &ok] (bool condition, const String& what)
+        {
+            if (! condition) { report << "   !! " << what << newLine; ok = false; }
+        };
+
+        float peak = 0.0f;
+
+        // ---- transpose ------------------------------------------------------
+        for (int shift : { 0, 5, -7, 12 })
+        {
+            set (pid::transpose, (float) shift);
+
+            const double detected = playAndMeasure (60, peak);
+            const double expected = 440.0 * std::pow (2.0, (60 + shift - 69) / 12.0);
+            const double cents = 1200.0 * std::log2 (jmax (1.0, detected) / expected);
+
+            report << "   transpose " << String (shift).paddedLeft (' ', 3) << ": "
+                   << String (detected, 1) << " Hz, expected " << String (expected, 1)
+                   << " Hz (" << String (cents, 1) << " cents)" << newLine;
+
+            check (std::abs (cents) < 25.0, "transpose " + String (shift) + " is off pitch");
+        }
+
+        set (pid::transpose, 0.0f);
+
+        // ---- split ----------------------------------------------------------
+        set (pid::splitPoint, 60.0f);
+
+        // measure the same low note with the split off and on: comparing the two
+        // separates a real leak from whatever noise floor the chain always has
+        set (pid::splitOn, 0.0f);
+        float openPeak = 0.0f, silencePeak = 0.0f;
+        playAndMeasure (48, openPeak);
+
+        set (pid::splitOn, 1.0f);
+        float belowPeak = 0.0f, abovePeak = 0.0f;
+        playAndMeasure (48, belowPeak);
+        playAndMeasure (67, abovePeak);
+
+        // and with nothing played at all, for reference
+        {
+            const int length = (int) (sampleRate * 0.7);
+            AudioBuffer<float> quiet (2, length);
+            quiet.clear();
+            AudioBuffer<float> block (2, blockSize);
+            int done = 0;
+
+            while (done < length)
+            {
+                const int n = jmin (blockSize, length - done);
+                block.setSize (2, n, false, false, true);
+                block.clear();
+                MidiBuffer midi;
+                processor.processBlock (block, midi);
+
+                for (int ch = 0; ch < 2; ++ch)
+                    quiet.copyFrom (ch, done, block, ch, 0, n);
+
+                done += n;
+            }
+
+            silencePeak = quiet.getMagnitude (0, 0, length);
+        }
+
+        auto db = [] (float v) { return String (Decibels::gainToDecibels (jmax (1.0e-6f, v)), 1); };
+
+        report << "   low note, split off: " << db (openPeak) << " dB" << newLine
+               << "   low note, split on:  " << db (belowPeak) << " dB" << newLine
+               << "   above split:         " << db (abovePeak) << " dB" << newLine
+               << "   nothing played:      " << db (silencePeak) << " dB" << newLine;
+
+        check (abovePeak > 0.01f, "nothing sounds above the split point");
+        check (belowPeak < openPeak * 0.05f, "split does not keep the piano out of the left hand");
+
+        report << newLine;
+        return ok;
+    }
+
     bool renderPreset (int presetIndex, const File& outputDir, String& report)
     {
         WorshipPianoProcessor processor;
@@ -886,6 +1054,7 @@ int main (int argc, char** argv)
     allOk &= stressAmbience (report);
     allOk &= checkSoakMacro (report);
     allOk &= checkSampleLoading (report);
+    allOk &= checkPerformanceControls (report);
 
     for (int i = 0; i < (int) presets::factory().size(); ++i)
     {

@@ -334,6 +334,9 @@ Sprawdza też trzy rzeczy osobno:
 * **źródło samplowe od początku do końca** — wczytuje bibliotekę przez procesor tak, jak
   robi to host, przełącza źródło i sprawdza, czy na wyjściu faktycznie są sample, a nie
   silnik modelowany po cichu udający, że wszystko gra
+* **kontrolki sceniczne** — transpozycja musi przesuwać wysokość dźwięku (mierzone w centach)
+  a split trzymać pianino poza lewą ręką; obie funkcje przepisują numery nut na wejściu,
+  co łatwo zepsuć w sposób niewidoczny aż do próby
 * **loader sampli** — buduje na dysku bibliotekę SFZ ułożoną tak, jak układa się prawdziwa
   biblioteka fortepianowa (`<control> default_path`, obwiednia w `<global>`, grupy dynamiki,
   backslashe w ścieżkach, osobna grupa `trigger=release`), wczytuje ją z powrotem i sprawdza:
@@ -350,3 +353,20 @@ Ten sam test chodzi w CI przy każdym buildzie.
 Kod wtyczki: patrz licencja repozytorium.
 JUCE jest pobierane jako zależność i objęte własną licencją (GPLv3 albo komercyjna) —
 przy dystrybucji binarki obowiązują warunki JUCE.
+
+---
+
+## Skąd wzięły się decyzje o funkcjach
+
+Zestaw kontrolek w widoku LIVE nie jest zgadywany — odpowiada temu, co realnie mają rigi
+sceniczne używane w kościołach (Sunday Keys i szablony MainStage) oraz temu, co powtarza się
+w poradnikach dla grających na klawiszach w uwielbieniu:
+
+* szybkie przeglądanie presetów, warstwy i splity, transpozycja jednym klikiem oraz
+  sterowanie sprzętowe zamiast sięgania po myszkę —
+  [Sunday Keys](https://sundaysounds.com/pages/sunday-keys),
+  [jak złożyć rig klawiszowy](https://worshipteamresources.com/how-to-set-up-a-keys-rig/)
+* **low cut w pogłosie**: nadmiar pogłosu robi z brzmienia błoto, a wycięcie dołu z ogona
+  jest tym, co temu zapobiega — dlatego `Low Cut` jest osobnym pokrętłem, a nie ukrytą
+  stałą — [trzy błędy grających na klawiszach](https://sundaysounds.com/blogs/news/keys-tutorial-three-mistakes-worship-keys-players-should-never-make),
+  [najczęstsze błędy pianistów](https://worshiponline.com/the-top-8-mistakes-worship-piano-players-make-how-to-fix-them/)

@@ -53,6 +53,14 @@ AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
                                                       AudioParameterFloatAttributes().withStringFromValueFunction (std::move (fmt)));
     };
 
+    // ---- Performance -------------------------------------------------------
+    c.add (std::make_unique<AudioParameterInt> (pv (pid::transpose), "Transpose", -12, 12, 0));
+    c.add (std::make_unique<AudioParameterBool> (pv (pid::splitOn), "Split", false));
+    c.add (std::make_unique<AudioParameterInt> (pv (pid::splitPoint), "Split Point", 21, 108, 60));
+
+    c.add (std::make_unique<AudioParameterChoice> (pv (pid::pedalTarget), "Pedal",
+              StringArray { "Off", "Expression (CC11)", "Mod Wheel (CC1)" }, 1));
+
     // ---- Piano -------------------------------------------------------------
     c.add (std::make_unique<AudioParameterChoice> (pv (pid::source), "Source",
               StringArray { "Modelled", "Sample Library" }, 0));
@@ -105,6 +113,9 @@ AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     c.add (std::make_unique<AudioParameterChoice> (pv (pid::shimmerMode), "Shimmer Voice",
               StringArray { "Octave Up", "Octave + 5th", "Octave Down", "Up & Down" }, 0));
 
+    // low end in a long tail is the single fastest way to turn a worship mix
+    // to mud, so it gets a control rather than being buried in the machine
+    c.add (f (pid::reverbLowCut, "Low Cut", range (20.0f, 500.0f, 120.0f), 90.0f, hz));
     c.add (f (pid::reverbDuck,  "Duck",    range (0.0f, 1.0f, 0.5f),  0.0f,  pct));
     c.add (std::make_unique<AudioParameterBool> (pv (pid::reverbFreeze), "Freeze", false));
 
