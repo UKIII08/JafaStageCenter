@@ -11,6 +11,19 @@ namespace
     {
         return (float) jlimit (0.0, 0.999, 1.0 - std::exp (-2.0 * MathConstants<double>::pi * fc / sampleRate));
     }
+
+    /** Safety soft clip: transparent below -3 dBFS, catches the peaks that a long
+        reverb tail stacked on a big chord can throw at the converter. */
+    inline float softClip (float x) noexcept
+    {
+        constexpr float knee = 0.7f;
+
+        if (x > -knee && x < knee)
+            return x;
+
+        const float sign = x < 0.0f ? -1.0f : 1.0f;
+        return sign * (knee + (1.0f - knee) * std::tanh ((std::abs (x) - knee) / (1.0f - knee)));
+    }
 }
 
 //==============================================================================
@@ -539,20 +552,8 @@ void EffectChain::process (AudioBuffer<float>& buffer)
         const float mid = (l[n] + r[n]) * 0.5f;
         const float side = (l[n] - r[n]) * 0.5f * w;
 
-        // safety soft clip: transparent below -3 dBFS, catches the peaks that a
-        // long reverb tail stacked on a big chord can throw at the converter
-        constexpr float knee = 0.7f;
-        auto limit = [] (float x)
-        {
-            if (x > -knee && x < knee)
-                return x;
-
-            const float sign = x < 0.0f ? -1.0f : 1.0f;
-            return sign * (knee + (1.0f - knee) * std::tanh ((std::abs (x) - knee) / (1.0f - knee)));
-        };
-
-        l[n] = limit ((mid + side) * smoothedOutput);
-        r[n] = limit ((mid - side) * smoothedOutput);
+        l[n] = softClip ((mid + side) * smoothedOutput);
+        r[n] = softClip ((mid - side) * smoothedOutput);
     }
 
     if (numChannels == 1)

@@ -186,8 +186,8 @@ void WorshipPianoProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
 
     buffer.clear();
 
-    if (auto* playHead = getPlayHead())
-        if (const auto position = playHead->getPosition())
+    if (auto* transport = getPlayHead())
+        if (const auto position = transport->getPosition())
             if (const auto bpm = position->getBpm())
                 hostTempo = *bpm;
 
