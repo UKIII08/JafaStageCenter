@@ -88,7 +88,22 @@ Po każdym pushu GitHub Actions buduje wtyczkę na Windows, macOS i Linux:
 3. Na dole strony, w sekcji **Artifacts**, pobierz `JafaWorshipPiano-Windows-x64`
 4. Rozpakuj — w środku jest `Jafa Worship Piano.vst3`
 
-### Wariant 2: zbuduj sam
+### Wariant 2: zbuduj sam — Windows, jednym kliknieciem
+
+Potrzebujesz **Visual Studio 2022 Community** z zaznaczonym skladnikiem
+*Desktop development with C++* ([pobierz](https://visualstudio.microsoft.com/downloads/)).
+CMake jest w nim zawarty, nie trzeba go instalowac osobno.
+
+Potem po prostu uruchom **`WorshipPiano\build-windows.bat`**. Skrypt sam:
+
+1. znajdzie CMake (w PATH albo ten dolaczony do Visual Studio),
+2. pobierze JUCE i zbuduje wtyczke,
+3. zainstaluje ja w folderze VST3 — systemowym, a jesli brak uprawnien, w folderze
+   uzytkownika, i wtedy wypisze sciezke, ktora trzeba dodac w Reaperze.
+
+Pierwszy przebieg trwa kilka-kilkanascie minut, bo pobiera JUCE. Kolejne sa szybkie.
+
+### Wariant 3: linia polecen (macOS, Linux, albo recznie na Windows)
 
 ```bash
 cd WorshipPiano
