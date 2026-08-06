@@ -353,6 +353,8 @@ namespace
         return rising;
     }
 
+    bool checkSampleSourceEndToEnd (const File& sfzFile, String& report);
+
     /*  Builds an SFZ on disk laid out the way a real piano library is - a
         <control> default_path, a <global> envelope, velocity <group>s, backslash
         separators, and a release-triggered damper group - then loads it back and
@@ -520,10 +522,12 @@ namespace
 
         AudioBuffer<float> out (2, (int) (sampleRate * 0.5));
         out.clear();
-        engine.render (out.getWritePointer (0), out.getWritePointer (1), 16);
+        check (! engine.hasLibrary(), "library must not go live before the audio thread picks it up");
+        engine.updateLibrary();
+        check (engine.hasLibrary(), "library never became active after updateLibrary");
         engine.noteOn (67, 0.8f);
 
-        int written = 16;
+        int written = 0;
         while (written < out.getNumSamples())
         {
             const int n = jmin (blockSize, out.getNumSamples() - written);
@@ -564,7 +568,161 @@ namespace
         }
 
         report << newLine;
+        ok &= checkSampleSourceEndToEnd (sfzFile, report);
         dir.deleteRecursively();
+        return ok;
+    }
+
+    /*  End to end, through the processor exactly as a host drives it: load a
+        library, select the sampled source, and confirm that what comes out is
+        the sample rather than the modelled engine quietly standing in.
+
+        This is the check that was missing. The unit test above used to call
+        render() before asking whether a library was loaded - the one thing the
+        plugin never does - which hid a deadlock: the source only switched once
+        a library was active, and the library only became active inside the
+        render that the switch was gating.
+    */
+    bool checkSampleSourceEndToEnd (const File& sfzFile, String& report)
+    {
+        report << "sampled source end to end:" << newLine;
+
+        WorshipPianoProcessor processor;
+        processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+        processor.prepareToPlay (sampleRate, blockSize);
+        processor.loadSampleLibrary (sfzFile);
+
+        AudioBuffer<float> block (2, blockSize);
+        bool live = false;
+
+        for (int i = 0; i < 500 && ! live; ++i)
+        {
+            MessageManager::getInstance()->runDispatchLoopUntil (10);
+
+            block.clear();
+            MidiBuffer midi;
+            processor.processBlock (block, midi);
+
+            live = processor.isSampleSourceActive();
+        }
+
+        if (! live)
+        {
+            report << "   !! library loaded but never reached the audio thread" << newLine
+                   << "      status: " << processor.getLibraryStatus() << newLine << newLine;
+            return false;
+        }
+
+        report << "   " << processor.getLibraryStatus() << newLine;
+
+        auto set = [&processor] (const char* id, float v)
+        {
+            if (auto* p = processor.apvts.getParameter (id))
+                p->setValueNotifyingHost (p->convertTo0to1 (v));
+        };
+
+        for (auto* id : { pid::reverbMix, pid::delayMix, pid::chorusAmount, pid::drive,
+                          pid::compAmount, pid::soak, pid::eqAir, pid::eqLow, pid::eqHigh,
+                          pid::reverseMix })
+            set (id, 0.0f);
+
+        set (pid::padLevel, -60.0f);
+        set (pid::pianoLevel, -12.0f);
+
+        // Render the same note from each source and compare. The test samples are
+        // pure sines and the modelled engine is all partials, so the ratio of the
+        // fundamental to everything above it tells them apart.
+        auto measure = [&] (float sourceValue, float& peakOut)
+        {
+            set (pid::source, sourceValue);
+
+            const int length = (int) (sampleRate * 1.0);
+            AudioBuffer<float> captured (2, length);
+            captured.clear();
+
+            int done = 0;
+            bool noteSent = false;
+
+            while (done < length)
+            {
+                const int n = jmin (blockSize, length - done);
+                block.setSize (2, n, false, false, true);
+                block.clear();
+
+                MidiBuffer midi;
+
+                if (! noteSent)
+                {
+                    midi.addEvent (MidiMessage::noteOn (1, 60, 0.8f), 1);
+                    noteSent = true;
+                }
+
+                processor.processBlock (block, midi);
+
+                for (int ch = 0; ch < 2; ++ch)
+                    captured.copyFrom (ch, done, block, ch, 0, n);
+
+                done += n;
+            }
+
+            peakOut = captured.getMagnitude (0, 0, length);
+
+            const int fftOrder = 15;
+            const int fftSize = 1 << fftOrder;
+            dsp::FFT fft (fftOrder);
+            std::vector<float> data ((size_t) fftSize * 2, 0.0f);
+            const int offset = (int) (sampleRate * 0.05);
+
+            // a rectangular window smears a sine across every bin, which would
+            // make even a pure tone look rich in partials
+            for (int i = 0; i < fftSize && i + offset < length; ++i)
+            {
+                const float w = 0.5f * (1.0f - std::cos (MathConstants<float>::twoPi
+                                                         * (float) i / (float) (fftSize - 1)));
+                data[(size_t) i] = captured.getSample (0, i + offset) * w;
+            }
+
+            fft.performFrequencyOnlyForwardTransform (data.data());
+
+            const double f0 = 440.0 * std::pow (2.0, (60 - 69) / 12.0);
+            const int fundamentalBin = roundToInt (f0 * fftSize / sampleRate);
+            double fundamental = 0.0, rest = 0.0;
+
+            for (int i = 2; i < fftSize / 2; ++i)
+            {
+                const double energy = (double) data[(size_t) i] * data[(size_t) i];
+
+                if (std::abs (i - fundamentalBin) <= 4) fundamental += energy;
+                else if (i > fundamentalBin + 4)        rest += energy;
+            }
+
+            return 10.0 * std::log10 (jmax (1.0e-12, fundamental) / jmax (1.0e-12, rest));
+        };
+
+        float peakModelled = 0.0f, peakSampled = 0.0f;
+        const double modelledRatio = measure (0.0f, peakModelled);
+        const double sampledRatio  = measure (1.0f, peakSampled);
+
+        report << "   modelled: " << String (modelledRatio, 1) << " dB fundamental vs partials, peak "
+               << String (Decibels::gainToDecibels (jmax (1.0e-6f, peakModelled)), 1) << " dB" << newLine
+               << "   sampled:  " << String (sampledRatio, 1) << " dB fundamental vs partials, peak "
+               << String (Decibels::gainToDecibels (jmax (1.0e-6f, peakSampled)), 1) << " dB" << newLine;
+
+        bool ok = true;
+
+        if (peakSampled < 0.002f)
+        {
+            report << "   !! no audio from the sampled source" << newLine;
+            ok = false;
+        }
+
+        if (sampledRatio < modelledRatio + 20.0)
+        {
+            report << "   !! sampled source looks like the modelled engine" << newLine;
+            ok = false;
+        }
+
+        report << newLine;
         return ok;
     }
 

@@ -745,14 +745,7 @@ void SamplerEngine::panic()
 
 void SamplerEngine::render (float* left, float* right, int numSamples)
 {
-    if (libraryDirty.exchange (false))
-    {
-        // only a pointer swap: the previous library stays alive in the processor
-        for (auto& v : voices)
-            v = Voice();
-
-        active = pending;
-    }
+    updateLibrary();
 
     if (active == nullptr || active->isEmpty())
         return;

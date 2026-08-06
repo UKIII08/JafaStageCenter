@@ -110,6 +110,7 @@ if(WORSHIPPIANO_BUILD_TOOLS)
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_STANDALONE_APPLICATION=1
+        JUCE_MODAL_LOOPS_PERMITTED=1
         JucePlugin_Name="Jafa Worship Piano"
     )
 

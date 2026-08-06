@@ -298,6 +298,11 @@ void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>&
         const float bias = 0.06f * settings.drive;
         const float biasOffset = std::tanh (bias);
 
+        // Blend towards the shaper rather than always running it. tanh is not
+        // the identity at unity gain, so without this the Drive knob at zero
+        // still put a compressed, odd-harmonic curve across everything.
+        const float wet = jmin (1.0f, settings.drive * 2.5f);
+
         dsp::AudioBlock<float> block (buffer.getArrayOfWritePointers(), (size_t) numChannels, (size_t) numSamples);
         auto up = oversampling->processSamplesUp (block);
 
@@ -307,7 +312,11 @@ void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>&
             const auto n = (int) up.getNumSamples();
 
             for (int i = 0; i < n; ++i)
-                d[i] = (std::tanh (d[i] * k + bias) - biasOffset) * comp;
+            {
+                const float x = d[i];
+                const float shaped = (std::tanh (x * k + bias) - biasOffset) * comp;
+                d[i] = x + wet * (shaped - x);
+            }
         }
 
         oversampling->processSamplesDown (block);

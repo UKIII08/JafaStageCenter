@@ -60,6 +60,9 @@ public:
     float getLoadProgress() const noexcept { return loadProgress.load(); }
     bool  isLoadingLibrary() const noexcept { return loader != nullptr && loader->isThreadRunning(); }
 
+    /** True once a loaded library has actually reached the audio thread. */
+    bool isSampleSourceActive() const noexcept { return sampler.hasLibrary(); }
+
 private:
     void parameterChanged (const juce::String& id, float newValue) override;
     void updateSettings();

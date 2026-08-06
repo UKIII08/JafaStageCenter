@@ -343,6 +343,9 @@ void WorshipPianoProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
             if (const auto bpm = position->getBpm())
                 hostTempo = *bpm;
 
+    // has to happen before anything asks whether a library is loaded
+    sampler.updateLibrary();
+
     updateSettings();
 
     keyboardState.processNextMidiBuffer (midi, 0, numSamples, true);

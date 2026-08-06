@@ -331,6 +331,9 @@ Sprawdza też trzy rzeczy osobno:
 * **działanie makra SOAK** — na całkiem suchym presecie wash po puszczeniu klawiszy musi
   realnie urosnąć
 * **round-trip stanu** — żeby Reaper nie gubił ustawień przy ponownym otwarciu projektu
+* **źródło samplowe od początku do końca** — wczytuje bibliotekę przez procesor tak, jak
+  robi to host, przełącza źródło i sprawdza, czy na wyjściu faktycznie są sample, a nie
+  silnik modelowany po cichu udający, że wszystko gra
 * **loader sampli** — buduje na dysku bibliotekę SFZ ułożoną tak, jak układa się prawdziwa
   biblioteka fortepianowa (`<control> default_path`, obwiednia w `<global>`, grupy dynamiki,
   backslashe w ścieżkach, osobna grupa `trigger=release`), wczytuje ją z powrotem i sprawdza:

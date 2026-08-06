@@ -128,6 +128,24 @@ public:
     /** Called from the message thread; the audio thread picks it up next block. */
     void setLibrary (SampleLibrary::Ptr newLibrary) { pending = std::move (newLibrary); libraryDirty = true; }
 
+    /*  Must be called from the audio thread every block, whatever source is
+        selected. Doing the swap inside render() instead deadlocks: the host only
+        renders the sampler once a library is active, and the library only
+        becomes active inside render.
+    */
+    void updateLibrary() noexcept
+    {
+        if (libraryDirty.exchange (false))
+        {
+            for (auto& v : voices)
+                v = Voice();
+
+            // a plain pointer swap: the previous library is kept alive by the
+            // processor, so nothing is freed on the audio thread
+            active = pending;
+        }
+    }
+
     void setDynamics (float rangeDb) noexcept { dynamicRange = rangeDb; }
     void setTone (float t) noexcept { tone = t; }
     void setReleaseScale (float s) noexcept { releaseScale = s; }
