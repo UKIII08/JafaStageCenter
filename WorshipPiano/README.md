@@ -79,31 +79,27 @@ Preset **Reverse Swell** pokazuje ustawienie. Graj rzadko i zostaw miejsce.
 
 ## Skąd wziąć plik `.vst3`
 
-### Wariant 1: pobierz gotowy build (najprościej)
-
-Po każdym pushu GitHub Actions buduje wtyczkę na Windows, macOS i Linux:
-
-1. Wejdź w zakładkę **Actions** w tym repo
-2. Kliknij ostatni przebieg **Build Worship Piano VST3**
-3. Na dole strony, w sekcji **Artifacts**, pobierz `JafaWorshipPiano-Windows-x64`
-4. Rozpakuj — w środku jest `Jafa Worship Piano.vst3`
-
-### Wariant 2: zbuduj sam — Windows, jednym kliknieciem
+### Wariant 1: Windows, jednym kliknieciem (zalecany)
 
 Potrzebujesz **Visual Studio 2022 Community** z zaznaczonym skladnikiem
 *Desktop development with C++* ([pobierz](https://visualstudio.microsoft.com/downloads/)).
 CMake jest w nim zawarty, nie trzeba go instalowac osobno.
 
-Potem po prostu uruchom **`WorshipPiano\build-windows.bat`**. Skrypt sam:
+Potem po prostu uruchom **`WorshipPiano\build-windows.bat`** (dwuklik albo z wiersza
+polecen). Skrypt sam:
 
-1. znajdzie CMake (w PATH albo ten dolaczony do Visual Studio),
+1. znajdzie CMake — w PATH albo ten dolaczony do Visual Studio 2022/2019,
 2. pobierze JUCE i zbuduje wtyczke,
 3. zainstaluje ja w folderze VST3 — systemowym, a jesli brak uprawnien, w folderze
    uzytkownika, i wtedy wypisze sciezke, ktora trzeba dodac w Reaperze.
 
 Pierwszy przebieg trwa kilka-kilkanascie minut, bo pobiera JUCE. Kolejne sa szybkie.
 
-### Wariant 3: linia polecen (macOS, Linux, albo recznie na Windows)
+Jesli cos pojdzie nie tak, skrypt zatrzyma sie i wypisze przyczyne. Dwie najczestsze:
+**Reaper jest uruchomiony** (trzyma wtyczke otwarta, wiec nie da sie jej nadpisac —
+zamknij go i uruchom skrypt ponownie) oraz **brak skladnika C++** w Visual Studio.
+
+### Wariant 2: linia polecen (macOS, Linux, albo recznie na Windows)
 
 ```bash
 cd WorshipPiano
@@ -121,6 +117,15 @@ sudo apt install libasound2-dev libjack-jackd2-dev libx11-dev libxext-dev \
   libxinerama-dev libxrandr-dev libxcursor-dev libxcomposite-dev \
   libfreetype6-dev libfontconfig1-dev libgl1-mesa-dev
 ```
+
+### Wariant 3: gotowy build z GitHub Actions
+
+Workflow **Build Worship Piano VST3** buduje wtyczke i wrzuca `.vst3` jako artefakt, ale
+uruchamia sie **tylko recznie** (Actions → wybierz workflow → *Run workflow*), zeby nie
+zjadac minut przy kazdym pushu. Artefakt jest na dole strony przebiegu, w sekcji
+**Artifacts** — `JafaWorshipPiano-Windows-x64`.
+
+Kiedy minut brakuje, jedyna droga jest lokalny build z wariantu 1.
 
 ---
 
