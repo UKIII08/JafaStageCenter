@@ -91,6 +91,201 @@ namespace
         return false;
     }
 
+    /*  The pedalboard. Two things have to hold for every stomp: switching it off
+        actually removes the effect, and the transition does not click. The second
+        one is the whole reason the ramps exist - a hard cut on a sounding piano
+        is exactly the artefact this instrument spent a release getting rid of.
+    */
+    bool checkStomps (const File& sfzFile, String& report)
+    {
+        report << "stomps:" << newLine;
+
+        struct Case { const char* id; const char* name; const char* amount; float amountValue; };
+
+        const Case cases[] = {
+            { pid::reverbOn,  "reverb",  pid::reverbMix,    0.75f },
+            { pid::delayOn,   "delay",   pid::delayMix,     0.60f },
+            { pid::chorusOn,  "chorus",  pid::chorusAmount, 0.80f },
+            { pid::reverseOn, "reverse", pid::reverseMix,   0.70f },
+            { pid::padOn,     "pad",     pid::padLevel,     -6.0f },
+            { pid::tackOn,    "tack",    pid::tackAmount,   0.90f },
+        };
+
+        bool ok = true;
+
+        for (const auto& c : cases)
+        {
+            WorshipPianoProcessor processor;
+            processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+            processor.prepareToPlay (sampleRate, blockSize);
+            processor.loadPreset (0);
+            attachLibrary (processor, sfzFile);
+
+            auto set = [&processor] (const char* id, float v)
+            {
+                if (auto* p = processor.apvts.getParameter (id))
+                    p->setValueNotifyingHost (p->convertTo0to1 (v));
+            };
+
+            // strip the preset back to the one effect under test
+            for (auto* id : { pid::reverbMix, pid::delayMix, pid::chorusAmount,
+                              pid::reverseMix, pid::soak, pid::drive })
+                set (id, 0.0f);
+
+            set (pid::padLevel, -60.0f);
+            set (pid::tackAmount, 0.0f);
+
+            // the shortest reverse window, or the swell has not come back yet
+            // inside the length of this test
+            set (pid::reverseTime, 0.0f);
+            set (c.amount, c.amountValue);
+
+            auto capture = [&] (bool on, AudioBuffer<float>& out)
+            {
+                set (c.id, on ? 1.0f : 0.0f);
+                processor.reset();
+
+                const int length = (int) (sampleRate * 4.0);
+                out.setSize (2, length, false, false, true);
+                out.clear();
+
+                int done = 0;
+                bool sent = false;
+
+                while (done < length)
+                {
+                    const int n = jmin (blockSize, length - done);
+                    AudioBuffer<float> block (2, n);
+                    block.clear();
+
+                    MidiBuffer midi;
+
+                    if (! sent)
+                    {
+                        for (int note : { 52, 59, 64, 67 })
+                            midi.addEvent (MidiMessage::noteOn (1, note, 0.85f), 1);
+
+                        sent = true;
+                    }
+
+                    processor.processBlock (block, midi);
+
+                    for (int ch = 0; ch < 2; ++ch)
+                        out.copyFrom (ch, done, block, ch, 0, n);
+
+                    done += n;
+                }
+            };
+
+            AudioBuffer<float> withEffect, without;
+            capture (true, withEffect);
+            capture (false, without);
+
+            /*  How much the stomp actually does, measured as the energy of the
+                difference between the two renders relative to the signal itself.
+                Comparing levels instead would only work for effects that add a
+                tail - a chorus changes the sound without changing its level, and
+                tack only touches the attack.
+            */
+            double diffEnergy = 0.0, signalEnergy = 0.0;
+            const int n = withEffect.getNumSamples();
+
+            for (int ch = 0; ch < 2; ++ch)
+            {
+                const auto* a = withEffect.getReadPointer (ch);
+                const auto* b = without.getReadPointer (ch);
+
+                for (int i = 0; i < n; ++i)
+                {
+                    const double d = (double) a[i] - (double) b[i];
+                    diffEnergy += d * d;
+                    signalEnergy += (double) a[i] * a[i];
+                }
+            }
+
+            const float deltaDb = (float) (10.0 * std::log10 (jmax (1.0e-14, diffEnergy)
+                                                            / jmax (1.0e-14, signalEnergy)));
+
+            /*  Now the click test: engage the stomp midway through a sustained
+                chord and look for a step between neighbouring samples. A ramp
+                cannot produce one; a hard cut does nothing else.
+            */
+            set (c.id, 1.0f);
+            processor.reset();
+
+            const int length = (int) (sampleRate * 3.0);
+            AudioBuffer<float> switched (2, length);
+            switched.clear();
+
+            int done = 0;
+            bool sent = false;
+            const int switchAt = (int) (sampleRate * 1.5);
+
+            while (done < length)
+            {
+                const int n = jmin (blockSize, length - done);
+                AudioBuffer<float> block (2, n);
+                block.clear();
+
+                MidiBuffer midi;
+
+                if (! sent)
+                {
+                    for (int note : { 52, 59, 64, 67 })
+                        midi.addEvent (MidiMessage::noteOn (1, note, 0.85f), 1);
+
+                    sent = true;
+                }
+
+                if (done <= switchAt && done + n > switchAt)
+                    set (c.id, 0.0f);
+
+                processor.processBlock (block, midi);
+
+                for (int ch = 0; ch < 2; ++ch)
+                    switched.copyFrom (ch, done, block, ch, 0, n);
+
+                done += n;
+            }
+
+            float worstStep = 0.0f;
+            const int from = jmax (1, switchAt - 2000);
+            const int to = jmin (length, switchAt + (int) (sampleRate * 0.5));
+
+            for (int ch = 0; ch < 2; ++ch)
+            {
+                const auto* d = switched.getReadPointer (ch);
+
+                for (int n = from; n < to; ++n)
+                    worstStep = jmax (worstStep, std::abs (d[n] - d[n - 1]));
+            }
+
+            report << "   " << String (c.name).paddedRight (' ', 9)
+                   << " changes " << String (deltaDb, 1).paddedLeft (' ', 6)
+                   << " dB of the signal   worst step at the switch "
+                   << String (worstStep, 4) << newLine;
+
+            // -26 dB is about five per cent of the energy: below that a player
+            // would not be sure the switch did anything
+            if (deltaDb < -26.0f)
+            {
+                report << "     !! switching this stomp barely changes anything" << newLine;
+                ok = false;
+            }
+
+            // a click is a step far larger than the waveform's own slew; 0.12
+            // sits well above normal sample-to-sample movement at these levels
+            if (worstStep > 0.12f)
+            {
+                report << "     !! that is a click, not a fade" << newLine;
+                ok = false;
+            }
+        }
+
+        report << newLine;
+        return ok;
+    }
+
     /*  A preset the player saved before a service has to come back exactly, on
         the next launch and after a reinstall. Round trip it through disk.
     */
@@ -1489,6 +1684,7 @@ int main (int argc, char** argv)
     allOk &= checkSoakMacro (sfz, report);
     allOk &= checkSampleLoading (sfz, report);
     allOk &= checkPerformanceControls (sfz, report);
+    allOk &= checkStomps (sfz, report);
 
     for (int i = 0; i < (int) presets::factory().size(); ++i)
     {

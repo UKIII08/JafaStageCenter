@@ -60,6 +60,35 @@ struct EffectSettings
     float reverseWindow = 24000.0f;   // samples
     float padSend = 0.9f;        // extra reverb send for the pad layer
     float width = 1.0f, outputGain = 1.0f;
+
+    float tackAmount = 0.0f;
+
+    /*  Stomp targets, 0 or 1. They are targets and not switches because a hard
+        cut on a sounding piano is a click - the chain ramps towards them.
+    */
+    float chorusOn = 1.0f, delayOn = 1.0f, reverseOn = 1.0f;
+    float reverbOn = 1.0f, driveOn = 1.0f, tackOn = 0.0f;
+};
+
+//==============================================================================
+/*  Tack piano: drawing pins in the hammer felt. The metal hits the string first,
+    so the brightness lives entirely in the attack - a static high shelf would
+    just make the whole instrument shrill. Detect the transient and lift the top
+    only while it lasts.
+*/
+class Tack
+{
+public:
+    void prepare (double sampleRate);
+    void reset();
+    void process (float* left, float* right, int numSamples, float amount);
+
+private:
+    double sr = 44100.0;
+    float hpL = 0.0f, hpR = 0.0f;      // one pole highpass state
+    float fastL = 0.0f, fastR = 0.0f;  // transient followers
+    float slowL = 0.0f, slowR = 0.0f;
+    float hpCoef = 0.2f, fastCoef = 0.4f, slowCoef = 0.002f;
 };
 
 class EffectChain
@@ -85,6 +114,11 @@ private:
     std::array<Filter, 2> lowShelf, highShelf, airShelf, rumbleCut;
     juce::dsp::Compressor<float> compressor;
     std::unique_ptr<juce::dsp::Oversampling<float>> oversampling;
+    Tack tack;
+
+    // one ramp per stomp, so switching one off fades it instead of cutting it
+    juce::SmoothedValue<float> chorusEngage, delayEngage, reverseEngage,
+                               reverbEngage, driveEngage, tackEngage;
     Ensemble ensemble;
     StereoDelay delay;
     Reverse reverse;

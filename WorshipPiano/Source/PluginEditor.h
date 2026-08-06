@@ -76,6 +76,24 @@ private:
 };
 
 //==============================================================================
+/** One stomp: a big latching switch that lights up, like a pedal on a board. */
+class StompButton : public juce::Button
+{
+public:
+    StompButton (juce::AudioProcessorValueTreeState&, const juce::String& paramID,
+                 const juce::String& caption, juce::Colour lit);
+
+    void paintButton (juce::Graphics&, bool highlighted, bool down) override;
+
+private:
+    juce::String caption;
+    juce::Colour lit;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> attachment;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StompButton)
+};
+
+//==============================================================================
 class WorshipPianoEditor : public juce::AudioProcessorEditor, private juce::Timer
 {
 public:
@@ -107,6 +125,18 @@ private:
     juce::TextButton liveTab { "LIVE" }, editTab { "EDIT" }, panicButton { "PANIC" };
     juce::TextButton presetPrev { "<" }, presetNext { ">" };
     juce::TextButton savePresetButton { "ZAPISZ" }, deletePresetButton { "USUN" };
+    juce::TextButton favouriteButton { "*" };
+
+    //---- the pedalboard ------------------------------------------------------
+    juce::OwnedArray<StompButton> stomps;
+    juce::Rectangle<int> stompPanel;
+
+    //---- quick access --------------------------------------------------------
+    juce::OwnedArray<juce::TextButton> quickButtons;
+    juce::Rectangle<int> quickPanel;
+    juce::StringArray quickNames;
+    void refreshQuickAccess();
+    void toggleFavourite();
     juce::String currentUserPreset;
     std::unique_ptr<juce::AlertWindow> nameWindow;
     juce::Label presetName, presetBlurb;
@@ -129,7 +159,7 @@ private:
     //---- edit view -----------------------------------------------------------
     juce::OwnedArray<ParamKnob> pianoKnobs, padKnobs, toneKnobs, moveKnobs, ambienceKnobs, outputKnobs;
 
-    juce::ComboBox delayDivBox, machineBox, shimmerModeBox, revTimeBox, pedalBox;
+    juce::ComboBox delayDivBox, machineBox, shimmerModeBox, revTimeBox, pedalBox, padTypeBox;
     juce::ToggleButton delaySyncButton { "SYNC" };
     juce::TextButton loadButton { "Sample library..." };
     juce::Label tempoLabel, libraryLabel;
@@ -137,7 +167,7 @@ private:
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
         delayDivAttachment, machineAttachment, shimmerModeAttachment,
-        revTimeAttachment, pedalAttachment;
+        revTimeAttachment, pedalAttachment, padTypeAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> delaySyncAttachment;
 
     //---- shared --------------------------------------------------------------

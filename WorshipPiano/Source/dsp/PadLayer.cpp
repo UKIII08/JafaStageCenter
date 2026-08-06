@@ -21,6 +21,9 @@ void PadLayer::prepare (double sampleRate, int maxBlockSize)
     sr = sampleRate;
     lfoInc = (float) (0.07 / sampleRate);
 
+    smoothedGain.reset (sampleRate, 0.055);
+    smoothedGain.setCurrentAndTargetValue (0.0f);
+
     auto hp = dsp::IIR::Coefficients<float>::makeHighPass (sampleRate, 30.0f);
     dcL.coefficients = hp;
     dcR.coefficients = hp;
@@ -121,6 +124,48 @@ void PadLayer::allNotesOff()
         if (v.active) { v.held = false; v.sustained = false; v.target = 0.0f; }
 }
 
+/*  One oscillator per pad character. All of them are built out of the same
+    band-limited saw so nothing aliases: folding a saw into a triangle keeps the
+    band limiting, and subtracting a phase-shifted copy gives a pulse whose
+    discontinuities are already corrected.
+*/
+inline float PadLayer::oscillator (float& phase, float inc) noexcept
+{
+    const float saw = polyBlepSaw (phase, inc);
+
+    switch (settings.voice)
+    {
+        case PadVoice::softChoir:
+        {
+            // integrating a saw gives a triangle: same harmonics, falling off
+            // an order faster, so it breathes instead of buzzing
+            const float tri = 2.0f * std::abs (saw) - 1.0f;
+            return 0.5f * tri + 0.2f * saw;
+        }
+
+        case PadVoice::glass:
+        {
+            // a touch of second harmonic to put a bell-like edge on top, where
+            // it will sit above the piano rather than fight it
+            const float second = 2.0f * saw * saw - 1.0f;
+            return 0.72f * saw + 0.28f * second;
+        }
+
+        case PadVoice::airVox:
+        {
+            // a narrow pulse is saw minus a delayed saw; approximate the delay
+            // with the squared term so the result stays band limited
+            const float pulse = saw - (saw * std::abs (saw));
+            return 1.35f * pulse;
+        }
+
+        case PadVoice::strings:
+        case PadVoice::warmSaw:
+        default:
+            return saw;
+    }
+}
+
 inline float PadLayer::polyBlepSaw (float& phase, float inc) noexcept
 {
     phase += inc;
@@ -147,7 +192,11 @@ inline float PadLayer::polyBlepSaw (float& phase, float inc) noexcept
 
 void PadLayer::render (float* left, float* right, int numSamples)
 {
-    if (settings.level <= 1.0e-5f)
+    // calibrated so that a Pad setting of 0 dB puts the layer at roughly the
+    // same level as the piano: the knob then reads as dB below the instrument
+    smoothedGain.setTargetValue (settings.level * 1.40f);
+
+    if (settings.level <= 1.0e-5f && ! smoothedGain.isSmoothing())
     {
         bool anyRinging = false;
 
@@ -163,9 +212,6 @@ void PadLayer::render (float* left, float* right, int numSamples)
         }
     }
 
-    // calibrated so that a Pad setting of 0 dB puts the layer at roughly the
-    // same level as the piano: the knob then reads as dB below the instrument
-    const float gain = settings.level * 1.40f;
     const float res = 0.85f;                       // gentle, no self oscillation
     const float k = 1.0f / jmax (0.05f, res);
 
@@ -213,9 +259,9 @@ void PadLayer::render (float* left, float* right, int numSamples)
 
             for (int i = 0; i < oscsPerVoice; ++i)
             {
-                const float saw = polyBlepSaw (v.phase[(size_t) i], v.inc[(size_t) i]);
-                oscL += saw * oscPanL[i];
-                oscR += saw * oscPanR[i];
+                const float osc = oscillator (v.phase[(size_t) i], v.inc[(size_t) i]);
+                oscL += osc * oscPanL[i];
+                oscR += osc * oscPanR[i];
             }
 
             constexpr float oscNorm = 1.0f / (float) oscsPerVoice;
@@ -241,6 +287,7 @@ void PadLayer::render (float* left, float* right, int numSamples)
             sumR += lpR * shape * v.panR;
         }
 
+        const float gain = smoothedGain.getNextValue();
         left[n]  += dcL.processSample (sumL * gain);
         right[n] += dcR.processSample (sumR * gain);
     }

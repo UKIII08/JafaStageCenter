@@ -34,6 +34,12 @@ public:
     const juce::String getProgramName (int index) override;
     void changeProgramName (int, const juce::String&) override {}
 
+    /*  Hosts call this to clear tails - on transport stop, and between passes of
+        an offline bounce. Not implementing it meant a reverb tail leaked from
+        one render into the next.
+    */
+    void reset() override;
+
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 

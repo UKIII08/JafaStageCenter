@@ -81,6 +81,74 @@ brzmienia na niedzielę nie powinny siedzieć wyłącznie w pliku projektu jedne
 
 ---
 
+## Pedalboard
+
+Osiem przełączników na dole widoku **LIVE**, ułożonych w kolejności toru sygnału:
+
+```
+TACK   DRIVE   PAD   CHORUS   DELAY   REVERSE   REVERB   SOAK
+```
+
+Każdy działa jak kostka gitarowa: gałka obok ustawia **ile** efekt robi, a przełącznik
+decyduje **czy w ogóle**. Klikasz na zwrotkę REVERSE i SOAK, na refren zdejmujesz je i
+dodajesz CHORUS — bez ruszania gałek i bez zmiany presetu.
+
+Załączanie i wyłączanie jest **wygaszane rampą 45 ms**, nie przełączane skokiem. Twarde
+cięcie brzmiącego fortepianu to klik, a nie efekt. Pad ma własną, dłuższą rampę (55 ms),
+bo jest dźwiękiem ciągłym — urwanie pada słychać znacznie bardziej niż urwanie zanikającej
+nuty. Delay i pogłos przy wyłączeniu **dograją swój ogon do końca** zamiast zniknąć w pół
+powtórki.
+
+### Sterowanie nogą
+
+Każdy przełącznik siedzi na kontrolerze MIDI z zakresu **CC 80–87**:
+
+| CC | Stomp | CC | Stomp |
+|---|---|---|---|
+| 80 | PAD | 84 | REVERB |
+| 81 | CHORUS | 85 | SOAK |
+| 82 | DELAY | 86 | DRIVE |
+| 83 | REVERSE | 87 | TACK |
+
+To są kontrolery „general purpose" ze specyfikacji MIDI, więc nie kolidują z niczym, co
+klawiatura wysyła sama. Działa zarówno przełącznik chwilowy, jak i zatrzaskowy — liczy się
+tylko, czy wartość jest powyżej połowy.
+
+### TACK
+
+Pinezki wbite w filc młoteczków. Metal dotyka struny pierwszy, więc jasność mieszka
+**wyłącznie w ataku** — zwykła półka górnoprzepustowa zrobiłaby z całego instrumentu
+piszczałkę. Stopień wykrywa transjent (szybka obwiednia ponad wolną) i podbija górę tylko
+na czas uderzenia. Gałka **Tack** w widoku EDIT ustawia siłę.
+
+---
+
+## Szybki dostęp
+
+Nikt nie przewija listy dwudziestu presetów między dwiema pieśniami. Przycisk **`*`** obok
+ZAPISZ/USUN dodaje bieżący preset do sześciu slotów szybkiego dostępu — pasek nad panelami,
+jedno kliknięcie. Wybór jest zapisywany na dysku (`favourites.txt` obok presetów), więc
+idzie za komputerem, a nie za projektem. Preset, który przestał istnieć, zwalnia slot sam.
+
+---
+
+## Pady
+
+Pięć charakterów, wybierane listą w panelu PAD:
+
+| Typ | Brzmienie |
+|---|---|
+| **Warm Saw** | Klasyczne analogowe łóżko, trzy rozstrojone piły. Domyślny |
+| **Soft Choir** | Trójkąt bez góry — oddycha zamiast brzęczeć. Pod mówione słowo |
+| **Glass** | Jasny, dzwonkowy, siada **nad** fortepianem zamiast z nim walczyć |
+| **Strings** | Szersze rozstrojenie i wolniejszy swell. Sekcja, nie syntezator |
+| **Air Vox** | Wąski impuls, oddechowy, wokalny |
+
+Każdy typ zmienia nie tylko falę, ale i filtr, rozstrojenie oraz czasy narastania —
+sekcja smyczkowa to nie piła z inną falą, tylko wolniejsza i szersza.
+
+---
+
 ## Reverse piano
 
 `Reverse` w panelu AMBIENCE odtwarza to, co właśnie zagrałeś, **od tyłu**. Każda fraza

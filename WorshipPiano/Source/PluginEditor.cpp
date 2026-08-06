@@ -138,6 +138,52 @@ void LevelMeter::paint (Graphics& g)
 }
 
 //==============================================================================
+StompButton::StompButton (AudioProcessorValueTreeState& apvts, const String& paramID,
+                          const String& text, Colour litColour)
+    : Button (text), caption (text), lit (litColour)
+{
+    setClickingTogglesState (true);
+    attachment = std::make_unique<AudioProcessorValueTreeState::ButtonAttachment> (apvts, paramID, *this);
+}
+
+void StompButton::paintButton (Graphics& g, bool highlighted, bool down)
+{
+    auto area = getLocalBounds().toFloat().reduced (2.0f);
+    const bool on = getToggleState();
+
+    // the body: dark when bypassed, lit from within when engaged, so the state
+    // reads from across a stage rather than from a foot away
+    g.setColour (on ? lit.withAlpha (0.30f) : colours::track);
+    g.fillRoundedRectangle (area, 6.0f);
+
+    g.setColour (on ? lit : colours::panelEdge);
+    g.drawRoundedRectangle (area.reduced (0.5f), 6.0f, on ? 1.8f : 1.0f);
+
+    if (highlighted || down)
+    {
+        g.setColour (Colours::white.withAlpha (down ? 0.14f : 0.07f));
+        g.fillRoundedRectangle (area, 6.0f);
+    }
+
+    // the lamp, because a pedal you cannot read in a dark room is no use
+    auto lamp = area.removeFromTop (area.getHeight() * 0.42f)
+                    .withSizeKeepingCentre (9.0f, 9.0f);
+
+    g.setColour (on ? lit : colours::panelEdge.brighter (0.1f));
+    g.fillEllipse (lamp);
+
+    if (on)
+    {
+        g.setColour (lit.withAlpha (0.35f));
+        g.fillEllipse (lamp.expanded (3.5f));
+    }
+
+    g.setColour (on ? Colours::white : colours::textDim);
+    g.setFont (Font (FontOptions (11.0f)).withStyle (Font::bold));
+    g.drawText (caption, area, Justification::centred, false);
+}
+
+//==============================================================================
 PresetList::PresetList()
 {
     refreshUserPresets();
@@ -371,6 +417,62 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
     };
     splitPointSlider.onValueChange();
 
+    /*  The pedalboard. Order runs left to right the way the signal does, so the
+        board reads like the chain it is driving.
+    */
+    struct StompSpec { const char* id; const char* caption; uint32 colour; };
+
+    static const StompSpec board[] = {
+        { pid::tackOn,    "TACK",    0xffe0b050 },
+        { pid::driveOn,   "DRIVE",   0xffe08050 },
+        { pid::padOn,     "PAD",     0xff70c090 },
+        { pid::chorusOn,  "CHORUS",  0xff60b0d0 },
+        { pid::delayOn,   "DELAY",   0xff8090e0 },
+        { pid::reverseOn, "REVERSE", 0xffb080e0 },
+        { pid::reverbOn,  "REVERB",  0xff70a0e0 },
+        { pid::soakOn,    "SOAK",    0xffd070c0 },
+    };
+
+    for (const auto& spec : board)
+    {
+        auto* b = stomps.add (new StompButton (processor.apvts, spec.id, spec.caption,
+                                               Colour (spec.colour)));
+        addAndMakeVisible (b);
+    }
+
+    //---- quick access: the handful of presets you actually play --------------
+    for (int i = 0; i < 6; ++i)
+    {
+        auto* b = quickButtons.add (new TextButton());
+        b->setConnectedEdges (Button::ConnectedOnLeft | Button::ConnectedOnRight);
+        b->onClick = [this, i]
+        {
+            if (isPositiveAndBelow (i, quickNames.size()))
+            {
+                const auto name = quickNames[i];
+                const int factoryIndex = presets::indexForName (name);
+
+                if (factoryIndex >= 0)
+                {
+                    currentUserPreset = {};
+                    processor.loadPreset (factoryIndex);
+                }
+                else if (presets::applyUser (processor.apvts, name))
+                {
+                    currentUserPreset = name;
+                }
+
+                lastPresetIndex = -2;
+            }
+        };
+        addAndMakeVisible (b);
+    }
+
+    addAndMakeVisible (favouriteButton);
+    favouriteButton.setTooltip ("Dodaj lub usun z szybkiego dostepu");
+    favouriteButton.onClick = [this] { toggleFavourite(); };
+    refreshQuickAccess();
+
     addAndMakeVisible (freezeButton);
     freezeAttachment = std::make_unique<AudioProcessorValueTreeState::ButtonAttachment> (
         processor.apvts, pid::reverbFreeze, freezeButton);
@@ -391,6 +493,11 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
     addKnob (pianoKnobs, pid::dynamicRange, "Dynamics");
     addKnob (pianoKnobs, pid::pianoLevel,   "Level");
 
+    addChildComponent (padTypeBox);
+    padTypeBox.addItemList ({ "Warm Saw", "Soft Choir", "Glass", "Strings", "Air Vox" }, 1);
+    padTypeAttachment = std::make_unique<AudioProcessorValueTreeState::ComboBoxAttachment> (
+        processor.apvts, pid::padType, padTypeBox);
+
     addKnob (padKnobs, pid::padLevel,   "Pad");
     addKnob (padKnobs, pid::padTone,    "Tone");
     addKnob (padKnobs, pid::padAttack,  "Swell");
@@ -401,6 +508,7 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
     addKnob (toneKnobs, pid::eqAir,      "Air");
     addKnob (toneKnobs, pid::compAmount, "Compress");
     addKnob (toneKnobs, pid::drive,      "Drive");
+    addKnob (toneKnobs, pid::tackAmount, "Tack");
 
     addKnob (moveKnobs, pid::chorusAmount, "Chorus");
     addKnob (moveKnobs, pid::delayMix,     "Delay");
@@ -460,7 +568,7 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
 
     setResizable (true, true);
     setResizeLimits (900, 620, 1700, 1150);
-    setSize (1000, 700);
+    setSize (1060, 760);
 
     setLiveMode (true);
     startTimerHz (12);
@@ -504,6 +612,15 @@ void WorshipPianoEditor::setLiveMode (bool shouldBeLive)
     presetList.setVisible (liveMode);
     savePresetButton.setVisible (liveMode);
     deletePresetButton.setVisible (liveMode);
+    favouriteButton.setVisible (liveMode);
+
+    for (auto* b : quickButtons)
+        b->setVisible (liveMode);
+
+    // the board stays on the LIVE page: EDIT is for building a sound, LIVE is
+    // for playing it
+    for (auto* b : stomps)
+        b->setVisible (liveMode);
     soakKnob->setVisible (liveMode);
     transposeDown.setVisible (liveMode);
     transposeUp.setVisible (liveMode);
@@ -523,7 +640,7 @@ void WorshipPianoEditor::setLiveMode (bool shouldBeLive)
 
     const std::initializer_list<Component*> editOnly
     {
-        &delaySyncButton, &delayDivBox,
+        &padTypeBox, &delaySyncButton, &delayDivBox,
         &tempoLabel, &machineBox, &shimmerModeBox, &revTimeBox, &pedalBox
     };
 
@@ -614,6 +731,35 @@ void WorshipPianoEditor::deletePreset()
                                      processor.loadPreset (processor.getPresetIndex());
                                      lastPresetIndex = -2;
                                  });
+}
+
+void WorshipPianoEditor::refreshQuickAccess()
+{
+    quickNames = presets::favourites();
+
+    for (int i = 0; i < quickButtons.size(); ++i)
+    {
+        const bool used = isPositiveAndBelow (i, quickNames.size());
+        auto* b = quickButtons[i];
+
+        b->setButtonText (used ? quickNames[i] : String ("-"));
+        b->setEnabled (used);
+        b->setColour (TextButton::textColourOffId, used ? colours::text : colours::textDim.darker (0.4f));
+    }
+}
+
+void WorshipPianoEditor::toggleFavourite()
+{
+    const auto name = currentUserPreset.isNotEmpty()
+                        ? currentUserPreset
+                        : presetName.getText().upToFirstOccurrenceOf (" *", false, false);
+
+    if (name.isEmpty())
+        return;
+
+    presets::setFavourite (name, ! presets::isFavourite (name));
+    refreshQuickAccess();
+    lastPresetIndex = -2;
 }
 
 void WorshipPianoEditor::showLibraryMenu()
@@ -745,6 +891,8 @@ void WorshipPianoEditor::paint (Graphics& g)
         drawPanel (g, livePresetPanel, "Presets");
         drawPanel (g, liveMixPanel,    "Mix");
         drawPanel (g, livePerformPanel,"Performance");
+        drawPanel (g, quickPanel,      {});
+        drawPanel (g, stompPanel,      {});
     }
     else
     {
@@ -834,11 +982,19 @@ void WorshipPianoEditor::layoutLive (Rectangle<int> area)
 {
     pianoPanel = padPanel = tonePanel = movementPanel = ambiencePanel = soakPanel = {};
 
+    // the board spans the full width across the bottom, where a foot would
+    // find it, and where the eye can take all eight lamps in at once
+    stompPanel = area.removeFromBottom (72);
+    area.removeFromBottom (gap);
+
+    quickPanel = area.removeFromTop (40);
+    area.removeFromTop (gap);
+
     livePresetPanel = area.removeFromLeft (roundToInt (area.getWidth() * 0.34f));
     area.removeFromLeft (gap);
 
     auto right = area;
-    livePerformPanel = right.removeFromBottom (roundToInt (right.getHeight() * 0.29f));
+    livePerformPanel = right.removeFromBottom (roundToInt (right.getHeight() * 0.34f));
     right.removeFromBottom (gap);
     liveMixPanel = right;
 
@@ -847,10 +1003,29 @@ void WorshipPianoEditor::layoutLive (Rectangle<int> area)
         auto buttons = panel.removeFromBottom (30);
         panel.removeFromBottom (6);
 
-        savePresetButton.setBounds (buttons.removeFromLeft (roundToInt (buttons.getWidth() * 0.55f)).reduced (2));
+        favouriteButton.setBounds (buttons.removeFromRight (34).reduced (2));
+        savePresetButton.setBounds (buttons.removeFromLeft (roundToInt (buttons.getWidth() * 0.58f)).reduced (2));
         deletePresetButton.setBounds (buttons.reduced (2));
 
         presetList.setBounds (panel);
+    }
+
+    //---- quick access -------------------------------------------------------
+    {
+        auto inner = quickPanel.reduced (10, 5);
+        const int each = jmax (1, inner.getWidth() / jmax (1, quickButtons.size()));
+
+        for (auto* b : quickButtons)
+            b->setBounds (inner.removeFromLeft (each).reduced (1, 0));
+    }
+
+    //---- the pedalboard -----------------------------------------------------
+    {
+        auto inner = stompPanel.reduced (10, 8);
+        const int each = jmax (1, inner.getWidth() / jmax (1, stomps.size()));
+
+        for (auto* b : stomps)
+            b->setBounds (inner.removeFromLeft (each).reduced (3, 0));
     }
 
     //---- mix: one big macro plus the five things you actually reach for ------
@@ -902,7 +1077,7 @@ void WorshipPianoEditor::layoutLive (Rectangle<int> area)
 
 void WorshipPianoEditor::layoutEdit (Rectangle<int> area)
 {
-    livePresetPanel = liveMixPanel = livePerformPanel = {};
+    livePresetPanel = liveMixPanel = livePerformPanel = quickPanel = stompPanel = {};
 
     const int usable = area.getHeight() - gap * 2;
     const int rowHeight = roundToInt ((float) usable / 2.9f);
@@ -921,7 +1096,9 @@ void WorshipPianoEditor::layoutEdit (Rectangle<int> area)
     layoutGrid (pianoKnobs, pianoInner, 5);
 
     auto padInner = padPanel.reduced (10, 6);
-    padInner.removeFromTop (panelTitleH + 34);
+    padInner.removeFromTop (panelTitleH);
+    padTypeBox.setBounds (padInner.removeFromTop (26).reduced (2, 2));
+    padInner.removeFromTop (4);
     layoutGrid (padKnobs, padInner, 4);
 
     //---- row two: tone + movement -------------------------------------------

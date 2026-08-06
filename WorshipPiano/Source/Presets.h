@@ -45,4 +45,16 @@ namespace presets
 
     /** Strips what a file name cannot hold, so a preset name is always usable. */
     juce::String sanitiseName (const juce::String& name);
+
+    //==========================================================================
+    /*  Quick access. Nobody hunts a list of twenty presets between two songs -
+        a handful get starred and land on buttons that are one click away.
+        Stored next to the user presets, so the choice follows the machine
+        rather than a single project.
+    */
+    juce::StringArray favourites();
+    void setFavourite (const juce::String& name, bool shouldBeFavourite);
+    bool isFavourite (const juce::String& name);
+
+    static constexpr int maxFavourites = 6;
 }

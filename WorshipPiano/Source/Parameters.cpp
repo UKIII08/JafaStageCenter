@@ -68,7 +68,21 @@ AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     c.add (f (pid::dynamicRange, "Dynamics", range (6.0f, 40.0f, 24.0f),  26.0f, dB));
     c.add (f (pid::pianoLevel,   "Piano",    range (-24.0f, 6.0f, -6.0f), 0.0f,  dB));
 
+    // ---- Stomps -------------------------------------------------------------
+    // Default on for the things a preset already dials in, so switching a
+    // preset does not silently arrive with half its sound bypassed.
+    c.add (std::make_unique<AudioParameterBool> (pv (pid::padOn),     "Pad on",     true));
+    c.add (std::make_unique<AudioParameterBool> (pv (pid::chorusOn),  "Chorus on",  true));
+    c.add (std::make_unique<AudioParameterBool> (pv (pid::delayOn),   "Delay on",   true));
+    c.add (std::make_unique<AudioParameterBool> (pv (pid::reverseOn), "Reverse on", true));
+    c.add (std::make_unique<AudioParameterBool> (pv (pid::reverbOn),  "Reverb on",  true));
+    c.add (std::make_unique<AudioParameterBool> (pv (pid::soakOn),    "Soak on",    true));
+    c.add (std::make_unique<AudioParameterBool> (pv (pid::driveOn),   "Drive on",   true));
+    c.add (std::make_unique<AudioParameterBool> (pv (pid::tackOn),    "Tack on",    false));
+
     // ---- Pad layer ---------------------------------------------------------
+    c.add (std::make_unique<AudioParameterChoice> (pv (pid::padType), "Pad type",
+              StringArray { "Warm Saw", "Soft Choir", "Glass", "Strings", "Air Vox" }, 0));
     c.add (f (pid::padLevel,   "Pad",     range (-60.0f, 0.0f, -24.0f), -60.0f, dB));
     c.add (f (pid::padTone,    "Pad Tone",range (200.0f, 8000.0f, 1400.0f), 1600.0f, hz));
     c.add (f (pid::padAttack,  "Swell",   range (5.0f, 4000.0f, 500.0f), 700.0f, ms));
@@ -79,6 +93,7 @@ AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     c.add (f (pid::eqHigh,     "Presence", range (-12.0f, 12.0f, 0.0f), 0.0f, dB));
     c.add (f (pid::eqAir,      "Air",      range (0.0f, 12.0f, 4.0f),   2.0f, dB));
     c.add (f (pid::compAmount, "Compress", range (0.0f, 1.0f, 0.5f),    0.30f, pct));
+    c.add (f (pid::tackAmount, "Tack",     range (0.0f, 1.0f, 0.5f),     0.45f, pct));
     c.add (f (pid::drive,      "Drive",    range (0.0f, 1.0f, 0.4f),    0.12f, pct));
 
     // ---- Movement & delay --------------------------------------------------

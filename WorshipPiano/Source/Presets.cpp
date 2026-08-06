@@ -329,4 +329,70 @@ bool deleteUser (const String& name)
     return userPresetDirectory().getChildFile (sanitiseName (name) + ".wppreset").deleteFile();
 }
 
+
+
+//==============================================================================
+namespace
+{
+    File favouritesFile()
+    {
+        return userPresetDirectory().getParentDirectory().getChildFile ("favourites.txt");
+    }
+}
+
+StringArray favourites()
+{
+    StringArray names;
+    auto file = favouritesFile();
+
+    if (file.existsAsFile())
+        names.addLines (file.loadFileAsString());
+
+    names.removeEmptyStrings();
+    names.removeDuplicates (true);
+
+    // a preset that no longer exists must not hold a slot hostage
+    for (int i = names.size(); --i >= 0;)
+        if (indexForName (names[i]) < 0 && ! userPresetNames().contains (names[i]))
+            names.remove (i);
+
+    while (names.size() > maxFavourites)
+        names.remove (names.size() - 1);
+
+    return names;
+}
+
+void setFavourite (const String& name, bool shouldBeFavourite)
+{
+    if (name.isEmpty())
+        return;
+
+    auto names = favourites();
+    const int existing = names.indexOf (name);
+
+    if (shouldBeFavourite)
+    {
+        if (existing >= 0)
+            return;
+
+        // full board: the oldest star makes way, so starring never silently
+        // does nothing
+        if (names.size() >= maxFavourites)
+            names.remove (0);
+
+        names.add (name);
+    }
+    else if (existing >= 0)
+    {
+        names.remove (existing);
+    }
+
+    favouritesFile().replaceWithText (names.joinIntoString ("\n"));
+}
+
+bool isFavourite (const String& name)
+{
+    return favourites().contains (name);
+}
+
 } // namespace presets

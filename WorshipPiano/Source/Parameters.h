@@ -22,7 +22,25 @@ namespace pid
     inline constexpr const char* dynamicRange = "dynrange";  // velocity range
     inline constexpr const char* pianoLevel   = "pianolevel";
 
+    /*  --- Stomps ----------------------------------------------------------
+
+        The pedalboard. Each of these is a plain on/off that a foot switch can
+        reach, and every one of them fades rather than jumps, because a hard cut
+        on a sounding piano is a click. The knob next to a stomp sets how much
+        the effect does when it is on; the stomp itself is the thing you hit
+        between the verse and the chorus.
+    */
+    inline constexpr const char* padOn        = "padon";
+    inline constexpr const char* chorusOn     = "choruson";
+    inline constexpr const char* delayOn      = "delayon";
+    inline constexpr const char* reverseOn    = "reverseon";
+    inline constexpr const char* reverbOn     = "reverbon";
+    inline constexpr const char* soakOn       = "soakon";
+    inline constexpr const char* driveOn      = "driveon";
+    inline constexpr const char* tackOn       = "tackon";
+
     // --- Pad layer ----------------------------------------------------------
+    inline constexpr const char* padType      = "padtype";
     inline constexpr const char* padLevel     = "padlevel";
     inline constexpr const char* padTone      = "padtone";
     inline constexpr const char* padAttack    = "padattack";
@@ -34,6 +52,7 @@ namespace pid
     inline constexpr const char* eqAir        = "eqair";
     inline constexpr const char* compAmount   = "compamount";
     inline constexpr const char* drive        = "drive";
+    inline constexpr const char* tackAmount   = "tackamount";
 
     // --- Movement & delay ---------------------------------------------------
     inline constexpr const char* chorusAmount = "chorusamount";

@@ -26,6 +26,75 @@ namespace
     }
 }
 
+
+//==============================================================================
+void Tack::prepare (double sampleRate)
+{
+    sr = sampleRate;
+
+    // the tacks live above about 1.8 kHz; below that is the piano itself
+    hpCoef = onePole (1800.0, sr);
+
+    // fast enough to follow a hammer strike, slow enough that the reference
+    // does not move with it
+    fastCoef = onePole (400.0, sr);
+    slowCoef = onePole (6.0, sr);
+
+    reset();
+}
+
+void Tack::reset()
+{
+    hpL = hpR = 0.0f;
+    fastL = fastR = 0.0f;
+    slowL = slowR = 0.0f;
+}
+
+void Tack::process (float* left, float* right, int numSamples, float amount)
+{
+    if (amount <= 0.0005f)
+    {
+        // keep the states current so switching it on does not start from a
+        // stale envelope and spit out one wrong transient
+        for (int n = 0; n < numSamples; ++n)
+        {
+            hpL += hpCoef * (left[n] - hpL);
+            hpR += hpCoef * (right[n] - hpR);
+
+            const float aL = std::abs (left[n]), aR = std::abs (right[n]);
+            fastL += fastCoef * (aL - fastL);   slowL += slowCoef * (aL - slowL);
+            fastR += fastCoef * (aR - fastR);   slowR += slowCoef * (aR - slowR);
+        }
+
+        return;
+    }
+
+    const float gain = amount * 4.0f;
+
+    for (int n = 0; n < numSamples; ++n)
+    {
+        const float l = left[n], r = right[n];
+
+        hpL += hpCoef * (l - hpL);
+        hpR += hpCoef * (r - hpR);
+
+        const float topL = l - hpL;     // everything above the corner
+        const float topR = r - hpR;
+
+        const float aL = std::abs (l), aR = std::abs (r);
+        fastL += fastCoef * (aL - fastL);   slowL += slowCoef * (aL - slowL);
+        fastR += fastCoef * (aR - fastR);   slowR += slowCoef * (aR - slowR);
+
+        // how far the fast envelope is above the slow one: positive only during
+        // an attack, zero through the sustain
+        const float transL = jlimit (0.0f, 1.0f, (fastL - slowL) * 6.0f);
+        const float transR = jlimit (0.0f, 1.0f, (fastR - slowR) * 6.0f);
+
+        left[n]  = l + topL * transL * gain;
+        right[n] = r + topR * transR * gain;
+    }
+}
+
 //==============================================================================
 void StereoDelay::prepare (double sampleRate, int)
 {
@@ -158,6 +227,7 @@ void EffectChain::prepare (double sampleRate, int maxBlockSize)
     latencySamples = roundToInt (oversampling->getLatencyInSamples());
 
     ensemble.prepare (sampleRate);
+    tack.prepare (sampleRate);
     delay.prepare (sampleRate, maxBlockSize);
     reverse.prepare (sampleRate);
     ambience.prepare (sampleRate, maxBlockSize);
@@ -166,6 +236,13 @@ void EffectChain::prepare (double sampleRate, int maxBlockSize)
     sendBuffer.setSize (2, maxBlockSize, false, false, true);
     wetBuffer.setSize (2, maxBlockSize, false, false, true);
     reverseBuffer.setSize (2, maxBlockSize, false, false, true);
+
+    for (auto* e : { &chorusEngage, &delayEngage, &reverseEngage,
+                     &reverbEngage, &driveEngage, &tackEngage })
+    {
+        e->reset (sampleRate, 0.045);
+        e->setCurrentAndTargetValue (1.0f);
+    }
 
     filtersDirty = true;
     updateFilters();
@@ -185,6 +262,7 @@ void EffectChain::reset()
         oversampling->reset();
 
     ensemble.reset();
+    tack.reset();
     delay.reset();
     reverse.reset();
     ambience.reset();
@@ -207,6 +285,13 @@ void EffectChain::setSettings (const EffectSettings& s)
 
     compressor.setThreshold (jmap (settings.compAmount, 0.0f, 1.0f, -6.0f, -34.0f));
     compressor.setRatio (jmap (settings.compAmount, 0.0f, 1.0f, 1.2f, 5.5f));
+
+    chorusEngage.setTargetValue (settings.chorusOn);
+    delayEngage.setTargetValue (settings.delayOn);
+    reverseEngage.setTargetValue (settings.reverseOn);
+    reverbEngage.setTargetValue (settings.reverbOn);
+    driveEngage.setTargetValue (settings.driveOn);
+    tackEngage.setTargetValue (settings.tackOn);
 
     ensemble.setParameters (settings.chorusAmount, settings.chorusRate);
     delay.setParameters (settings.delaySamplesL, settings.delaySamplesR,
@@ -289,6 +374,15 @@ void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>&
         }
     }
 
+    // ---- tack ---------------------------------------------------------------
+    // Before the saturator, because on a real tack piano the pins are part of
+    // how the note is made, not something applied to the finished sound.
+    {
+        const float engage = tackEngage.getNextValue();
+        tackEngage.skip (jmax (0, numSamples - 1));
+        tack.process (l, r, numSamples, settings.tackAmount * engage);
+    }
+
     // ---- saturation ---------------------------------------------------------
     // Always run, so the reported latency never changes underneath the host.
     if (numChannels == 2)
@@ -309,7 +403,10 @@ void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>&
         // Blend towards the shaper rather than always running it. tanh is not
         // the identity at unity gain, so without this the Drive knob at zero
         // still put a compressed, odd-harmonic curve across everything.
-        const float wet = jmin (1.0f, settings.drive * 2.5f);
+        const float driveEngaged = driveEngage.getNextValue();
+        driveEngage.skip (jmax (0, numSamples - 1));
+
+        const float wet = jmin (1.0f, settings.drive * 2.5f) * driveEngaged;
 
         dsp::AudioBlock<float> block (buffer.getArrayOfWritePointers(), (size_t) numChannels, (size_t) numSamples);
         auto up = oversampling->processSamplesUp (block);
@@ -351,8 +448,22 @@ void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>&
     }
 
     // ---- movement -----------------------------------------------------------
+    {
+        const float chorusEngaged = chorusEngage.getNextValue();
+        chorusEngage.skip (jmax (0, numSamples - 1));
+        ensemble.setParameters (settings.chorusAmount * chorusEngaged, settings.chorusRate);
+    }
+
     ensemble.process (l, r, numSamples);
-    delay.process (l, r, numSamples, settings.delayMix);
+
+    {
+        const float delayEngaged = delayEngage.getNextValue();
+        delayEngage.skip (jmax (0, numSamples - 1));
+
+        // the delay line keeps running while it fades, so the repeats already in
+        // it die away naturally instead of vanishing mid-tail
+        delay.process (l, r, numSamples, settings.delayMix * delayEngaged);
+    }
 
     // ---- ambience -----------------------------------------------------------
     // The pad goes in hotter than the piano: that difference is what makes the
@@ -366,11 +477,14 @@ void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>&
         sendR[n] = r[n];
     }
 
-    if (settings.reverseMix > 0.0005f || smoothedReverseMix > 0.0005f)
+    const float reverseEngaged = reverseEngage.getNextValue();
+    reverseEngage.skip (jmax (0, numSamples - 1));
+
+    if (settings.reverseMix * reverseEngaged > 0.0005f || smoothedReverseMix > 0.0005f)
     {
         for (int n = 0; n < numSamples; ++n)
         {
-            smoothedReverseMix += 0.0015f * (settings.reverseMix - smoothedReverseMix);
+            smoothedReverseMix += 0.0015f * (settings.reverseMix * reverseEngaged - smoothedReverseMix);
 
             const float wl = revL[n] * smoothedReverseMix;
             const float wr = revR[n] * smoothedReverseMix;
@@ -412,9 +526,12 @@ void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>&
     // there for anyone who wants the level back.
     constexpr float headroom = 0.45f;
 
+    const float reverbEngaged = reverbEngage.getNextValue();
+    reverbEngage.skip (jmax (0, numSamples - 1));
+
     for (int n = 0; n < numSamples; ++n)
     {
-        smoothedReverbMix += 0.0015f * (settings.reverbMix - smoothedReverbMix);
+        smoothedReverbMix += 0.0015f * (settings.reverbMix * reverbEngaged - smoothedReverbMix);
         smoothedOutput += 0.002f * (settings.outputGain - smoothedOutput);
 
         const float ol = l[n] + wl[n] * smoothedReverbMix;

@@ -117,7 +117,7 @@ void WorshipPianoProcessor::clearSampleLibrary()
     libraryPath.clear();
 
     const ScopedLock sl (statusLock);
-    libraryStatus = "Brak biblioteki - silnik modelowany";
+    libraryStatus = "Brak biblioteki sampli";
 }
 
 String WorshipPianoProcessor::getLibraryStatus() const
@@ -139,6 +139,15 @@ void WorshipPianoProcessor::prepareToPlay (double newSampleRate, int samplesPerB
     setLatencySamples (effects.getLatencySamples());
 
     keyboardState.reset();
+    outputLevel.store (0.0f);
+}
+
+void WorshipPianoProcessor::reset()
+{
+    sampler.panic();
+    pad.reset();
+    effects.reset();
+    padBuffer.clear();
     outputLevel.store (0.0f);
 }
 
@@ -170,7 +179,12 @@ void WorshipPianoProcessor::updateSettings()
     // Soak is a macro, not a mode: it lifts whatever the preset already does
     // towards a full ambient wash, so it is useful on every preset and does
     // nothing at all at zero.
-    const float soak = jmax (param (pid::soak), pedalSoak.load());
+    auto stomp = [this] (const char* id) { return param (id) > 0.5f ? 1.0f : 0.0f; };
+
+    // Soak is a macro over the whole ambience, so its stomp gates the macro
+    // rather than any single stage.
+    const float soakRaw = jmax (param (pid::soak), pedalSoak.load());
+    const float soak = soakRaw * stomp (pid::soakOn);
     const float soak2 = soak * soak;
 
     sampler.setDynamics (param (pid::dynamicRange));
@@ -181,12 +195,35 @@ void WorshipPianoProcessor::updateSettings()
     const float padDb = param (pid::padLevel);
     const float padGain = padDb <= -59.5f ? 0.0f : Decibels::decibelsToGain (padDb);
 
+    /*  Each pad character wants a different filter corner, detune and swell -
+        a string section is not a warm saw with a different waveform, it is
+        slower and wider as well.
+                          cutoff  detune  attack  release  level
+    */
+    struct PadShape { float cutoff, detune, attack, release, level; };
+
+    static constexpr PadShape shapes[] = {
+        { 1.00f, 1.00f, 1.00f, 1.00f, 1.00f },   // Warm Saw
+        { 0.62f, 0.75f, 1.35f, 1.30f, 1.15f },   // Soft Choir
+        { 2.10f, 0.55f, 0.55f, 0.85f, 0.80f },   // Glass
+        { 0.85f, 1.90f, 1.70f, 1.60f, 1.05f },   // Strings
+        { 1.45f, 1.25f, 1.15f, 1.10f, 0.90f },   // Air Vox
+    };
+
+    const int padVoice = jlimit (0, (int) (sizeof (shapes) / sizeof (PadShape)) - 1,
+                                 param<int> (pid::padType));
+    const auto& shape = shapes[padVoice];
+
+    ps.voice = (wp::PadVoice) padVoice;
+
     // even with the pad switched off in the preset, Soak brings one in
-    ps.level       = jmax (padGain, soak2 * Decibels::decibelsToGain (-7.0f));
-    ps.cutoffHz    = param (pid::padTone) * (1.0f - 0.35f * soak);
-    ps.attackMs    = param (pid::padAttack) * (1.0f + 1.6f * soak);
-    ps.releaseMs   = param (pid::padRelease) * (1.0f + 1.4f * soak);
-    ps.detuneCents = 12.0f + 8.0f * soak;
+    const float padOn = stomp (pid::padOn);
+    ps.level       = jmax (padGain, soak2 * Decibels::decibelsToGain (-7.0f))
+                   * shape.level * padOn;
+    ps.cutoffHz    = param (pid::padTone) * shape.cutoff * (1.0f - 0.35f * soak);
+    ps.attackMs    = param (pid::padAttack) * shape.attack * (1.0f + 1.6f * soak);
+    ps.releaseMs   = param (pid::padRelease) * shape.release * (1.0f + 1.4f * soak);
+    ps.detuneCents = (12.0f + 8.0f * soak) * shape.detune;
     pad.setSettings (ps);
 
     wp::EffectSettings fx;
@@ -195,6 +232,14 @@ void WorshipPianoProcessor::updateSettings()
     fx.eqAir         = param (pid::eqAir);
     fx.compAmount    = param (pid::compAmount);
     fx.drive         = param (pid::drive);
+    fx.tackAmount    = param (pid::tackAmount);
+
+    fx.chorusOn  = stomp (pid::chorusOn);
+    fx.delayOn   = stomp (pid::delayOn);
+    fx.reverseOn = stomp (pid::reverseOn);
+    fx.reverbOn  = stomp (pid::reverbOn);
+    fx.driveOn   = stomp (pid::driveOn);
+    fx.tackOn    = stomp (pid::tackOn);
     fx.chorusAmount  = jmax (param (pid::chorusAmount), soak * 0.30f);
     fx.chorusRate    = 0.32f;
 
@@ -288,6 +333,36 @@ void WorshipPianoProcessor::handleMidiMessage (const MidiMessage& m)
 
         if ((pedalMode == 1 && cc == 11) || (pedalMode == 2 && cc == 1))
             pedalSoak.store (value);
+
+        /*  The pedalboard, reachable from a foot controller. CC 80-87 are
+            "general purpose" in the MIDI spec and every foot controller worth
+            owning can send them, so the stomps sit there rather than on
+            something a keyboard might already be using.
+
+            Momentary or latching both work: anything past halfway is on.
+        */
+        static const std::pair<int, const char*> stompCCs[] = {
+            { 80, pid::padOn },     { 81, pid::chorusOn }, { 82, pid::delayOn },
+            { 83, pid::reverseOn }, { 84, pid::reverbOn }, { 85, pid::soakOn },
+            { 86, pid::driveOn },   { 87, pid::tackOn },
+        };
+
+        for (const auto& mapping : stompCCs)
+        {
+            if (cc != mapping.first)
+                continue;
+
+            if (auto* p = apvts.getParameter (mapping.second))
+            {
+                const float wanted = value >= 0.5f ? 1.0f : 0.0f;
+
+                // only write on a real change: setValueNotifyingHost from the
+                // audio thread is not free, and a continuous controller sweeping
+                // past the midpoint would otherwise spam the host
+                if (p->getValue() != wanted)
+                    p->setValueNotifyingHost (wanted);
+            }
+        }
 
         switch (cc)
         {
