@@ -127,47 +127,33 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
 
     // ---- piano -------------------------------------------------------------
     addAndMakeVisible (modelBox);
-    modelBox.addItemList ({ "Concert Grand", "Warm Upright", "Felt Piano", "Stage Bright" }, 1);
+    modelBox.addItemList ({ "Smooth Grand", "Bright Grand", "Warm Upright", "Felt Piano" }, 1);
     modelAttachment = std::make_unique<AudioProcessorValueTreeState::ComboBoxAttachment> (
         processor.apvts, pid::model, modelBox);
 
-    addKnob (pianoKnobs, pid::brightness,   "Brightness");
-    addKnob (pianoKnobs, pid::hardness,     "Hammer");
-    addKnob (pianoKnobs, pid::decayTime,    "Decay");
-    addKnob (pianoKnobs, pid::detune,       "Unison");
-    addKnob (pianoKnobs, pid::stretch,      "Stretch");
-    addKnob (pianoKnobs, pid::sympathetic,  "Resonance");
-    addKnob (pianoKnobs, pid::mechNoise,    "Mechanics");
-    addKnob (pianoKnobs, pid::velCurve,     "Vel Curve");
+    addKnob (pianoKnobs, pid::tone,         "Tone");
+    addKnob (pianoKnobs, pid::attack,       "Attack");
+    addKnob (pianoKnobs, pid::decayTime,    "Sustain");
     addKnob (pianoKnobs, pid::dynamicRange, "Dynamics");
-    addKnob (pianoKnobs, pid::pianoWidth,   "Spread");
     addKnob (pianoKnobs, pid::pianoLevel,   "Level");
 
     // ---- pad ---------------------------------------------------------------
     addKnob (padKnobs, pid::padLevel,   "Pad");
     addKnob (padKnobs, pid::padTone,    "Tone");
-    addKnob (padKnobs, pid::padDetune,  "Detune");
-    addKnob (padKnobs, pid::padAttack,  "Attack");
+    addKnob (padKnobs, pid::padAttack,  "Swell");
     addKnob (padKnobs, pid::padRelease, "Release");
 
     // ---- tone & drive ------------------------------------------------------
-    addKnob (toneKnobs, pid::eqLow,      "Low");
-    addKnob (toneKnobs, pid::eqMid,      "Mid");
-    addKnob (toneKnobs, pid::eqHigh,     "High");
+    addKnob (toneKnobs, pid::eqLow,      "Warmth");
+    addKnob (toneKnobs, pid::eqHigh,     "Presence");
     addKnob (toneKnobs, pid::eqAir,      "Air");
     addKnob (toneKnobs, pid::compAmount, "Compress");
-    addKnob (toneKnobs, pid::compMix,    "Comp Mix");
     addKnob (toneKnobs, pid::drive,      "Drive");
-    addKnob (toneKnobs, pid::driveTone,  "Drive Tone");
 
     // ---- movement & delay --------------------------------------------------
     addKnob (moveKnobs, pid::chorusAmount, "Chorus");
-    addKnob (moveKnobs, pid::chorusRate,   "Rate");
     addKnob (moveKnobs, pid::delayMix,     "Delay");
     addKnob (moveKnobs, pid::delayFeedback,"Feedback");
-    addKnob (moveKnobs, pid::delayTone,    "Delay Tone");
-    addKnob (moveKnobs, pid::delayPingPong,"Ping Pong");
-    addKnob (moveKnobs, pid::delayMs,      "Free Time");
 
     addAndMakeVisible (delaySyncButton);
     delaySyncAttachment = std::make_unique<AudioProcessorValueTreeState::ButtonAttachment> (
@@ -183,14 +169,12 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
     tempoLabel.setColour (Label::textColourId, colours::textDim);
 
     // ---- space & output ----------------------------------------------------
-    addKnob (spaceKnobs, pid::reverbMix,      "Reverb");
-    addKnob (spaceKnobs, pid::reverbSize,     "Size");
-    addKnob (spaceKnobs, pid::reverbDecay,    "Decay");
-    addKnob (spaceKnobs, pid::reverbTone,     "Tone");
-    addKnob (spaceKnobs, pid::reverbPredelay, "Predelay");
-    addKnob (spaceKnobs, pid::shimmer,        "Shimmer");
-    addKnob (spaceKnobs, pid::width,          "Width");
-    addKnob (spaceKnobs, pid::outputGain,     "Output");
+    addKnob (spaceKnobs, pid::reverbMix,   "Reverb");
+    addKnob (spaceKnobs, pid::reverbSize,  "Size");
+    addKnob (spaceKnobs, pid::reverbDecay, "Decay");
+    addKnob (spaceKnobs, pid::shimmer,     "Shimmer");
+    addKnob (spaceKnobs, pid::width,       "Width");
+    addKnob (spaceKnobs, pid::outputGain,  "Output");
 
     addAndMakeVisible (meter);
 
@@ -201,8 +185,8 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
     addAndMakeVisible (keyboard);
 
     setResizable (true, true);
-    setResizeLimits (940, 700, 1600, 1200);
-    setSize (1000, 770);
+    setResizeLimits (860, 600, 1500, 1000);
+    setSize (940, 660);
 
     startTimerHz (10);
     timerCallback();
@@ -295,13 +279,13 @@ void WorshipPianoEditor::resized()
 
     auto pianoInner = pianoPanel.reduced (10, 6);
     pianoInner.removeFromTop (panelTitleH);
-    modelBox.setBounds (pianoInner.removeFromTop (26).reduced (2, 2));
-    pianoInner.removeFromTop (4);
-    layoutGrid (pianoKnobs, pianoInner, 6);
+    modelBox.setBounds (pianoInner.removeFromTop (28).reduced (2, 2));
+    pianoInner.removeFromTop (6);
+    layoutGrid (pianoKnobs, pianoInner, 5);
 
     auto padInner = padPanel.reduced (10, 6);
-    padInner.removeFromTop (panelTitleH + 30);
-    layoutGrid (padKnobs, padInner, 3);
+    padInner.removeFromTop (panelTitleH + 34);
+    layoutGrid (padKnobs, padInner, 4);
 
     // --- row two: tone + movement -------------------------------------------
     auto rowB = area.removeFromTop (rowHeight);
@@ -313,31 +297,29 @@ void WorshipPianoEditor::resized()
 
     auto toneInner = tonePanel.reduced (10, 6);
     toneInner.removeFromTop (panelTitleH + 6);
-    layoutGrid (toneKnobs, toneInner, 4);
+    layoutGrid (toneKnobs, toneInner, 5);
 
     auto moveInner = movementPanel.reduced (10, 6);
     moveInner.removeFromTop (panelTitleH + 6);
 
     // the delay section mixes knobs with a sync switch, so it is placed by hand
-    auto moveTop = moveInner.removeFromTop (moveInner.getHeight() / 2);
     {
-        const int cellW = moveTop.getWidth() / 4;
+        const int cells = 4;
+        const int cellW = moveInner.getWidth() / cells;
 
-        for (int i = 0; i < 4 && i < moveKnobs.size(); ++i)
-            moveKnobs[i]->setBounds (moveTop.getX() + i * cellW, moveTop.getY(), cellW, moveTop.getHeight());
+        for (int i = 0; i < moveKnobs.size(); ++i)
+            moveKnobs[i]->setBounds (moveInner.getX() + i * cellW, moveInner.getY(),
+                                     cellW, moveInner.getHeight());
 
-        const int bottomCells = 4;
-        const int bw = moveInner.getWidth() / bottomCells;
+        auto sync = Rectangle<int> (moveInner.getX() + 3 * cellW, moveInner.getY(),
+                                    cellW, moveInner.getHeight()).reduced (10, 0);
+        sync = sync.withSizeKeepingCentre (sync.getWidth(), 70);
 
-        for (int i = 4; i < moveKnobs.size(); ++i)
-            moveKnobs[i]->setBounds (moveInner.getX() + (i - 4) * bw, moveInner.getY(), bw, moveInner.getHeight());
-
-        auto sync = Rectangle<int> (moveInner.getX() + 3 * bw, moveInner.getY(), bw, moveInner.getHeight()).reduced (6, 4);
-        delaySyncButton.setBounds (sync.removeFromTop (22));
-        sync.removeFromTop (3);
-        delayDivBox.setBounds (sync.removeFromTop (22));
+        delaySyncButton.setBounds (sync.removeFromTop (24));
+        sync.removeFromTop (4);
+        delayDivBox.setBounds (sync.removeFromTop (24));
         sync.removeFromTop (2);
-        tempoLabel.setBounds (sync.removeFromTop (14));
+        tempoLabel.setBounds (sync.removeFromTop (16));
     }
 
     // --- row three: space + output ------------------------------------------
@@ -349,5 +331,5 @@ void WorshipPianoEditor::resized()
     auto meterArea = spaceInner.removeFromRight (34);
     meter.setBounds (meterArea.reduced (6, 4));
 
-    layoutGrid (spaceKnobs, spaceInner, 8);
+    layoutGrid (spaceKnobs, spaceInner, 6);
 }

@@ -104,6 +104,69 @@ namespace
         return mismatches == 0;
     }
 
+    /** One sustained note, for looking at the spectrum without chord clutter. */
+    void renderSingleNote (int presetIndex, int midiNote, float velocity, const File& file)
+    {
+        WorshipPianoProcessor processor;
+        processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+        processor.prepareToPlay (sampleRate, blockSize);
+        processor.loadPreset (presetIndex);
+
+        // dry, so the analysis sees the engine and not the reverb
+        if (auto* p = processor.apvts.getParameter (pid::reverbMix)) p->setValueNotifyingHost (0.0f);
+        if (auto* p = processor.apvts.getParameter (pid::delayMix))  p->setValueNotifyingHost (0.0f);
+        if (auto* p = processor.apvts.getParameter (pid::chorusAmount)) p->setValueNotifyingHost (0.0f);
+        if (auto* p = processor.apvts.getParameter (pid::compAmount)) p->setValueNotifyingHost (0.0f);
+        if (auto* p = processor.apvts.getParameter (pid::drive))     p->setValueNotifyingHost (0.0f);
+
+        const int totalSamples = (int) (12.0 * sampleRate);
+        AudioBuffer<float> output (2, totalSamples);
+        output.clear();
+
+        AudioBuffer<float> block (2, blockSize);
+        int written = 0;
+        bool sent = false;
+
+        while (written < totalSamples)
+        {
+            const int numSamples = jmin (blockSize, totalSamples - written);
+            block.setSize (2, numSamples, false, false, true);
+            block.clear();
+
+            MidiBuffer midi;
+
+            if (! sent)
+            {
+                midi.addEvent (MidiMessage::controllerEvent (1, 64, 127), 0);
+                midi.addEvent (MidiMessage::noteOn (1, midiNote, velocity), 1);
+                sent = true;
+            }
+
+            processor.processBlock (block, midi);
+
+            for (int ch = 0; ch < 2; ++ch)
+                output.copyFrom (ch, written, block, ch, 0, numSamples);
+
+            written += numSamples;
+        }
+
+        file.deleteFile();
+        WavAudioFormat format;
+        std::unique_ptr<FileOutputStream> stream (file.createOutputStream());
+
+        if (stream != nullptr)
+        {
+            std::unique_ptr<AudioFormatWriter> writer (
+                format.createWriterFor (stream.get(), sampleRate, 2, 24, {}, 0));
+
+            if (writer != nullptr)
+            {
+                stream.release();
+                writer->writeFromAudioSampleBuffer (output, 0, totalSamples);
+            }
+        }
+    }
+
     bool renderPreset (int presetIndex, const File& outputDir, String& report)
     {
         WorshipPianoProcessor processor;
@@ -244,7 +307,20 @@ int main (int argc, char** argv)
     ScopedJuceInitialiser_GUI juceInit;
 
     const File outputDir = argc > 1 ? File::getCurrentWorkingDirectory().getChildFile (argv[1]) : File();
-    const int single = argc > 2 ? String (argv[2]).getIntValue() : -1;
+    const int single = argc > 3 ? String (argv[3]).getIntValue() : -1;
+
+    // "note" mode: dry single notes for spectral analysis
+    if (argc > 2 && String (argv[2]) == "note")
+    {
+        for (int note : { 41, 53, 60, 72, 84 })
+            renderSingleNote (single >= 0 ? single : 0, note, 0.7f,
+                              outputDir.getChildFile ("note_" + String (note) + ".wav"));
+
+        renderSingleNote (0, 60, 0.25f, outputDir.getChildFile ("note_60_soft.wav"));
+        renderSingleNote (0, 60, 1.0f,  outputDir.getChildFile ("note_60_hard.wav"));
+        std::cout << "single notes written" << std::endl;
+        return 0;
+    }
 
     String report;
     bool allOk = checkStateRoundTrip (report);

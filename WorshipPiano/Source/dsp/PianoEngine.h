@@ -5,240 +5,121 @@
 #include <vector>
 
 /*
-    Commuted waveguide piano.
+    Additive (modal) piano.
 
-    Each note is a small bank of coupled string resonators: a fractional delay
-    line closed by a damping filter (decay + brightness) and a chain of first
-    order allpasses (dispersion, i.e. the sharp upper partials that make a
-    piano sound like a piano rather than a harp).
+    A struck piano string is not a plucked one, so this does not run a waveguide
+    loop. Instead every note is built partial by partial from the physics that
+    actually shape a piano tone:
 
-    The hammer is a short velocity dependent noise burst, shaped by a strike
-    position comb so the partials that fall on the striking point are missing,
-    exactly as they are on a real instrument.
+      * partial k sits at k*f0*sqrt(1 + B*k^2) - the stiffness of a real string
+        pushes the upper partials sharp, and B is small (1e-4 ish) rather than
+        the heavy dispersion a delay line gives you
+      * the hammer strikes about one eighth along the string, so partials with a
+        node there are weakened - softened, not notched out
+      * the felt acts as a lowpass whose corner opens up the harder you play,
+        which is where nearly all of the "dynamics" of a piano lives
+      * each partial decays at its own rate, fast up top, and carries a two
+        stage envelope: the quick initial fall and the long aftersound
+      * the lowest partials are doubled and detuned by half a cent, the way the
+        two or three strings of one unison are, giving the slow shimmer
 
-    No samples, so the whole thing is a few hundred kilobytes and every
-    parameter is continuous - you can morph between a hard concert grand and a
-    felt-muted ambient piano without switching libraries.
+    The result is smooth and controllable: no comb filtering, no pluck, and the
+    spectrum can be moved between a soft grand and a felt piano continuously.
 */
 namespace wp
 {
 
 //==============================================================================
-/** Settings shared by every voice, refreshed once per audio block. */
 struct EngineSettings
 {
-    float brightness   = 0.0f;   // -1 .. 1
-    float hardness     = 0.5f;   //  0 .. 1
-    float decayScale   = 1.0f;   // 0.4 .. 2
-    float detuneCents  = 5.0f;
-    float stretch      = 1.0f;
-    float sympathetic  = 0.35f;
-    float mechNoise    = 0.3f;
-    float velCurve     = 0.5f;
-    float dynamicRange = 26.0f;  // dB
-    float spread       = 0.45f;
-    int   model        = 0;      // 0 grand, 1 upright, 2 felt, 3 stage
+    int   model        = 0;      // 0 smooth grand, 1 bright grand, 2 upright, 3 felt
+    float tone         = 0.0f;   // -1 dark .. +1 bright
+    float attack       = 0.35f;  // hammer noise and thump
+    float decayScale   = 1.0f;   // 0.5 .. 2
+    float dynamicRange = 26.0f;  // dB between softest and loudest
+    float spread       = 0.40f;  // stereo spread by key position
 };
 
 //==============================================================================
-/** One string: delay line + loop damping filter + dispersion allpass chain. */
-class StringResonator
+/** Voicing of one piano model: everything that separates a grand from a felt. */
+struct Voicing
 {
-public:
-    void prepare (int maxDelaySamples);
-    void reset();
-
-    /** @param freq         target pitch in Hz
-        @param t60          decay time to -60 dB, seconds
-        @param damping      0 = bright/no loss, 1 = very dark
-        @param dispersion   0 .. 1, amount of inharmonicity
-    */
-    void setTone (double sampleRate, double freq, float t60, float damping, float dispersion);
-
-    /** Damper drop: recompute the loop gain for a much shorter decay. */
-    void setDecayTime (double sampleRate, float t60);
-
-    inline float process (float input) noexcept
-    {
-        // --- read the delay line with linear interpolation --------------------
-        // Wrap into positive territory *before* truncating: a negative read
-        // position would otherwise produce a negative fraction, turning the
-        // interpolator into an extrapolator with gain above one, which lets the
-        // string loop run away every time the buffer wraps.
-        float readPos = (float) writeIndex - delaySamples;
-
-        if (readPos < 0.0f)
-            readPos += (float) (mask + 1);
-
-        const int   i0 = (int) readPos;
-        const float frac = readPos - (float) i0;
-        const int   idx0 = i0 & mask;
-        const int   idx1 = (i0 + 1) & mask;
-        float out = buffer[(size_t) idx0] + frac * (buffer[(size_t) idx1] - buffer[(size_t) idx0]);
-
-        // --- dispersion -------------------------------------------------------
-        for (int i = 0; i < apCount; ++i)
-        {
-            const float v = apCoef * out + apState[(size_t) i];
-            apState[(size_t) i] = out - apCoef * v;
-            out = v;
-        }
-
-        // --- loss filter (one pole lowpass) + loop gain ------------------------
-        lossState = out + damp * (lossState - out);
-        float fb = lossState * loopGain;
-
-        // --- DC blocker keeps long bass strings from drifting ------------------
-        const float dc = fb - dcX + 0.9995f * dcY;
-        dcX = fb;
-        dcY = dc;
-        fb = dc;
-
-        buffer[(size_t) writeIndex] = input + fb;
-        writeIndex = (writeIndex + 1) & mask;
-
-        return out;
-    }
-
-    float getDelaySamples() const noexcept { return delaySamples; }
-
-
-private:
-    std::vector<float> buffer;
-    int   writeIndex = 0;
-    int   mask = 0;
-    float delaySamples = 100.0f;
-    float loopGain = 0.999f;
-    float damp = 0.3f;
-    float lossState = 0.0f;
-    float apCoef = 0.0f;
-    int   apCount = 0;
-    std::array<float, 4> apState { { 0.0f, 0.0f, 0.0f, 0.0f } };
-    float dcX = 0.0f, dcY = 0.0f;
-    float loopDelayCompensation = 0.0f;
-    double lastFreq = 440.0;
+    float tilt;          // spectral roll off exponent at low velocity
+    float tiltLoud;      // ... and at full velocity
+    float cutoffHz;      // hammer lowpass corner at low velocity
+    float cutoffOctaves; // how far that corner opens by full velocity
+    float decayScale;    // overall sustain multiplier
+    float inharmonicity; // multiplier on B
+    float strikePos;     // hammer position along the string
+    float noise;         // attack noise level
+    float thump;         // key/action thump level
 };
 
-//==============================================================================
-/** Velocity dependent hammer excitation, band limited and comb shaped. */
-class HammerExciter
-{
-public:
-    void trigger (double sampleRate, float velocity, float hardness, float noiseAmount,
-                  float periodSamples, int model);
-    void reset() { samplesLeft = 0; env = 0.0f; combIndex = 0; std::fill (comb.begin(), comb.end(), 0.0f); }
-
-    bool isActive() const noexcept { return samplesLeft > 0; }
-
-    inline float process (juce::Random& rng) noexcept
-    {
-        if (samplesLeft <= 0)
-            return 0.0f;
-
-        --samplesLeft;
-
-        float x = rng.nextFloat() * 2.0f - 1.0f;
-        x = x * env + click;
-
-        env   *= envCoef;
-        click *= clickCoef;
-
-        // hammer felt = lowpass; the harder you play the further it opens up
-        lpState += lpCoef * (x - lpState);
-        float y = lpState;
-
-        // strike position comb: cancels the partials with a node at the hammer
-        const int readIdx = (combIndex - combDelay + (int) comb.size()) & combMask;
-        const float delayed = comb[(size_t) readIdx];
-        comb[(size_t) combIndex] = y;
-        combIndex = (combIndex + 1) & combMask;
-        y -= 0.92f * delayed;
-
-        return y * amp;
-    }
-
-
-private:
-    std::array<float, 1024> comb { {} };
-    static constexpr int combMask = 1023;
-    int   combIndex = 0;
-    int   combDelay = 8;
-    int   samplesLeft = 0;
-    float env = 0.0f, envCoef = 0.99f;
-    float click = 0.0f, clickCoef = 0.6f;
-    float lpState = 0.0f, lpCoef = 0.3f;
-    float amp = 1.0f;
-};
+const Voicing& voicingFor (int model);
 
 //==============================================================================
 class PianoVoice
 {
 public:
-    void prepare (double sampleRate, int maxDelaySamples);
+    static constexpr int maxPartials = 72;
+    static constexpr int maxBeats    = 10;
+
     void reset();
 
-    void start (int midiNote, float velocity, const EngineSettings& s, double sampleRate,
-                float softPedal);
-    void stop (bool pedalHeld, const EngineSettings& s, double sampleRate);
-    void pedalReleased (const EngineSettings& s, double sampleRate);
+    void start (int midiNote, float velocity, const EngineSettings& s, double sampleRate);
+    void release (bool pedalHeld, double sampleRate);
+    void damp (double sampleRate);
 
-    void render (float* left, float* right, int numSamples, juce::Random& rng, float* sympSend);
+    /** Adds this voice into a mono scratch buffer, then pans it out. */
+    void render (float* scratch, float* left, float* right, int numSamples, juce::Random& rng);
 
-    bool  isActive() const noexcept   { return active; }
-    bool  isHeld() const noexcept     { return keyHeld; }
-    bool  isSustained() const noexcept{ return sustained; }
-    int   getNote() const noexcept    { return note; }
-    float getEnergy() const noexcept  { return energy; }
+    bool isActive() const noexcept { return active; }
+    bool isHeld() const noexcept   { return keyHeld; }
+    bool isSustained() const noexcept { return sustained; }
+    bool isSostenuto() const noexcept { return sostenuto; }
+    void setSostenuto (bool s) noexcept { sostenuto = s; }
+    int  getNote() const noexcept  { return note; }
+    float getLevel() const noexcept { return partials[0].aFast + partials[0].aSlow; }
     juce::uint32 getStartOrder() const noexcept { return startOrder; }
 
-    void setSostenuto (bool s) noexcept { sostenuto = s; }
-    bool isSostenuto() const noexcept   { return sostenuto; }
-
 private:
-    static constexpr int maxStrings = 3;
+    /** One decaying sinusoid: an exact rotation plus a two stage envelope. */
+    struct Partial
+    {
+        float cosW = 1.0f, sinW = 0.0f;
+        float x = 1.0f, y = 0.0f;
+        float aFast = 0.0f, aSlow = 0.0f;
+        float dFast = 0.9f, dSlow = 0.99f;
+    };
 
-    std::array<StringResonator, maxStrings> strings;
-    HammerExciter hammer;
+    void addPartial (int index, double freq, double sampleRate, float amplitude,
+                     float t60, float fastFraction);
 
-    int   numStrings = 3;
+    // main partials live at [0, numPartials); the detuned unison twins of the
+    // lowest few sit in a fixed block at [maxPartials, maxPartials + numBeats)
+    // so that retiring silent high partials never disturbs them
+    std::array<Partial, maxPartials + maxBeats> partials;
+    int numPartials = 0;
+    int numBeats = 0;
+    int topActive = 0;
+
+    // attack transient
+    float noiseAmp = 0.0f, noiseDecay = 0.0f, noiseState = 0.0f, noiseCoef = 0.4f;
+    float thumpAmp = 0.0f, thumpDecay = 0.0f, thumpPhase = 0.0f, thumpInc = 0.0f;
+
     int   note = 60;
     bool  active = false, keyHeld = false, sustained = false, sostenuto = false;
     float panL = 0.7071f, panR = 0.7071f;
     float amplitude = 1.0f;
-    float energy = 0.0f;
-    float sympGain = 0.0f;
     juce::uint32 startOrder = 0;
 
-    // damper noise on key release
-    float releaseNoise = 0.0f, releaseNoiseCoef = 0.0f;
-
     friend class PianoEngine;
-};
-
-//==============================================================================
-/** Undamped strings that ring in sympathy while the sustain pedal is down. */
-class SympatheticBank
-{
-public:
-    void prepare (double sampleRate, int maxDelaySamples);
-    void reset();
-    void setAmount (float amount, double sampleRate);
-    void process (const float* input, float* left, float* right, int numSamples);
-
-private:
-    static constexpr int numStrings = 24;
-    std::array<StringResonator, numStrings> strings;
-    std::array<float, numStrings> panL {}, panR {};
-    float amount = 0.0f;
-    float smoothed = 0.0f;
 };
 
 //==============================================================================
 class PianoEngine
 {
 public:
-    PianoEngine();
-
     void prepare (double sampleRate, int maxBlockSize);
     void reset();
 
@@ -246,16 +127,13 @@ public:
 
     void noteOn (int midiNote, float velocity);
     void noteOff (int midiNote);
-    void sustainPedal (float value);   // 0 .. 1 (half pedalling supported)
+    void sustainPedal (float value);
     void sostenutoPedal (bool down);
     void softPedal (float value);
     void allNotesOff();
     void panic();
 
-    /** Renders into (and adds to) the given stereo buffers. */
     void render (float* left, float* right, int numSamples);
-
-    bool isSilent() const noexcept { return activeVoices == 0; }
 
 private:
     static constexpr int maxVoices = 32;
@@ -263,21 +141,17 @@ private:
     PianoVoice* findVoiceToSteal (int midiNote);
 
     std::array<PianoVoice, maxVoices> voices;
-    SympatheticBank sympathetic;
+    std::vector<float> scratch;
 
     EngineSettings settings;
     double sr = 44100.0;
     float pedal = 0.0f;
     float soft = 0.0f;
-    bool  sostenutoDown = false;
-    int   activeVoices = 0;
     juce::uint32 orderCounter = 0;
     juce::Random rng { 20250406 };
 
-    std::vector<float> sympBuffer;
-
-    // gentle soundboard body resonances on the summed piano bus
-    std::array<juce::dsp::IIR::Filter<float>, 3> bodyL, bodyR;
+    // soundboard colouration on the summed piano bus
+    std::array<juce::dsp::IIR::Filter<float>, 4> bodyL, bodyR;
 };
 
 } // namespace wp

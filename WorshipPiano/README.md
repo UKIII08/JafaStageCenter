@@ -13,20 +13,14 @@ Prosiłeś o brzmienie „jak w Nordzie". Powiem wprost, żeby nie było rozczar
 
 * **Nord Stage / Piano** to kilka gigabajtów nagranych sampli prawdziwych fortepianów.
   Nie da się tego wygenerować kodem — trzeba by nagrać fortepian w studiu.
-* Ta wtyczka używa **modelowania fizycznego strun** (ta sama rodzina technik, co Pianoteq):
-  każda struna to cyfrowy falowód z filtrem tłumienia i dyspersją. Efekt: około 5 MB zamiast
-  30 GB, płynne sterowanie każdym parametrem, ale sam „surowy" fortepian brzmi bardziej jak
-  dobry modeler niż jak sampler klasy Nord.
+* Ta wtyczka buduje dźwięk **syntezą addytywną (modalną)**: każdy dźwięk jest składany
+  partial po partialu z fizyki, która kształtuje brzmienie fortepianu. Około 5 MB zamiast
+  30 GB i płynna kontrola nad barwą, ale to modeler, nie sampler klasy Nord.
 
-**Natomiast** — i to jest sedno — brzmienie, które kojarzysz z nagrań worshipowych, w 80%
-nie bierze się z samego fortepianu, tylko z tego, co jest **za nim**: kompresja, nasycenie,
-delay ósemkowy z kropką, wielki pogłos, shimmer, pad pod spodem. To wszystko jest tutaj
-zrobione porządnie i to ono robi robotę.
-
-Jeśli kiedyś zechcesz podmienić sam silnik na sample — tor efektów zostaje i możesz go
-używać na dowolnym innym pianinie (patrz sekcja *Sam tor efektów*).
-
----
+**Natomiast** — i to jest sedno — brzmienie, które kojarzysz z nagrań worshipowych, w dużej
+mierze nie bierze się z samego fortepianu, tylko z tego, co jest **za nim**: kompresji,
+nasycenia, delaya ósemkowego z kropką, wielkiego pogłosu, shimmera i padu pod spodem.
+To wszystko jest tutaj zrobione porządnie.
 
 ## Skąd wziąć plik `.vst3`
 
@@ -90,21 +84,17 @@ programy hosta, więc możesz je przełączać z Reapera.
 
 | Preset | Kategoria | Do czego |
 |---|---|---|
-| **Sunday Morning** | Classic | Czysty fortepian koncertowy, ciepłe pomieszczenie. Bezpieczny domyślny. |
-| **Ballad Grand** | Classic | Pełny fortepian z lekkim delayem. Zwrotki i wolne buildy. |
-| **Intimate Prayer** | Classic | Miękki, blisko, sucho. Pod mówione słowo. |
-| **Upright Chapel** | Classic | Mały ciepły pianino z charakterem mechaniki. |
-| **Arena Anthem** | Modern | Jasny, skompresowany, ogromny — brzmienie wielkiego refrenu. |
-| **Modern Worship Lead** | Modern | Jasne stage piano → delay 1/8 z kropką → szeroki plate. Klasyk gatunku. |
+| **Sunday Grand** | Classic | Gładki fortepian koncertowy w ciepłym pomieszczeniu. Domyślny. |
+| **Intimate Prayer** | Classic | Miękko, blisko, ciemno. Pod mówione słowo. |
+| **Ballad Grand** | Classic | Pełny fortepian z odrobiną delaya. Zwrotki i wolne buildy. |
+| **Upright Chapel** | Classic | Małe ciepłe pianino, bardziej sucho i „pudełkowo". |
+| **Modern Worship Lead** | Modern | Jasny fortepian → delay 1/8 z kropką → szeroki plate. Klasyk gatunku. |
+| **Arena Anthem** | Modern | Skompresowany, do przodu, ogromny. Wielki refren. |
 | **Pad Underneath** | Modern | Fortepian z padem narastającym na tych samych nutach. |
-| **Upper Room** | Ambient | Filcowe młoteczki, długi shimmer, pad. Na cichy moment. |
-| **Shimmer Cloud** | Ambient | Oktawa w górę w ogonie pogłosu, wszystko kwitnie po puszczeniu klawiszy. |
-| **Felt & Tape** | Ambient | Filc, nasycenie taśmowe, wolne kołysanie. |
-| **Cinematic Swell** | Ambient | Ciemno, wolno, ogromnie. Podkład pod modlitwę. |
-| **Ambient Bed** | Ambient | Ledwo już fortepian. Trzymasz akord i on żyje sam. |
-| **Stage Clean** | Live | Sucho i do przodu, do grania na żywo przez PA. |
-| **Gospel Bright** | Live | Twarde młoteczki, mocna kompresja. Przebija się przez pełny band. |
-| **Bright Pop Piano** | Live | Ciasny, szklisty, bardzo obecny. Szybkie kawałki. |
+| **Upper Room** | Ambient | Filcowe młoteczki, długi shimmer, pad. Cichy moment. |
+| **Felt & Air** | Ambient | Filc i wolne kołysanie, prawie bez ataku. |
+| **Ambient Bed** | Ambient | Trzymasz akord i on żyje sam. |
+| **Stage Clean** | Live | Sucho i do przodu, do grania przez PA. |
 
 *Presety są inspirowane stylem brzmienia współczesnej muzyki uwielbieniowej. Nie są
 powiązane z żadnym konkretnym zespołem, kościołem ani marką i nie odtwarzają cudzych
@@ -114,57 +104,41 @@ nagrań — to po prostu ustawienia parametrów tej wtyczki.*
 
 ## Panele i parametry
 
-### PIANO — silnik strunowy
+Świadomie mało pokręteł — wszystko, co i tak miało tylko jedno sensowne ustawienie, jest
+zaszyte w kodzie. Presety mają być do grania, a nie do kręcenia.
+
+### PIANO
 
 | Parametr | Co robi |
 |---|---|
-| **Model** | Concert Grand / Warm Upright / Felt Piano / Stage Bright — zmienia twardość młoteczka, tłumienie i długość wybrzmienia |
-| **Brightness** | Tłumienie górnych partiali w pętli struny. W lewo ciemniej, w prawo otwarciej |
-| **Hammer** | Twardość młoteczka. Miękki = ciemny i wolniejszy atak, twardy = jasny klik |
-| **Decay** | Mnożnik czasu wybrzmiewania (0.4× – 2×) |
-| **Unison** | Rozstrojenie 2–3 strun jednej nuty w centach. To stąd bierze się naturalne „migotanie" i podwójne wybrzmienie |
-| **Stretch** | Nieharmoniczność — o ile wyższe partiale są podwyższone. Prawdziwy fortepian ma jej najwięcej na skrajach klawiatury |
-| **Resonance** | Rezonans współczujący: 24 nietłumione struny, które grają, gdy trzymasz pedał |
-| **Mechanics** | Szum mechaniki — klik młoteczka i szmer tłumików przy puszczaniu klawisza |
-| **Vel Curve** | Krzywa dynamiki. W lewo trzeba grać mocniej, w prawo łatwiej o głośny dźwięk |
-| **Dynamics** | Zakres głośności między najcichszym a najgłośniejszym uderzeniem (dB) |
-| **Spread** | Rozstawienie stereo według pozycji na klawiaturze |
-| **Level** | Głośność samego fortepianu przed torem efektów |
+| **Model** | Smooth Grand / Bright Grand / Warm Upright / Felt Piano — zmienia nachylenie widma, twardość filcu, sztywność strun i długość wybrzmienia |
+| **Tone** | Ciemno ↔ jasno. Przesuwa filtr filcu i nachylenie widma jednocześnie |
+| **Attack** | Ile słychać uderzenia filcu o strunę i stuku mechaniki |
+| **Sustain** | Mnożnik czasu wybrzmiewania (0.5× – 2×) |
+| **Dynamics** | Zakres głośności między najcichszym a najgłośniejszym uderzeniem |
+| **Level** | Głośność fortepianu przed torem efektów |
 
-### PAD LAYER — pad pod spodem
+### PAD LAYER
 
-Osobny syntezator grający te same nuty co fortepian — trzy rozstrojone piły przez filtr
-dolnoprzepustowy z wolnym atakiem. `Pad` na minimum (−60 dB) całkowicie go wyłącza.
-
-`Pad` · `Tone` (odcięcie filtra) · `Detune` · `Attack` · `Release`
+Osobny syntezator grający te same nuty. `Pad` na minimum (−60 dB) wyłącza go całkowicie.
+`Pad` · `Tone` · `Swell` (narastanie) · `Release`
 
 ### TONE & DRIVE
 
-`Low` (półka 180 Hz) · `Mid` (dzwon 900 Hz) · `High` (półka 3.6 kHz) · `Air` (półka 14 kHz) ·
-`Compress` (próg i ratio jednym pokrętłem) · `Comp Mix` (kompresja równoległa) ·
-`Drive` (nasycenie z 2× nadpróbkowaniem) · `Drive Tone`
+`Warmth` (półka 180 Hz) · `Presence` (półka 3.6 kHz) · `Air` (półka 14 kHz) ·
+`Compress` · `Drive`
 
 ### MOVEMENT & DELAY
 
-`Chorus` · `Rate` · `Delay` (mix) · `Feedback` · `Delay Tone` · `Ping Pong` · `Free Time`
-
-Przełącznik **SYNC** decyduje, czy delay chodzi w tempie projektu (wtedy działa lista
-podziałów: `1/4`, `1/4T`, `1/8.`, `1/8`, `1/8T`, `1/16.`, `1/16`), czy w milisekundach
-(`Free Time`). Pod spodem wyświetla się aktualne BPM hosta.
+`Chorus` · `Delay` (mix) · `Feedback`, plus przełącznik **SYNC** i lista podziałów
+(`1/4` … `1/16`). Pod spodem widać aktualne BPM hosta.
 
 > Ustawienie na worship: **SYNC + 1/8.** (ósemka z kropką), feedback ~40%, mix ~30%.
 
 ### SPACE & OUTPUT
 
-Pogłos to sieć ośmiu sprzężonych linii opóźniających (FDN) z modulacją i tłumieniem.
-
-`Reverb` (mix) · `Size` · `Decay` (0.4–15 s) · `Tone` · `Predelay` ·
-**`Shimmer`** (oktawa w górę wpięta w pętlę pogłosu — charakterystyczny narastający „anielski"
-ogon) · `Width` · `Output`
-
-Po prawej jest wskaźnik poziomu wyjścia.
-
----
+`Reverb` · `Size` · `Decay` · **`Shimmer`** (oktawa w górę wpięta w pętlę pogłosu) ·
+`Width` · `Output`. Predelay skaluje się automatycznie z rozmiarem pomieszczenia.
 
 ## Sterowanie MIDI
 
@@ -191,14 +165,26 @@ ReaDelay / ReaVerbate na ścieżce z Twoim pianinem. Wartości znajdziesz w
 
 ## Jak to działa w środku
 
-* [`Source/dsp/PianoEngine.cpp`](Source/dsp/PianoEngine.cpp) — struny jako falowody cyfrowe.
-  Pobudzenie to krótki impuls szumu zależny od dynamiki, przepuszczony przez grzebień
-  odpowiadający miejscu uderzenia młoteczka (~1/8 długości struny), przez co brakuje tych
-  samych partiali co w prawdziwym instrumencie. Do tego rezonans pudła i bank strun
-  współczujących.
-* [`Source/dsp/PadLayer.cpp`](Source/dsp/PadLayer.cpp) — pad: piły polyBLEP + filtr SVF.
-* [`Source/dsp/EffectChain.cpp`](Source/dsp/EffectChain.cpp) — EQ, kompresor, nasycenie,
-  ensemble, delay, pogłos FDN z shimmerem, limiter bezpieczeństwa.
+[`Source/dsp/PianoEngine.cpp`](Source/dsp/PianoEngine.cpp) — silnik addytywny. Uderzona
+struna to nie szarpnięta struna, więc nie ma tu żadnej pętli falowodu. Każdy dźwięk jest
+składany z osobnych zanikających sinusoid, a o barwie decyduje fizyka:
+
+* partial nr *k* leży na `k·f0·√(1 + B·k²)` — sztywność struny podnosi wyższe partiale,
+  ale delikatnie (B rzędu 10⁻⁴), a nie metalicznie
+* młoteczek uderza mniej więcej w 1/8 długości struny, więc partiale mające tam węzeł są
+  osłabione — osłabione, nie wycięte
+* filc działa jak filtr dolnoprzepustowy, który otwiera się im mocniej grasz; tu mieszka
+  praktycznie cała dynamika fortepianu
+* płyta rezonansowa słabo promieniuje najniższe częstotliwości, dlatego w basie barwa
+  pochodzi z 2. i 3. partiala, a nie z fundamentu
+* każdy partial ma własny czas zaniku i dwustopniową obwiednię: szybki początkowy spadek
+  i długie dobrzmiewanie
+* najniższe partiale są zdublowane i rozstrojone o **pół centa** — tak jak dwie lub trzy
+  struny jednego chóru — co daje powolne migotanie
+
+[`Source/dsp/PadLayer.cpp`](Source/dsp/PadLayer.cpp) — pad: piły polyBLEP + filtr SVF.
+[`Source/dsp/EffectChain.cpp`](Source/dsp/EffectChain.cpp) — EQ, kompresor, nasycenie,
+ensemble, delay, pogłos FDN z shimmerem, limiter bezpieczeństwa.
 
 ### Test DSP
 

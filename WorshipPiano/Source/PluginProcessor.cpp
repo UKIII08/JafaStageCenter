@@ -68,16 +68,11 @@ void WorshipPianoProcessor::updateSettings()
 {
     wp::EngineSettings es;
     es.model        = param<int> (pid::model);
-    es.brightness   = param (pid::brightness);
-    es.hardness     = param (pid::hardness);
+    es.tone         = param (pid::tone);
+    es.attack       = param (pid::attack);
     es.decayScale   = param (pid::decayTime);
-    es.detuneCents  = param (pid::detune);
-    es.stretch      = param (pid::stretch);
-    es.sympathetic  = param (pid::sympathetic);
-    es.mechNoise    = param (pid::mechNoise);
-    es.velCurve     = param (pid::velCurve);
     es.dynamicRange = param (pid::dynamicRange);
-    es.spread       = param (pid::pianoWidth);
+    es.spread       = 0.40f;
     piano.setSettings (es);
 
     wp::PadSettings ps;
@@ -86,36 +81,38 @@ void WorshipPianoProcessor::updateSettings()
     ps.cutoffHz    = param (pid::padTone);
     ps.attackMs    = param (pid::padAttack);
     ps.releaseMs   = param (pid::padRelease);
-    ps.detuneCents = param (pid::padDetune);
+    ps.detuneCents = 12.0f;
     pad.setSettings (ps);
 
     wp::EffectSettings fx;
     fx.eqLow         = param (pid::eqLow);
-    fx.eqMid         = param (pid::eqMid);
+    fx.eqMid         = 0.0f;
     fx.eqHigh        = param (pid::eqHigh);
     fx.eqAir         = param (pid::eqAir);
     fx.compAmount    = param (pid::compAmount);
-    fx.compMix       = param (pid::compMix);
+    fx.compMix       = 1.0f;
     fx.drive         = param (pid::drive);
-    fx.driveTone     = param (pid::driveTone);
+    fx.driveTone     = 0.5f;
     fx.chorusAmount  = param (pid::chorusAmount);
-    fx.chorusRate    = param (pid::chorusRate);
+    fx.chorusRate    = 0.32f;
     fx.delayMix      = param (pid::delayMix);
     fx.delayFeedback = param (pid::delayFeedback);
-    fx.delayTone     = param (pid::delayTone);
-    fx.delayPingPong = param (pid::delayPingPong);
+    fx.delayTone     = 0.45f;
+    fx.delayPingPong = 0.80f;
     fx.reverbMix     = param (pid::reverbMix);
     fx.reverbSize    = param (pid::reverbSize);
     fx.reverbDecay   = param (pid::reverbDecay);
-    fx.reverbTone    = param (pid::reverbTone);
-    fx.reverbPredelay= param (pid::reverbPredelay);
+    fx.reverbTone    = 0.50f;
     fx.shimmer       = param (pid::shimmer);
     fx.width         = param (pid::width);
     fx.outputGain    = Decibels::decibelsToGain (param (pid::outputGain));
 
+    // a bigger room naturally puts more distance before the first reflection
+    fx.reverbPredelay = 10.0f + 65.0f * fx.reverbSize;
+
     const float delayTime = param<int> (pid::delaySync) != 0
                               ? delaySamplesForDivision (param<int> (pid::delayDiv))
-                              : (float) (param (pid::delayMs) * 0.001 * sampleRate);
+                              : (float) (0.42 * sampleRate);
 
     fx.delaySamplesL = delayTime;
     fx.delaySamplesR = delayTime;

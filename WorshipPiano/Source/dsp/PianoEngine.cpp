@@ -10,201 +10,218 @@ namespace
     inline double noteToHz (double midiNote) { return 440.0 * std::pow (2.0, (midiNote - 69.0) / 12.0); }
     inline float  lerp (float a, float b, float t) { return a + (b - a) * t; }
 
-    inline float onePoleCoef (double fc, double sampleRate)
+    /** Per sample multiplier that reaches -60 dB after t60 seconds. */
+    inline float decayPerSample (float t60, double sampleRate)
     {
-        return (float) (1.0 - std::exp (-2.0 * MathConstants<double>::pi * fc / sampleRate));
+        return std::pow (10.0f, -3.0f / jmax (1.0f, (float) (jmax (0.01f, t60) * sampleRate)));
     }
 
-    /** Undamped ringing time in seconds - long in the bass, short at the top. */
-    inline float freeDecayTime (int midiNote)
+    /** Ringing time of the fundamental: very long in the bass, short at the top. */
+    inline float fundamentalT60 (int midiNote)
     {
-        return 28.0f * std::exp (-0.03033f * (float) (midiNote - 21));
+        return 32.0f * std::exp (-0.026f * (float) (midiNote - 21));
     }
 
-    /** How long the felt damper takes to kill the string. */
-    inline float dampedDecayTime (int midiNote)
+    /** How fast the damper kills the note once the key is released. */
+    inline float damperT60 (int midiNote)
     {
-        return jmax (0.05f, 0.40f * std::exp (-0.018f * (float) (midiNote - 21)));
+        return jmax (0.06f, 0.38f * std::exp (-0.017f * (float) (midiNote - 21)));
     }
 
-    /** Loudness compensation: bass strings move a lot more air. */
+    /** Bass notes move more air than the top octave. */
     inline float registerGain (int midiNote)
     {
-        return std::pow (10.0f, (-0.035f * (float) (midiNote - 60)) / 20.0f);
+        return std::pow (10.0f, (-0.05f * (float) (midiNote - 60)) / 20.0f);
     }
 }
 
 //==============================================================================
-void StringResonator::prepare (int maxDelaySamples)
+const Voicing& voicingFor (int model)
 {
-    const int size = nextPowerOfTwo (jmax (64, maxDelaySamples + 8));
-    buffer.assign ((size_t) size, 0.0f);
-    mask = size - 1;
-    reset();
-}
+    // tilt, tiltLoud, cutoffHz, cutoffOct, decay, inharm, strike, noise, thump
+    static const Voicing voicings[4] =
+    {
+        // Smooth Grand - the default. Round, dark-ish attack, very long sustain.
+        { 1.55f, 1.12f, 1250.0f, 2.15f, 1.15f, 0.85f, 0.125f, 0.30f, 0.55f },
+        // Bright Grand - more upper partials, quicker felt, still a big piano.
+        { 1.32f, 0.92f, 2100.0f, 2.30f, 1.00f, 1.00f, 0.115f, 0.45f, 0.50f },
+        // Warm Upright - shorter strings, more stiffness, boxier and drier.
+        { 1.48f, 1.10f, 1500.0f, 2.00f, 0.68f, 1.90f, 0.145f, 0.62f, 0.85f },
+        // Felt - cloth over the hammers: dull, soft, short.
+        { 1.95f, 1.62f,  620.0f, 1.15f, 0.86f, 0.85f, 0.135f, 0.55f, 0.75f },
+    };
 
-void StringResonator::reset()
-{
-    std::fill (buffer.begin(), buffer.end(), 0.0f);
-    writeIndex = 0;
-    lossState = 0.0f;
-    apState.fill (0.0f);
-    dcX = dcY = 0.0f;
-}
-
-void StringResonator::setTone (double sampleRate, double freq, float t60, float damping, float dispersion)
-{
-    lastFreq = freq;
-    damp = jlimit (0.02f, 0.75f, damping);
-
-    // dispersion allpasses - more sections at the extremes of the keyboard,
-    // which is where real strings are the most inharmonic
-    apCount = dispersion > 0.001f ? jlimit (0, 4, 1 + (int) (dispersion * 3.0f)) : 0;
-    apCoef  = apCount > 0 ? -jlimit (0.0f, 0.45f, dispersion * 0.4f) : 0.0f;
-
-    const float apDelay   = apCount > 0 ? (float) apCount * ((1.0f - apCoef) / (1.0f + apCoef)) : 0.0f;
-    const float lossDelay = damp / (1.0f - damp);
-    loopDelayCompensation = apDelay + lossDelay;
-
-    const float period = (float) (sampleRate / jmax (8.0, freq));
-    delaySamples = jlimit (2.0f, (float) mask - 2.0f, period - loopDelayCompensation);
-
-    setDecayTime (sampleRate, t60);
-}
-
-void StringResonator::setDecayTime (double sampleRate, float t60)
-{
-    const float roundTrips = (float) (sampleRate / jmax (1.0f, delaySamples + loopDelayCompensation)) * jmax (0.01f, t60);
-    loopGain = jlimit (0.0f, 0.99995f, std::pow (10.0f, -3.0f / jmax (1.0f, roundTrips)));
+    return voicings[(size_t) jlimit (0, 3, model)];
 }
 
 //==============================================================================
-void HammerExciter::trigger (double sampleRate, float velocity, float hardness, float noiseAmount,
-                             float periodSamples, int model)
-{
-    // A hard hit is short and bright, a soft one is long and dull. Model 2 is
-    // the felt piano, where a strip of cloth sits between hammer and string.
-    float hard = jlimit (0.0f, 1.0f, hardness * 0.45f + velocity * 0.55f);
-
-    if (model == 1) hard *= 0.85f;          // upright
-    if (model == 2) hard *= 0.42f;          // felt
-    if (model == 3) hard = jmin (1.0f, hard * 1.18f + 0.06f); // bright stage piano
-
-    const float tauMs = lerp (5.5f, 0.55f, hard);
-    envCoef = std::exp (-1.0f / jmax (1.0f, (float) (tauMs * 0.001 * sampleRate)));
-    env = 1.0f;
-
-    const double cutoff = jmin (sampleRate * 0.45, (double) lerp (620.0f, 9500.0f, hard));
-    lpCoef = onePoleCoef (cutoff, sampleRate);
-    lpState = 0.0f;
-
-    click = velocity * velocity * (0.25f + 0.75f * hard) * (0.25f + noiseAmount);
-    clickCoef = std::exp (-1.0f / jmax (1.0f, (float) (0.4 * 0.001 * sampleRate)));
-
-    samplesLeft = (int) (sampleRate * 0.035);
-
-    combDelay = jlimit (1, 900, (int) (periodSamples * (model == 2 ? 0.11f : 0.125f)));
-    std::fill (comb.begin(), comb.end(), 0.0f);
-    combIndex = 0;
-
-    amp = 0.55f + 0.45f * velocity;
-}
-
-//==============================================================================
-void PianoVoice::prepare (double sampleRate, int maxDelaySamples)
-{
-    ignoreUnused (sampleRate);
-
-    for (auto& s : strings)
-        s.prepare (maxDelaySamples);
-
-    reset();
-}
-
 void PianoVoice::reset()
 {
-    for (auto& s : strings)
-        s.reset();
+    for (auto& p : partials)
+        p = Partial();
 
-    hammer.reset();
+    numPartials = numBeats = topActive = 0;
+    noiseAmp = thumpAmp = 0.0f;
     active = keyHeld = sustained = sostenuto = false;
-    energy = 0.0f;
-    releaseNoise = 0.0f;
 }
 
-void PianoVoice::start (int midiNote, float velocity, const EngineSettings& s, double sampleRate,
-                        float softPedal)
+void PianoVoice::addPartial (int index, double freq, double sampleRate, float amp,
+                             float t60, float fastFraction)
 {
+    auto& p = partials[(size_t) index];
+
+    const double w = MathConstants<double>::twoPi * freq / sampleRate;
+    p.cosW = (float) std::cos (w);
+    p.sinW = (float) std::sin (w);
+
+    // start the rotation at a random-ish phase so a chord does not build a
+    // single fat click out of every partial starting at zero together
+    const double phase = std::fmod (freq * 0.017, MathConstants<double>::twoPi);
+    p.x = (float) std::cos (phase);
+    p.y = (float) std::sin (phase);
+
+    p.aFast = amp * fastFraction;
+    p.aSlow = amp * (1.0f - fastFraction);
+    p.dFast = decayPerSample (t60 * 0.30f, sampleRate);
+    p.dSlow = decayPerSample (t60, sampleRate);
+}
+
+void PianoVoice::start (int midiNote, float velocity, const EngineSettings& s, double sampleRate)
+{
+    const auto& v = voicingFor (s.model);
+
     note = midiNote;
-    keyHeld = true;
-    sustained = false;
-    sostenuto = false;
     active = true;
-    energy = 1.0f;
-    releaseNoise = 0.0f;
+    keyHeld = true;
+    sustained = sostenuto = false;
 
-    numStrings = midiNote < 31 ? 1 : (midiNote < 43 ? 2 : 3);
+    const double f0 = noteToHz ((double) midiNote);
+    const float vel = jlimit (0.03f, 1.0f, velocity);
 
-    const double freq = noteToHz ((double) midiNote);
-    const float period = (float) (sampleRate / freq);
+    // ---- spectrum shape ---------------------------------------------------
+    const float tone = jlimit (-1.0f, 1.0f, s.tone);
 
-    // velocity shaping
-    const float curveExp = std::pow (4.0f, 0.5f - s.velCurve);
-    float v = std::pow (jlimit (0.0f, 1.0f, velocity), curveExp);
-    v *= (1.0f - 0.35f * softPedal);
+    // roll off exponent: small = bright, large = dark
+    float tilt = lerp (v.tilt, v.tiltLoud, vel) - tone * 0.30f;
+    tilt = jlimit (0.55f, 2.6f, tilt);
 
-    const float gainDb = (v - 1.0f) * s.dynamicRange;
-    amplitude = std::pow (10.0f, gainDb / 20.0f) * registerGain (midiNote) * 0.55f;
+    // the felt lowpass: opens up with velocity, and the Tone knob slides it
+    double cutoff = (double) v.cutoffHz * std::pow (2.0, (double) (v.cutoffOctaves * vel + tone * 1.25f));
+    cutoff = jlimit (150.0, sampleRate * 0.40, cutoff);
 
-    // brightness follows how hard you play, which is most of what makes a
-    // modelled piano feel alive
-    float damping = 0.16f - s.brightness * 0.10f - v * 0.055f + softPedal * 0.05f;
+    // string stiffness. Small numbers - this is the gentle stretch of a real
+    // piano, not the metallic dispersion of a delay line.
+    const double B = std::exp (-10.7 + 0.045 * (double) midiNote) * (double) v.inharmonicity;
 
-    switch (s.model)
+    // Bass strings are excited into far more modes than treble ones, so the
+    // roll off has to flatten out as you go down the keyboard. Without this the
+    // bottom octaves are all fundamental and sound like an organ.
+    tilt *= jmap (jlimit (0.0f, 1.0f, (float) (midiNote - 21) / 66.0f), 0.52f, 1.0f);
+
+    const float alpha = v.strikePos;
+    const float t60Base = fundamentalT60 (midiNote) * s.decayScale * v.decayScale;
+
+    const double nyquist = sampleRate * 0.47;
+    const int wanted = jlimit (6, maxPartials, (int) (12000.0 / f0));
+
+    // ---- build the partials ------------------------------------------------
+    std::array<double, maxPartials> freqs {};
+    std::array<float, maxPartials> amps {};
+    std::array<float, maxPartials> t60s {};
+
+    int count = 0;
+    double energy = 0.0;
+
+    for (int k = 1; k <= wanted; ++k)
     {
-        case 1: damping += 0.055f; break;                 // upright: shorter, boxier
-        case 2: damping += 0.150f; break;                 // felt: very dark
-        case 3: damping -= 0.045f; break;                 // stage: open and bright
-        default: break;
+        const double freq = (double) k * f0 * std::sqrt (1.0 + B * (double) k * (double) k);
+
+        if (freq >= nyquist)
+            break;
+
+        // hammer strike position: partials with a node under the hammer are
+        // weakened rather than removed - a real hammer is not a point
+        const float strike = 0.24f + 0.76f * std::abs (std::sin ((float) k * MathConstants<float>::pi * alpha));
+
+        const float roll = std::pow ((float) k, -tilt);
+        const double r = freq / cutoff;
+        const float felt = (float) (1.0 / (1.0 + r * r));
+
+        // A soundboard is a poor radiator down at the bottom of its range. This
+        // is why the lowest notes of a real piano get their pitch from the
+        // second and third partial rather than from the fundamental.
+        const float radiation = (float) (freq / (freq + 130.0));
+
+        const float amp = strike * roll * felt * radiation;
+
+        freqs[(size_t) count] = freq;
+        amps[(size_t) count] = amp;
+        t60s[(size_t) count] = jmax (0.12f, t60Base * std::pow ((float) k, -0.55f));
+
+        energy += (double) amp * amp;
+        ++count;
     }
 
-    damping += 0.055f * jlimit (0.0f, 1.0f, (float) (midiNote - 72) / 36.0f);
-    damping = jlimit (0.03f, 0.7f, damping);
-
-    // inharmonicity rises towards both ends of the keyboard
-    const float centreDist = std::abs ((float) midiNote - 56.0f) / 46.0f;
-    const float dispersion = jlimit (0.0f, 1.0f, s.stretch * (0.16f + 0.72f * centreDist * centreDist));
-
-    float t60 = freeDecayTime (midiNote) * s.decayScale;
-
-    if (s.model == 1) t60 *= 0.78f;
-    if (s.model == 2) t60 *= 0.62f;
-
-    for (int i = 0; i < numStrings; ++i)
+    if (count == 0)
     {
-        // unison spread: the tiny detune between the strings of one note is
-        // where the shimmer and the natural double decay come from
-        static constexpr float offsets[maxStrings] = { 0.0f, -1.0f, 0.85f };
-        const float cents = offsets[i] * s.detuneCents;
-        const double f = freq * std::pow (2.0, cents / 1200.0);
-
-        strings[(size_t) i].reset();
-        strings[(size_t) i].setTone (sampleRate, f, t60 * (1.0f + 0.14f * offsets[i]),
-                                     damping * (1.0f + 0.06f * offsets[i]), dispersion);
+        active = false;
+        return;
     }
 
-    hammer.trigger (sampleRate, v, s.hardness, s.mechNoise, period, s.model);
+    // constant loudness whatever the spectrum looks like, so the Tone knob
+    // changes colour and not level
+    const float norm = (float) (1.0 / std::sqrt (jmax (1.0e-9, energy)));
 
-    // stereo placement by key position
-    const float p = jlimit (-1.0f, 1.0f, ((float) midiNote - 60.0f) / 30.0f) * s.spread;
+    const float gainDb = (vel - 1.0f) * s.dynamicRange;
+    amplitude = std::pow (10.0f, gainDb / 20.0f) * registerGain (midiNote) * 0.42f;
+
+    numPartials = count;
+    topActive = count;
+    numBeats = jmin (maxBeats, count);
+
+    // half a cent of unison detune - the slow shimmer of two strings pulling
+    // against each other, and the reason a piano never sounds static
+    const double detune = std::pow (2.0, 0.5 / 1200.0);
+
+    for (int i = 0; i < count; ++i)
+    {
+        const int k = i + 1;
+        const float fastFraction = jmax (0.15f, 0.52f - 0.028f * (float) (k - 1));
+        const bool doubled = i < numBeats;
+        const float share = doubled ? 0.62f : 1.0f;
+
+        addPartial (i, freqs[(size_t) i], sampleRate, amps[(size_t) i] * norm * share,
+                    t60s[(size_t) i], fastFraction);
+
+        if (doubled)
+            addPartial (maxPartials + i, freqs[(size_t) i] * detune, sampleRate,
+                        amps[(size_t) i] * norm * 0.38f,
+                        t60s[(size_t) i] * 1.18f, fastFraction);
+    }
+
+    // ---- attack transient --------------------------------------------------
+    // Deliberately small. This is the sound of felt meeting wire, not a pluck.
+    const float attackAmount = jlimit (0.0f, 1.0f, s.attack);
+
+    noiseAmp = v.noise * attackAmount * std::pow (vel, 1.6f) * 0.14f;
+    noiseDecay = decayPerSample (0.022f, sampleRate);
+    noiseState = 0.0f;
+    noiseCoef = (float) jlimit (0.02, 0.9, 1.0 - std::exp (-2.0 * MathConstants<double>::pi
+                                                           * (700.0 + 2600.0 * vel) / sampleRate));
+
+    thumpAmp = v.thump * attackAmount * vel * 0.05f;
+    thumpDecay = decayPerSample (0.045f, sampleRate);
+    thumpPhase = 0.0f;
+    thumpInc = (float) (jmax (55.0, jmin (150.0, f0 * 1.4)) / sampleRate);
+
+    // ---- placement ---------------------------------------------------------
+    const float p = jlimit (-1.0f, 1.0f, ((float) midiNote - 60.0f) / 32.0f) * s.spread;
     const float angle = (p * 0.5f + 0.5f) * MathConstants<float>::halfPi;
     panL = std::cos (angle);
     panR = std::sin (angle);
-
-    sympGain = amplitude * (0.4f + 0.6f * v);
 }
 
-void PianoVoice::stop (bool pedalHeld, const EngineSettings& s, double sampleRate)
+void PianoVoice::release (bool pedalHeld, double sampleRate)
 {
     keyHeld = false;
 
@@ -214,162 +231,136 @@ void PianoVoice::stop (bool pedalHeld, const EngineSettings& s, double sampleRat
         return;
     }
 
-    pedalReleased (s, sampleRate);
+    damp (sampleRate);
 }
 
-void PianoVoice::pedalReleased (const EngineSettings& s, double sampleRate)
+void PianoVoice::damp (double sampleRate)
 {
     if (! active || keyHeld)
         return;
 
     sustained = false;
 
-    const float t60 = dampedDecayTime (note);
+    const float d = decayPerSample (damperT60 (note), sampleRate);
 
-    for (int i = 0; i < numStrings; ++i)
-        strings[(size_t) i].setDecayTime (sampleRate, t60);
+    auto applyTo = [d] (Partial& p)
+    {
+        p.dFast = jmin (p.dFast, d);
+        p.dSlow = jmin (p.dSlow, d);
+    };
 
-    // felt dampers landing on a ringing string make a soft noise of their own
-    releaseNoise = 0.04f * s.mechNoise * amplitude * 20.0f;
-    releaseNoiseCoef = std::exp (-1.0f / jmax (1.0f, (float) (0.012 * sampleRate)));
+    for (int i = 0; i < numPartials; ++i)
+        applyTo (partials[(size_t) i]);
+
+    for (int i = 0; i < numBeats; ++i)
+        applyTo (partials[(size_t) (maxPartials + i)]);
 }
 
-void PianoVoice::render (float* left, float* right, int numSamples, Random& rng, float* sympSend)
+void PianoVoice::render (float* scratch, float* left, float* right, int numSamples, Random& rng)
 {
     if (! active)
         return;
 
-    const float outL = panL * amplitude;
-    const float outR = panR * amplitude;
-    const float invStrings = 1.0f / (float) numStrings;
+    std::fill (scratch, scratch + numSamples, 0.0f);
 
-    float localEnergy = energy;
-
-    for (int n = 0; n < numSamples; ++n)
+    auto renderPartial = [scratch, numSamples] (Partial& p)
     {
-        float exc = hammer.process (rng);
+        if (p.aFast + p.aSlow < 1.0e-7f)
+            return;
 
-        if (releaseNoise > 1.0e-5f)
+        float x = p.x, y = p.y, af = p.aFast, as = p.aSlow;
+        const float c = p.cosW, s = p.sinW, df = p.dFast, ds = p.dSlow;
+
+        for (int i = 0; i < numSamples; ++i)
         {
-            exc += (rng.nextFloat() * 2.0f - 1.0f) * releaseNoise;
-            releaseNoise *= releaseNoiseCoef;
+            const float nx = x * c - y * s;
+            y = x * s + y * c;
+            x = nx;
+
+            scratch[i] += y * (af + as);
+
+            af *= df;
+            as *= ds;
         }
 
-        float sum = 0.0f;
+        // one Newton step back onto the unit circle: float rotation drifts, and
+        // over a twenty second bass note that drift would be audible
+        const float correction = 1.5f - 0.5f * (x * x + y * y);
+        p.x = x * correction;
+        p.y = y * correction;
+        p.aFast = af;
+        p.aSlow = as;
+    };
 
-        for (int i = 0; i < numStrings; ++i)
+    for (int i = 0; i < topActive; ++i)
+        renderPartial (partials[(size_t) i]);
+
+    for (int i = 0; i < numBeats; ++i)
+        renderPartial (partials[(size_t) (maxPartials + i)]);
+
+    // ---- attack transient --------------------------------------------------
+    if (noiseAmp > 1.0e-6f || thumpAmp > 1.0e-6f)
+    {
+        for (int i = 0; i < numSamples; ++i)
         {
-            const float sv = strings[(size_t) i].process (exc);
-            sum += sv;
+            if (noiseAmp > 1.0e-6f)
+            {
+                const float white = rng.nextFloat() * 2.0f - 1.0f;
+                noiseState += noiseCoef * (white - noiseState);
+                scratch[i] += noiseState * noiseAmp;
+                noiseAmp *= noiseDecay;
+            }
+
+            if (thumpAmp > 1.0e-6f)
+            {
+                thumpPhase += thumpInc;
+                if (thumpPhase >= 1.0f) thumpPhase -= 1.0f;
+
+                scratch[i] += std::sin (thumpPhase * MathConstants<float>::twoPi) * thumpAmp;
+                thumpAmp *= thumpDecay;
+            }
         }
-
-        sum *= invStrings;
-
-        left[n]  += sum * outL;
-        right[n] += sum * outR;
-
-        if (sympSend != nullptr)
-            sympSend[n] += sum * sympGain;
-
-        const float a = std::abs (sum);
-        localEnergy += 0.0004f * (a - localEnergy);
     }
 
-    energy = localEnergy;
+    // ---- out ----------------------------------------------------------------
+    const float gL = panL * amplitude;
+    const float gR = panR * amplitude;
 
-    if (! keyHeld && ! hammer.isActive() && energy < 2.0e-5f)
+    for (int i = 0; i < numSamples; ++i)
+    {
+        left[i]  += scratch[i] * gL;
+        right[i] += scratch[i] * gR;
+    }
+
+    // retire silent partials from the top so a long held bass note gets cheaper
+    while (topActive > 1
+           && partials[(size_t) (topActive - 1)].aFast + partials[(size_t) (topActive - 1)].aSlow < 1.0e-7f)
+        --topActive;
+
+    if (getLevel() < 1.0e-6f && noiseAmp < 1.0e-6f && thumpAmp < 1.0e-6f)
     {
         active = false;
-        sustained = false;
-        sostenuto = false;
+        sustained = sostenuto = false;
     }
 }
 
 //==============================================================================
-void SympatheticBank::prepare (double sampleRate, int maxDelaySamples)
-{
-    for (int i = 0; i < numStrings; ++i)
-    {
-        strings[(size_t) i].prepare (maxDelaySamples);
-
-        // two chromatic octaves of open bass/tenor strings
-        const double freq = noteToHz (33.0 + (double) i);
-        strings[(size_t) i].setTone (sampleRate, freq, 5.5f, 0.22f, 0.25f);
-
-        const float p = ((float) i / (float) (numStrings - 1)) * 2.0f - 1.0f;
-        const float angle = (p * 0.35f * 0.5f + 0.5f) * MathConstants<float>::halfPi;
-        panL[(size_t) i] = std::cos (angle);
-        panR[(size_t) i] = std::sin (angle);
-    }
-
-    reset();
-}
-
-void SympatheticBank::reset()
-{
-    for (auto& s : strings)
-        s.reset();
-
-    smoothed = 0.0f;
-}
-
-void SympatheticBank::setAmount (float a, double) { amount = jlimit (0.0f, 1.0f, a); }
-
-void SympatheticBank::process (const float* input, float* left, float* right, int numSamples)
-{
-    if (amount <= 0.0001f && smoothed <= 0.0001f)
-        return;
-
-    for (int n = 0; n < numSamples; ++n)
-    {
-        smoothed += 0.0008f * (amount - smoothed);
-
-        const float in = input[n] * smoothed * 0.055f;
-
-        if (std::abs (in) < 1.0e-12f && smoothed < 1.0e-4f)
-            continue;
-
-        float l = 0.0f, r = 0.0f;
-
-        for (int i = 0; i < numStrings; ++i)
-        {
-            const float v = strings[(size_t) i].process (in);
-            l += v * panL[(size_t) i];
-            r += v * panR[(size_t) i];
-        }
-
-        constexpr float norm = 1.0f / (float) numStrings;
-        left[n]  += l * norm;
-        right[n] += r * norm;
-    }
-}
-
-//==============================================================================
-PianoEngine::PianoEngine() = default;
-
 void PianoEngine::prepare (double sampleRate, int maxBlockSize)
 {
     sr = sampleRate;
+    scratch.assign ((size_t) jmax (64, maxBlockSize), 0.0f);
 
-    const int maxDelay = (int) (sampleRate / 24.0) + 16;
+    // soundboard: a little warmth, a dip where a piano gets boxy, and some
+    // definition where the hammers speak
+    const std::array<float, 4> freqs { 120.0f, 260.0f, 700.0f, 2800.0f };
+    const std::array<float, 4> qs    { 0.9f, 1.2f, 1.4f, 0.8f };
+    const std::array<float, 4> gains { 1.20f, 1.15f, 0.82f, 1.15f };
 
-    for (auto& v : voices)
-        v.prepare (sampleRate, maxDelay);
-
-    sympathetic.prepare (sampleRate, maxDelay);
-    sympBuffer.assign ((size_t) jmax (16, maxBlockSize), 0.0f);
-
-    const std::array<float, 3> freqs { 108.0f, 235.0f, 480.0f };
-    const std::array<float, 3> qs    { 1.1f, 1.6f, 2.2f };
-    const std::array<float, 3> gains { 1.35f, 1.20f, 0.85f };
-
-    for (size_t i = 0; i < 3; ++i)
+    for (size_t i = 0; i < 4; ++i)
     {
         auto coeffs = dsp::IIR::Coefficients<float>::makePeakFilter (sampleRate, freqs[i], qs[i], gains[i]);
         bodyL[i].coefficients = coeffs;
         bodyR[i].coefficients = coeffs;
-        bodyL[i].reset();
-        bodyR[i].reset();
     }
 
     reset();
@@ -380,20 +371,14 @@ void PianoEngine::reset()
     for (auto& v : voices)
         v.reset();
 
-    sympathetic.reset();
-
     for (auto& f : bodyL) f.reset();
     for (auto& f : bodyR) f.reset();
 
-    activeVoices = 0;
-    pedal = 0.0f;
-    soft = 0.0f;
-    sostenutoDown = false;
+    pedal = soft = 0.0f;
 }
 
 PianoVoice* PianoEngine::findVoiceToSteal (int midiNote)
 {
-    // retrigger of the same note always wins
     for (auto& v : voices)
         if (v.isActive() && v.getNote() == midiNote)
             return &v;
@@ -402,7 +387,6 @@ PianoVoice* PianoEngine::findVoiceToSteal (int midiNote)
         if (! v.isActive())
             return &v;
 
-    // otherwise take the quietest released voice, then the oldest one
     PianoVoice* best = nullptr;
     float lowest = std::numeric_limits<float>::max();
 
@@ -411,9 +395,9 @@ PianoVoice* PianoEngine::findVoiceToSteal (int midiNote)
         if (v.isHeld())
             continue;
 
-        if (v.getEnergy() < lowest)
+        if (v.getLevel() < lowest)
         {
-            lowest = v.getEnergy();
+            lowest = v.getLevel();
             best = &v;
         }
     }
@@ -438,11 +422,17 @@ void PianoEngine::noteOn (int midiNote, float velocity)
         return;
     }
 
+    auto settingsForNote = settings;
+
+    // the soft pedal moves the hammer sideways: quieter and noticeably darker
+    if (soft > 0.001f)
+        settingsForNote.tone -= 0.45f * soft;
+
     auto* voice = findVoiceToSteal (midiNote);
-    voice->start (midiNote, velocity, settings, sr, soft);
+    voice->start (midiNote, velocity * (1.0f - 0.30f * soft), settingsForNote, sr);
     voice->startOrder = ++orderCounter;
 
-    if (pedal >= 0.5f)
+    if (pedal >= 0.45f)
         voice->sustained = true;
 }
 
@@ -450,7 +440,7 @@ void PianoEngine::noteOff (int midiNote)
 {
     for (auto& v : voices)
         if (v.isActive() && v.isHeld() && v.getNote() == midiNote)
-            v.stop (pedal >= 0.45f, settings, sr);
+            v.release (pedal >= 0.45f, sr);
 }
 
 void PianoEngine::sustainPedal (float value)
@@ -461,13 +451,11 @@ void PianoEngine::sustainPedal (float value)
     if (previous >= 0.45f && pedal < 0.45f)
         for (auto& v : voices)
             if (v.isActive() && ! v.isHeld() && ! v.isSostenuto())
-                v.pedalReleased (settings, sr);
+                v.damp (sr);
 }
 
 void PianoEngine::sostenutoPedal (bool down)
 {
-    sostenutoDown = down;
-
     if (down)
     {
         for (auto& v : voices)
@@ -483,7 +471,7 @@ void PianoEngine::sostenutoPedal (bool down)
                 v.setSostenuto (false);
 
                 if (! v.isHeld() && pedal < 0.45f)
-                    v.pedalReleased (settings, sr);
+                    v.damp (sr);
             }
         }
     }
@@ -495,50 +483,28 @@ void PianoEngine::allNotesOff()
 {
     for (auto& v : voices)
         if (v.isActive() && v.isHeld())
-            v.stop (pedal >= 0.45f, settings, sr);
+            v.release (pedal >= 0.45f, sr);
 }
 
 void PianoEngine::panic()
 {
     for (auto& v : voices)
         v.reset();
-
-    sympathetic.reset();
-    activeVoices = 0;
 }
 
 void PianoEngine::render (float* left, float* right, int numSamples)
 {
-    if ((int) sympBuffer.size() < numSamples)
-        sympBuffer.assign ((size_t) numSamples, 0.0f);
-
-    auto* symp = sympBuffer.data();
-    std::fill (symp, symp + numSamples, 0.0f);
-
-    sympathetic.setAmount (settings.sympathetic * (0.25f + 0.75f * pedal), sr);
-
-    int count = 0;
+    if ((int) scratch.size() < numSamples)
+        scratch.assign ((size_t) numSamples, 0.0f);
 
     for (auto& v : voices)
-    {
-        if (! v.isActive())
-            continue;
-
-        v.render (left, right, numSamples, rng, settings.sympathetic > 0.001f ? symp : nullptr);
-        ++count;
-    }
-
-    activeVoices = count;
-
-    if (settings.sympathetic > 0.001f)
-        sympathetic.process (symp, left, right, numSamples);
-
+        v.render (scratch.data(), left, right, numSamples, rng);
 
     for (int n = 0; n < numSamples; ++n)
     {
         float l = left[n], r = right[n];
 
-        for (size_t i = 0; i < 3; ++i)
+        for (size_t i = 0; i < 4; ++i)
         {
             l = bodyL[i].processSample (l);
             r = bodyR[i].processSample (r);
