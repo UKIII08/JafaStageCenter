@@ -21,22 +21,36 @@ Pianoteq — dwadzieścia lat pracy zespołu akustyków.
 Dlatego wtyczka potrafi **wczytać prawdziwą bibliotekę sampli**, a cały tor za nią —
 pad, przestrzeń, shimmer, reverse, warstwa soaking — działa wtedy na prawdziwym fortepianie.
 
-**Kliknij `Sample library...` → `Wczytaj plik .sfz...`**
+#### Salamander Grand Piano — krok po kroku
 
-Sprawdzone darmowe biblioteki wysokiej jakości (obie w formacie SFZ):
+1. Pobierz `SalamanderGrandPianoV3+20161209_48khz24bit.tar` (Yamaha C5, 16 warstw dynamiki,
+   licencja CC-BY). Na Windowsie do rozpakowania `.tar` przyda się 7-Zip.
+2. Rozpakuj gdziekolwiek — powstanie folder z plikiem `.sfz` i podfolderem `48khz24bit`.
+3. We wtyczce: `Sample library...` → **`Wczytaj folder z samplami...`** i wskaż rozpakowany
+   folder. Plik SFZ zostanie znaleziony sam (szukanie jest rekurencyjne).
+   Możesz też wybrać `Wczytaj plik .sfz...` i wskazać go bezpośrednio.
 
-| Biblioteka | Co to | Rozmiar |
-|---|---|---|
-| **Salamander Grand Piano** | Yamaha C5, 16 warstw dynamiki, licencja CC-BY | ~1 GB |
-| **Piano in 162** (Ivy Audio) | Steinway Model B, darmowa | ~800 MB |
+Wczytywanie zajmuje kilkadziesiąt sekund i zjada około **700–900 MB RAM**. Idzie w tle,
+więc Reaper nie zamarza, a pasek pod przełącznikiem Source pokazuje postęp.
 
-Działa każda biblioteka SFZ. Można też wskazać **folder z plikami WAV** — wtedy wysokość
-dźwięku jest odczytywana z nazw plików (`Piano_C4.wav`, `A#2.wav` albo numer MIDI 21–108),
-a pliki na tej samej nucie są traktowane jako kolejne warstwy dynamiki.
+Inne sprawdzone darmowe biblioteki: **Piano in 162** (Ivy Audio, Steinway Model B).
+Działa każda biblioteka SFZ.
 
-Obsługiwane opcodes SFZ: strefy klawiszy i dynamiki, `pitch_keycenter`, `tune`, `transpose`,
-`volume`, pętle (`loop_mode`, `loop_start`, `loop_end`, a także pętle zapisane w samym pliku
-WAV), `ampeg_attack`, `ampeg_release`, `default_path`.
+Można też wskazać **folder z samymi plikami WAV** — wtedy wysokość dźwięku jest odczytywana
+z nazw plików (`Piano_C4.wav`, `A#2.wav` albo numer MIDI 21–108), a pliki na tej samej nucie
+są traktowane jako kolejne warstwy dynamiki.
+
+Obsługiwane opcodes SFZ: dziedziczenie `<global>` / `<master>` / `<group>` / `<region>`,
+strefy klawiszy i dynamiki, `pitch_keycenter`, `key`, `tune`, `transpose`, `volume`, pętle
+(`loop_mode`, `loop_start`, `loop_end`, a także pętle zapisane w samym pliku WAV),
+`ampeg_attack`, `ampeg_release`, `default_path`, oraz **`trigger=release` z `rt_decay`** —
+czyli osobne sample tłumików, odtwarzane przy puszczeniu klawisza, tym ciszej im dłużej
+klawisz był trzymany.
+
+Sample są trzymane w pamięci jako znormalizowane 16-bitowe, nie jako float — duża biblioteka
+fortepianowa to setki kilkunastosekundowych plików, które we float32 zajęłyby grubo ponad
+gigabajt. Normalizacja każdego sampla do jego własnego szczytu sprawia, że podłoga 16 bitów
+leży około 90 dB pod nim, czyli poniżej słyszalności. Ogony poniżej −90 dBFS są obcinane.
 
 > Ładowanie idzie w tle, z paskiem postępu — Reaper nie zawiesza się na czas wczytywania.
 > Ścieżka do biblioteki jest zapisywana w projekcie, więc po ponownym otwarciu wraca sama.
@@ -317,8 +331,11 @@ Sprawdza też trzy rzeczy osobno:
 * **działanie makra SOAK** — na całkiem suchym presecie wash po puszczeniu klawiszy musi
   realnie urosnąć
 * **round-trip stanu** — żeby Reaper nie gubił ustawień przy ponownym otwarciu projektu
-* **loader sampli** — buduje na dysku małą bibliotekę SFZ, wczytuje ją z powrotem i sprawdza
-  liczbę regionów, mapowanie klawiszy i dynamiki oraz to, czy odtwarzanie stroi
+* **loader sampli** — buduje na dysku bibliotekę SFZ ułożoną tak, jak układa się prawdziwa
+  biblioteka fortepianowa (`<control> default_path`, obwiednia w `<global>`, grupy dynamiki,
+  backslashe w ścieżkach, osobna grupa `trigger=release`), wczytuje ją z powrotem i sprawdza:
+  rozdzielenie sampli grających od tłumików, dziedziczenie opcode'ów przez sekcje, `rt_decay`,
+  `volume` per grupa, mapowanie klawiszy i dynamiki oraz stroj odtwarzania
 
 Zapisuje też WAV-y do podanego katalogu, więc można odsłuchać każdy preset bez hosta.
 Ten sam test chodzi w CI przy każdym buildzie.

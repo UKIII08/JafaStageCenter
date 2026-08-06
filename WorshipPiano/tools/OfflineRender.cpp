@@ -353,69 +353,89 @@ namespace
         return rising;
     }
 
-    /*  Builds a small SFZ library on disk and loads it back, so the parser and
-        the key/velocity mapping are checked without needing a real library.
+    /*  Builds an SFZ on disk laid out the way a real piano library is - a
+        <control> default_path, a <global> envelope, velocity <group>s, backslash
+        separators, and a release-triggered damper group - then loads it back and
+        checks the parser and the mapping.
     */
     bool checkSampleLoading (String& report)
     {
         auto dir = File::getSpecialLocation (File::tempDirectory).getChildFile ("wp_sfz_test");
         dir.deleteRecursively();
-        dir.createDirectory();
+        auto audioDir = dir.getChildFile ("48khz24bit");
+        audioDir.createDirectory();
 
         WavAudioFormat wav;
-
-        // three notes, two velocity layers each, each a decaying sine at its
-        // own pitch so the mapping can be checked by measuring the result
         const int roots[3] = { 48, 60, 72 };
+
+        auto writeTone = [&] (const File& file, double freq, float level, double seconds)
+        {
+            const int length = (int) (sampleRate * seconds);
+            AudioBuffer<float> buffer (2, length);
+
+            for (int n = 0; n < length; ++n)
+            {
+                const float env = std::exp (-3.0f * (float) n / (float) length);
+                const float v = std::sin (MathConstants<float>::twoPi * (float) (freq * n / sampleRate))
+                              * env * level;
+                buffer.setSample (0, n, v);
+                buffer.setSample (1, n, v);
+            }
+
+            file.deleteFile();
+            std::unique_ptr<FileOutputStream> stream (file.createOutputStream());
+
+            if (stream != nullptr)
+            {
+                std::unique_ptr<AudioFormatWriter> writer (
+                    wav.createWriterFor (stream.get(), sampleRate, 2, 24, {}, 0));
+
+                if (writer != nullptr)
+                {
+                    stream.release();
+                    writer->writeFromAudioSampleBuffer (buffer, 0, length);
+                }
+            }
+        };
 
         for (int r = 0; r < 3; ++r)
         {
+            const double freq = 440.0 * std::pow (2.0, (roots[r] - 69) / 12.0);
+
             for (int layer = 0; layer < 2; ++layer)
-            {
-                const double freq = 440.0 * std::pow (2.0, (roots[r] - 69) / 12.0);
-                const int length = (int) (sampleRate * 1.0);
-                AudioBuffer<float> buffer (2, length);
+                writeTone (audioDir.getChildFile ("note" + String (roots[r]) + "_v" + String (layer) + ".wav"),
+                           freq, layer == 0 ? 0.3f : 0.9f, 1.0);
 
-                for (int n = 0; n < length; ++n)
-                {
-                    const float env = std::exp (-3.0f * (float) n / (float) length);
-                    const float v = std::sin (MathConstants<float>::twoPi * (float) (freq * n / sampleRate))
-                                  * env * (layer == 0 ? 0.3f : 0.9f);
-                    buffer.setSample (0, n, v);
-                    buffer.setSample (1, n, v);
-                }
-
-                auto file = dir.getChildFile ("note" + String (roots[r]) + "_v" + String (layer) + ".wav");
-                std::unique_ptr<FileOutputStream> stream (file.createOutputStream());
-
-                if (stream != nullptr)
-                {
-                    std::unique_ptr<AudioFormatWriter> writer (
-                        wav.createWriterFor (stream.get(), sampleRate, 2, 16, {}, 0));
-
-                    if (writer != nullptr)
-                    {
-                        stream.release();
-                        writer->writeFromAudioSampleBuffer (buffer, 0, length);
-                    }
-                }
-            }
+            // damper noise: a short, much quieter burst an octave up
+            writeTone (audioDir.getChildFile ("rel" + String (roots[r]) + ".wav"), freq * 2.0, 0.15f, 0.25);
         }
 
         String sfz;
         sfz << "// a test library" << newLine
             << "<control>" << newLine
-            << "default_path=" << newLine
+            << "default_path=48khz24bit/" << newLine
             << "<global>" << newLine
-            << "ampeg_release=0.3" << newLine;
+            << "ampeg_release=0.75 loop_mode=one_shot" << newLine;
+
+        for (int layer = 0; layer < 2; ++layer)
+        {
+            sfz << "<group> lovel=" << (layer == 0 ? 1 : 64)
+                << " hivel=" << (layer == 0 ? 63 : 127)
+                << " volume=" << (layer == 0 ? 6 : 0) << newLine;
+
+            for (int r = 0; r < 3; ++r)
+                sfz << "<region> sample=48khz24bit\\note" << roots[r] << "_v" << layer
+                    << ".wav lokey=" << (roots[r] - 6) << " hikey=" << (roots[r] + 5)
+                    << " pitch_keycenter=" << roots[r] << newLine;
+        }
+
+        sfz << "// release samples" << newLine
+            << "<group> trigger=release volume=-4 rt_decay=2 ampeg_release=0.3" << newLine;
 
         for (int r = 0; r < 3; ++r)
-        {
-            sfz << "<group> lokey=" << (roots[r] - 6) << " hikey=" << (roots[r] + 5)
+            sfz << "<region> sample=48khz24bit\\rel" << roots[r]
+                << ".wav lokey=" << (roots[r] - 6) << " hikey=" << (roots[r] + 5)
                 << " pitch_keycenter=" << roots[r] << newLine;
-            sfz << "<region> lovel=1 hivel=63 sample=note" << roots[r] << "_v0.wav volume=-1.5" << newLine;
-            sfz << "<region> lovel=64 hivel=127 sample=note" << roots[r] << "_v1.wav" << newLine;
-        }
 
         auto sfzFile = dir.getChildFile ("test.sfz");
         sfzFile.replaceWithText (sfz);
@@ -432,41 +452,76 @@ namespace
             return false;
         }
 
-        report << "   parsed " << library->getNumRegions() << " regions, "
+        report << "   " << library->getNumRegions() << " regions + "
+               << library->getNumReleaseRegions() << " release, "
                << (library->getMemoryUsage() / 1024) << " kB" << newLine;
 
-        bool ok = library->getNumRegions() == 6;
+        bool ok = true;
 
-        if (! ok)
-            report << "   !! expected 6 regions" << newLine;
+        auto check = [&report, &ok] (bool condition, const String& what)
+        {
+            if (! condition)
+            {
+                report << "   !! " << what << newLine;
+                ok = false;
+            }
+        };
 
-        // the right zone must answer for a given note and velocity
-        struct Check { int note, vel, expectRoot; };
-        const Check checks[] = { { 48, 30, 48 }, { 48, 100, 48 }, { 60, 20, 60 },
-                                 { 64, 100, 60 }, { 72, 127, 72 }, { 70, 64, 72 } };
+        check (library->getNumRegions() == 6, "expected 6 playable regions");
+        check (library->getNumReleaseRegions() == 3, "expected 3 release regions");
 
-        for (const auto& c : checks)
+        // a release-triggered region must never answer a note-on
+        for (int note = 42; note <= 77; note += 5)
+            for (int vel : { 20, 64, 120 })
+            {
+                const auto* region = library->find (note, vel);
+                check (region != nullptr, "no region for note " + String (note) + " vel " + String (vel));
+
+                if (region != nullptr)
+                    check (std::abs (region->releaseSeconds - 0.75f) < 0.01f,
+                           "ampeg_release from <global> did not reach note " + String (note)
+                           + " (got " + String (region->releaseSeconds, 3) + ")");
+            }
+
+        // ... but must be reachable through the release lookup
+        const auto* rel = library->findRelease (60, 64);
+        check (rel != nullptr, "no release sample for note 60");
+
+        if (rel != nullptr)
+        {
+            check (rel->rtDecay > 1.9f && rel->rtDecay < 2.1f, "rt_decay was not parsed");
+            check (std::abs (rel->releaseSeconds - 0.3f) < 0.01f, "group ampeg_release did not override global");
+        }
+
+        struct Case { int note, vel, expectRoot; };
+        const Case cases[] = { { 48, 30, 48 }, { 48, 100, 48 }, { 60, 20, 60 },
+                               { 64, 100, 60 }, { 72, 127, 72 }, { 70, 64, 72 } };
+
+        for (const auto& c : cases)
         {
             const auto* region = library->find (c.note, c.vel);
 
             if (region == nullptr || region->rootNote != c.expectRoot)
-            {
-                report << "   !! note " << c.note << " vel " << c.vel << " mapped to "
-                       << (region != nullptr ? String (region->rootNote) : String ("nothing"))
-                       << ", expected " << c.expectRoot << newLine;
-                ok = false;
-            }
+                check (false, "note " + String (c.note) + " vel " + String (c.vel) + " mapped to "
+                              + (region != nullptr ? String (region->rootNote) : String ("nothing")));
         }
 
-        // and it has to actually make sound at the right pitch through the engine
+        // the quiet layer carries volume=6, the loud one volume=0
+        const auto* quiet = library->find (60, 30);
+        const auto* loud  = library->find (60, 110);
+
+        if (quiet != nullptr && loud != nullptr)
+            check (quiet->gain > loud->gain * 1.5f, "per-group volume was not applied");
+
+        // and it has to make sound at the right pitch through the engine
         wp::SamplerEngine engine;
         engine.prepare (sampleRate, blockSize);
         engine.setLibrary (library);
 
         AudioBuffer<float> out (2, (int) (sampleRate * 0.5));
         out.clear();
-        engine.render (out.getWritePointer (0), out.getWritePointer (1), 16);   // picks up the library
-        engine.noteOn (67, 0.8f);                                               // G4, stretched from C4
+        engine.render (out.getWritePointer (0), out.getWritePointer (1), 16);
+        engine.noteOn (67, 0.8f);
 
         int written = 16;
         while (written < out.getNumSamples())
@@ -480,12 +535,10 @@ namespace
 
         if (peak < 0.01f)
         {
-            report << "   !! sampler produced no audio" << newLine;
-            ok = false;
+            check (false, "sampler produced no audio");
         }
         else
         {
-            // measure the pitch: G4 is 392 Hz, played by stretching the C4 sample
             const int fftOrder = 15;
             const int fftSize = 1 << fftOrder;
             dsp::FFT fft (fftOrder);
@@ -507,11 +560,7 @@ namespace
             report << "   playback pitch " << String (detected, 1) << " Hz, expected "
                    << String (expected, 1) << " Hz (" << String (cents, 1) << " cents)" << newLine;
 
-            if (std::abs (cents) > 15.0)
-            {
-                report << "   !! sampler is playing out of tune" << newLine;
-                ok = false;
-            }
+            check (std::abs (cents) < 15.0, "sampler is playing out of tune");
         }
 
         report << newLine;

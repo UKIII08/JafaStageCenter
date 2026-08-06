@@ -15,10 +15,16 @@
 
     Two formats are understood:
 
-      * SFZ, the subset that piano libraries actually use (key and velocity
-        zones, root note, tuning, loop points, release times)
+      * SFZ, the subset that piano libraries actually use: global/group/region
+        inheritance, key and velocity zones, root note, tuning, loop points,
+        envelope times, and release-triggered damper samples
       * a plain folder of WAV or FLAC files, where the root note is taken from
         the file name (C4, A#2, or a bare MIDI number)
+
+    Audio is kept as normalised 16 bit rather than float. A big piano library is
+    hundreds of samples of ten seconds or more, which as float32 runs to well
+    over a gigabyte; normalising each sample to its own peak first means the
+    16 bit floor sits far enough down to be inaudible.
 
     Loading happens on a background thread. The audio thread only ever sees a
     library that is already complete, swapped in as a single pointer.
@@ -37,7 +43,10 @@ public:
 
     struct Region
     {
-        juce::AudioBuffer<float> audio;
+        std::vector<juce::int16> data;   // interleaved
+        int numChannels = 1;
+        int numFrames = 0;
+        float scale = 1.0f / 32768.0f;   // undoes the normalisation on the way out
         double sourceRate = 44100.0;
 
         int rootNote = 60;
@@ -47,10 +56,16 @@ public:
         bool  loops = false;
         int   loopStart = 0, loopEnd = 0;
 
-        float gain = 1.0f;          // from volume=
-        float tuneRatio = 1.0f;     // from tune= / transpose=
+        float gain = 1.0f;
+        float tuneRatio = 1.0f;
         float releaseSeconds = 0.4f;
         float attackSeconds = 0.0f;
+        float rtDecay = 0.0f;            // dB per second of key-down, release samples
+
+        inline float sample (int frame, int channel) const noexcept
+        {
+            return (float) data[(size_t) (frame * numChannels + (numChannels > 1 ? channel : 0))] * scale;
+        }
     };
 
     /** @returns an error message, or an empty string on success. */
@@ -58,28 +73,43 @@ public:
                            std::function<void (float)> onProgress = {},
                            const std::atomic<bool>* shouldAbort = nullptr);
 
-    /** Best matching region for a note and velocity, or nullptr. */
     const Region* find (int midiNote, int velocity) const noexcept
     {
-        const int index = lookup[(size_t) (juce::jlimit (0, 127, midiNote) * 128
-                                           + juce::jlimit (0, 127, velocity))];
-        return index >= 0 ? &regions[(size_t) index] : nullptr;
+        return lookupIn (regions, lookup, midiNote, velocity);
+    }
+
+    /** Damper noise sampled separately, played when the key comes back up. */
+    const Region* findRelease (int midiNote, int velocity) const noexcept
+    {
+        return lookupIn (releases, releaseLookup, midiNote, velocity);
     }
 
     bool isEmpty() const noexcept { return regions.empty(); }
     int  getNumRegions() const noexcept { return (int) regions.size(); }
+    int  getNumReleaseRegions() const noexcept { return (int) releases.size(); }
     juce::int64 getMemoryUsage() const noexcept { return memoryBytes; }
     const juce::String& getName() const noexcept { return name; }
     const juce::String& getSourcePath() const noexcept { return sourcePath; }
 
 private:
+    static const Region* lookupIn (const std::vector<Region>& list, const std::vector<int>& table,
+                                   int midiNote, int velocity) noexcept
+    {
+        if (table.empty())
+            return nullptr;
+
+        const int index = table[(size_t) (juce::jlimit (0, 127, midiNote) * 128
+                                          + juce::jlimit (0, 127, velocity))];
+        return index >= 0 ? &list[(size_t) index] : nullptr;
+    }
+
     juce::String loadSfz (const juce::File&, std::function<void (float)>&, const std::atomic<bool>*);
     juce::String loadFolder (const juce::File&, std::function<void (float)>&, const std::atomic<bool>*);
     bool readAudio (const juce::File&, Region&, juce::AudioFormatManager&);
-    void buildLookup();
+    static void buildLookup (const std::vector<Region>&, std::vector<int>&);
 
-    std::vector<Region> regions;
-    std::vector<int> lookup;          // 128 notes x 128 velocities
+    std::vector<Region> regions, releases;
+    std::vector<int> lookup, releaseLookup;
     juce::int64 memoryBytes = 0;
     juce::String name, sourcePath;
 
@@ -97,7 +127,6 @@ public:
 
     /** Called from the message thread; the audio thread picks it up next block. */
     void setLibrary (SampleLibrary::Ptr newLibrary) { pending = std::move (newLibrary); libraryDirty = true; }
-    SampleLibrary::Ptr getLibrary() const { return active; }
 
     void setDynamics (float rangeDb) noexcept { dynamicRange = rangeDb; }
     void setTone (float t) noexcept { tone = t; }
@@ -115,7 +144,7 @@ public:
     bool hasLibrary() const noexcept { return active != nullptr && ! active->isEmpty(); }
 
 private:
-    static constexpr int maxVoices = 48;
+    static constexpr int maxVoices = 64;
 
     struct Voice
     {
@@ -126,11 +155,13 @@ private:
         float  env = 0.0f, envTarget = 0.0f, attackCoef = 1.0f, releaseCoef = 0.01f;
         float  toneStateL = 0.0f, toneStateR = 0.0f, toneCoef = 1.0f;
         int    note = -1;
-        bool   held = false, sustained = false, active = false;
+        int    heldSamples = 0;
+        bool   held = false, sustained = false, active = false, isRelease = false;
         juce::uint32 order = 0;
     };
 
-    Voice* findVoice (int midiNote);
+    Voice* findVoice (int midiNote, bool forRelease);
+    void   startRelease (int midiNote, int heldSamples);
 
     std::array<Voice, maxVoices> voices;
 
