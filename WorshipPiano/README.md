@@ -7,20 +7,61 @@ Napisana w C++/JUCE, bez bibliotek sampli — cały dźwięk jest generowany w c
 
 ---
 
-## Ważna uwaga na start — czego ta wtyczka nie jest
+## Dwa źródła dźwięku
 
-Prosiłeś o brzmienie „jak w Nordzie". Powiem wprost, żeby nie było rozczarowania:
+Wtyczka ma dwa silniki fortepianu i przełącznik **Source** na górze panelu PIANO.
 
-* **Nord Stage / Piano** to kilka gigabajtów nagranych sampli prawdziwych fortepianów.
-  Nie da się tego wygenerować kodem — trzeba by nagrać fortepian w studiu.
-* Ta wtyczka buduje dźwięk **syntezą addytywną (modalną)**: każdy dźwięk jest składany
-  partial po partialu z fizyki, która kształtuje brzmienie fortepianu. Około 5 MB zamiast
-  30 GB i płynna kontrola nad barwą, ale to modeler, nie sampler klasy Nord.
+### 1. Sample Library — jeśli chcesz brzmienie klasy top
 
-**Natomiast** — i to jest sedno — brzmienie, które kojarzysz z nagrań worshipowych, w dużej
-mierze nie bierze się z samego fortepianu, tylko z tego, co jest **za nim**: kompresji,
-nasycenia, delaya ósemkowego z kropką, wielkiego pogłosu, shimmera i padu pod spodem.
-To wszystko jest tutaj zrobione porządnie.
+Syntezowany fortepian ma sufit, którego nie da się przeskoczyć strojeniem parametrów.
+Uderzona struna to chaotyczne, nieliniowe zdarzenie i żadna synteza addytywna nie oszuka
+ucha na ataku. Jedyny modelowany fortepian, który realnie konkuruje z samplerami, to
+Pianoteq — dwadzieścia lat pracy zespołu akustyków.
+
+Dlatego wtyczka potrafi **wczytać prawdziwą bibliotekę sampli**, a cały tor za nią —
+pad, przestrzeń, shimmer, reverse, warstwa soaking — działa wtedy na prawdziwym fortepianie.
+
+**Kliknij `Sample library...` → `Wczytaj plik .sfz...`**
+
+Sprawdzone darmowe biblioteki wysokiej jakości (obie w formacie SFZ):
+
+| Biblioteka | Co to | Rozmiar |
+|---|---|---|
+| **Salamander Grand Piano** | Yamaha C5, 16 warstw dynamiki, licencja CC-BY | ~1 GB |
+| **Piano in 162** (Ivy Audio) | Steinway Model B, darmowa | ~800 MB |
+
+Działa każda biblioteka SFZ. Można też wskazać **folder z plikami WAV** — wtedy wysokość
+dźwięku jest odczytywana z nazw plików (`Piano_C4.wav`, `A#2.wav` albo numer MIDI 21–108),
+a pliki na tej samej nucie są traktowane jako kolejne warstwy dynamiki.
+
+Obsługiwane opcodes SFZ: strefy klawiszy i dynamiki, `pitch_keycenter`, `tune`, `transpose`,
+`volume`, pętle (`loop_mode`, `loop_start`, `loop_end`, a także pętle zapisane w samym pliku
+WAV), `ampeg_attack`, `ampeg_release`, `default_path`.
+
+> Ładowanie idzie w tle, z paskiem postępu — Reaper nie zawiesza się na czas wczytywania.
+> Ścieżka do biblioteki jest zapisywana w projekcie, więc po ponownym otwarciu wraca sama.
+
+### 2. Modelled — silnik wbudowany
+
+Synteza addytywna, około 5 MB, zero plików zewnętrznych. Nie dorówna dobrej bibliotece
+sampli, ale gra od razu po instalacji i pozwala płynnie przechodzić między barwami, których
+sampler nie ma (`Felt Piano` jest tu najlepszy). Przydaje się też jako zapasowe źródło,
+kiedy nie chcesz taszczyć gigabajtów na próbę.
+
+---
+
+## Reverse piano
+
+`Reverse` w panelu AMBIENCE odtwarza to, co właśnie zagrałeś, **od tyłu**. Każda fraza
+narasta w siebie samą, bez przerwy i bez kliku na styku — zamiast jednego odwróconego
+fragmentu chodzą dwa ziarna przesunięte o pół okna, ważone kosinusem, więc ich suma jest
+stała.
+
+Lista obok wybiera, jak daleko wstecz sięga każdy swell: **1/2 taktu do 4 taktów**,
+zsynchronizowane z tempem projektu. Wyjście reverse idzie też mocniej w pogłos niż sygnał
+suchy, żeby swell mieszkał w przestrzeni, a nie przed nią.
+
+Preset **Reverse Swell** pokazuje ustawienie. Graj rzadko i zostaw miejsce.
 
 ## Skąd wziąć plik `.vst3`
 
@@ -138,6 +179,7 @@ programy hosta, więc możesz je przełączać z Reapera.
 | **Soaking Cloud** | Soak | Wszystko rozmyte w jedną wolno płynącą chmurę, oktawa i kwinta na górze. |
 | **Prayer Room** | Soak | Filcowy fortepian nad powolnym bloomem, z duckingiem żeby nuty zostały czytelne. |
 | **Infinite Wash** | Soak | Trzymasz akord, wciskasz FREEZE i grasz po wierzchu bez końca. |
+| **Reverse Swell** | Soak | Każda fraza narasta w siebie od tyłu. Graj rzadko. |
 | **Stage Clean** | Live | Sucho i do przodu, do grania przez PA. |
 
 *Presety są inspirowane stylem brzmienia współczesnej muzyki uwielbieniowej. Nie są
@@ -155,6 +197,8 @@ zaszyte w kodzie. Presety mają być do grania, a nie do kręcenia.
 
 | Parametr | Co robi |
 |---|---|
+| **Source** | `Modelled` — silnik wbudowany, `Sample Library` — wczytana biblioteka |
+| **Sample library...** | Wczytanie pliku SFZ, folderu z WAV-ami, albo powrót do silnika modelowanego |
 | **Model** | Smooth Grand / Bright Grand / Warm Upright / Felt Piano — zmienia nachylenie widma, twardość filcu, sztywność strun i długość wybrzmienia |
 | **Tone** | Ciemno ↔ jasno. Przesuwa filtr filcu i nachylenie widma jednocześnie |
 | **Attack** | Ile słychać uderzenia filcu o strunę i stuku mechaniki |
@@ -181,8 +225,9 @@ Osobny syntezator grający te same nuty. `Pad` na minimum (−60 dB) wyłącza g
 
 ### AMBIENCE
 
-Wybór maszyny, tryb shimmera i przycisk **FREEZE**, plus `Reverb` (ile), `Size`, `Decay`
-(do 30 s), `Shimmer` i `Duck`. Predelay skaluje się sam z rozmiarem pomieszczenia.
+Górny rząd: wybór maszyny, tryb shimmera, długość okna reverse i przycisk **FREEZE**.
+Pokrętła: `Reverb` (ile), `Size`, `Decay` (do 30 s), `Shimmer`, `Reverse` i `Duck`.
+Predelay skaluje się sam z rozmiarem pomieszczenia.
 
 ### SOAK & OUTPUT
 
@@ -230,6 +275,12 @@ składany z osobnych zanikających sinusoid, a o barwie decyduje fizyka:
 * najniższe partiale są zdublowane i rozstrojone o **pół centa** — tak jak dwie lub trzy
   struny jednego chóru — co daje powolne migotanie
 
+[`Source/dsp/SampleLibrary.cpp`](Source/dsp/SampleLibrary.cpp) — parser SFZ, ładowanie
+folderów i odtwarzanie sampli (interpolacja Catmull-Roma, pętle, warstwy dynamiki, pedały).
+Ładowanie idzie na wątku w tle; wątek audio widzi wyłącznie gotową bibliotekę, podmienianą
+jednym wskaźnikiem, a poprzednie biblioteki są trzymane przy życiu poza nim, żeby nigdy nie
+doszło do zwalniania pamięci w callbacku audio.
+
 [`Source/dsp/PadLayer.cpp`](Source/dsp/PadLayer.cpp) — pad: piły polyBLEP rozstawione
 w stereo, filtr SVF na kanał, otwierający się razem z narastaniem dźwięku.
 
@@ -266,6 +317,8 @@ Sprawdza też trzy rzeczy osobno:
 * **działanie makra SOAK** — na całkiem suchym presecie wash po puszczeniu klawiszy musi
   realnie urosnąć
 * **round-trip stanu** — żeby Reaper nie gubił ustawień przy ponownym otwarciu projektu
+* **loader sampli** — buduje na dysku małą bibliotekę SFZ, wczytuje ją z powrotem i sprawdza
+  liczbę regionów, mapowanie klawiszy i dynamiki oraz to, czy odtwarzanie stroi
 
 Zapisuje też WAV-y do podanego katalogu, więc można odsłuchać każdy preset bez hosta.
 Ten sam test chodzi w CI przy każdym buildzie.

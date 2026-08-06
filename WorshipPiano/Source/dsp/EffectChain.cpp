@@ -159,11 +159,13 @@ void EffectChain::prepare (double sampleRate, int maxBlockSize)
 
     ensemble.prepare (sampleRate);
     delay.prepare (sampleRate, maxBlockSize);
+    reverse.prepare (sampleRate);
     ambience.prepare (sampleRate, maxBlockSize);
 
     dryBuffer.setSize (2, maxBlockSize, false, false, true);
     sendBuffer.setSize (2, maxBlockSize, false, false, true);
     wetBuffer.setSize (2, maxBlockSize, false, false, true);
+    reverseBuffer.setSize (2, maxBlockSize, false, false, true);
 
     filtersDirty = true;
     updateFilters();
@@ -184,11 +186,13 @@ void EffectChain::reset()
 
     ensemble.reset();
     delay.reset();
+    reverse.reset();
     ambience.reset();
 
     driveState.fill (0.0f);
     smoothedOutput = settings.outputGain;
     smoothedReverbMix = settings.reverbMix;
+    smoothedReverseMix = settings.reverseMix;
 }
 
 void EffectChain::setSettings (const EffectSettings& s)
@@ -207,6 +211,7 @@ void EffectChain::setSettings (const EffectSettings& s)
     ensemble.setParameters (settings.chorusAmount, settings.chorusRate);
     delay.setParameters (settings.delaySamplesL, settings.delaySamplesR,
                          settings.delayFeedback, settings.delayTone, settings.delayPingPong);
+    reverse.setWindow (settings.reverseWindow);
 }
 
 void EffectChain::updateFilters()
@@ -241,6 +246,7 @@ void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>&
         dryBuffer.setSize (2, numSamples, false, false, true);
         sendBuffer.setSize (2, numSamples, false, false, true);
         wetBuffer.setSize (2, numSamples, false, false, true);
+        reverseBuffer.setSize (2, numSamples, false, false, true);
     }
 
     auto* l = buffer.getWritePointer (0);
@@ -307,6 +313,13 @@ void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>&
         oversampling->processSamplesDown (block);
     }
 
+    // ---- reverse -------------------------------------------------------------
+    // Fed from the shaped piano only: reversing the pad as well would just
+    // smear an already smeared signal.
+    auto* revL = reverseBuffer.getWritePointer (0);
+    auto* revR = reverseBuffer.getWritePointer (1);
+    reverse.process (l, r, revL, revR, numSamples);
+
     // ---- fold the pad in ----------------------------------------------------
     const auto* padL = padBuffer.getNumChannels() > 0 ? padBuffer.getReadPointer (0) : nullptr;
     const auto* padR = padBuffer.getNumChannels() > 1 ? padBuffer.getReadPointer (1) : padL;
@@ -334,6 +347,24 @@ void EffectChain::process (AudioBuffer<float>& buffer, const AudioBuffer<float>&
     {
         sendL[n] = l[n];
         sendR[n] = r[n];
+    }
+
+    if (settings.reverseMix > 0.0005f || smoothedReverseMix > 0.0005f)
+    {
+        for (int n = 0; n < numSamples; ++n)
+        {
+            smoothedReverseMix += 0.0015f * (settings.reverseMix - smoothedReverseMix);
+
+            const float wl = revL[n] * smoothedReverseMix;
+            const float wr = revR[n] * smoothedReverseMix;
+
+            l[n] += wl;
+            r[n] += wr;
+
+            // a reverse swell wants to live inside the space, not in front of it
+            sendL[n] += wl * 1.6f;
+            sendR[n] += wr * 1.6f;
+        }
     }
 
     if (padL != nullptr && settings.padSend > 0.001f)

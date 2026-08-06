@@ -26,6 +26,81 @@ namespace
 }
 
 //==============================================================================
+void Reverse::prepare (double sampleRate)
+{
+    const int size = nextPowerOfTwo ((int) (sampleRate * 9.0));
+    bufferL.assign ((size_t) size, 0.0f);
+    bufferR.assign ((size_t) size, 0.0f);
+    mask = size - 1;
+    reset();
+}
+
+void Reverse::reset()
+{
+    std::fill (bufferL.begin(), bufferL.end(), 0.0f);
+    std::fill (bufferR.begin(), bufferR.end(), 0.0f);
+    writeIndex = 0;
+    lpL = lpR = 0.0f;
+
+    grains[0] = { 0, 0 };
+    grains[1] = { (int) (window * 0.5f), 0 };
+}
+
+void Reverse::setWindow (float samples) noexcept
+{
+    targetWindow = jlimit (2048.0f, (float) (mask + 1) * 0.45f, samples);
+
+    if (window <= 0.0f)
+        window = targetWindow;
+}
+
+void Reverse::process (const float* inL, const float* inR,
+                       float* outL, float* outR, int numSamples)
+{
+    for (int n = 0; n < numSamples; ++n)
+    {
+        bufferL[(size_t) writeIndex] = inL[n];
+        bufferR[(size_t) writeIndex] = inR[n];
+
+        float sumL = 0.0f, sumR = 0.0f;
+
+        for (auto& g : grains)
+        {
+            if (g.age >= (int) window)
+            {
+                // a finished grain restarts from the newest audio, so each swell
+                // reaches back over the phrase that was just played
+                g.age = 0;
+                g.capture = writeIndex;
+
+                // a window change only takes effect between grains: resizing one
+                // mid-flight would jump the read pointer and click
+                window = targetWindow;
+            }
+
+            const int readIndex = (g.capture - 1 - g.age) & mask;
+            const float phase = (float) g.age / window;
+            const float gain = 0.5f * (1.0f - std::cos (MathConstants<float>::twoPi * phase));
+
+            sumL += bufferL[(size_t) readIndex] * gain;
+            sumR += bufferR[(size_t) readIndex] * gain;
+
+            ++g.age;
+        }
+
+        // the top end of a reversed piano is all hammer noise played backwards,
+        // which reads as hiss, so it gets rolled off
+        lpL += 0.28f * (sumL - lpL);
+        lpR += 0.28f * (sumR - lpR);
+
+        outL[n] = lpL;
+        outR[n] = lpR;
+
+        writeIndex = (writeIndex + 1) & mask;
+    }
+}
+
+//==============================================================================
 const AmbienceMachine& machineFor (int index)
 {
     // name, diffusion, stages, sizeScale, modDepth, modRate, damping, lowCut, bloomMs, shimmerScale

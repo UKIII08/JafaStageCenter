@@ -52,6 +52,7 @@ public:
 
 private:
     void timerCallback() override;
+    void showLibraryMenu();
     void addKnob (juce::OwnedArray<ParamKnob>& group, const juce::String& paramID,
                   const juce::String& caption, int maxDiameter = 64);
     static void layoutGrid (juce::OwnedArray<ParamKnob>& group, juce::Rectangle<int> area, int columns);
@@ -63,12 +64,15 @@ private:
     juce::OwnedArray<ParamKnob> pianoKnobs, padKnobs, toneKnobs, moveKnobs, ambienceKnobs, outputKnobs;
     std::unique_ptr<ParamKnob> soakKnob;
 
-    juce::ComboBox modelBox, delayDivBox, machineBox, shimmerModeBox;
+    juce::ComboBox modelBox, delayDivBox, machineBox, shimmerModeBox, sourceBox, revTimeBox;
     juce::ToggleButton delaySyncButton { "SYNC" }, freezeButton { "FREEZE" };
-    juce::Label tempoLabel;
+    juce::TextButton loadButton { "Sample library..." };
+    juce::Label tempoLabel, libraryLabel;
+    std::unique_ptr<juce::FileChooser> chooser;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
-        modelAttachment, delayDivAttachment, machineAttachment, shimmerModeAttachment;
+        modelAttachment, delayDivAttachment, machineAttachment, shimmerModeAttachment,
+        sourceAttachment, revTimeAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>
         delaySyncAttachment, freezeAttachment;
 

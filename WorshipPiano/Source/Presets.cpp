@@ -179,6 +179,20 @@ const std::vector<Preset>& factory()
             { pid::padAttack, 2600.0f }, { pid::padRelease, 6500.0f },
             { pid::soak, 0.62f }, { pid::width, 1.35f }, { pid::outputGain, -2.5f } } },
 
+        { "Reverse Swell", "Soak",
+          "Every phrase blooms into itself backwards. Play sparsely and let it breathe.",
+          { { pid::reverbMachine, 4 }, { pid::model, 3 }, { pid::tone, -0.15f },
+            { pid::attack, 0.18f }, { pid::decayTime, 1.30f }, { pid::dynamicRange, 30.0f },
+            { pid::eqLow, 0.5f }, { pid::eqAir, 3.5f },
+            { pid::compAmount, 0.36f }, { pid::drive, 0.14f }, { pid::chorusAmount, 0.24f },
+            { pid::delayMix, 0.10f }, { pid::delayDiv, 3 }, { pid::delayFeedback, 0.34f },
+            { pid::reverseMix, 0.55f }, { pid::reverseTime, 1 },
+            { pid::reverbMix, 0.44f }, { pid::reverbSize, 0.82f }, { pid::reverbDecay, 7.0f },
+            { pid::shimmer, 0.20f }, { pid::reverbDuck, 0.20f },
+            { pid::padLevel, -16.0f }, { pid::padTone, 1100.0f },
+            { pid::padAttack, 1600.0f }, { pid::padRelease, 4500.0f },
+            { pid::soak, 0.30f }, { pid::outputGain, -1.5f } } },
+
         //=========================================================== Live =====
         { "Stage Clean", "Live",
           "Dry and forward for playing through a PA. Add the house reverb yourself.",

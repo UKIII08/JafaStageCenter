@@ -10,6 +10,7 @@
 namespace pid
 {
     // --- Piano --------------------------------------------------------------
+    inline constexpr const char* source       = "source";    // modelled or sampled
     inline constexpr const char* model        = "model";     // voicing
     inline constexpr const char* tone         = "tone";      // dark .. bright
     inline constexpr const char* attack       = "attack";    // hammer noise / thump
@@ -36,6 +37,10 @@ namespace pid
     inline constexpr const char* delayFeedback= "delayfb";
     inline constexpr const char* delaySync    = "delaysync";
     inline constexpr const char* delayDiv     = "delaydiv";
+
+    // --- Reverse ------------------------------------------------------------
+    inline constexpr const char* reverseMix   = "reversemix";
+    inline constexpr const char* reverseTime  = "reversetime";
 
     // --- Ambience -----------------------------------------------------------
     inline constexpr const char* reverbMachine= "revmachine";

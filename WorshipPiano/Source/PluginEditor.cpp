@@ -128,6 +128,20 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
     presetBar.onPresetChosen = [this] (int index) { processor.loadPreset (index); };
 
     // ---- piano -------------------------------------------------------------
+    addAndMakeVisible (sourceBox);
+    sourceBox.addItemList ({ "Modelled", "Sample Library" }, 1);
+    sourceAttachment = std::make_unique<AudioProcessorValueTreeState::ComboBoxAttachment> (
+        processor.apvts, pid::source, sourceBox);
+
+    addAndMakeVisible (loadButton);
+    loadButton.setTriggeredOnMouseDown (true);
+    loadButton.onClick = [this] { showLibraryMenu(); };
+
+    addAndMakeVisible (libraryLabel);
+    libraryLabel.setJustificationType (Justification::centredLeft);
+    libraryLabel.setColour (Label::textColourId, colours::textDim);
+    libraryLabel.setInterceptsMouseClicks (false, false);
+
     addAndMakeVisible (modelBox);
     modelBox.addItemList ({ "Smooth Grand", "Bright Grand", "Warm Upright", "Felt Piano" }, 1);
     modelAttachment = std::make_unique<AudioProcessorValueTreeState::ComboBoxAttachment> (
@@ -185,10 +199,16 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
     freezeAttachment = std::make_unique<AudioProcessorValueTreeState::ButtonAttachment> (
         processor.apvts, pid::reverbFreeze, freezeButton);
 
+    addAndMakeVisible (revTimeBox);
+    revTimeBox.addItemList ({ "1/2 bar", "1 bar", "2 bars", "4 bars" }, 1);
+    revTimeAttachment = std::make_unique<AudioProcessorValueTreeState::ComboBoxAttachment> (
+        processor.apvts, pid::reverseTime, revTimeBox);
+
     addKnob (ambienceKnobs, pid::reverbMix,   "Reverb");
     addKnob (ambienceKnobs, pid::reverbSize,  "Size");
     addKnob (ambienceKnobs, pid::reverbDecay, "Decay");
     addKnob (ambienceKnobs, pid::shimmer,     "Shimmer");
+    addKnob (ambienceKnobs, pid::reverseMix,  "Reverse");
     addKnob (ambienceKnobs, pid::reverbDuck,  "Duck");
 
     // ---- soak & output -----------------------------------------------------
@@ -207,8 +227,8 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
     addAndMakeVisible (keyboard);
 
     setResizable (true, true);
-    setResizeLimits (920, 660, 1600, 1100);
-    setSize (1000, 730);
+    setResizeLimits (980, 700, 1700, 1150);
+    setSize (1040, 760);
 
     startTimerHz (10);
     timerCallback();
@@ -246,6 +266,55 @@ void WorshipPianoEditor::layoutGrid (OwnedArray<ParamKnob>& group, Rectangle<int
     }
 }
 
+void WorshipPianoEditor::showLibraryMenu()
+{
+    PopupMenu menu;
+    menu.addSectionHeader ("Biblioteka sampli");
+    menu.addItem (1, "Wczytaj plik .sfz...");
+    menu.addItem (2, "Wczytaj folder z samplami...");
+    menu.addSeparator();
+    menu.addItem (3, "Wyczysc (wroc do silnika modelowanego)");
+
+    menu.showMenuAsync (PopupMenu::Options().withTargetComponent (loadButton)
+                                            .withStandardItemHeight (24),
+                        [this] (int result)
+    {
+        if (result == 3)
+        {
+            processor.clearSampleLibrary();
+            return;
+        }
+
+        if (result != 1 && result != 2)
+            return;
+
+        const bool wantFolder = result == 2;
+
+        chooser = std::make_unique<FileChooser> (wantFolder ? "Wybierz folder z samplami"
+                                                            : "Wybierz plik SFZ",
+                                                 File::getSpecialLocation (File::userMusicDirectory),
+                                                 wantFolder ? String() : String ("*.sfz"));
+
+        const auto flags = FileBrowserComponent::openMode
+                         | (wantFolder ? FileBrowserComponent::canSelectDirectories
+                                       : FileBrowserComponent::canSelectFiles);
+
+        chooser->launchAsync (flags, [this] (const FileChooser& fc)
+        {
+            const auto file = fc.getResult();
+
+            if (file != File())
+            {
+                processor.loadSampleLibrary (file);
+
+                // switch the source over, otherwise nothing appears to happen
+                if (auto* p = processor.apvts.getParameter (pid::source))
+                    p->setValueNotifyingHost (1.0f);
+            }
+        });
+    });
+}
+
 void WorshipPianoEditor::timerCallback()
 {
     const int index = processor.getPresetIndex();
@@ -259,6 +328,14 @@ void WorshipPianoEditor::timerCallback()
     }
 
     tempoLabel.setText (String (roundToInt (processor.getHostTempo())) + " BPM", dontSendNotification);
+
+    auto status = processor.getLibraryStatus();
+
+    if (processor.isLoadingLibrary())
+        status += "  " + String (roundToInt (processor.getLoadProgress() * 100.0f)) + " %";
+
+    if (libraryLabel.getText() != status)
+        libraryLabel.setText (status, dontSendNotification);
 }
 
 void WorshipPianoEditor::paint (Graphics& g)
@@ -303,8 +380,16 @@ void WorshipPianoEditor::resized()
 
     auto pianoInner = pianoPanel.reduced (10, 6);
     pianoInner.removeFromTop (panelTitleH);
-    modelBox.setBounds (pianoInner.removeFromTop (28).reduced (2, 2));
-    pianoInner.removeFromTop (6);
+
+    auto sourceRow = pianoInner.removeFromTop (28).reduced (2, 2);
+    sourceBox.setBounds (sourceRow.removeFromLeft (roundToInt (sourceRow.getWidth() * 0.30f)));
+    sourceRow.removeFromLeft (6);
+    loadButton.setBounds (sourceRow.removeFromRight (128));
+    sourceRow.removeFromRight (6);
+    modelBox.setBounds (sourceRow);
+
+    libraryLabel.setBounds (pianoInner.removeFromTop (15).reduced (4, 0));
+    pianoInner.removeFromTop (2);
     layoutGrid (pianoKnobs, pianoInner, 5);
 
     auto padInner = padPanel.reduced (10, 6);
@@ -357,14 +442,16 @@ void WorshipPianoEditor::resized()
     ambInner.removeFromTop (panelTitleH);
 
     auto ambTop = ambInner.removeFromTop (28).reduced (2, 2);
-    machineBox.setBounds (ambTop.removeFromLeft (roundToInt (ambTop.getWidth() * 0.38f)));
-    ambTop.removeFromLeft (6);
-    freezeButton.setBounds (ambTop.removeFromRight (78));
-    ambTop.removeFromRight (6);
+    machineBox.setBounds (ambTop.removeFromLeft (roundToInt (ambTop.getWidth() * 0.27f)));
+    ambTop.removeFromLeft (5);
+    freezeButton.setBounds (ambTop.removeFromRight (72));
+    ambTop.removeFromRight (5);
+    revTimeBox.setBounds (ambTop.removeFromRight (82));
+    ambTop.removeFromRight (5);
     shimmerModeBox.setBounds (ambTop);
 
     ambInner.removeFromTop (4);
-    layoutGrid (ambienceKnobs, ambInner, 5);
+    layoutGrid (ambienceKnobs, ambInner, 6);
 
     auto soakInner = soakPanel.reduced (10, 6);
     soakInner.removeFromTop (panelTitleH);

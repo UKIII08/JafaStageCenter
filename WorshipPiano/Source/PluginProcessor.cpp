@@ -18,6 +18,12 @@ WorshipPianoProcessor::WorshipPianoProcessor()
 
 WorshipPianoProcessor::~WorshipPianoProcessor()
 {
+    if (loader != nullptr)
+    {
+        loader->abort = true;
+        loader->stopThread (4000);
+    }
+
     for (const auto& id : allParameterIDs())
         apvts.removeParameterListener (id, this);
 }
@@ -29,11 +35,104 @@ void WorshipPianoProcessor::parameterChanged (const String&, float)
 }
 
 //==============================================================================
+void WorshipPianoProcessor::LibraryLoader::run()
+{
+    wp::SampleLibrary::Ptr library = new wp::SampleLibrary();
+
+    const auto error = library->loadFrom (source,
+                                          [this] (float p) { owner.loadProgress.store (p); },
+                                          &abort);
+
+    if (abort.load())
+        return;
+
+    // hand the finished library over on the message thread
+    MessageManager::callAsync ([safe = WeakReference<WorshipPianoProcessor> (&owner),
+                                library, error]
+    {
+        if (safe != nullptr)
+            safe->libraryLoaded (library, error);
+    });
+}
+
+void WorshipPianoProcessor::libraryLoaded (wp::SampleLibrary::Ptr library, const String& error)
+{
+    loadProgress.store (1.0f);
+
+    if (error.isNotEmpty() || library == nullptr || library->isEmpty())
+    {
+        const ScopedLock sl (statusLock);
+        libraryStatus = error.isNotEmpty() ? error : "Nie udalo sie zaladowac biblioteki.";
+        return;
+    }
+
+    // hold on to it here so the audio thread's release never frees anything
+    retainedLibraries.add (library);
+    sampler.setLibrary (library);
+    libraryPath = library->getSourcePath();
+
+    // drop anything nothing else references any more
+    for (int i = retainedLibraries.size(); --i >= 0;)
+        if (retainedLibraries[i] != library && retainedLibraries[i]->getReferenceCount() == 1)
+            retainedLibraries.remove (i);
+
+    {
+        const ScopedLock sl (statusLock);
+        libraryStatus = library->getName() + "  -  " + String (library->getNumRegions()) + " sampli, "
+                      + String (library->getMemoryUsage() / (1024 * 1024)) + " MB";
+    }
+
+    updateHostDisplay();
+}
+
+void WorshipPianoProcessor::loadSampleLibrary (const File& fileOrFolder)
+{
+    if (loader != nullptr)
+    {
+        loader->abort = true;
+        loader->stopThread (3000);
+    }
+
+    loadProgress.store (0.0f);
+
+    {
+        const ScopedLock sl (statusLock);
+        libraryStatus = "Wczytywanie: " + fileOrFolder.getFileName() + "...";
+    }
+
+    loader = std::make_unique<LibraryLoader> (*this, fileOrFolder);
+    loader->startThread (Thread::Priority::low);
+}
+
+void WorshipPianoProcessor::clearSampleLibrary()
+{
+    if (loader != nullptr)
+    {
+        loader->abort = true;
+        loader->stopThread (3000);
+        loader.reset();
+    }
+
+    sampler.setLibrary (nullptr);
+    libraryPath.clear();
+
+    const ScopedLock sl (statusLock);
+    libraryStatus = "Brak biblioteki - silnik modelowany";
+}
+
+String WorshipPianoProcessor::getLibraryStatus() const
+{
+    const ScopedLock sl (statusLock);
+    return libraryStatus;
+}
+
+//==============================================================================
 void WorshipPianoProcessor::prepareToPlay (double newSampleRate, int samplesPerBlock)
 {
     sampleRate = newSampleRate;
 
     piano.prepare (newSampleRate, samplesPerBlock);
+    sampler.prepare (newSampleRate, samplesPerBlock);
     pad.prepare (newSampleRate, samplesPerBlock);
     effects.prepare (newSampleRate, samplesPerBlock);
 
@@ -47,6 +146,7 @@ void WorshipPianoProcessor::prepareToPlay (double newSampleRate, int samplesPerB
 void WorshipPianoProcessor::releaseResources()
 {
     piano.panic();
+    sampler.panic();
     pad.reset();
     effects.reset();
 }
@@ -83,6 +183,10 @@ void WorshipPianoProcessor::updateSettings()
     es.dynamicRange = param (pid::dynamicRange);
     es.spread       = 0.40f;
     piano.setSettings (es);
+
+    sampler.setDynamics (es.dynamicRange);
+    sampler.setTone (es.tone);
+    sampler.setReleaseScale (es.decayScale);
 
     wp::PadSettings ps;
     const float padDb = param (pid::padLevel);
@@ -124,6 +228,14 @@ void WorshipPianoProcessor::updateSettings()
     fx.delaySamplesL = delayTime;
     fx.delaySamplesR = delayTime;
 
+    const float reverseMix = param (pid::reverseMix);
+    fx.reverseMix = reverseMix + (1.0f - reverseMix) * soak2 * 0.28f;
+
+    static constexpr float reverseBars[] = { 0.5f, 1.0f, 2.0f, 4.0f };
+    const int revIndex = jlimit (0, 3, param<int> (pid::reverseTime));
+    const double beatSeconds = 60.0 / jlimit (20.0, 300.0, hostTempo);
+    fx.reverseWindow = (float) (reverseBars[revIndex] * 4.0 * beatSeconds * sampleRate);
+
     effects.setSettings (fx);
 
     wp::AmbienceSettings amb;
@@ -150,11 +262,16 @@ void WorshipPianoProcessor::handleMidiMessage (const MidiMessage& m)
 {
     if (m.isNoteOn())
     {
-        piano.noteOn (m.getNoteNumber(), m.getFloatVelocity());
+        if (useSampler())
+            sampler.noteOn (m.getNoteNumber(), m.getFloatVelocity());
+        else
+            piano.noteOn (m.getNoteNumber(), m.getFloatVelocity());
+
         pad.noteOn (m.getNoteNumber(), m.getFloatVelocity());
     }
     else if (m.isNoteOff())
     {
+        sampler.noteOff (m.getNoteNumber());
         piano.noteOff (m.getNoteNumber());
         pad.noteOff (m.getNoteNumber());
     }
@@ -165,22 +282,25 @@ void WorshipPianoProcessor::handleMidiMessage (const MidiMessage& m)
 
         switch (cc)
         {
-            case 64:  piano.sustainPedal (value); pad.sustainPedal (value >= 0.45f); break;
+            case 64:  piano.sustainPedal (value); sampler.sustainPedal (value);
+                      pad.sustainPedal (value >= 0.45f); break;
             case 66:  piano.sostenutoPedal (value >= 0.5f); break;
-            case 67:  piano.softPedal (value); break;
-            case 120: piano.panic(); pad.reset(); break;
-            case 123: piano.allNotesOff(); pad.allNotesOff(); break;
+            case 67:  piano.softPedal (value); sampler.softPedal (value); break;
+            case 120: piano.panic(); sampler.panic(); pad.reset(); break;
+            case 123: piano.allNotesOff(); sampler.allNotesOff(); pad.allNotesOff(); break;
             default: break;
         }
     }
     else if (m.isAllNotesOff())
     {
         piano.allNotesOff();
+        sampler.allNotesOff();
         pad.allNotesOff();
     }
     else if (m.isAllSoundOff())
     {
         piano.panic();
+        sampler.panic();
         pad.reset();
     }
 }
@@ -193,7 +313,11 @@ void WorshipPianoProcessor::renderSegment (AudioBuffer<float>& buffer, int start
     auto* l = buffer.getWritePointer (0) + start;
     auto* r = buffer.getNumChannels() > 1 ? buffer.getWritePointer (1) + start : l;
 
-    piano.render (l, r, numSamples);
+    if (useSampler())
+        sampler.render (l, r, numSamples);
+    else
+        piano.render (l, r, numSamples);
+
     pad.render (padBuffer.getWritePointer (0) + start,
                 padBuffer.getWritePointer (1) + start, numSamples);
 }
@@ -291,6 +415,7 @@ void WorshipPianoProcessor::getStateInformation (MemoryBlock& destData)
     auto state = apvts.copyState();
     state.setProperty ("presetIndex", currentPreset, nullptr);
     state.setProperty ("presetModified", presetModified.load(), nullptr);
+    state.setProperty ("libraryPath", libraryPath, nullptr);
 
     if (auto xml = state.createXml())
         copyXmlToBinary (*xml, destData);
@@ -311,6 +436,21 @@ void WorshipPianoProcessor::setStateInformation (const void* data, int sizeInByt
 
     currentPreset = (int) tree.getProperty ("presetIndex", 0);
     presetModified = (bool) tree.getProperty ("presetModified", true);
+
+    const String savedPath = tree.getProperty ("libraryPath", String());
+
+    if (savedPath.isNotEmpty() && savedPath != libraryPath)
+    {
+        const File saved (savedPath);
+
+        if (saved.exists())
+            loadSampleLibrary (saved);
+        else
+        {
+            const ScopedLock sl (statusLock);
+            libraryStatus = "Nie znaleziono zapisanej biblioteki: " + saved.getFileName();
+        }
+    }
 }
 
 //==============================================================================

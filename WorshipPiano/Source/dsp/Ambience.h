@@ -115,6 +115,39 @@ private:
 };
 
 //==============================================================================
+/*  Reverse piano.
+
+    Audio is written into a circular buffer continuously. Two grains read back
+    out of it *backwards*, each covering one window, offset by half a window and
+    windowed with a raised cosine so their sum is constant. The result is the
+    classic reverse swell: every phrase arrives blooming into itself, with no
+    gap and no click where the grains change over.
+*/
+class Reverse
+{
+public:
+    void prepare (double sampleRate);
+    void reset();
+
+    /** Window length in samples: how far back each swell reaches. */
+    void setWindow (float samples) noexcept;
+
+    void process (const float* inL, const float* inR,
+                  float* outL, float* outR, int numSamples);
+
+private:
+    std::vector<float> bufferL, bufferR;
+    int mask = 0, writeIndex = 0;
+
+    struct Grain { int age = 0; int capture = 0; };
+    std::array<Grain, 2> grains;
+
+    float window = 24000.0f, targetWindow = 24000.0f;
+    float tone = 0.0f;
+    float lpL = 0.0f, lpR = 0.0f;
+};
+
+//==============================================================================
 /** One reverb character: what BigSky would call a machine. */
 struct AmbienceMachine
 {

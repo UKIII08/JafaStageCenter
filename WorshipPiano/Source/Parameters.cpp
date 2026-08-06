@@ -54,6 +54,9 @@ AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     };
 
     // ---- Piano -------------------------------------------------------------
+    c.add (std::make_unique<AudioParameterChoice> (pv (pid::source), "Source",
+              StringArray { "Modelled", "Sample Library" }, 0));
+
     c.add (std::make_unique<AudioParameterChoice> (pv (pid::model), "Model",
               StringArray { "Smooth Grand", "Bright Grand", "Warm Upright", "Felt Piano" }, 0));
 
@@ -84,6 +87,11 @@ AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     c.add (std::make_unique<AudioParameterBool> (pv (pid::delaySync), "Delay Sync", true));
     c.add (std::make_unique<AudioParameterChoice> (pv (pid::delayDiv), "Delay Div",
               StringArray { "1/4", "1/4T", "1/8.", "1/8", "1/8T", "1/16.", "1/16" }, 2));
+
+    // ---- Reverse -----------------------------------------------------------
+    c.add (f (pid::reverseMix, "Reverse", range (0.0f, 1.0f, 0.35f), 0.0f, pct));
+    c.add (std::make_unique<AudioParameterChoice> (pv (pid::reverseTime), "Rev Time",
+              StringArray { "1/2 bar", "1 bar", "2 bars", "4 bars" }, 1));
 
     // ---- Ambience ----------------------------------------------------------
     c.add (std::make_unique<AudioParameterChoice> (pv (pid::reverbMachine), "Machine",

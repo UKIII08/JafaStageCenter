@@ -13,6 +13,7 @@
 #include "../Source/PluginProcessor.h"
 #include "../Source/Presets.h"
 #include "../Source/Parameters.h"
+#include "../Source/dsp/SampleLibrary.h"
 
 using namespace juce;
 
@@ -352,6 +353,172 @@ namespace
         return rising;
     }
 
+    /*  Builds a small SFZ library on disk and loads it back, so the parser and
+        the key/velocity mapping are checked without needing a real library.
+    */
+    bool checkSampleLoading (String& report)
+    {
+        auto dir = File::getSpecialLocation (File::tempDirectory).getChildFile ("wp_sfz_test");
+        dir.deleteRecursively();
+        dir.createDirectory();
+
+        WavAudioFormat wav;
+
+        // three notes, two velocity layers each, each a decaying sine at its
+        // own pitch so the mapping can be checked by measuring the result
+        const int roots[3] = { 48, 60, 72 };
+
+        for (int r = 0; r < 3; ++r)
+        {
+            for (int layer = 0; layer < 2; ++layer)
+            {
+                const double freq = 440.0 * std::pow (2.0, (roots[r] - 69) / 12.0);
+                const int length = (int) (sampleRate * 1.0);
+                AudioBuffer<float> buffer (2, length);
+
+                for (int n = 0; n < length; ++n)
+                {
+                    const float env = std::exp (-3.0f * (float) n / (float) length);
+                    const float v = std::sin (MathConstants<float>::twoPi * (float) (freq * n / sampleRate))
+                                  * env * (layer == 0 ? 0.3f : 0.9f);
+                    buffer.setSample (0, n, v);
+                    buffer.setSample (1, n, v);
+                }
+
+                auto file = dir.getChildFile ("note" + String (roots[r]) + "_v" + String (layer) + ".wav");
+                std::unique_ptr<FileOutputStream> stream (file.createOutputStream());
+
+                if (stream != nullptr)
+                {
+                    std::unique_ptr<AudioFormatWriter> writer (
+                        wav.createWriterFor (stream.get(), sampleRate, 2, 16, {}, 0));
+
+                    if (writer != nullptr)
+                    {
+                        stream.release();
+                        writer->writeFromAudioSampleBuffer (buffer, 0, length);
+                    }
+                }
+            }
+        }
+
+        String sfz;
+        sfz << "// a test library" << newLine
+            << "<control>" << newLine
+            << "default_path=" << newLine
+            << "<global>" << newLine
+            << "ampeg_release=0.3" << newLine;
+
+        for (int r = 0; r < 3; ++r)
+        {
+            sfz << "<group> lokey=" << (roots[r] - 6) << " hikey=" << (roots[r] + 5)
+                << " pitch_keycenter=" << roots[r] << newLine;
+            sfz << "<region> lovel=1 hivel=63 sample=note" << roots[r] << "_v0.wav volume=-1.5" << newLine;
+            sfz << "<region> lovel=64 hivel=127 sample=note" << roots[r] << "_v1.wav" << newLine;
+        }
+
+        auto sfzFile = dir.getChildFile ("test.sfz");
+        sfzFile.replaceWithText (sfz);
+
+        wp::SampleLibrary::Ptr library = new wp::SampleLibrary();
+        const auto error = library->loadFrom (sfzFile);
+
+        report << "sample library loader:" << newLine;
+
+        if (error.isNotEmpty())
+        {
+            report << "   !! " << error << newLine << newLine;
+            dir.deleteRecursively();
+            return false;
+        }
+
+        report << "   parsed " << library->getNumRegions() << " regions, "
+               << (library->getMemoryUsage() / 1024) << " kB" << newLine;
+
+        bool ok = library->getNumRegions() == 6;
+
+        if (! ok)
+            report << "   !! expected 6 regions" << newLine;
+
+        // the right zone must answer for a given note and velocity
+        struct Check { int note, vel, expectRoot; };
+        const Check checks[] = { { 48, 30, 48 }, { 48, 100, 48 }, { 60, 20, 60 },
+                                 { 64, 100, 60 }, { 72, 127, 72 }, { 70, 64, 72 } };
+
+        for (const auto& c : checks)
+        {
+            const auto* region = library->find (c.note, c.vel);
+
+            if (region == nullptr || region->rootNote != c.expectRoot)
+            {
+                report << "   !! note " << c.note << " vel " << c.vel << " mapped to "
+                       << (region != nullptr ? String (region->rootNote) : String ("nothing"))
+                       << ", expected " << c.expectRoot << newLine;
+                ok = false;
+            }
+        }
+
+        // and it has to actually make sound at the right pitch through the engine
+        wp::SamplerEngine engine;
+        engine.prepare (sampleRate, blockSize);
+        engine.setLibrary (library);
+
+        AudioBuffer<float> out (2, (int) (sampleRate * 0.5));
+        out.clear();
+        engine.render (out.getWritePointer (0), out.getWritePointer (1), 16);   // picks up the library
+        engine.noteOn (67, 0.8f);                                               // G4, stretched from C4
+
+        int written = 16;
+        while (written < out.getNumSamples())
+        {
+            const int n = jmin (blockSize, out.getNumSamples() - written);
+            engine.render (out.getWritePointer (0) + written, out.getWritePointer (1) + written, n);
+            written += n;
+        }
+
+        const float peak = out.getMagnitude (0, 0, out.getNumSamples());
+
+        if (peak < 0.01f)
+        {
+            report << "   !! sampler produced no audio" << newLine;
+            ok = false;
+        }
+        else
+        {
+            // measure the pitch: G4 is 392 Hz, played by stretching the C4 sample
+            const int fftOrder = 15;
+            const int fftSize = 1 << fftOrder;
+            dsp::FFT fft (fftOrder);
+            std::vector<float> data ((size_t) fftSize * 2, 0.0f);
+
+            for (int n = 0; n < jmin (fftSize, out.getNumSamples()); ++n)
+                data[(size_t) n] = out.getSample (0, n);
+
+            fft.performFrequencyOnlyForwardTransform (data.data());
+
+            int bin = 0;
+            for (int i = 1; i < fftSize / 2; ++i)
+                if (data[(size_t) i] > data[(size_t) bin]) bin = i;
+
+            const double detected = bin * sampleRate / fftSize;
+            const double expected = 440.0 * std::pow (2.0, (67 - 69) / 12.0);
+            const double cents = 1200.0 * std::log2 (detected / expected);
+
+            report << "   playback pitch " << String (detected, 1) << " Hz, expected "
+                   << String (expected, 1) << " Hz (" << String (cents, 1) << " cents)" << newLine;
+
+            if (std::abs (cents) > 15.0)
+            {
+                report << "   !! sampler is playing out of tune" << newLine;
+                ok = false;
+            }
+        }
+
+        report << newLine;
+        dir.deleteRecursively();
+        return ok;
+    }
+
     bool renderPreset (int presetIndex, const File& outputDir, String& report)
     {
         WorshipPianoProcessor processor;
@@ -511,6 +678,7 @@ int main (int argc, char** argv)
     bool allOk = checkStateRoundTrip (report);
     allOk &= stressAmbience (report);
     allOk &= checkSoakMacro (report);
+    allOk &= checkSampleLoading (report);
 
     for (int i = 0; i < (int) presets::factory().size(); ++i)
     {

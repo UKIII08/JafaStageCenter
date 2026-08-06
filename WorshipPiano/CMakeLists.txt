@@ -58,6 +58,7 @@ target_sources(JafaWorshipPiano PRIVATE
     Source/dsp/PadLayer.cpp
     Source/dsp/EffectChain.cpp
     Source/dsp/Ambience.cpp
+    Source/dsp/SampleLibrary.cpp
     Source/gui/WorshipLookAndFeel.cpp
     Source/gui/PresetBar.cpp
 )
@@ -100,6 +101,7 @@ if(WORSHIPPIANO_BUILD_TOOLS)
         Source/dsp/PadLayer.cpp
         Source/dsp/EffectChain.cpp
     Source/dsp/Ambience.cpp
+    Source/dsp/SampleLibrary.cpp
         Source/gui/WorshipLookAndFeel.cpp
         Source/gui/PresetBar.cpp
     )

@@ -56,6 +56,8 @@ struct EffectSettings
     float delayMix = 0.0f, delayFeedback = 0.38f, delayTone = 0.45f, delayPingPong = 0.80f;
     float delaySamplesL = 12000.0f, delaySamplesR = 12000.0f;
     float reverbMix = 0.26f;
+    float reverseMix = 0.0f;
+    float reverseWindow = 24000.0f;   // samples
     float padSend = 0.9f;        // extra reverb send for the pad layer
     float width = 1.0f, outputGain = 1.0f;
 };
@@ -85,9 +87,10 @@ private:
     std::unique_ptr<juce::dsp::Oversampling<float>> oversampling;
     Ensemble ensemble;
     StereoDelay delay;
+    Reverse reverse;
     Ambience ambience;
 
-    juce::AudioBuffer<float> dryBuffer, sendBuffer, wetBuffer;
+    juce::AudioBuffer<float> dryBuffer, sendBuffer, wetBuffer, reverseBuffer;
 
     EffectSettings settings;
     double sr = 44100.0;
@@ -95,6 +98,7 @@ private:
     int latencySamples = 0;
     float smoothedOutput = 1.0f;
     float smoothedReverbMix = 0.0f;
+    float smoothedReverseMix = 0.0f;
     std::array<float, 2> driveState { { 0.0f, 0.0f } };
 };
 
