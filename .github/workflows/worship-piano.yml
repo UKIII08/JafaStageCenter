@@ -1,0 +1,82 @@
+name: Build Worship Piano VST3
+
+on:
+  push:
+    paths:
+      - 'WorshipPiano/**'
+      - '.github/workflows/worship-piano.yml'
+  pull_request:
+    paths:
+      - 'WorshipPiano/**'
+      - '.github/workflows/worship-piano.yml'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: WorshipPiano
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows x64
+            artifact: JafaWorshipPiano-Windows-x64
+          - os: macos-latest
+            name: macOS universal
+            artifact: JafaWorshipPiano-macOS
+          - os: ubuntu-latest
+            name: Linux x64
+            artifact: JafaWorshipPiano-Linux-x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libjack-jackd2-dev libx11-dev \
+            libxext-dev libxinerama-dev libxrandr-dev libxcursor-dev \
+            libxcomposite-dev libfreetype6-dev libfontconfig1-dev \
+            libgl1-mesa-dev libcurl4-openssl-dev ninja-build
+
+      - name: Cache JUCE
+        uses: actions/cache@v4
+        with:
+          path: WorshipPiano/build/_deps
+          key: juce-8.0.15-${{ runner.os }}
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DWORSHIPPIANO_BUILD_TOOLS=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+
+      # Renders every factory preset offline and fails the build on NaNs,
+      # runaway feedback or silence.
+      - name: DSP smoke test
+        if: runner.os != 'Windows'
+        run: ./build/WorshipPianoRender_artefacts/Release/WorshipPianoRender
+
+      - name: DSP smoke test (Windows)
+        if: runner.os == 'Windows'
+        run: ./build/WorshipPianoRender_artefacts/Release/WorshipPianoRender.exe
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: WorshipPiano/build/JafaWorshipPiano_artefacts/Release/VST3/
+          if-no-files-found: error
+
+      - name: Upload standalone
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-standalone
+          path: WorshipPiano/build/JafaWorshipPiano_artefacts/Release/Standalone/
+          if-no-files-found: warn
