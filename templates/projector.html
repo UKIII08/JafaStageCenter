@@ -217,6 +217,29 @@
                 else v.addEventListener('loadedmetadata', setCap, {once: true});
             } catch (e) {}
         }
+        function tryUpgradeHtmlToVideo(tries) {
+            // Kluczowe: plik HTML bywa „odtwarzaczem" owijającym film własnym
+            // paskiem (pauza, suwak, czas, pobierz) — to zwykły HTML, którego
+            // nie da się schować jak natywnych kontrolek. Wyrywamy sam film i
+            // gramy go w naszej czystej warstwie <video>, bez cudzego chromu.
+            var ok = false;
+            try {
+                var d = trHtml.contentDocument;
+                var v = d && d.querySelector('video');
+                var src = v && (v.currentSrc || v.getAttribute('src') ||
+                    (v.querySelector('source') && v.querySelector('source').src));
+                if (src && src.indexOf('blob:') !== 0) {
+                    try { v.pause(); } catch (e) {}
+                    stopFrameSanitizer();
+                    trHtml.style.display = 'none';
+                    trVideo.loop = false; trVideo.src = src; trVideo.style.display = 'block';
+                    try { trVideo.currentTime = 0; } catch (e) {}
+                    var p = trVideo.play(); if (p && p.catch) p.catch(function () {});
+                    ok = true;
+                }
+            } catch (e) {}
+            if (!ok && tries < 12) setTimeout(function () { tryUpgradeHtmlToVideo(tries + 1); }, 150);
+        }
         function playTransition() {
             if (!TR.url || !TR.kind) return;
             if (TR.kind === 'video') {
@@ -228,7 +251,11 @@
                 if (p && p.catch) p.catch(function () { hideTransition(); });
             } else {
                 trVideo.style.display = 'none';
-                trHtml.onload = function () { startFrameSanitizer(); hookFrameVideoEnd(); };
+                trHtml.onload = function () {
+                    startFrameSanitizer();     // fallback: czysta ramka, gdyby nie było filmu
+                    hookFrameVideoEnd();
+                    tryUpgradeHtmlToVideo(0);  // jeśli w środku jest film — graj go czysto
+                };
                 trHtml.src = TR.url;
                 trHtml.style.display = 'block';
                 startFrameSanitizer();
