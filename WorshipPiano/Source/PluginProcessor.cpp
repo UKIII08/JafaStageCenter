@@ -14,6 +14,83 @@ WorshipPianoProcessor::WorshipPianoProcessor()
     presets::apply (apvts, 0);
     currentPreset = 0;
     presetModified = false;
+
+    stageLink.onSongChanged = [this] (const wp::StageLink::Song& s) { applyStageSong (s); };
+
+    /*  The link read the file before this callback existed, so a song that was
+        already up would otherwise sit there unapplied until the next one. Opening
+        the piano in the middle of a set has to land on what is being played, not
+        on whatever was saved last.
+    */
+    if (const auto current = stageLink.getSong(); current.isValid())
+        applyStageSong (current);
+
+    publishPresetsToStage();
+}
+
+/*  A song came up on the app's screen. Take its tempo and its sound; leave its
+    key alone, because the chart the player is reading has already been moved
+    into it and moving the sound too would put the piano a second transposition
+    away from the band.
+*/
+void WorshipPianoProcessor::applyStageSong (const wp::StageLink::Song& s)
+{
+    stageTempo = s.bpm > 0.0 ? s.bpm : 0.0;
+
+    if (s.preset.isEmpty())
+    {
+        // a song with no sound of its own keeps whatever is loaded: silently
+        // resetting to a factory preset mid-set would be worse than doing nothing
+        stagePresetName.clear();
+        return;
+    }
+
+    /*  Applied on every song change even when the name has not moved, because
+        somebody may have turned a knob during the last song. "The song came up,
+        so its sound came up" is a rule that can be relied on; "unless you
+        touched something" is not.
+    */
+    const int factoryIndex = presets::indexForName (s.preset);
+
+    if (factoryIndex >= 0)
+    {
+        loadPreset (factoryIndex);
+        stagePresetName = s.preset;
+        return;
+    }
+
+    String libraryForPreset;
+
+    if (presets::applyUser (apvts, s.preset, &libraryForPreset))
+    {
+        stagePresetName = s.preset;
+        presetModified = false;
+
+        // already-read libraries swap on a pointer, so a song that wants a
+        // different piano gets it between two chords rather than two minutes
+        if (libraryForPreset.isNotEmpty())
+            loadSampleLibrary (File (libraryForPreset));
+
+        updateHostDisplay();
+    }
+}
+
+void WorshipPianoProcessor::publishPresetsToStage()
+{
+    StringArray names;
+
+    for (const auto& p : presets::factory())
+        names.add (p.name);
+
+    names.addArray (presets::userPresetNames());
+
+    const auto current = stagePresetName.isNotEmpty()
+                           ? stagePresetName
+                           : (isPositiveAndBelow (currentPreset, (int) presets::factory().size())
+                                ? presets::factory()[(size_t) currentPreset].name
+                                : String());
+
+    wp::StageLink::publishState (names, current, libraryPath);
 }
 
 WorshipPianoProcessor::~WorshipPianoProcessor()
@@ -514,10 +591,22 @@ void WorshipPianoProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
 
     padBuffer.clear (0, numSamples);
 
+    hostGaveTempo = false;
+
     if (auto* transport = getPlayHead())
         if (const auto position = transport->getPosition())
             if (const auto bpm = position->getBpm())
+            {
                 hostTempo = *bpm;
+                hostGaveTempo = true;
+            }
+
+    /*  Standalone has no transport, so the delay divisions sat at 120 whatever
+        the band was actually playing. When the app has told us the song's tempo
+        and the host has not, the app wins by default rather than by preference.
+    */
+    if (! hostGaveTempo && stageTempo >= 20.0)
+        hostTempo = stageTempo;
 
     // has to happen before anything asks whether a library is loaded
     sampler.updateLibrary();

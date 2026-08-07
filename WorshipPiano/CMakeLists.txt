@@ -54,6 +54,7 @@ target_sources(JafaWorshipPiano PRIVATE
     Source/PluginEditor.cpp
     Source/Parameters.cpp
     Source/Presets.cpp
+    Source/StageLink.cpp
     Source/dsp/PadLayer.cpp
     Source/dsp/EffectChain.cpp
     Source/dsp/Ambience.cpp
@@ -95,6 +96,7 @@ if(WORSHIPPIANO_BUILD_TOOLS)
         Source/PluginEditor.cpp
         Source/Parameters.cpp
         Source/Presets.cpp
+        Source/StageLink.cpp
             Source/dsp/PadLayer.cpp
         Source/dsp/EffectChain.cpp
     Source/dsp/Ambience.cpp

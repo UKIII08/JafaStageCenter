@@ -101,6 +101,71 @@ brzmienia na niedzielę nie powinny siedzieć wyłącznie w pliku projektu jedne
 
 ---
 
+## Połączenie z Jafa Stage Center
+
+Aplikacja wie, która piosenka jest na ekranie, w jakim jest tempie i tonacji.
+Pianino nie wie, a na scenie nie ma wolnej ręki, żeby mu powiedzieć. Po włączeniu
+mostu **tempo i brzmienie idą za piosenką same**.
+
+### Jak to działa
+
+Wymiana idzie przez pliki w folderze, w którym wtyczka i tak trzyma presety:
+
+| Plik | Kto pisze | Co zawiera |
+|---|---|---|
+| `live.json` | aplikacja | co jest grane: `song_id`, tytuł, tonacja, BPM, przypisany preset |
+| `plugin.json` | wtyczka | jakie presety istnieją i co jest wczytane |
+
+Plik, a nie gniazdo sieciowe — świadomie. Obie strony chodzą na tym samym
+komputerze, więc plik nie potrzebuje portu, nie wywoła pytania zapory w środku
+nabożeństwa i nie wymaga sieci we wtyczce audio. Przeżywa też restart
+którejkolwiek strony: aplikację można zamknąć i otworzyć w środku setu, a pianino
+po prostu czyta dalej.
+
+Wtyczka sprawdza plik pięć razy na sekundę — koszt niemierzalny obok dźwięku.
+Robi to **procesor, nie okno**, więc śledzenie działa też przy zamkniętym oknie
+wtyczki, co na scenie jest normą.
+
+### Co idzie za piosenką
+
+- **Tempo** — trafia w podziały delaya. Istotne w wersji standalone, która nie ma
+  transportu hosta i do tej pory tkwiła na 120 BPM niezależnie od tego, co grał
+  zespół. W DAW-ie transport hosta pozostaje nadrzędny.
+- **Brzmienie** — preset przypisany do piosenki. Jeśli preset niesie własną
+  bibliotekę sampli, przełączenie jest natychmiastowe, bo raz wczytane biblioteki
+  zostają w pamięci.
+- **Tonacja** — **tylko pokazywana** w belce, nigdy ustawiana. Akordy, z których
+  gra pianista, są już przeniesione przez aplikację; ustawienie transpozycji
+  jeszcze raz we wtyczce przesunęłoby dźwięk drugi raz.
+
+Piosenka bez przypisanego brzmienia **nie zmienia niczego** — pianino zostaje na
+tym, co ma. Ciche zresetowanie do presetu fabrycznego w środku setu byłoby gorsze
+niż nierobienie nic.
+
+### Czego most nie robi
+
+Aplikacja przepisuje `live.json` przy **każdym slajdzie** i przy blackoucie, nie
+tylko przy zmianie piosenki. Wtyczka reaguje wyłącznie na `song_id`, preset i
+tempo — tytuł i tonacja jadą do wyświetlenia i nie wyzwalają niczego. Dzięki temu
+gałka, którą pianista poprawił między zwrotkami, nie wraca do pozycji z presetu,
+bo tekst przewinął się o slajd.
+
+### Jak włączyć
+
+1. W panelu sterowania otwórz piosenkę do edycji. Jeśli pianino kiedykolwiek
+   chodziło na tym komputerze, pojawi się wiersz **Brzmienie pianina** z listą
+   presetów; wybierz jeden i zapisz.
+2. Przycisk **Otwórz pianino** obok listy uruchamia wersję standalone w osobnym
+   oknie. Szuka jej obok aplikacji, w `Program Files` i w folderze builda; własną
+   ścieżkę można wskazać zmienną `JAFA_PIANO_PATH`.
+
+Przypisania siedzą w lokalnej tabeli `SongPatch`, a nie w samej piosence —
+piosenki są nadpisywane przy synchronizacji z chmurą, a brzmienie zależy od tego,
+jakie sample ma **ten** komputer. Edycja piosenki na maszynie bez pianina nie
+kasuje przypisań zrobionych na maszynie, która je ma.
+
+---
+
 ## Pedalboard
 
 Osiem przełączników na dole widoku **LIVE**, ułożonych w kolejności toru sygnału:

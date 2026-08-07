@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Parameters.h"
+#include "StageLink.h"
 #include "dsp/PadLayer.h"
 #include "dsp/EffectChain.h"
 #include "dsp/SampleLibrary.h"
@@ -83,6 +84,22 @@ public:
     /** True once a loaded library has actually reached the audio thread. */
     bool isSampleSourceActive() const noexcept { return sampler.hasLibrary(); }
 
+    //--------------------------------------------------------------------------
+    /*  Jafa Stage Center. The song on screen brings its tempo and its sound with
+        it; the plugin follows without anybody reaching for the laptop.
+
+        Deliberately not the key: if the app has already transposed the chart the
+        player is reading from, transposing here as well would move the sound a
+        second time. The key is shown, never applied.
+    */
+    wp::StageLink stageLink;
+
+    wp::StageLink::Song getStageSong() const { return stageLink.getSong(); }
+    bool isStageLinked() const noexcept { return stageLink.isConnected(); }
+
+    /** Hands the app the preset list, so it can offer what actually exists. */
+    void publishPresetsToStage();
+
 private:
     void parameterChanged (const juce::String& id, float newValue) override;
     void updateSettings();
@@ -99,8 +116,20 @@ private:
     wp::PadLayer pad;
     wp::EffectChain effects;
 
+    void applyStageSong (const wp::StageLink::Song&);
+
     double sampleRate = 44100.0;
     double hostTempo = 120.0;
+
+    /*  Tempo from the app, used only when the host has none to give. In a DAW
+        the transport is the authority and stays it; standalone has no transport
+        at all, which is where the delay divisions were stuck at 120 until now.
+    */
+    double stageTempo = 0.0;
+    bool   hostGaveTempo = false;
+
+    /** The preset the app asked for, so the header can show whose it is. */
+    juce::String stagePresetName;
     int    currentPreset = 0;
     std::atomic<bool> presetModified { false };
     std::atomic<bool> loadingPreset { false };

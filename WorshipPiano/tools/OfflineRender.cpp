@@ -250,6 +250,122 @@ namespace
         return ok;
     }
 
+    /*  The link to Jafa Stage Center. The app leaves the current song on disk;
+        the piano has to pick up its tempo and its sound without anybody touching
+        the laptop - and crucially, has to ignore the file being rewritten for
+        every slide and every blackout, which is most of what the app writes.
+
+        The key is deliberately not followed: the chart the player reads has
+        already been transposed, so moving the sound too would put the piano a
+        second transposition away from the band.
+    */
+    bool checkStageLink (String& report)
+    {
+        report << "stage link:" << newLine;
+
+        auto liveFile = wp::StageLink::sharedDirectory().getChildFile ("live.json");
+        const auto backup = liveFile.existsAsFile() ? liveFile.loadFileAsString() : String();
+
+        auto write = [&liveFile] (int id, const String& title, const String& key,
+                                  int bpm, const String& preset)
+        {
+            DynamicObject::Ptr o (new DynamicObject());
+            o->setProperty ("song_id", id);
+            o->setProperty ("title", title);
+            o->setProperty ("key", key);
+            o->setProperty ("bpm", bpm);
+            o->setProperty ("preset", preset);
+            liveFile.replaceWithText (JSON::toString (var (o.get())));
+        };
+
+        // a song is already up before the plugin is even opened
+        write (1, "Pierwsza", "D", 74, "Prayer Room");
+
+        WorshipPianoProcessor processor;
+        processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+        processor.prepareToPlay (sampleRate, blockSize);
+
+        AudioBuffer<float> block (2, blockSize);
+
+        auto pump = [&]
+        {
+            for (int i = 0; i < 40; ++i)
+            {
+                MessageManager::getInstance()->runDispatchLoopUntil (25);
+                block.clear();
+                MidiBuffer empty;
+                processor.processBlock (block, empty);
+            }
+        };
+
+        block.clear();
+        { MidiBuffer empty; processor.processBlock (block, empty); }
+
+        const int wanted = presets::indexForName ("Prayer Room");
+        const bool openedOnSong = processor.getPresetIndex() == wanted;
+        const bool tempoTaken = std::abs (processor.getHostTempo() - 74.0) < 0.5;
+
+        report << "   opened mid-set, landed on the song's sound: "
+               << (openedOnSong ? "OK" : "FAILED") << newLine
+               << "   tempo taken from the app (no host transport): "
+               << (tempoTaken ? "OK" : String (processor.getHostTempo(), 1) + " BPM, expected 74") << newLine;
+
+        // the next song, with a different sound and tempo
+        write (2, "Druga", "A", 132, "Arena Anthem");
+        pump();
+
+        const bool followed = processor.getPresetIndex() == presets::indexForName ("Arena Anthem")
+                                && std::abs (processor.getHostTempo() - 132.0) < 0.5;
+
+        report << "   followed a song change: " << (followed ? "OK" : "FAILED") << newLine;
+
+        /*  Now the noise: the app rewrites this file on every slide of the same
+            song, and on the blackout button. A player who reached over and
+            turned something between two verses must not have it undone.
+        */
+        if (auto* p = processor.apvts.getParameter (pid::reverbMix))
+            p->setValueNotifyingHost (p->convertTo0to1 (0.81f));
+
+        const float touched = processor.apvts.getRawParameterValue (pid::reverbMix)->load();
+
+        write (2, "Druga", "A", 132, "Arena Anthem");     // next slide
+        pump();
+        write (2, "Druga", "", 132, "Arena Anthem");      // blackout: key drops out
+        pump();
+
+        const float afterNoise = processor.apvts.getRawParameterValue (pid::reverbMix)->load();
+        const bool keptTheKnob = std::abs (afterNoise - touched) < 1.0e-4f;
+
+        report << "   slide and blackout left the knobs alone: "
+               << (keptTheKnob ? "OK" : "REVERTED") << newLine;
+
+        // a song with no sound of its own must not reset anything either
+        write (3, "Trzecia", "G", 0, "");
+        pump();
+
+        const float afterBlank = processor.apvts.getRawParameterValue (pid::reverbMix)->load();
+        const bool keptOnBlank = std::abs (afterBlank - touched) < 1.0e-4f;
+        const auto shown = processor.getStageSong();
+
+        report << "   song with no preset kept the current sound: "
+               << (keptOnBlank ? "OK" : "RESET") << newLine
+               << "   song on the display: \"" << shown.title << "\"  " << shown.key << newLine;
+
+        if (backup.isNotEmpty())
+            liveFile.replaceWithText (backup);
+        else
+            liveFile.deleteFile();
+
+        const bool ok = openedOnSong && tempoTaken && followed && keptTheKnob
+                     && keptOnBlank && shown.title == "Trzecia";
+
+        if (! ok)
+            report << "   !! the stage link is not following the app correctly" << newLine;
+
+        report << newLine;
+        return ok;
+    }
+
     /*  A preset that names a library is only usable if going back to one already
         read is instant. Re-reading a gigabyte between two songs is not a feature
         anybody would use twice, so the second load has to come off the pool: no
@@ -1919,6 +2035,7 @@ int main (int argc, char** argv)
     allOk &= checkStomps (sfz, report);
     allOk &= checkLibraryCache (sfz, report);
     allOk &= checkNoteRelease (sfz, report);
+    allOk &= checkStageLink (report);
 
     for (int i = 0; i < (int) presets::factory().size(); ++i)
     {

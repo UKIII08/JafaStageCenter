@@ -314,6 +314,12 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
     presetBlurb.setColour (Label::textColourId, colours::textDim);
     presetBlurb.setJustificationType (Justification::centredLeft);
 
+    addAndMakeVisible (stageSongLabel);
+    stageSongLabel.setFont (Font (FontOptions (12.0f)).withStyle (Font::bold));
+    stageSongLabel.setColour (Label::textColourId, colours::highlight);
+    stageSongLabel.setJustificationType (Justification::centredRight);
+    stageSongLabel.setTooltip ("Piosenka z Jafa Stage Center - tempo i brzmienie ida za nia");
+
     //---- live view -----------------------------------------------------------
     showPresetList = presets::presetListVisible();
 
@@ -738,6 +744,7 @@ void WorshipPianoEditor::savePreset()
 
         currentUserPreset = presets::sanitiseName (name);
         presetList.refreshUserPresets();
+        processor.publishPresetsToStage();
         lastPresetIndex = -2;
     }), true);
 }
@@ -771,6 +778,7 @@ void WorshipPianoEditor::deletePreset()
                                      presets::deleteUser (name);
                                      currentUserPreset = {};
                                      presetList.refreshUserPresets();
+                                     processor.publishPresetsToStage();
                                      processor.loadPreset (processor.getPresetIndex());
                                      lastPresetIndex = -2;
                                  });
@@ -908,6 +916,37 @@ void WorshipPianoEditor::timerCallback()
         tempoLabel.setText (String (roundToInt (processor.getHostTempo())) + " BPM", dontSendNotification);
     }
 
+    /*  What the app is showing. Nothing here changes a sound - the tempo and the
+        preset are applied in the processor, whether this window is open or not -
+        so this is purely so the player can see the link is alive and pointing at
+        the right song.
+    */
+    {
+        const auto song = processor.getStageSong();
+        String text;
+
+        if (song.isValid())
+        {
+            text = song.title;
+
+            if (song.key.isNotEmpty())
+                text += "  -  " + song.key;
+
+            if (song.bpm > 0.0)
+                text += "  " + String (roundToInt (song.bpm)) + " BPM";
+        }
+        else if (processor.isStageLinked())
+        {
+            text = "Jafa Stage: brak piosenki";
+        }
+
+        if (text != lastStageText)
+        {
+            lastStageText = text;
+            stageSongLabel.setText (text, dontSendNotification);
+        }
+    }
+
     // the library lives in the top bar now, so it has to keep up in both views
     {
         auto status = processor.getLibraryStatus();
@@ -1026,6 +1065,10 @@ void WorshipPianoEditor::resized()
 
         auto text = inner;
         presetName.setBounds (text.removeFromTop (text.getHeight() * 6 / 10));
+
+        // the song shares the blurb's row, on the right, so it sits next to what
+        // it is driving rather than in a corner of its own
+        stageSongLabel.setBounds (text.removeFromRight (roundToInt (text.getWidth() * 0.46f)));
         presetBlurb.setBounds (text);
     }
 

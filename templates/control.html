@@ -1719,6 +1719,19 @@
                 </div>
                 <textarea name="content" id="edit-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('edit-content', 'edit-key-input'); validateChords('edit-content', 'edit-chord-status')"></textarea>
                 <div id="edit-chord-status" style="font-size:var(--font-xs); margin-top:var(--s1); min-height:1.2em;"></div>
+
+                <!-- Brzmienie pianina (wtyczka Jafa Worship Piano). Cały wiersz
+                     chowa się, gdy pianino nigdy na tym komputerze nie chodziło —
+                     nie ma sensu pokazywać pustej listy komuś, kto go nie używa. -->
+                <div class="notation-row" id="piano-row" style="display:none;">
+                    <label data-t="piano_preset_label">Brzmienie pianina:</label>
+                    <select name="piano_preset" id="edit-piano-preset">
+                        <option value="" data-t="piano_preset_none">— bez zmiany brzmienia —</option>
+                    </select>
+                    <button type="button" class="btn-secondary" style="font-size:var(--font-xs);"
+                            onclick="launchPiano()" data-t="piano_open_btn">Otwórz pianino</button>
+                </div>
+
                 <div class="form-actions-between">
                     <button type="button" onclick="deleteCurrentSong()" class="btn-danger" data-t="delete_btn">USUŃ</button>
                     <button type="submit" class="btn-primary btn-lg" data-t="save_btn">ZAPISZ</button>

@@ -1745,6 +1745,8 @@ function blackout() {
             next_transpose: nt,
             key: currentKey,
             bpm: currentBpm,
+            song_title: setlist[currentSetIndex] ? setlist[currentSetIndex].title : '',
+            song_id: setlist[currentSetIndex] ? setlist[currentSetIndex].id : null,
             current_index: currentSetIndex,
             setlist: setlist,
             blackout: isBlackoutActive
@@ -1774,6 +1776,7 @@ function goLiveSection(c, n, forceTrans = null, nextTrans = null) {
             key: currentKey,
             bpm: currentBpm,
             song_title: songTitle,
+            song_id: setlist[currentSetIndex] ? setlist[currentSetIndex].id : null,
             current_index: currentSetIndex,
             setlist: setlist,
             blackout: isBlackoutActive
@@ -2082,7 +2085,49 @@ function openEditModal(id){
         document.getElementById('editForm').action='/edit_song/'+id;
         document.getElementById('deleteForm').action='/delete_song/'+id;
         document.getElementById('editModal').style.display='flex';
+        fillPianoPresets(id);
     }
+}
+
+// --- BRZMIENIE PIANINA (wtyczka Jafa Worship Piano) ---
+// Lista presetów jest odpytywana przy każdym otwarciu modala, a nie renderowana
+// z serwerem: pianino zapisuje własne presety w trakcie prób, a panel sterowania
+// potrafi być otwarty przez pół dnia.
+function fillPianoPresets(songId) {
+    var row = document.getElementById('piano-row');
+    var sel = document.getElementById('edit-piano-preset');
+    if (!row || !sel) return;
+
+    row.style.display = 'none';
+
+    fetch('/api/piano/state').then(function(r) { return r.json(); }).then(function(st) {
+        if (!st || !st.seen || !st.presets || !st.presets.length) return;
+
+        var chosen = (st.patches && st.patches[songId]) || '';
+        sel.innerHTML = '';
+
+        var none = document.createElement('option');
+        none.value = '';
+        none.textContent = t('piano_preset_none') || '— bez zmiany brzmienia —';
+        sel.appendChild(none);
+
+        st.presets.forEach(function(name) {
+            var o = document.createElement('option');
+            o.value = name;
+            o.textContent = name;
+            if (name === chosen) o.selected = true;
+            sel.appendChild(o);
+        });
+
+        row.style.display = '';
+    }).catch(function() { /* pianina nie ma — wiersz zostaje schowany */ });
+}
+
+function launchPiano() {
+    fetch('/api/piano/launch', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) { showToast(d.message, d.ok ? 'success' : 'error'); })
+        .catch(function() { showToast('Nie udało się uruchomić pianina', 'error'); });
 }
 function closeEditModal(){document.getElementById('editModal').style.display='none';}
 function deleteCurrentSong(){if(confirm(t('alert_delete_confirm')))document.getElementById('deleteForm').submit();}

@@ -178,6 +178,13 @@ private:
         revTimeAttachment, pedalAttachment, padTypeAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> delaySyncAttachment;
 
+    //---- Jafa Stage Center ---------------------------------------------------
+    /*  What the app says is up. Read only: the tempo and the sound follow it,
+        the key is shown so the player can see it agrees with the chart.
+    */
+    juce::Label stageSongLabel;
+    juce::String lastStageText;
+
     //---- shared --------------------------------------------------------------
     LevelMeter meter;
     juce::MidiKeyboardComponent keyboard;

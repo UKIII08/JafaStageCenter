@@ -18,6 +18,7 @@ import html
 import shutil
 import uuid
 import itertools
+import piano_link  # most do wtyczki Jafa Worship Piano (plik wymiany, bez sieci)
 from collections import Counter
 import random
 import logging
@@ -251,6 +252,18 @@ class SetlistHistory(db.Model):
     # Ekran powitalny tej setlisty (JSON: start_time + slide_seconds + slides),
     # synchronizowany z chmury. Zdjęcia/ikony pobierane lokalnie do static/.
     welcome_json = db.Column(db.Text, default='')
+
+class SongPatch(db.Model):
+    """Brzmienie pianina (VST) przypisane do piosenki.
+
+    Osobna tabela, a nie kolumna w Song — Song jest nadpisywany przy
+    synchronizacji z chmury, a brzmienie zależy od tego, jakie sample i presety
+    ma TEN komputer. Zostaje lokalnie i przeżywa każdą synchronizację.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    song_id = db.Column(db.Integer, nullable=False, unique=True)
+    preset = db.Column(db.String(100), default='')
+
 
 def get_notation():
     s = Settings.query.first()
@@ -1702,8 +1715,31 @@ def edit_song(id):
     bpm = request.form.get('bpm')
     try: song.bpm = int(bpm) if bpm else 0
     except ValueError: song.bpm = 0
+
+    # Brzmienie pianina. Pole przychodzi tylko wtedy, gdy wtyczka jest na tym
+    # komputerze — brak pola zostawia przypisanie w spokoju, żeby edycja tekstu
+    # z maszyny bez pianina nie kasowała ustawień z maszyny, która je ma.
+    if 'piano_preset' in request.form:
+        _set_song_patch(song.id, request.form.get('piano_preset', ''))
+
     db.session.commit()
     return redirect(url_for('control'))
+
+
+def _set_song_patch(song_id, preset):
+    """Przypisuje (lub zdejmuje) brzmienie pianina dla piosenki."""
+    preset = (preset or '').strip()
+    patch = SongPatch.query.filter_by(song_id=song_id).first()
+
+    if not preset:
+        if patch:
+            db.session.delete(patch)
+        return
+
+    if patch:
+        patch.preset = preset
+    else:
+        db.session.add(SongPatch(song_id=song_id, preset=preset))
 
 @app.route('/delete_demo_song', methods=['POST'])
 def delete_demo_song():
@@ -2109,7 +2145,75 @@ def send_text():
         'transpose': shift
     }
     socketio.emit('update_slide', LAST_SLIDE_DATA)
+
+    # Powiedz pianinu, co jest grane: tempo i brzmienie idą za piosenką.
+    # Tonacji nie przekazujemy do ustawienia — akordy są już przeniesione,
+    # więc transpozycja we wtyczce przesunęłaby dźwięk drugi raz.
+    _publish_to_piano(data.get('song_id'), data.get('song_title', ''),
+                      passed_key, passed_bpm)
+
     return {'status': 'ok'}
+
+
+@app.route('/api/piano/state')
+def piano_state():
+    """Co wtyczka ma do zaoferowania + jakie brzmienia są już przypisane."""
+    state = piano_link.plugin_state()
+    state['patches'] = {p.song_id: (p.preset or '') for p in SongPatch.query.all()}
+    state['installed'] = piano_link.find_plugin() is not None
+    return state
+
+
+@app.route('/api/piano/patch', methods=['POST'])
+def piano_patch():
+    """Przypisuje brzmienie do piosenki (pusta nazwa = zdejmuje przypisanie)."""
+    data = request.json or {}
+
+    try:
+        song_id = int(data.get('song_id'))
+    except (TypeError, ValueError):
+        return {'ok': False, 'message': 'Brak piosenki.'}, 400
+
+    preset = (data.get('preset') or '').strip()
+    _set_song_patch(song_id, preset)
+    db.session.commit()
+
+    # Jeśli to piosenka, która właśnie jest na ekranie, niech pianino usłyszy
+    # zmianę od razu, zamiast czekać na następny slajd.
+    if LAST_SLIDE_DATA.get('mode') == 'worship':
+        song = Song.query.get(song_id)
+        if song and LAST_SLIDE_DATA.get('song_title') == song.title:
+            _publish_to_piano(song_id, song.title,
+                              LAST_SLIDE_DATA.get('current_key', ''),
+                              LAST_SLIDE_DATA.get('current_bpm', 0))
+
+    return {'ok': True, 'preset': preset}
+
+
+@app.route('/api/piano/launch', methods=['POST'])
+def piano_launch():
+    """Odpala pianino w osobnym oknie."""
+    ok, message = piano_link.launch()
+    return {'ok': ok, 'message': message}, (200 if ok else 404)
+
+
+def _publish_to_piano(song_id, title, key, bpm):
+    """Zrzuca bieżącą piosenkę do pliku, który czyta wtyczka.
+
+    Best-effort i nigdy nie wywala /send_text: jeśli most zawiedzie, slajd i
+    tak ma pójść na ekran, a pianino zostaje na brzmieniu, które ma.
+    """
+    try:
+        preset = ''
+
+        if song_id is not None:
+            patch = SongPatch.query.filter_by(song_id=int(song_id)).first()
+            if patch:
+                preset = patch.preset or ''
+
+        piano_link.publish_song(song_id, title, key, bpm, preset)
+    except Exception:
+        pass
 
 @app.route('/conf_timer', methods=['POST'])
 def conf_timer():
