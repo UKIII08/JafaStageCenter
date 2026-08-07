@@ -91,6 +91,165 @@ namespace
         return false;
     }
 
+    /*  Letting go of a key has to stop the note. Not "start it fading" - stop it,
+        on the same timescale a damper does, or fast playing turns into a smear
+        because every note you have finished with is still sounding under the
+        next one. The library says how long that takes (ampeg_release); the job
+        here is to check the engine actually honours it.
+
+        Measured as a ratio against a run that holds the key, so what comes out is
+        the release envelope alone and not the sample's own decay.
+    */
+    bool checkNoteRelease (const File& sfzFile, String& report)
+    {
+        report << "note release:" << newLine;
+
+        // what the test library writes in its <global>
+        const float ampegRelease = 0.75f;
+
+        const int note = 60;
+        const double holdSeconds = 0.4;
+        const double tailSeconds = 3.0;
+        const int window = 512;
+
+        auto capture = [&] (bool releaseTheKey, std::vector<float>& windows)
+        {
+            WorshipPianoProcessor processor;
+            processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+            processor.prepareToPlay (sampleRate, blockSize);
+
+            if (! attachLibrary (processor, sfzFile))
+                return false;
+
+            auto set = [&processor] (const char* id, float v)
+            {
+                if (auto* p = processor.apvts.getParameter (id))
+                    p->setValueNotifyingHost (p->convertTo0to1 (v));
+            };
+
+            // everything that could put a tail of its own on the output goes,
+            // so what is left is the note and nothing else
+            for (auto* id : { pid::reverbMix, pid::delayMix, pid::chorusAmount,
+                              pid::reverseMix, pid::soak, pid::shimmer, pid::drive,
+                              pid::compAmount, pid::eqAir, pid::eqLow, pid::eqHigh })
+                set (id, 0.0f);
+
+            set (pid::padLevel, -60.0f);
+            set (pid::decayTime, 1.0f);      // the Sustain knob at neutral
+            set (pid::pianoLevel, 0.0f);
+            set (pid::outputGain, 0.0f);
+
+            processor.reset();
+
+            AudioBuffer<float> block (2, blockSize);
+            const int total = (int) (sampleRate * (holdSeconds + tailSeconds));
+            const int releaseAt = (int) (sampleRate * holdSeconds);
+
+            int done = 0;
+            bool started = false, released = false;
+            float windowPeak = 0.0f;
+            int windowFill = 0;
+
+            while (done < total)
+            {
+                const int n = jmin (blockSize, total - done);
+                block.setSize (2, n, false, false, true);
+                block.clear();
+
+                MidiBuffer midi;
+
+                if (! started)
+                {
+                    midi.addEvent (MidiMessage::noteOn (1, note, 0.8f), 0);
+                    started = true;
+                }
+
+                if (releaseTheKey && ! released && done + n > releaseAt)
+                {
+                    midi.addEvent (MidiMessage::noteOff (1, note), jmax (0, releaseAt - done));
+                    released = true;
+                }
+
+                processor.processBlock (block, midi);
+
+                for (int i = 0; i < n; ++i)
+                {
+                    if (done + i >= releaseAt)
+                    {
+                        windowPeak = jmax (windowPeak,
+                                           std::abs (block.getSample (0, i)),
+                                           std::abs (block.getSample (1, i)));
+
+                        if (++windowFill >= window)
+                        {
+                            windows.push_back (windowPeak);
+                            windowPeak = 0.0f;
+                            windowFill = 0;
+                        }
+                    }
+                }
+
+                done += n;
+            }
+
+            return true;
+        };
+
+        std::vector<float> releasedRun, heldRun;
+
+        if (! capture (true, releasedRun) || ! capture (false, heldRun))
+        {
+            report << "   !! library never reached the audio thread" << newLine << newLine;
+            return false;
+        }
+
+        const int count = jmin ((int) releasedRun.size(), (int) heldRun.size());
+        const double perWindow = window / sampleRate;
+
+        // how long until the released note sits this far under the held one
+        auto timeToDrop = [&] (float dropDb)
+        {
+            for (int i = 0; i < count; ++i)
+            {
+                if (heldRun[(size_t) i] < 1.0e-6f)
+                    continue;
+
+                const float ratio = Decibels::gainToDecibels (releasedRun[(size_t) i]
+                                                                / heldRun[(size_t) i]);
+
+                if (ratio <= dropDb)
+                    return (float) (i * perWindow);
+            }
+
+            return -1.0f;
+        };
+
+        const float to20 = timeToDrop (-20.0f);
+        const float to40 = timeToDrop (-40.0f);
+        const float to60 = timeToDrop (-60.0f);
+
+        auto fmt = [] (float t) { return t < 0.0f ? String ("never") : String (t, 3) + " s"; };
+
+        report << "   library ampeg_release: " << String (ampegRelease, 2) << " s" << newLine
+               << "   after note off, -20 dB: " << fmt (to20) << newLine
+               << "                   -40 dB: " << fmt (to40) << newLine
+               << "                   -60 dB: " << fmt (to60) << newLine;
+
+        /*  The envelope is exponential, so it never mathematically reaches zero -
+            what matters is that it is inaudible by the time the library said it
+            would be. Half a release time of slack, no more: past that a released
+            note is still under the next one.
+        */
+        const bool ok = to60 >= 0.0f && to60 <= ampegRelease * 1.5f;
+
+        if (! ok)
+            report << "   !! a released key is still sounding long after the damper should have stopped it"
+                   << newLine;
+
+        report << newLine;
+        return ok;
+    }
+
     /*  A preset that names a library is only usable if going back to one already
         read is instant. Re-reading a gigabyte between two songs is not a feature
         anybody would use twice, so the second load has to come off the pool: no
@@ -890,8 +1049,10 @@ namespace
             const double freq = 440.0 * std::pow (2.0, (roots[r] - 69) / 12.0);
 
             for (int layer = 0; layer < 2; ++layer)
+                // long enough that a released note can be watched all the way
+                // down before the sample itself runs out
                 writeTone (audioDir.getChildFile ("note" + String (roots[r]) + "_v" + String (layer) + ".wav"),
-                           freq, layer == 0 ? 0.3f : 0.9f, 1.0);
+                           freq, layer == 0 ? 0.3f : 0.9f, 3.0);
 
             // damper noise: a short, much quieter burst an octave up
             writeTone (audioDir.getChildFile ("rel" + String (roots[r]) + ".wav"), freq * 2.0, 0.15f, 0.25);
@@ -1757,6 +1918,7 @@ int main (int argc, char** argv)
     allOk &= checkPerformanceControls (sfz, report);
     allOk &= checkStomps (sfz, report);
     allOk &= checkLibraryCache (sfz, report);
+    allOk &= checkNoteRelease (sfz, report);
 
     for (int i = 0; i < (int) presets::factory().size(); ++i)
     {

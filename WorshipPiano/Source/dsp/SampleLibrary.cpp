@@ -581,6 +581,30 @@ void SampleLibrary::buildLookup (const std::vector<Region>& list, std::vector<in
 }
 
 //==============================================================================
+namespace
+{
+    /*  ampeg_release is how long a note takes to go away after the key comes up,
+        not the time constant of the curve that takes it there. Those are nearly
+        a factor of ten apart: a one-pole running on a 0.4 s constant is still
+        only 9 dB down after 0.4 s, and 20 dB down after a second.
+
+        Used as a constant it makes every damper in the instrument slow. Play
+        anything quick and the notes you have already finished with are still
+        sounding underneath the ones you are playing - which reads as the piano
+        having a sustain nobody asked for.
+
+        So pick the constant that puts the envelope 60 dB down - gone, under
+        anything else on stage - exactly when the library said the note ends.
+    */
+    inline float releaseCoefficient (float releaseSeconds, double sampleRate) noexcept
+    {
+        constexpr float toInaudible = 6.907755f;    // ln(1000), i.e. -60 dB
+
+        const float tau = juce::jmax (0.005f, releaseSeconds) / toInaudible;
+        return 1.0f - std::exp (-1.0f / (float) (tau * sampleRate));
+    }
+}
+
 void SamplerEngine::prepare (double sampleRate, int)
 {
     sr = sampleRate;
@@ -748,7 +772,7 @@ void SamplerEngine::noteOn (int midiNote, float velocity)
 
     const float attack = jmax (0.002f, region->attackSeconds);
     voice->attackCoef = 1.0f - std::exp (-1.0f / (float) (attack * sr));
-    voice->releaseCoef = 1.0f - std::exp (-1.0f / (float) (jmax (0.02f, region->releaseSeconds * releaseScale) * sr));
+    voice->releaseCoef = releaseCoefficient (region->releaseSeconds * releaseScale, sr);
 
     const float toneAmount = tone - 0.45f * soft;
     const double cutoff = jlimit (400.0, sr * 0.45, 20000.0 * std::pow (2.0, (double) toneAmount * 2.6));
@@ -793,7 +817,7 @@ void SamplerEngine::startRelease (int midiNote, int heldSamples)
     voice->env = 1.0f;
     voice->envTarget = 1.0f;
     voice->attackCoef = 1.0f;
-    voice->releaseCoef = 1.0f - std::exp (-1.0f / (float) (jmax (0.02f, region->releaseSeconds) * sr));
+    voice->releaseCoef = releaseCoefficient (region->releaseSeconds, sr);
     voice->toneCoef = 1.0f;
     voice->toneStateL = voice->toneStateR = 0.0f;
 }

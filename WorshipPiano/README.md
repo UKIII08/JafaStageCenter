@@ -370,7 +370,7 @@ zaszyte w kodzie. Presety mają być do grania, a nie do kręcenia.
 | **Sample library...** | Wczytanie pliku SFZ albo folderu z WAV-ami. Bez tego wtyczka milczy |
 | **Tone** | Ciemno ↔ jasno. Przesuwa filtr filcu i nachylenie widma jednocześnie |
 | **Attack** | Ile słychać uderzenia filcu o strunę i stuku mechaniki |
-| **Sustain** | Mnożnik czasu wybrzmiewania (0.5× – 2×) |
+| **Sustain** | Mnożnik czasu tłumienia po puszczeniu klawisza (0.5× – 2×). 1× = tyle, ile deklaruje biblioteka (`ampeg_release`) |
 | **Dynamics** | Zakres głośności między najcichszym a najgłośniejszym uderzeniem |
 | **Level** | Głośność fortepianu przed torem efektów |
 
@@ -494,6 +494,11 @@ Sprawdza też trzy rzeczy osobno:
 * **pula bibliotek** — powrót do raz wczytanej biblioteki nie może ruszyć dysku ani wątku
   ładującego i musi grać już w następnym bloku; inaczej preset przełączający sample
   zatrzymywałby scenę na kilkadziesiąt sekund
+* **tłumienie po puszczeniu klawisza** — nuta musi ucichnąć w czasie, który deklaruje
+  biblioteka, mierzone jako różnica względem przebiegu z klawiszem trzymanym, więc mierzy
+  samą obwiednię, a nie zanikanie sampla. Pilnuje błędu, przez który `ampeg_release` był
+  brany za stałą czasową krzywej zamiast za czas zaniku — nuty schodziły wtedy do −60 dB
+  jakieś dziewięć razy wolniej, niż biblioteka prosiła
 * **kontrolki sceniczne** — transpozycja musi przesuwać wysokość dźwięku (mierzone w centach)
   a split trzymać pianino poza lewą ręką; obie funkcje przepisują numery nut na wejściu,
   co łatwo zepsuć w sposób niewidoczny aż do próby
