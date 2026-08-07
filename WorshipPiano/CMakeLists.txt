@@ -63,6 +63,16 @@ target_sources(JafaWorshipPiano PRIVATE
 )
 
 target_compile_definitions(JafaWorshipPiano PUBLIC
+    # ASIO w wersji standalone. Bez tego zostaje Windows Audio, które nawet w
+    # trybie wyłącznym siedzi w okolicach 20-30 ms - grywalne, ale słychać. Ze
+    # sterownikiem ASIO interfejsu schodzi się poniżej 10 ms.
+    #
+    # JUCE 8 dołącza nagłówki ASIO u siebie (modules/juce_audio_devices/native/
+    # asio), więc nie trzeba pobierać SDK od Steinberga. Włączenie tego oznacza
+    # jednak, że program zależy od plików z tego SDK i podlega jego licencji -
+    # istotne przy rozpowszechnianiu gotowych binariów, nie przy budowaniu dla
+    # własnego zespołu. Flaga nie robi nic poza Windowsem.
+    JUCE_ASIO=1
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0

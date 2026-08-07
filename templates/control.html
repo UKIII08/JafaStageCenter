@@ -1720,15 +1720,18 @@
                 <textarea name="content" id="edit-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('edit-content', 'edit-key-input'); validateChords('edit-content', 'edit-chord-status')"></textarea>
                 <div id="edit-chord-status" style="font-size:var(--font-xs); margin-top:var(--s1); min-height:1.2em;"></div>
 
-                <!-- Brzmienie pianina (wtyczka Jafa Worship Piano). Cały wiersz
-                     chowa się, gdy pianino nigdy na tym komputerze nie chodziło —
-                     nie ma sensu pokazywać pustej listy komuś, kto go nie używa. -->
-                <div class="notation-row" id="piano-row" style="display:none;">
+                <!-- Brzmienie pianina (wtyczka Jafa Worship Piano).
+                     Wiersz jest ZAWSZE widoczny. Wcześniej chował się, dopóki
+                     pianino nie zapisało swojej listy presetów — razem z
+                     przyciskiem, który jako jedyny potrafił je uruchomić. Nie
+                     dało się więc dojść do stanu, w którym cokolwiek widać. -->
+                <div class="notation-row" id="piano-row">
                     <label data-t="piano_preset_label">Brzmienie pianina:</label>
-                    <select name="piano_preset" id="edit-piano-preset">
+                    <select name="piano_preset" id="edit-piano-preset" style="display:none;">
                         <option value="" data-t="piano_preset_none">— bez zmiany brzmienia —</option>
                     </select>
-                    <button type="button" class="btn-secondary" style="font-size:var(--font-xs);"
+                    <span id="piano-hint" style="flex:1; font-size:var(--font-xs); opacity:0.75;"></span>
+                    <button type="button" class="btn-secondary" style="font-size:var(--font-xs); white-space:nowrap;"
                             onclick="launchPiano()" data-t="piano_open_btn">Otwórz pianino</button>
                 </div>
 

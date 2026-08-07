@@ -152,12 +152,18 @@ bo tekst przewinął się o slajd.
 
 ### Jak włączyć
 
-1. W panelu sterowania otwórz piosenkę do edycji. Jeśli pianino kiedykolwiek
-   chodziło na tym komputerze, pojawi się wiersz **Brzmienie pianina** z listą
-   presetów; wybierz jeden i zapisz.
-2. Przycisk **Otwórz pianino** obok listy uruchamia wersję standalone w osobnym
-   oknie. Szuka jej obok aplikacji, w `Program Files` i w folderze builda; własną
-   ścieżkę można wskazać zmienną `JAFA_PIANO_PATH`.
+1. W panelu sterowania otwórz piosenkę do edycji — wiersz **Brzmienie pianina**
+   jest tam zawsze.
+2. Lista presetów pojawia się dopiero, gdy pianino **raz chodziło na tym
+   komputerze**: to ono zapisuje `plugin.json`. Zanim to nastąpi, wiersz mówi o
+   tym wprost. Kliknij **Otwórz pianino** obok — lista dociągnie się sama, bez
+   zamykania okna.
+3. Przycisk szuka wersji standalone obok aplikacji, w `Program Files` i w
+   folderze builda; własną ścieżkę można wskazać zmienną `JAFA_PIANO_PATH`.
+
+Gdy listy nie widać mimo uruchomionego pianina, sprawdź, czy w
+`%APPDATA%\Jafa Stage\Worship Piano\` leży `plugin.json`. Jeśli go nie ma,
+pianino jest ze starszego builda, sprzed połączenia z aplikacją.
 
 Przypisania siedzą w lokalnej tabeli `SongPatch`, a nie w samej piosence —
 piosenki są nadpisywane przy synchronizacji z chmurą, a brzmienie zależy od tego,
@@ -270,6 +276,48 @@ Delay i Tone. Stopa REVERSE decyduje *czy* swell w ogóle jest, a to pokrętło 
 brzmieniu — i tego drugiego nie da się prowadzić w trakcie grania z widoku EDIT.
 
 Preset **Reverse Swell** pokazuje ustawienie. Graj rzadko i zostaw miejsce.
+
+## Wersja standalone — dźwięk i opóźnienie
+
+Standalone to ten sam instrument w osobnym oknie, bez hosta. Ustawienia audio są
+pod **Options → Audio/MIDI Settings**.
+
+Dwie rzeczy, na których wszyscy się przewracają:
+
+- **MIDI Input** — JUCE domyślnie ma **wszystkie wejścia MIDI wyłączone**. Trzeba
+  ręcznie zaznaczyć swoją klawiaturę, inaczej wtyczka nie zareaguje na nic i
+  będzie wyglądać na zepsutą. Klawiatura ekranowa na dole okna działa myszą od
+  razu, więc do sprawdzenia brzmienia klawiatura MIDI nie jest potrzebna.
+- **Sterownik audio** — tu mieszka opóźnienie.
+
+### Sterowniki, od najgorszego do najlepszego
+
+| Typ | Opóźnienie | Kiedy |
+|---|---|---|
+| Windows Audio | ~20–40 ms | domyślne, do grania za wolne |
+| Windows Audio (Low Latency Mode) | ~10–20 ms | bez sterownika producenta |
+| Windows Audio (Exclusive Mode) | ~8–15 ms | blokuje kartę dla tej aplikacji |
+| **ASIO** | **3–8 ms** | **sterownik interfejsu audio — to chcesz** |
+
+**ASIO jest wkompilowane** (`JUCE_ASIO=1` w `CMakeLists.txt`). Jeśli interfejs ma
+własny sterownik ASIO, pojawi się na liście `Audio device type` jako osobna
+pozycja. Wybierz go, a potem zejdź z **Audio buffer size** — 128 lub 256 próbek
+przy 48 kHz to 2,7 albo 5,3 ms i tyle wystarczy.
+
+Nie każda karta ma ASIO. Wbudowana karta w laptopie zwykle nie ma — wtedy albo
+**ASIO4ALL** (nakładka na sterownik systemowy, pomaga, ale nie dorówna
+prawdziwemu), albo **Windows Audio (Exclusive Mode)**, które jest zaskakująco
+przyzwoite i nie wymaga niczego instalować.
+
+W DAW-ie to nie dotyczy: tam o opóźnieniu decyduje host, a Reaper i tak chodzi
+na ASIO.
+
+> ASIO SDK należy do Steinberga. JUCE dołącza jego nagłówki u siebie, więc nic
+> nie trzeba pobierać, ale włączenie tej opcji oznacza, że program podlega
+> licencji tych plików. Dla zespołu budującego sobie narzędzie to bez znaczenia;
+> przy rozpowszechnianiu gotowych binariów warto o tym wiedzieć.
+
+---
 
 ## Skąd wziąć plik `.vst3`
 

@@ -2094,14 +2094,29 @@ function openEditModal(id){
 // z serwerem: pianino zapisuje własne presety w trakcie prób, a panel sterowania
 // potrafi być otwarty przez pół dnia.
 function fillPianoPresets(songId) {
-    var row = document.getElementById('piano-row');
     var sel = document.getElementById('edit-piano-preset');
-    if (!row || !sel) return;
+    var hint = document.getElementById('piano-hint');
+    if (!sel || !hint) return;
 
-    row.style.display = 'none';
+    // Wyłączone, a nie tylko ukryte: ukryte pole i tak poszłoby w POST z pustą
+    // wartością i skasowało przypisanie zrobione tam, gdzie pianino jest.
+    // Wyłączone przeglądarka pomija, więc /edit_song go nie zobaczy.
+    sel.style.display = 'none';
+    sel.disabled = true;
+    hint.textContent = '';
 
     fetch('/api/piano/state').then(function(r) { return r.json(); }).then(function(st) {
-        if (!st || !st.seen || !st.presets || !st.presets.length) return;
+        if (!st) { hint.textContent = t('piano_hint_error') || 'Nie udało się odczytać stanu pianina.'; return; }
+
+        // Lista presetów istnieje dopiero, gdy pianino raz chodziło na tym
+        // komputerze — to ono ją zapisuje. Mówimy to wprost, zamiast pokazywać
+        // pustą listę albo chować wiersz i zostawiać kogoś bez wskazówki.
+        if (!st.seen || !st.presets || !st.presets.length) {
+            hint.textContent = st.installed
+                ? (t('piano_hint_run_once') || 'Uruchom pianino raz (przycisk obok), żeby wczytać listę presetów.')
+                : (t('piano_hint_not_found') || 'Nie znaleziono pianina na tym komputerze.');
+            return;
+        }
 
         var chosen = (st.patches && st.patches[songId]) || '';
         sel.innerHTML = '';
@@ -2119,14 +2134,36 @@ function fillPianoPresets(songId) {
             sel.appendChild(o);
         });
 
-        row.style.display = '';
-    }).catch(function() { /* pianina nie ma — wiersz zostaje schowany */ });
+        sel.style.display = '';
+        sel.disabled = false;
+    }).catch(function() {
+        hint.textContent = t('piano_hint_error') || 'Nie udało się odczytać stanu pianina.';
+    });
 }
 
 function launchPiano() {
+    var songId = null;
+    var action = document.getElementById('editForm').action || '';
+    var m = action.match(/\/edit_song\/(\d+)/);
+    if (m) songId = parseInt(m[1], 10);
+
     fetch('/api/piano/launch', { method: 'POST' })
         .then(function(r) { return r.json(); })
-        .then(function(d) { showToast(d.message, d.ok ? 'success' : 'error'); })
+        .then(function(d) {
+            showToast(d.message, d.ok ? 'success' : 'error');
+            if (!d.ok) return;
+
+            // Pianino wstaje kilka sekund (wczytuje sample), a listę presetów
+            // zapisuje dopiero przy starcie. Odpytujemy kilka razy, żeby lista
+            // pojawiła się sama, zamiast kazać zamykać i otwierać okno.
+            var tries = 0;
+            var again = setInterval(function() {
+                if (++tries > 10) { clearInterval(again); return; }
+                var sel = document.getElementById('edit-piano-preset');
+                if (sel && sel.style.display !== 'none') { clearInterval(again); return; }
+                fillPianoPresets(songId);
+            }, 1500);
+        })
         .catch(function() { showToast('Nie udało się uruchomić pianina', 'error'); });
 }
 function closeEditModal(){document.getElementById('editModal').style.display='none';}
