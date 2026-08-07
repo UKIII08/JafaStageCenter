@@ -10,7 +10,19 @@ ICON_PATH = 'app.ico'
 
 def build():
     print("--- BUDOWANIE APLIKACJI (Ikona w głównym folderze) ---")
-    
+
+    # HTTPS (mikrofon/stroik na telefonie) wymaga pakietu cryptography W .exe.
+    # Bez niego .exe cicho spada na HTTP i stroik na telefonie nie działa —
+    # dlatego przerywamy budowanie od razu, z jasnym komunikatem.
+    try:
+        from cryptography import x509  # noqa: F401
+    except Exception:
+        print("\nBLAD: Brak pakietu 'cryptography' w tym srodowisku Pythona.")
+        print("Bez niego .exe nie wygeneruje certyfikatu HTTPS i stroik na telefonie NIE zadziala.")
+        print("Zainstaluj go i zbuduj ponownie:")
+        print("    pip install cryptography")
+        raise SystemExit(1)
+
     # Czyszczenie starych folderów
     if os.path.exists('dist'): shutil.rmtree('dist')
     if os.path.exists('build'): shutil.rmtree('build')
@@ -34,6 +46,11 @@ def build():
         '--hidden-import=socketio',
         '--hidden-import=flask_socketio',
         '--hidden-import=sqlalchemy.sql.default_comparator',
+        # cryptography (certyfikat HTTPS): _cffi_backend to natywny moduł,
+        # którego PyInstaller często nie wykrywa sam — bez niego cryptography
+        # pada w .exe i telefon nie dostaje HTTPS (mikrofon nie działa).
+        '--hidden-import=_cffi_backend',
+        '--collect-submodules=cryptography',
     ]
 
     # Dodanie ikony (jeśli istnieje w głównym folderze)

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Mikrofon / Stroik — instrukcja</title>
+<style>
+    :root {
+        --bg: #17181b; --panel: #1f2125; --panel2: #26282d;
+        --border: #33363c; --text: #e8eaed; --text2: #9aa0a8;
+        --accent: #6BA0FC; --ok: #4cc38a; --warn: #e5a24c; --err: #e5644c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        background: var(--bg); color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.55; padding: 24px 16px 60px;
+        display: flex; justify-content: center;
+    }
+    .wrap { width: 100%; max-width: 560px; }
+    h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 6px; }
+    .sub { color: var(--text2); font-size: 0.9rem; margin-bottom: 20px; }
+    .card {
+        background: var(--panel); border: 1px solid var(--border);
+        border-radius: 14px; padding: 16px 18px; margin-bottom: 16px;
+    }
+    .card h2 { font-size: 1rem; font-weight: 650; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .badge {
+        display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em;
+        padding: 2px 8px; border-radius: 99px; text-transform: uppercase;
+    }
+    .badge.rec { background: rgba(107,160,252,0.15); color: var(--accent); }
+    ol { padding-left: 20px; }
+    ol li { margin-bottom: 8px; font-size: 0.92rem; }
+    .muted { color: var(--text2); font-size: 0.85rem; }
+    .status-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    .status-row:last-child { border-bottom: none; }
+    .pill { font-weight: 650; font-size: 0.85rem; }
+    .pill.ok { color: var(--ok); } .pill.bad { color: var(--err); } .pill.meh { color: var(--warn); }
+    a.btn, button.btn {
+        display: block; width: 100%; text-align: center; text-decoration: none;
+        background: var(--accent); color: #10131a; font-weight: 700; font-size: 0.95rem;
+        border: none; border-radius: 12px; padding: 13px 16px; margin-top: 12px; cursor: pointer;
+        transition: transform 0.1s ease, filter 0.15s ease;
+    }
+    a.btn:active, button.btn:active { transform: scale(0.975); }
+    a.btn.secondary, button.btn.secondary {
+        background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    }
+    .hidden { display: none !important; }
+    code { background: var(--panel2); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; font-size: 0.85em; }
+    #mic-result { margin-top: 10px; font-size: 0.9rem; font-weight: 600; }
+    .banner { border-radius: 12px; padding: 12px 14px; font-size: 0.9rem; margin-bottom: 16px; border: 1px solid; }
+    .banner.err { border-color: rgba(229,100,76,0.4); background: rgba(229,100,76,0.08); color: #f0b4a8; }
+    .banner.ok { border-color: rgba(76,195,138,0.4); background: rgba(76,195,138,0.08); color: #a8e5c8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <h1>🎸 Stroik na telefonie — mikrofon</h1>
+    <p class="sub">Telefony (iPhone/Android) udostępniają mikrofon stronom tylko przez <b>bezpieczne połączenie (HTTPS)</b>. Ta strona pomoże Ci to skonfigurować w 2 minuty.</p>
+
+    {% if https_active %}
+    <div class="banner ok">
+        <b>Serwer działa po HTTPS.</b> Wykonaj kroki poniżej na telefonie — po nich stroik zadziała.
+    </div>
+    {% elif not https_enabled %}
+    <div class="banner err">
+        <b>HTTPS jest wyłączony w Ustawieniach.</b><br>
+        Na komputerze otwórz <b>Ustawienia</b> w panelu sterowania, włącz przełącznik
+        „HTTPS (mikrofon / stroik na telefonie)" i <b>uruchom aplikację ponownie</b>. Potem wróć tutaj.
+    </div>
+    {% else %}
+    <div class="banner err">
+        <b>HTTPS jest włączony, ale serwer działa teraz po HTTP.</b><br>
+        {% if can_https %}Uruchom aplikację ponownie — certyfikat wygeneruje się przy starcie.{% else %}
+        Ten komputer nie ma biblioteki do wygenerowania certyfikatu. Zbuduj aplikację z najnowszego
+        kodu (z pakietem <code>cryptography</code>).{% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Status na żywo -->
+    <div class="card">
+        <h2>📡 Stan na tym urządzeniu</h2>
+        <div class="status-row"><span>Połączenie</span><span class="pill" id="st-proto">…</span></div>
+        <div class="status-row"><span>Bezpieczny kontekst</span><span class="pill" id="st-secure">…</span></div>
+        <div class="status-row"><span>Mikrofon dostępny w przeglądarce</span><span class="pill" id="st-media">…</span></div>
+        <button class="btn" id="mic-test-btn" onclick="testMic()">🎤 Przetestuj mikrofon</button>
+        <div id="mic-result"></div>
+        <a class="btn secondary hidden" id="goto-https" href="{{ https_url }}/mic_help">🔒 Przejdź na wersję HTTPS tej strony</a>
+    </div>
+
+    <!-- Szybka ścieżka -->
+    <div class="card">
+        <h2>⚡ Sposób 1 — szybki (jednorazowe ostrzeżenie)</h2>
+        <ol>
+            <li>Na telefonie wejdź na <code>{{ https_url }}</code> (bezpieczny adres aplikacji) albo użyj przycisku „Przejdź na wersję HTTPS" powyżej.</li>
+            <li>Safari pokaże „Połączenie nie jest prywatne" — to normalne przy własnym certyfikacie w sieci lokalnej.</li>
+            <li>Kliknij <b>Pokaż szczegóły</b> → <b>odwiedź tę witrynę</b> → potwierdź <b>Odwiedź witrynę</b>.</li>
+            <li>Włącz stroik i pozwól na dostęp do mikrofonu, gdy telefon zapyta.</li>
+        </ol>
+        <p class="muted">Ostrzeżenie może wrócić po jakimś czasie lub po zmianie sieci Wi-Fi. Jeśli chcesz się go pozbyć na stałe — zobacz Sposób 2.</p>
+    </div>
+
+    <!-- Ścieżka z CA -->
+    <div class="card">
+        <h2>✅ Sposób 2 — na stałe <span class="badge rec">zalecany</span></h2>
+        <p class="muted" style="margin-bottom:10px;">Instalujesz raz mały certyfikat zespołu na telefonie — od tej pory połączenie jest w pełni zaufane (kłódka, zero ostrzeżeń), a mikrofon zawsze działa.</p>
+        <ol>
+            <li>Pobierz certyfikat przyciskiem poniżej. Safari zapyta o pozwolenie na pobranie <b>profilu</b> — zezwól.</li>
+            <li>Wejdź w <b>Ustawienia</b> → u góry pojawi się <b>„Pobrany profil"</b> → <b>Zainstaluj</b> (podaj kod telefonu).</li>
+            <li>Potem: <b>Ustawienia → Ogólne → Informacje → Ustawienia zaufania certyfikatów</b> → włącz <b>JafaStageCenter Local CA</b>.</li>
+            <li>Wróć do aplikacji przez <code>{{ https_url }}</code> — kłódka, bez ostrzeżeń, stroik działa.</li>
+        </ol>
+        <a class="btn" href="/ca.crt">⬇️ Pobierz certyfikat (iPhone)</a>
+        <p class="muted" style="margin-top:10px;">Android: pobierz ten sam plik, potem <b>Ustawienia → Zabezpieczenia → Zainstaluj certyfikat → Certyfikat CA</b>.</p>
+    </div>
+
+    <div class="card">
+        <h2>🔧 Nadal nie działa?</h2>
+        <ol>
+            <li>Upewnij się, że adres w telefonie zaczyna się od <code>https://</code> (nie <code>http://</code>).</li>
+            <li>Jeśli mikrofon był wcześniej zablokowany: <b>Ustawienia → Aplikacje → Safari → Mikrofon → Pytaj/Zezwól</b> (albo kliknij <b>AA/ikonę strony</b> na pasku adresu → Ustawienia witryny → Mikrofon).</li>
+            <li>Po zmianie sieci Wi-Fi zrestartuj aplikację na komputerze — certyfikat dopasuje się do nowego adresu IP automatycznie.</li>
+        </ol>
+    </div>
+</div>
+
+<script>
+(function () {
+    var httpsActive = {{ 'true' if https_active else 'false' }};
+    var proto = location.protocol.replace(':', '').toUpperCase();
+    var secure = !!window.isSecureContext;
+    var media = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+
+    function set(id, ok, txtOk, txtBad) {
+        var el = document.getElementById(id);
+        el.textContent = ok ? txtOk : txtBad;
+        el.className = 'pill ' + (ok ? 'ok' : 'bad');
+    }
+    set('st-proto', proto === 'HTTPS', 'HTTPS 🔒', proto + ' (niezabezpieczone)');
+    set('st-secure', secure, 'TAK', 'NIE');
+    set('st-media', media, 'TAK', 'NIE');
+
+    // Jesteśmy na HTTP, a serwer ma aktywny HTTPS → pokaż skok na https.
+    if (proto !== 'HTTPS' && httpsActive) {
+        document.getElementById('goto-https').classList.remove('hidden');
+    }
+
+    window.testMic = function () {
+        var out = document.getElementById('mic-result');
+        if (!media) {
+            out.style.color = 'var(--err)';
+            out.textContent = proto === 'HTTPS'
+                ? '✗ Przeglądarka nie udostępnia mikrofonu. Sprawdź zaufanie certyfikatu (Sposób 2) i ustawienia Safari.'
+                : '✗ Ta strona jest otwarta po HTTP — mikrofon jest zablokowany przez system. Użyj wersji HTTPS.';
+            return;
+        }
+        out.style.color = 'var(--text2)';
+        out.textContent = '… czekam na zgodę na mikrofon';
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+            stream.getTracks().forEach(function (t) { t.stop(); });
+            out.style.color = 'var(--ok)';
+            out.textContent = '✓ Mikrofon działa! Stroik będzie działał na tym telefonie.';
+        }).catch(function (e) {
+            out.style.color = 'var(--err)';
+            if (e && e.name === 'NotAllowedError') {
+                out.textContent = '✗ Odmowa dostępu. Zezwól na mikrofon: pasek adresu → AA/ikona witryny → Mikrofon, albo Ustawienia → Safari → Mikrofon.';
+            } else if (e && e.name === 'NotFoundError') {
+                out.textContent = '✗ Nie znaleziono mikrofonu na tym urządzeniu.';
+            } else {
+                out.textContent = '✗ Błąd: ' + (e && e.name ? e.name : e);
+            }
+        });
+    };
+})();
+</script>
+</body>
+</html>

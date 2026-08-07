@@ -27,5 +27,33 @@ venv/
 venv/
 __pycache__/
 static/pads/
+
+# --- Node / Playwright ---
+node_modules/
+package.json
+package-lock.json# Bible verse prototype — auto-downloaded corpus + trained caches
+prototypes/ubg.txt
+prototypes/vref.txt
+prototypes/bible_model.cache*
+prototypes/verse_embeddings.npy
+prototypes/stemmed_verses.pkl
+
+# Node artifacts from local Playwright testing (app itself is Python)
+node_modules/
+package.json
+package-lock.json
+
+# Runtime-generated presentation slides (uploaded PDFs sliced to PNG)
+static/presentation/*
+!static/presentation/.gitkeep
+
+# HTTPS local CA + server cert (generated at runtime)
+jafa_cert.pem
+jafa_key.pem
+jafa_ca.pem
+jafa_ca_key.pem
+jafa_ca.srl
+jafa_cert_meta.json
+
 # --- Rendery testowe wtyczki ---
 WorshipPiano/*.wav

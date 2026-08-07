@@ -1,0 +1,2944 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Widok Członka Zespołu</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+    <script src="{{ url_for('static', filename='socket.io.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chords_db_guitar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chord_diagrams.js') }}"></script>
+    <style>
+        @keyframes scaleIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        body {
+            background-color: var(--bg-app);
+            color: var(--text-primary);
+            font-family: 'Sen', sans-serif;
+            margin: 0; padding: 0;
+            height: 100vh; width: 100vw;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* PRZYCISKI GÓRNE */
+        #fs-btn, #settings-btn, #setlist-btn, #tuner-btn {
+            position: absolute;
+            top: var(--s3);
+            background: var(--glass-bg);
+            border: 1px solid var(--border-default);
+            color: var(--text-primary);
+            font-size: 2vh;
+            padding: var(--s2) var(--s3);
+            cursor: pointer;
+            z-index: 9999;
+            border-radius: var(--r-md);
+            opacity: 0.5;
+            transition: all var(--duration-normal) var(--ease-out);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            backdrop-filter: blur(8px);
+        }
+        #fs-btn { right: var(--s3); }
+        #settings-btn { right: 60px; }
+        #tuner-btn { right: 108px; }
+        #setlist-btn { left: var(--s3); }
+        #tuner-btn.active { opacity: 1; color: var(--accent, #22D3EE); border-color: var(--accent, #22D3EE); }
+        #fs-btn:hover, #settings-btn:hover, #setlist-btn:hover, #tuner-btn:hover { opacity: 1; filter: brightness(1.15); }
+        #fs-btn:active, #settings-btn:active, #setlist-btn:active, #tuner-btn:active { transform: scale(0.97); }
+
+        /* SETLIST DRAWER */
+        #setlist-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 9999;
+        }
+        #setlist-drawer {
+            position: fixed; top: 0; left: -320px; bottom: 0; width: 300px;
+            background: var(--bg-elevated); border-right: 1px solid var(--border-default);
+            z-index: 10000; transition: left 0.3s var(--ease-out);
+            display: flex; flex-direction: column; padding: 0;
+        }
+        #setlist-drawer.open { left: 0; }
+        #setlist-drawer-header {
+            padding: var(--s4) var(--s5);
+            border-bottom: 1px solid var(--border-default);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        #setlist-drawer-header h3 { margin: 0; font-size: var(--text-lg); color: var(--text-primary); }
+        #setlist-drawer-close {
+            background: none; border: none; color: var(--text-secondary);
+            font-size: 1.4rem; cursor: pointer; padding: 4px 8px;
+        }
+        #setlist-song-list {
+            flex: 1; overflow-y: auto; padding: var(--s2) 0;
+        }
+        .setlist-song-item {
+            padding: var(--s3) var(--s5); cursor: pointer;
+            border-bottom: 1px solid var(--border-subtle);
+            transition: background 0.15s;
+            display: flex; align-items: center; gap: var(--s3);
+        }
+        .setlist-song-item:hover { background: var(--bg-hover); }
+        .setlist-song-item.active { background: var(--accent-primary); color: #fff; }
+        .setlist-song-item.live-now::before {
+            content: ''; width: 8px; height: 8px; border-radius: 50%;
+            background: var(--accent-success); flex-shrink: 0;
+            animation: livePulse 1.5s ease-in-out infinite;
+        }
+        .setlist-song-item-title { flex: 1; font-size: var(--text-sm); font-weight: 500; }
+        .setlist-song-item-key { font-size: var(--text-xs); color: var(--text-tertiary); opacity: 0.7; }
+
+        /* BROWSE MODE NAV */
+        #browse-nav {
+            display: none; position: fixed; bottom: 0; left: 0; right: 0;
+            background: var(--glass-bg); backdrop-filter: blur(12px);
+            border-top: 1px solid var(--border-default);
+            padding: var(--s2) var(--s4); z-index: 9998;
+            align-items: center; justify-content: space-between; gap: var(--s3);
+        }
+        #browse-nav.visible { display: flex; }
+        #browse-section-info {
+            font-size: var(--text-xs); color: var(--text-secondary); white-space: nowrap;
+            flex: 1; text-align: center;
+        }
+        .browse-nav-btn {
+            background: var(--bg-element); border: 1px solid var(--border-default);
+            color: var(--text-primary); padding: var(--s2) var(--s4);
+            border-radius: var(--r-md); cursor: pointer; font-size: var(--text-sm);
+            font-family: 'Sen', sans-serif;
+        }
+        .browse-nav-btn:hover { background: var(--bg-hover); }
+        #browse-live-btn {
+            background: var(--accent-success); color: #fff; border: none;
+            padding: var(--s2) var(--s5); border-radius: var(--r-full);
+            cursor: pointer; font-size: var(--text-sm); font-weight: 700;
+            font-family: 'Sen', sans-serif;
+            animation: livePulse 2s ease-in-out infinite;
+        }
+        /* BROWSE TILES */
+        #browse-tiles-view {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-app); z-index: 10001;
+            flex-direction: column; overflow: hidden;
+        }
+        #browse-tiles-view.open { display: flex; }
+        #browse-tiles-header {
+            display: flex; align-items: center; gap: var(--s3);
+            padding: var(--s3) var(--s4);
+            background: var(--glass-bg); backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-default);
+        }
+        #browse-tiles-title {
+            flex: 1; font-size: var(--text-base); font-weight: 700;
+            color: var(--text-primary); white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #browse-tiles-key {
+            font-size: var(--text-xs); color: var(--teal); font-weight: 600;
+        }
+        #browse-tiles-close {
+            background: none; border: none; color: var(--text-secondary);
+            font-size: var(--text-xl); cursor: pointer; padding: var(--s1);
+            font-family: 'Sen', sans-serif;
+        }
+        #browse-tiles-grid {
+            flex: 1; overflow-y: auto; padding: var(--s3);
+            display: flex; flex-direction: column; gap: var(--s2);
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 70px;
+        }
+        .browse-tile {
+            background: var(--bg-element); border: 1px solid var(--border-default);
+            border-radius: var(--r-md); padding: var(--s3) var(--s4);
+            cursor: pointer; transition: all 0.15s ease;
+        }
+        .browse-tile:active { transform: scale(0.98); }
+        .browse-tile.active { border-color: var(--accent-primary); background: rgba(99,102,241,0.1); }
+        .browse-tile-label {
+            font-size: var(--text-xs); font-weight: 700; color: var(--accent-primary);
+            text-transform: uppercase; margin-bottom: var(--s1); letter-spacing: 0.5px;
+        }
+        .browse-tile-preview {
+            font-size: var(--text-sm); color: var(--text-secondary);
+            line-height: 1.4; max-height: 3.6em; overflow: hidden;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        }
+        .browse-tile-note {
+            margin-top: var(--s1); font-size: var(--text-xs); color: var(--yellow);
+            font-style: italic;
+        }
+        .browse-tile-note::before { content: '📝 '; font-style: normal; }
+        @keyframes livePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(16,185,129,0); }
+        }
+        #browse-live-btn:hover { filter: brightness(1.1); }
+
+        /* PROFILE SELECTOR */
+        #profile-screen {
+            position: fixed; inset: 0; z-index: 20000;
+            background: var(--bg-app);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: var(--s6);
+        }
+        #profile-screen h2 { font-size: var(--text-2xl); margin-bottom: var(--s6); color: var(--text-primary); }
+        #profile-list {
+            display: flex; flex-wrap: wrap; gap: var(--s4); justify-content: center;
+            max-width: 500px; margin-bottom: var(--s6);
+        }
+        .profile-card {
+            display: flex; flex-direction: column; align-items: center; gap: var(--s2);
+            padding: var(--s4) var(--s5); border-radius: var(--r-lg);
+            background: var(--bg-elevated); border: 2px solid var(--border-default);
+            cursor: pointer; transition: all 0.2s; min-width: 100px;
+        }
+        .profile-card:hover { border-color: var(--accent-primary); transform: translateY(-2px); }
+        .profile-avatar {
+            width: 48px; height: 48px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; font-weight: 700; color: #fff;
+        }
+        .profile-card-name { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); }
+        .profile-card-instrument { font-size: var(--text-xs); color: var(--text-tertiary); }
+        #create-profile-btn {
+            padding: var(--s3) var(--s6); border-radius: var(--r-md);
+            background: var(--accent-primary); color: #fff; border: none;
+            cursor: pointer; font-size: var(--text-sm); font-weight: 600;
+            font-family: 'Sen', sans-serif;
+        }
+        #create-profile-btn:hover { filter: brightness(1.1); }
+
+        /* PROFILE BADGE */
+        #profile-badge {
+            position: absolute; top: var(--s3); left: 56px;
+            display: flex; align-items: center; gap: var(--s2);
+            background: var(--glass-bg); backdrop-filter: blur(8px);
+            border: 1px solid var(--border-default); border-radius: var(--r-full);
+            padding: 4px 12px 4px 4px; z-index: 9998;
+            opacity: 0.6; transition: opacity 0.2s; cursor: pointer;
+        }
+        #profile-badge:hover { opacity: 1; }
+        #profile-badge .mini-avatar {
+            width: 24px; height: 24px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.6rem; font-weight: 700; color: #fff;
+        }
+        #profile-badge .profile-name { font-size: var(--text-xs); color: var(--text-primary); }
+        /* Kropka statusu połączenia: kolorowa = połączony, szara = rozłączony */
+        .conn-dot {
+            width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+            background: var(--text-tertiary, #56627A);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+        .conn-dot.connected {
+            background: var(--green, #34D399);
+            box-shadow: 0 0 8px rgba(52, 211, 153, 0.7);
+        }
+
+        /* PERSONAL NOTES (in meta panel) */
+        #section-note-area {
+            margin-top: var(--s1);
+        }
+        .section-note {
+            background: rgba(99, 102, 241, 0.15); border-left: 3px solid var(--accent-primary);
+            padding: 4px 10px; border-radius: 0 6px 6px 0;
+            font-size: var(--text-xs); color: var(--accent-primary); font-style: italic;
+            cursor: pointer; display: flex; align-items: center; gap: 6px;
+            line-height: 1.3;
+        }
+        .section-note::before { content: '📝'; font-style: normal; }
+        .add-note-btn {
+            display: inline-block; font-size: var(--text-xs); opacity: 0.4;
+            cursor: pointer; padding: 2px 6px; transition: opacity 0.2s;
+            color: var(--text-secondary);
+        }
+        .add-note-btn:hover { opacity: 0.8; }
+
+        /* NOTE EDITOR MODAL */
+        #note-editor {
+            display: none; position: fixed; inset: 0; z-index: 20001;
+            background: rgba(0,0,0,0.7); align-items: center; justify-content: center;
+        }
+        #note-editor.open { display: flex; }
+        #note-editor-content {
+            background: var(--bg-elevated); border-radius: var(--r-lg);
+            padding: var(--s5); width: 90%; max-width: 400px;
+            border: 1px solid var(--border-default);
+        }
+        #note-editor-content h3 { margin: 0 0 var(--s3); font-size: var(--text-lg); color: var(--text-primary); }
+        #note-input {
+            width: 100%; padding: var(--s3); border-radius: var(--r-md);
+            background: var(--bg-surface); color: var(--text-primary);
+            border: 1px solid var(--border-default); font-family: 'Sen', sans-serif;
+            font-size: var(--text-sm); resize: vertical; min-height: 60px;
+            box-sizing: border-box;
+        }
+        #note-editor-btns {
+            display: flex; gap: var(--s3); margin-top: var(--s3); justify-content: flex-end;
+        }
+        #note-editor-btns button {
+            padding: var(--s2) var(--s4); border-radius: var(--r-md); border: none;
+            cursor: pointer; font-size: var(--text-sm); font-family: 'Sen', sans-serif;
+        }
+
+        /* PER-SONG CAPO INDICATOR */
+        .song-capo-badge {
+            display: inline-block; font-size: var(--text-xs);
+            background: rgba(16,185,129,0.2); color: var(--accent-success);
+            padding: 2px 8px; border-radius: var(--r-full); margin-left: var(--s2);
+        }
+
+        /* --- WIDOK UWIELBIENIA --- */
+        #worship-view {
+            display: flex;
+            flex-direction: column;
+            height: 100%; width: 100%;
+        }
+
+        /* GÓRA (70%) */
+        #current-slide {
+            height: 70vh;
+            width: 100%;
+            /* góra: pływający pasek profilu/menu; bez tego akordy 1. linii
+               chowały się pod przyciskami */
+            padding: 60px 20px 10px; box-sizing: border-box;
+            border-bottom: 1px solid var(--border-default);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 8vh;
+            line-height: 1.4; /* pary akord+sylaba same rezerwują wiersz na akordy */
+            overflow: hidden;
+            position: relative;
+        }
+
+        #stage-logo {
+            max-width: 55%;
+            max-height: 70%;
+            object-fit: contain;
+            display: block;
+        }
+
+        #current-content {
+            display: none;
+            width: 100%;
+        }
+
+        /* DÓŁ (30%) */
+        #next-slide-container {
+            height: 30vh;
+            width: 100%;
+            background-color: var(--bg-app);
+            padding: 10px 40px; box-sizing: border-box;
+            border-top: 1px solid var(--border-default);
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            gap: 24px;
+            position: relative;
+        }
+        /* Lewa strefa: tekst „następnie" (jak dawniej). */
+        #bottom-left {
+            flex: 0 1 42%;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        /* Środek: diagramy akordów aktualnie granych (co grać TERAZ). */
+        #now-diagrams {
+            display: none;              /* włączane z JS gdy aktywne */
+            flex: 1 1 auto;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-right: 150px;       /* nie wchodź pod meta (zegar/tonacja) */
+            box-sizing: border-box;
+            min-width: 0;
+        }
+
+        .meta-info-container {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            text-align: right;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+        #realtime-clock {
+            font-size: 3.5vh;
+            color: var(--text-tertiary);
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        #key-display {
+            font-size: 3.5vh;
+            color: var(--teal);
+            font-weight: bold;
+            display: none;
+        }
+
+        #capo-display {
+            font-size: 2.5vh;
+            color: var(--green);
+            font-weight: bold;
+            display: none;
+        }
+
+        #bpm-display {
+            font-size: 2.5vh;
+            color: var(--amber);
+            font-weight: bold;
+            font-family: monospace;
+            letter-spacing: 1px;
+            display: none;
+        }
+
+        #next-label {
+            font-size: var(--font-xs);
+            color: var(--red);
+            font-weight: 700;
+            margin-bottom: var(--s1);
+            flex-shrink: 0;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        #next-content {
+            flex-grow: 1;
+            color: var(--text-secondary);
+            font-size: 4vh;
+            line-height: 1.4;
+            text-align: left;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-start;
+            padding-top: 15px;
+            padding-right: var(--s2);
+        }
+
+        .text-wrapper { width: 100%; }
+
+        /* AKORDY — pary akord+sylaba: akord zajmuje prawdziwy wiersz nad sylabą,
+           więc nic nie nachodzi, a przy zawijaniu akord wędruje ze swoją sylabą. */
+        .chord-pair { display: inline-block; vertical-align: baseline; text-align: left; }
+        .chord-pair .chord {
+            display: block;
+            color: var(--accent); font-weight: 700; font-size: 0.65em;
+            line-height: 1.3; white-space: nowrap; padding-right: 0.4em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .chord-pair .chord-syl { display: block; white-space: nowrap; }
+        /* pusta sylaba (kolejny akord obok / koniec linii) trzyma wysokość wiersza */
+        .chord-pair .chord-syl:empty::before { content: "\200B"; }
+        .bass-slash { color: var(--red); opacity: 0.8; }
+        .bass-note { color: var(--teal); font-weight: 800; font-size: 0.95em; }
+
+        #current-slide .chord.nashville { color: var(--amber); }
+        #current-slide .chord.capo { color: var(--green); }
+
+        #next-slide-container .chord-pair .chord {
+            color: var(--green);
+            font-size: 0.6em;
+            font-weight: bold;
+        }
+        #next-slide-container .chord.nashville { color: var(--amber); opacity: 0.6; }
+        #next-slide-container .chord.capo { color: var(--green); opacity: 0.6; }
+
+        .chord-only-line { display: block; }
+        .chord-only-line .chord-pair .chord { font-size: 0.85em; }
+
+        #current-slide .chord.hard-chord {
+            color: var(--amber);
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            text-underline-offset: 3px;
+        }
+
+        /* --- WIDOK KONFERENCJI --- */
+        #conference-view {
+            display: none; height: 100%; width: 100%;
+            background: var(--bg-app);
+            flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
+        #conf-timer { font-size: 25vh; font-weight: bold; font-family: monospace; color: white; margin-bottom: 5vh; }
+        #conf-message { font-size: 8vh; color: yellow; padding: 20px; max-width: 90%; }
+
+        /* --- PANEL USTAWIEŃ --- */
+        #settings-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 10000;
+        }
+        #settings-panel {
+            position: fixed; top: 0; right: -360px;
+            width: 340px; height: 100%;
+            background: var(--bg-panel);
+            backdrop-filter: blur(24px);
+            border-left: 1px solid var(--border-default);
+            border-radius: var(--r-xl) 0 0 var(--r-xl);
+            z-index: 10001;
+            transition: right var(--duration-normal) var(--ease-out);
+            overflow-y: auto;
+            padding: var(--s5);
+            display: flex; flex-direction: column; gap: var(--s4);
+        }
+        #settings-panel.open { right: 0; }
+        #settings-panel h2 {
+            font-size: var(--font-lg); color: var(--text-primary);
+            padding-bottom: var(--s3); border-bottom: 1px solid var(--border-default);
+            display: flex; justify-content: space-between; align-items: center;
+            margin: 0;
+        }
+        .setting-group {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--r-lg);
+            padding: var(--s4);
+        }
+        .setting-group .group-title {
+            font-size: var(--font-xs); color: var(--text-tertiary);
+            text-transform: uppercase; letter-spacing: 0.06em;
+            margin-bottom: var(--s3); font-weight: 600;
+        }
+        .setting-group label {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: var(--font-sm); color: var(--text-primary);
+            margin-bottom: var(--s3);
+        }
+        .setting-group label:last-child { margin-bottom: 0; }
+
+        .toggle {
+            position: relative; width: 44px; height: 24px;
+            background: var(--bg-elevated); border-radius: var(--r-full); cursor: pointer;
+            transition: background var(--duration-normal) var(--ease-out); flex-shrink: 0;
+        }
+        .toggle.active { background: var(--accent); }
+        .toggle::after {
+            content: '';
+            position: absolute; top: 2px; left: 2px;
+            width: 20px; height: 20px;
+            background: #fff; border-radius: 50%;
+            transition: transform var(--duration-normal) var(--ease-out);
+        }
+        .toggle.active::after { transform: translateX(20px); }
+
+        input[type="range"] { width: 100%; accent-color: var(--accent); }
+        #settings-panel select {
+            width: 100%; padding: var(--s2) var(--s3);
+            background: var(--bg-surface); border: 1px solid var(--border-default);
+            color: var(--text-primary); border-radius: var(--r-md); font-size: var(--font-sm);
+        }
+        .btn {
+            padding: var(--s3) var(--s4); border: none; border-radius: var(--r-md);
+            font-size: var(--font-sm); font-weight: 600; cursor: pointer;
+            transition: all var(--duration-normal) var(--ease-out);
+        }
+        .btn:hover { filter: brightness(1.15); }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { filter: brightness(1.15); }
+        .btn-danger { background: var(--red); color: #fff; border: none; }
+        .btn-danger:hover { filter: brightness(1.15); }
+
+        /* CHORD POPUP */
+        #chord-popup {
+            display: none;
+            position: fixed;
+            z-index: 20000;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-default);
+            border-radius: var(--r-xl);
+            padding: var(--s2);
+            box-shadow: var(--shadow-lg);
+            pointer-events: auto;
+        }
+        .popup-close {
+            background: none; border: none; color: var(--text-tertiary);
+            font-size: var(--font-lg); cursor: pointer;
+            transition: color var(--duration-fast) ease;
+        }
+        .popup-close:hover { color: var(--text-primary); }
+        #chord-popup .popup-close {
+            position: absolute; top: var(--s1); right: var(--s2);
+            font-size: var(--font-sm);
+        }
+        #chord-popup .no-diagram {
+            padding: var(--s5) var(--s4);
+            color: var(--text-tertiary); font-size: var(--font-xs); text-align: center;
+        }
+        /* --- VOICING SUGGESTIONS --- */
+        #chord-popup { max-width: min(94vw, 560px); }
+        .voicing-title {
+            font-size: var(--font-xs); font-weight: 700; letter-spacing: .04em;
+            text-transform: uppercase; color: var(--text-tertiary);
+            padding: var(--s1) var(--s5) var(--s2) var(--s2);
+        }
+        .voicing-row {
+            display: flex; gap: var(--s2); flex-wrap: wrap; justify-content: center;
+            padding: 0 var(--s1) var(--s1);
+        }
+        .voicing-card {
+            flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
+            width: 116px;
+        }
+        .voicing-svg { line-height: 0; }
+        .voicing-svg svg { width: 108px; height: auto; }
+        .voicing-tag {
+            margin-top: var(--s1); font-size: var(--font-2xs, 0.66rem); font-weight: 700;
+            letter-spacing: .03em; text-transform: uppercase; padding: 2px 8px;
+            border-radius: var(--r-full, 999px); background: var(--bg-subtle, rgba(255,255,255,.06));
+            color: var(--text-secondary);
+        }
+        .voicing-tag--base    { background: var(--accent); color: #fff; }
+        .voicing-tag--color   { background: rgba(0,229,255,.16);  color: #00cfe6; }
+        .voicing-tag--open    { background: rgba(105,240,174,.16); color: #4fd48a; }
+        .voicing-tag--tension { background: rgba(255,152,0,.16);  color: #ffab2e; }
+        .voicing-tag--jazzy   { background: rgba(179,136,255,.18); color: #b388ff; }
+        .voicing-tag--soft    { background: rgba(255,204,2,.16);  color: #e0b400; }
+        .voicing-tag--resolve { background: rgba(255,255,255,.08); color: var(--text-secondary); }
+        .voicing-hint {
+            margin-top: 4px; font-size: var(--font-2xs, 0.66rem); line-height: 1.3;
+            color: var(--text-tertiary); text-align: center; max-width: 108px;
+        }
+        .voicing-card--rec .voicing-svg {
+            outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 10px;
+        }
+        .voicing-star {
+            font-size: var(--font-2xs, 0.66rem); font-weight: 800; letter-spacing: .02em;
+            color: var(--accent); margin-bottom: 3px; text-align: center;
+            white-space: nowrap;
+        }
+        .voicing-card { position: relative; }
+
+        /* --- INLINE "NOW PLAYING" DIAGRAMS (center of bottom bar) --- */
+        .nd-head {
+            display: flex; align-items: center; justify-content: center;
+            gap: var(--s3); margin-bottom: var(--s2); flex-wrap: wrap;
+        }
+        .nd-title {
+            font-size: var(--font-2xs, 0.66rem); font-weight: 700; letter-spacing: .1em;
+            text-transform: uppercase; color: var(--text-tertiary);
+        }
+        /* Segmentowany przełącznik: dwa czytelne przyciski, aktywny podświetlony */
+        .nd-seg {
+            display: inline-flex; border: 1px solid var(--border-default);
+            border-radius: var(--r-full, 999px); overflow: hidden; background: var(--bg-elevated);
+        }
+        .nd-seg-btn {
+            font-size: var(--font-2xs, 0.66rem); font-weight: 700; letter-spacing: .02em;
+            padding: 4px 12px; background: transparent; color: var(--text-tertiary);
+            border: none; cursor: pointer; white-space: nowrap;
+            transition: all var(--duration-fast, .15s) ease;
+        }
+        .nd-seg-btn:hover { color: var(--text-secondary); }
+        .nd-seg-btn.on { background: var(--accent); color: #fff; }
+        .nd-row {
+            display: flex; gap: var(--s3); overflow-x: auto; padding-bottom: 2px;
+            justify-content: center; max-width: 100%; align-items: center;
+        }
+        .nd-card {
+            position: relative; flex: 0 0 auto; line-height: 0;
+        }
+        /* Wysokość napędzana wysokością paska dolnego — diagramy wypełniają go. */
+        .nd-svg svg { height: min(21vh, 210px); width: auto; display: block; }
+        /* Pianino: klawiatura jest szeroka — rozłóż karty równo na całą szerokość
+           i skaluj szerokością, żeby ZAWSZE zmieściły się wszystkie akordy
+           sekcji bez przewijania. */
+        .nd-row--piano { width: 100%; overflow-x: visible; flex-wrap: nowrap; }
+        .nd-row--piano .nd-card { flex: 1 1 0; min-width: 0; max-width: 190px; }
+        .nd-row--piano .nd-svg svg { width: 100%; height: auto; }
+        .nd-star {
+            position: absolute; top: -3px; right: -1px; z-index: 2;
+            font-size: 15px; color: var(--accent);
+            text-shadow: 0 0 3px var(--bg-base, #000);
+        }
+        .nd-miss {
+            width: calc(min(21vh, 210px) * 0.75); height: min(21vh, 210px);
+            display: flex; align-items: center; justify-content: center;
+            font-size: var(--font-md, 1rem); font-weight: 700; color: var(--text-tertiary);
+            background: var(--bg-elevated); border: 1px solid var(--border-default);
+            border-radius: 8px; line-height: 1.1; text-align: center;
+        }
+        /* Tablety i węziej: układ pionowy (diagramy dostają pełną szerokość).
+           Tekst „następnie" jest pełnej szerokości, więc musi omijać absolutną
+           meta (zegar/tonacja) w prawym górnym rogu. */
+        @media (max-width: 1024px) {
+            #next-slide-container { flex-direction: column; gap: var(--s2); }
+            #bottom-left { flex: 1 1 auto; }
+            #now-diagrams { padding-right: 0; flex: 0 0 auto; align-items: flex-start; }
+            .nd-head { justify-content: flex-start; }
+            .nd-row { justify-content: flex-start; }
+            .nd-svg svg { height: auto; width: 68px; }
+            .nd-miss { width: 68px; height: 90px; }
+            /* zmniejsz meta i zrób miejsce, żeby tekst nie wchodził pod nią */
+            .meta-info-container { top: 10px; right: 12px; gap: 2px; }
+            #realtime-clock, #key-display { font-size: 2.3vh; }
+            #capo-display, #bpm-display { font-size: 1.9vh; }
+            #next-content { padding-right: 150px; }
+        }
+
+        .chord.clickable { cursor: pointer; }
+        .chord.clickable:hover { text-decoration: underline; }
+
+        /* --- MOBILE TIP BANNER --- */
+        #mobile-tip {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: linear-gradient(135deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95));
+            color: #fff;
+            padding: 14px 16px;
+            z-index: 9999;
+            backdrop-filter: blur(12px);
+            font-size: 0.82rem;
+            line-height: 1.4;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+        }
+        #mobile-tip .tip-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        #mobile-tip .tip-icon {
+            font-size: 1.8rem;
+            flex-shrink: 0;
+            animation: rotateHint 2.5s ease-in-out infinite;
+        }
+        @keyframes rotateHint {
+            0%, 100% { transform: rotate(0deg); }
+            30% { transform: rotate(90deg); }
+            60% { transform: rotate(90deg); }
+            80% { transform: rotate(0deg); }
+        }
+        #mobile-tip .tip-close {
+            position: absolute;
+            top: 6px; right: 10px;
+            background: none; border: none;
+            color: rgba(255,255,255,0.7);
+            font-size: 1.2rem; cursor: pointer;
+            padding: 4px;
+        }
+        #mobile-tip .tip-close:hover { color: #fff; }
+        #mobile-tip b { display: block; margin-bottom: 2px; font-size: 0.88rem; }
+
+        @media (max-width: 600px) {
+            #settings-panel { width: 100%; right: -100%; }
+        }
+
+        /* --- RESPONSIVE: phones & small screens --- */
+        @media (max-width: 480px) {
+            #current-slide {
+                height: 60vh;
+                font-size: 5.5vh;
+                line-height: 1.4;
+                padding: 56px 10px 8px;
+            }
+            #next-slide-container {
+                height: 40vh;
+                padding: 8px 12px;
+            }
+            .meta-info-container {
+                top: 6px;
+                right: 8px;
+                gap: 2px;
+            }
+            #realtime-clock { font-size: 2.2vh; }
+            #key-display { font-size: 2.2vh; }
+            #capo-display { font-size: 1.8vh; }
+            #bpm-display { font-size: 1.8vh; }
+            #next-content {
+                font-size: 2.8vh;
+                line-height: 1.7;
+                padding-right: 110px;   /* omiń meta (zegar/tonacja) w rogu */
+                padding-top: 8px;
+            }
+            #next-slide-container .chord-pair .chord {
+                font-size: 0.55em;
+            }
+            .chord-only-line .chord-pair .chord {
+                font-size: 0.85em;
+            }
+            .chord-only-line {
+                line-height: 1.4 !important;
+                margin-bottom: 2px;
+            }
+            #current-slide .chord-pair .chord {
+                font-size: 0.55em;
+            }
+            #setlist-btn, #fs-btn, #settings-btn, #tuner-btn {
+                width: 36px; height: 36px;
+            }
+            #settings-btn { right: 54px; }
+            #tuner-btn { right: 96px; }
+        }
+
+        @media (max-width: 380px) {
+            #current-slide {
+                height: 55vh;
+                font-size: 4.5vh;
+                line-height: 1.4;
+            }
+            #next-slide-container {
+                height: 45vh;
+                padding: 6px 10px;
+            }
+            #next-content {
+                font-size: 2.4vh;
+                line-height: 1.5;
+                padding-right: 95px;   /* omiń meta w rogu */
+            }
+            .meta-info-container {
+                top: 4px;
+                right: 6px;
+            }
+            #realtime-clock { font-size: 1.8vh; }
+            #key-display { font-size: 1.8vh; }
+            #capo-display { font-size: 1.5vh; }
+            #bpm-display { font-size: 1.5vh; }
+        }
+
+        @media (max-height: 700px) {
+            #current-slide {
+                height: 58vh;
+                font-size: 5vh;
+                line-height: 1.4;
+            }
+            #next-slide-container {
+                height: 42vh;
+            }
+            #next-content {
+                font-size: 2.8vh;
+                line-height: 1.6;
+                padding-right: 80px;
+                padding-top: 6px;
+            }
+            .meta-info-container {
+                top: 6px; right: 10px; gap: 2px;
+            }
+            #realtime-clock { font-size: 2vh; }
+            #key-display { font-size: 2vh; }
+            #capo-display { font-size: 1.6vh; }
+            #bpm-display { font-size: 1.6vh; }
+        }
+
+        @media (max-width: 480px) and (max-height: 700px) {
+            #current-slide {
+                height: 55vh;
+                font-size: 4.5vh;
+                line-height: 1.4;
+            }
+            #next-slide-container {
+                height: 45vh;
+                padding: 6px 10px;
+            }
+            #next-content {
+                font-size: 2.4vh;
+                line-height: 1.5;
+                padding-right: 95px;   /* omiń meta w rogu */
+                padding-top: 5px;
+            }
+        }
+
+        /* Light theme overrides */
+        [data-theme="light"] #current-slide .chord {
+            text-shadow: none;
+        }
+        [data-theme="light"] #conf-timer {
+            color: var(--text-primary);
+        }
+        [data-theme="light"] #conf-message {
+            color: var(--amber);
+        }
+
+        /* Silent Music Director — nakładka z akordami na żywo */
+        #silent-md-overlay {
+            position: fixed; inset: 0; z-index: 5000;
+            display: none;
+            align-items: center; justify-content: center;
+            background:
+                radial-gradient(120% 90% at 50% 30%, rgba(34,211,238,0.08), transparent 60%),
+                var(--bg-app, #070A11);
+        }
+        #silent-md-overlay.show { display: flex; animation: smdFade 0.25s ease; }
+        @keyframes smdFade { from { opacity: 0; } to { opacity: 1; } }
+        .smd-inner { text-align: center; width: 100%; padding: 4vh 4vw; }
+        .smd-history {
+            display: flex; align-items: baseline; justify-content: center;
+            gap: clamp(12px, 4vw, 48px);
+            min-height: 8vh; margin-bottom: 2vh;
+        }
+        .smd-history span {
+            font-weight: 800;
+            font-size: clamp(1.4rem, 6vh, 4rem);
+            color: var(--text-tertiary, #56627A);
+            opacity: 0.55;
+        }
+        .smd-history span:last-child { opacity: 0.8; color: var(--text-secondary, #94A2B8); }
+        .smd-current {
+            font-weight: 800;
+            font-size: clamp(4rem, 26vh, 20rem);
+            line-height: 1;
+            color: var(--accent, #22D3EE);
+            text-shadow: 0 0 60px var(--accent-glow, rgba(34,211,238,0.4));
+            letter-spacing: -0.02em;
+        }
+        .smd-tag {
+            margin-top: 4vh;
+            font-size: clamp(0.7rem, 1.8vh, 1.1rem);
+            letter-spacing: 0.22em; text-transform: uppercase;
+            color: var(--text-tertiary, #56627A);
+        }
+        .smd-capo-badge {
+            display: none;
+            margin: 0 auto 2vh;
+            padding: 0.6vh 2.2vh;
+            border-radius: 999px;
+            background: var(--amber-subtle, rgba(251,191,36,0.12));
+            border: 1px solid var(--amber, #FBBF24);
+            color: var(--amber, #FBBF24);
+            font-weight: 800;
+            font-size: clamp(0.7rem, 1.9vh, 1.15rem);
+            letter-spacing: 0.08em; text-transform: uppercase;
+        }
+
+        /* --- TUNER (stroik) --- */
+        #tuner-overlay {
+            position: fixed; inset: 0; z-index: 6000;
+            display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            background:
+                radial-gradient(120% 90% at 50% 28%, rgba(34,211,238,0.07), transparent 60%),
+                var(--bg-app, #070A11);
+        }
+        #tuner-overlay.show { display: flex; animation: smdFade 0.25s ease; }
+        #tuner-close {
+            position: absolute; top: var(--s4); right: var(--s4);
+            width: 40px; height: 40px; border-radius: var(--r-md);
+            background: var(--glass-bg); border: 1px solid var(--border-default);
+            color: var(--text-primary); font-size: 1.1rem; cursor: pointer;
+            z-index: 2;
+        }
+        .tuner-inner { width: min(680px, 92vw); text-align: center; padding: 2vh 0; }
+        .tuner-note-wrap { display: flex; align-items: baseline; justify-content: center; gap: 0.3vw; }
+        #tuner-note {
+            font-weight: 800; line-height: 1;
+            font-size: clamp(5rem, 30vh, 18rem);
+            color: var(--text-tertiary, #56627A);
+            letter-spacing: -0.03em;
+            transition: color 0.12s ease, text-shadow 0.12s ease;
+        }
+        #tuner-note.in-tune {
+            color: var(--green, #34D399);
+            text-shadow: 0 0 60px rgba(52,211,153,0.45);
+        }
+        #tuner-note.off { color: var(--text-primary, #E7ECF3); }
+        #tuner-octave { font-weight: 700; font-size: clamp(1rem, 4vh, 2.2rem); color: var(--text-tertiary, #56627A); }
+        #tuner-direction {
+            margin-top: 0.5vh; min-height: 3vh;
+            font-size: clamp(0.8rem, 2.2vh, 1.3rem); font-weight: 700;
+            letter-spacing: 0.04em; color: var(--text-secondary, #94A2B8);
+        }
+        #tuner-direction.flat  { color: var(--amber, #FBBF24); }
+        #tuner-direction.sharp { color: var(--red, #F87171); }
+        #tuner-direction.good  { color: var(--green, #34D399); }
+
+        .tuner-meter { margin: 3vh auto 1vh; width: 100%; }
+        .tuner-scale {
+            display: flex; justify-content: space-between;
+            font-size: clamp(0.6rem, 1.4vh, 0.85rem); color: var(--text-tertiary, #56627A);
+            font-variant-numeric: tabular-nums; margin-bottom: 0.6vh; padding: 0 2px;
+        }
+        .tuner-scale .tm-c { color: var(--text-secondary, #94A2B8); font-weight: 700; }
+        .tuner-track {
+            position: relative; height: 46px;
+            background: var(--bg-surface, #0E1420);
+            border: 1px solid var(--border-default);
+            border-radius: 999px; overflow: hidden;
+        }
+        .tuner-center-line {
+            position: absolute; left: 50%; top: 8%; bottom: 8%; width: 2px;
+            transform: translateX(-50%); background: var(--green, #34D399); opacity: 0.6;
+        }
+        #tuner-needle {
+            position: absolute; top: 50%; left: 50%;
+            width: 8px; height: 34px; border-radius: 6px;
+            background: var(--text-tertiary, #56627A);
+            transform: translate(-50%, -50%);
+            transition: left 0.09s linear, background 0.12s ease;
+            box-shadow: 0 0 12px rgba(0,0,0,0.4);
+        }
+        #tuner-needle.in-tune { background: var(--green, #34D399); box-shadow: 0 0 16px rgba(52,211,153,0.7); }
+        #tuner-needle.flat  { background: var(--amber, #FBBF24); }
+        #tuner-needle.sharp { background: var(--red, #F87171); }
+        .tuner-cents { margin-top: 1vh; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text-secondary, #94A2B8); }
+        .tuner-cents-u { font-size: 0.75em; color: var(--text-tertiary, #56627A); font-weight: 600; }
+        .tuner-freq {
+            margin-top: 2.5vh; font-size: clamp(0.75rem, 1.8vh, 1rem);
+            color: var(--text-tertiary, #56627A); font-variant-numeric: tabular-nums;
+        }
+        .tuner-strings {
+            display: flex; justify-content: center; gap: clamp(6px, 2vw, 16px);
+            margin-top: 3vh; flex-wrap: wrap;
+        }
+        .tuner-string-chip {
+            min-width: 40px; padding: 0.8vh 0.4vw; border-radius: var(--r-md);
+            background: var(--bg-surface, #0E1420); border: 1px solid var(--border-default);
+            color: var(--text-tertiary, #56627A); font-weight: 800;
+            font-size: clamp(0.9rem, 2.2vh, 1.3rem); cursor: default;
+            transition: all 0.15s ease;
+        }
+        .tuner-string-chip.near { color: var(--text-primary, #E7ECF3); border-color: var(--text-tertiary, #56627A); }
+        .tuner-string-chip.locked { color: var(--green, #34D399); border-color: var(--green, #34D399); box-shadow: 0 0 14px rgba(52,211,153,0.3); }
+    </style>
+</head>
+<body>
+
+    <!-- MOBILE TIP BANNER -->
+    <div id="mobile-tip">
+        <button class="tip-close" onclick="dismissMobileTip()">&times;</button>
+        <div class="tip-content">
+            <span class="tip-icon">📱</span>
+            <div>
+                <b data-t="bm_tip_title">Dodaj na ekran startowy</b>
+                <span data-t="bm_tip_desc">iPhone: udostepnij &gt; Na ekran poczatkowy. Obróć telefon poziomo dla najlepszego widoku.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFILE SELECTION SCREEN -->
+    <div id="profile-screen" style="display:none;">
+        <h2 id="profile-screen-title" data-t="profile_who">Kto grasz?</h2>
+        <div id="profile-list"></div>
+        <button id="create-profile-btn" onclick="showCreateProfile()" data-t="profile_new">+ Nowy profil</button>
+        <div id="create-profile-form" style="display:none; margin-top:20px; text-align:center;">
+            <input id="new-profile-name" data-t-ph="profile_name_ph" placeholder="Imię" style="padding:8px 14px; border-radius:8px; background:var(--bg-surface); color:var(--text-primary); border:1px solid var(--border-default); font-size:var(--text-sm); width:180px; font-family:'Sen',sans-serif;">
+            <select id="new-profile-instrument" style="padding:8px 10px; border-radius:8px; background:var(--bg-surface); color:var(--text-primary); border:1px solid var(--border-default); font-size:var(--text-sm); margin-left:8px; font-family:'Sen',sans-serif;">
+                <option value="">Instrument</option>
+                <option value="gitara" data-t="profile_guitar">Gitara</option>
+                <option value="pianino" data-t="profile_keys">Klawisze</option>
+                <option value="bas" data-t="profile_bass">Bas</option>
+                <option value="ukulele">Ukulele</option>
+                <option value="skrzypce">Skrzypce</option>
+                <option value="perkusja" data-t="profile_drums">Perkusja</option>
+                <option value="wokal" data-t="profile_vocal">Wokal</option>
+                <option value="inne" data-t="profile_other">Inne</option>
+            </select>
+            <button onclick="createProfile()" style="margin-left:8px; padding:8px 18px; border-radius:8px; background:var(--accent-success); color:#fff; border:none; cursor:pointer; font-family:'Sen',sans-serif;">OK</button>
+        </div>
+    </div>
+
+    <!-- PROFILE BADGE -->
+    <div id="profile-badge" style="display:none;" onclick="showProfileScreen()" data-t-title="profile_switch">
+        <div class="mini-avatar" id="badge-avatar"></div>
+        <span class="profile-name" id="badge-name"></span>
+        <span class="conn-dot" id="conn-dot" title="Status połączenia"></span>
+    </div>
+
+    <!-- NOTE EDITOR -->
+    <div id="note-editor">
+        <div id="note-editor-content">
+            <h3 id="note-editor-title" data-t="note_title">Notatka</h3>
+            <textarea id="note-input" data-t-ph="note_ph" placeholder="np. intro: arpeggio, bridge: palm mute..."></textarea>
+            <div id="note-editor-btns">
+                <button onclick="deleteNote()" data-t="note_delete" style="background:var(--accent-danger);color:#fff;">Usuń</button>
+                <button onclick="closeNoteEditor()" data-t="note_cancel" style="background:var(--bg-surface);color:var(--text-primary);">Anuluj</button>
+                <button onclick="saveNote()" data-t="note_save" style="background:var(--accent-primary);color:#fff;">Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <button id="setlist-btn" onclick="toggleSetlistDrawer()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+    <button id="tuner-btn" onclick="toggleTuner()" title="Tuner" aria-label="Tuner"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10"/><circle cx="12" cy="16" r="3"/><path d="M5 8a9 9 0 0 1 14 0"/><path d="M7.5 11a5.5 5.5 0 0 1 9 0"/></svg></button>
+    <button id="fs-btn" onclick="toggleFullscreen()">⛶</button>
+    <button id="settings-btn" onclick="toggleSettings()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+
+    <div id="silent-md-overlay">
+        <div class="smd-inner">
+            <div class="smd-capo-badge" id="smd-capo-badge"></div>
+            <div class="smd-history" id="smd-history"></div>
+            <div class="smd-current" id="smd-current">—</div>
+            <div class="smd-tag" id="smd-tag" data-t="smd_tag">SILENT MODE · pianino prowadzi</div>
+        </div>
+    </div>
+
+    <!-- Tuner (stroik) — mikrofon wykrywa wysokość dźwięku -->
+    <div id="tuner-overlay">
+        <button id="tuner-close" onclick="toggleTuner()" aria-label="Close">✕</button>
+        <div class="tuner-inner">
+            <div class="tuner-note-wrap">
+                <div id="tuner-note">—</div>
+                <div id="tuner-octave"></div>
+            </div>
+            <div id="tuner-direction" data-t="tuner_hint_play">Zagraj jedną strunę…</div>
+
+            <div class="tuner-meter">
+                <div class="tuner-scale">
+                    <span>-50</span><span>-25</span><span class="tm-c">0</span><span>+25</span><span>+50</span>
+                </div>
+                <div class="tuner-track">
+                    <div class="tuner-center-line"></div>
+                    <div id="tuner-needle"></div>
+                </div>
+                <div class="tuner-cents"><span id="tuner-cents-val">–</span> <span class="tuner-cents-u">cents</span></div>
+            </div>
+
+            <div class="tuner-freq"><span id="tuner-freq">—</span> Hz &nbsp;·&nbsp; <span data-t="tuner_target">cel</span>: <span id="tuner-target">—</span> Hz</div>
+
+            <div id="tuner-strings" class="tuner-strings"></div>
+        </div>
+    </div>
+
+    <div id="worship-view">
+        <div id="current-slide">
+            <img id="stage-logo" src="{{ url_for('static', filename='logo.png') }}">
+            <div id="current-content" class="text-wrapper"></div>
+        </div>
+
+        <div id="next-slide-container">
+            <div class="meta-info-container">
+                <div id="realtime-clock">00:00</div>
+                <div id="key-display"></div>
+                <div id="capo-display"></div>
+                <div id="bpm-display"></div>
+                <div id="section-note-area"></div>
+            </div>
+
+            <div id="bottom-left">
+                <div id="next-label" data-t="bm_next_label">NASTĘPNIE:</div>
+                <div id="next-content">
+                    <div id="next-text-inner" class="text-wrapper"></div>
+                </div>
+            </div>
+            <div id="now-diagrams"></div>
+        </div>
+    </div>
+
+    <div id="conference-view">
+        <div id="conf-timer">00:00</div>
+        <div id="conf-message"></div>
+    </div>
+
+    <!-- CHORD POPUP -->
+    <div id="chord-popup">
+        <button class="popup-close" onclick="hideChordPopup()">✕</button>
+        <div id="chord-popup-content"></div>
+    </div>
+
+    <!-- SETLIST DRAWER -->
+    <div id="setlist-overlay" onclick="toggleSetlistDrawer()"></div>
+    <div id="setlist-drawer">
+        <div id="setlist-drawer-header">
+            <h3 data-t="bm_setlist">Setlista</h3>
+            <button id="setlist-drawer-close" onclick="toggleSetlistDrawer()">✕</button>
+        </div>
+        <div id="setlist-song-list"></div>
+    </div>
+
+    <!-- BROWSE TILES VIEW -->
+    <div id="browse-tiles-view">
+        <div id="browse-tiles-header">
+            <button id="browse-tiles-close" onclick="closeBrowseTiles()">✕</button>
+            <span id="browse-tiles-title"></span>
+            <span id="browse-tiles-key"></span>
+            <a id="browse-tiles-link" href="#" target="_blank" rel="noopener noreferrer" style="display:none;"></a>
+        </div>
+        <div id="browse-tiles-grid"></div>
+    </div>
+
+    <!-- BROWSE NAV BAR -->
+    <div id="browse-nav">
+        <button class="browse-nav-btn" onclick="browsePrev()">◀</button>
+        <button class="browse-nav-btn" onclick="showBrowseTiles()" title="Kafelki">☰</button>
+        <span id="browse-section-info"></span>
+        <button class="browse-nav-btn" onclick="browseNext()">▶</button>
+        <button id="browse-live-btn" onclick="returnToLive()" data-t="bm_browse_live">● LIVE</button>
+    </div>
+
+    <!-- PANEL USTAWIEŃ -->
+    <div id="settings-overlay" onclick="toggleSettings()"></div>
+    <div id="settings-panel">
+        <h2>
+            <span data-t="bm_settings">Ustawienia</span>
+            <button class="popup-close" onclick="toggleSettings()">✕</button>
+        </h2>
+
+        <div class="setting-group">
+            <div class="group-title" data-t="bm_profile_section">Profil</div>
+            <div id="profile-manage-area" style="display:flex; align-items:center; gap:var(--s3);">
+                <div id="manage-avatar" class="profile-avatar" style="width:36px; height:36px; font-size:1rem; flex-shrink:0;"></div>
+                <span id="manage-profile-name" style="flex:1; font-weight:600; color:var(--text-primary);"></span>
+                <button class="btn btn-ghost" onclick="switchProfile()" data-t="bm_switch_profile" style="font-size:var(--text-xs);">Zmień</button>
+                <button class="btn btn-danger" onclick="deleteProfile()" style="padding:var(--s1) var(--s2);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <div class="group-title" data-t="bm_chords_group">Akordy</div>
+            <label>
+                <span data-t="bm_show_chords">Pokaż akordy</span>
+                <div class="toggle active" id="tog-chords" onclick="toggleOpt('show_chords')"></div>
+            </label>
+            <label>
+                <span data-t="bm_notation">Notacja</span>
+                <select id="chord-notation" onchange="setNotation(this.value)" style="margin-left:auto; padding:var(--s1) var(--s2); border-radius:var(--r-md); background:var(--bg-surface); color:var(--text-primary); border:1px solid var(--border-default);">
+                    <option value="international" data-t="bm_intl">Międzynarodowa (Bb, B)</option>
+                    <option value="polish" data-t="bm_polish">Polska (B, H)</option>
+                    <option value="nashville" data-t="bm_nashville">Nashville (1-2-3)</option>
+                </select>
+            </label>
+            <label>
+                <span data-t="bm_lowercase_minor">Małe litery = mol</span>
+                <div class="toggle" id="tog-lowercase-minor" onclick="toggleOpt('lowercase_minor')"></div>
+            </label>
+            <label>
+                <span data-t="bm_beginner">Tryb początkującego</span>
+                <div class="toggle" id="tog-beginner" onclick="toggleOpt('beginner_mode')"></div>
+            </label>
+            <label>
+                <span data-t="bm_diagrams">Diagramy chwytów</span>
+                <select id="diagram-instrument" onchange="setDiagramInstrument(this.value)" style="margin-left:auto; padding:var(--s1) var(--s2); border-radius:var(--r-md); background:var(--bg-surface); color:var(--text-primary); border:1px solid var(--border-default);">
+                    <option value="off" data-t="bm_off">Wyłączone</option>
+                    <option value="guitar" selected data-t="bm_guitar">Gitara</option>
+                    <option value="piano" data-t="bm_piano">Piano</option>
+                </select>
+            </label>
+            <label>
+                <span data-t="bm_inline_diagrams">Diagramy akordów (co grasz teraz)</span>
+                <div class="toggle" id="tog-inline-diagrams" onclick="toggleInlineDiagrams()"></div>
+            </label>
+        </div>
+
+        <div class="setting-group">
+            <div class="group-title" data-t="bm_capo_group">Kapodaster</div>
+            <label>
+                <span data-t="bm_capo_fret">Próg kapo</span>
+                <select id="capo-select" onchange="setCapo(+this.value)">
+                    <option value="0" data-t="bm_none">Brak</option>
+                    {% for i in range(1, 13) %}
+                    <option value="{{ i }}">{{ i }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <div id="capo-suggestion" style="margin-top:var(--s3); padding:var(--s3); background:rgba(45,212,191,0.05); border:1px solid rgba(45,212,191,0.2); border-radius:var(--r-md); font-size:var(--font-xs); color:var(--text-tertiary); display:none;">
+                <div style="color:var(--teal); font-weight:bold; margin-bottom:var(--s1);" id="capo-suggest-title"></div>
+                <div id="capo-suggest-details"></div>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <div class="group-title" data-t="bm_font_size">Rozmiar czcionki</div>
+            <label>
+                <span id="font-size-val">8</span> vh
+            </label>
+            <input type="range" id="font-size-range" min="4" max="14" step="0.5" value="8" oninput="setFontSize(+this.value)">
+        </div>
+    </div>
+
+    <script>
+        var socket;
+        try { socket = io(); } catch(e) { socket = { on: function(){}, emit: function(){} }; }
+
+        // Kropka statusu połączenia przy imieniu profilu
+        function setConnDot(connected) {
+            var d = document.getElementById('conn-dot');
+            if (d) d.classList.toggle('connected', !!connected);
+        }
+        socket.on('connect', function(){ setConnDot(true); });
+        socket.on('disconnect', function(){ setConnDot(false); });
+        socket.on('reconnect', function(){ setConnDot(true); });
+        setConnDot(socket && socket.connected);
+        const worshipView = document.getElementById('worship-view');
+        const confView = document.getElementById('conference-view');
+        const currentContent = document.getElementById('current-content');
+        const stageLogo = document.getElementById('stage-logo');
+
+        // ===== SETTINGS STATE =====
+        let currentSettings = {
+            show_chords: true,
+            chord_notation: 'international',
+            lowercase_minor: false,
+            capo_fret: 0,
+            beginner_mode: false,
+            diagram_instrument: 'guitar',
+            font_size: 8
+        };
+        // Diagramy przy sekcji „następnie" — preferencje wyświetlania (klient).
+        let inlineDiagrams = localStorage.getItem('bm_inline_diagrams') === '1';
+        let inlineVoicing  = localStorage.getItem('bm_inline_voicing') !== '0'; // domyślnie sugerowany
+
+        let currentRawText = '';
+        let currentRawNext = '';
+        let currentBandHtml = '';
+        let currentBandNext = '';
+        let currentKey = 'C';
+        let currentBpm = 0;
+        let currentTranspose = 0;
+        let activePresetId = null;
+
+        // ===== MUSICIAN PROFILE =====
+        let currentProfile = null;
+        let songSettingsCache = {};
+        let currentLiveSongId = null;
+        let editingNoteSection = null;
+
+        function getProfileId() { return localStorage.getItem('jafa_profile_id'); }
+
+        function initProfile() {
+            var pid = getProfileId();
+            if (pid) {
+                fetch('/api/profiles/' + pid).then(r => r.json()).then(function(p) {
+                    if (p.error) { showProfileScreen(); return; }
+                    currentProfile = p;
+                    applyProfileSettings(p);
+                    showProfileBadge(p);
+                }).catch(function() { showProfileScreen(); });
+            } else {
+                showProfileScreen();
+            }
+        }
+
+        function showProfileScreen() {
+            fetch('/api/profiles').then(r => r.json()).then(function(profiles) {
+                var list = document.getElementById('profile-list');
+                var colors = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
+                list.innerHTML = profiles.map(function(p) {
+                    var initial = (p.name || '?')[0].toUpperCase();
+                    return '<div class="profile-card" onclick="selectProfile(' + p.id + ')">' +
+                        '<div class="profile-avatar" style="background:' + (p.color || colors[p.id % colors.length]) + '">' + initial + '</div>' +
+                        '<div class="profile-card-name">' + p.name + '</div>' +
+                        (p.instrument ? '<div class="profile-card-instrument">' + p.instrument + '</div>' : '') +
+                        '</div>';
+                }).join('');
+                document.getElementById('profile-screen').style.display = 'flex';
+                document.getElementById('create-profile-form').style.display = 'none';
+            });
+        }
+
+        function showCreateProfile() {
+            document.getElementById('create-profile-form').style.display = 'block';
+            document.getElementById('new-profile-name').focus();
+        }
+
+        function createProfile() {
+            var name = document.getElementById('new-profile-name').value.trim();
+            if (!name) return;
+            var instrument = document.getElementById('new-profile-instrument').value;
+            var colors = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
+            var color = colors[Math.floor(Math.random() * colors.length)];
+            fetch('/api/profiles', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({name: name, instrument: instrument, color: color})
+            }).then(r => r.json()).then(function(res) {
+                selectProfile(res.id);
+            });
+        }
+
+        function selectProfile(id) {
+            localStorage.setItem('jafa_profile_id', id);
+            fetch('/api/profiles/' + id).then(r => r.json()).then(function(p) {
+                currentProfile = p;
+                applyProfileSettings(p);
+                showProfileBadge(p);
+                document.getElementById('profile-screen').style.display = 'none';
+            });
+        }
+
+        function applyProfileSettings(p) {
+            currentSettings.show_chords = p.show_chords;
+            currentSettings.chord_notation = p.chord_notation;
+            currentSettings.lowercase_minor = p.lowercase_minor;
+            currentSettings.capo_fret = 0;
+            currentSettings.beginner_mode = p.beginner_mode;
+            currentSettings.diagram_instrument = p.diagram_instrument;
+            currentSettings.font_size = p.font_size;
+            updateToggles();
+            var songId = getCurrentSongId();
+            if (songId) loadSongSettings(songId);
+            rerender();
+        }
+
+        function showProfileBadge(p) {
+            var badge = document.getElementById('profile-badge');
+            var avatar = document.getElementById('badge-avatar');
+            var nameEl = document.getElementById('badge-name');
+            avatar.style.background = p.color || '#6366f1';
+            avatar.textContent = (p.name || '?')[0].toUpperCase();
+            nameEl.textContent = p.name;
+            badge.style.display = 'flex';
+            var mAvatar = document.getElementById('manage-avatar');
+            var mName = document.getElementById('manage-profile-name');
+            if (mAvatar) { mAvatar.style.background = p.color || '#6366f1'; mAvatar.textContent = (p.name || '?')[0].toUpperCase(); }
+            if (mName) mName.textContent = p.name;
+        }
+
+        function switchProfile() {
+            toggleSettings();
+            showProfileScreen();
+        }
+
+        function deleteProfile() {
+            if (!currentProfile) return;
+            if (!confirm(t('bm_delete_profile'))) return;
+            fetch('/api/profiles/' + currentProfile.id, { method: 'DELETE' })
+            .then(function() {
+                localStorage.removeItem('jafa_profile_id');
+                currentProfile = null;
+                document.getElementById('profile-badge').style.display = 'none';
+                toggleSettings();
+                showProfileScreen();
+            });
+        }
+
+        function saveProfileSettings() {
+            if (!currentProfile) return;
+            var data = Object.assign({}, currentSettings);
+            delete data.capo_fret;
+            fetch('/api/profiles/' + currentProfile.id, {
+                method: 'PUT', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify(data)
+            });
+        }
+
+        // ===== PER-SONG CAPO =====
+        function loadSongSettings(songId) {
+            if (!currentProfile || !songId) return;
+            if (songSettingsCache[songId]) {
+                applySongSettings(songId, songSettingsCache[songId]);
+                return;
+            }
+            fetch('/api/profiles/' + currentProfile.id + '/song/' + songId)
+                .then(r => r.json()).then(function(data) {
+                    songSettingsCache[songId] = data;
+                    applySongSettings(songId, data);
+                });
+        }
+
+        function applySongSettings(songId, data) {
+            var capo = (data.capo_fret !== null && data.capo_fret !== undefined) ? data.capo_fret : 0;
+            currentSettings.capo_fret = capo;
+            document.getElementById('capo-select').value = capo;
+            rerender();
+        }
+
+        function saveSongCapo(songId, capoFret) {
+            if (!currentProfile || !songId) return;
+            var existing = songSettingsCache[songId] || {capo_fret: null, notes: {}};
+            existing.capo_fret = capoFret;
+            songSettingsCache[songId] = existing;
+            fetch('/api/profiles/' + currentProfile.id + '/song/' + songId, {
+                method: 'PUT', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({capo_fret: capoFret})
+            });
+        }
+
+        // ===== PERSONAL NOTES =====
+        function getSongNotes(songId) {
+            if (!songSettingsCache[songId]) return {};
+            return songSettingsCache[songId].notes || {};
+        }
+
+        function openNoteEditor(sectionIdx) {
+            editingNoteSection = sectionIdx;
+            var songId = getCurrentSongId();
+            var notes = getSongNotes(songId);
+            document.getElementById('note-input').value = notes[sectionIdx] || '';
+            document.getElementById('note-editor-title').textContent =
+                t('note_title') + ' — ' + (sectionIdx + 1);
+            document.getElementById('note-editor').classList.add('open');
+            document.getElementById('note-input').focus();
+        }
+
+        function closeNoteEditor() {
+            document.getElementById('note-editor').classList.remove('open');
+            editingNoteSection = null;
+        }
+
+        function saveNote() {
+            var songId = getCurrentSongId();
+            if (!currentProfile || !songId || editingNoteSection === null) return;
+            var text = document.getElementById('note-input').value.trim();
+            var existing = songSettingsCache[songId] || {capo_fret: null, notes: {}};
+            if (!existing.notes) existing.notes = {};
+            if (text) {
+                existing.notes[editingNoteSection] = text;
+            } else {
+                delete existing.notes[editingNoteSection];
+            }
+            songSettingsCache[songId] = existing;
+            fetch('/api/profiles/' + currentProfile.id + '/song/' + songId, {
+                method: 'PUT', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({notes: existing.notes})
+            });
+            closeNoteEditor();
+            rerender();
+        }
+
+        function deleteNote() {
+            document.getElementById('note-input').value = '';
+            saveNote();
+        }
+
+        function getCurrentSongId() {
+            if (browseMode && browseData) return browseData.id;
+            if (cachedSetlist.length && liveCurrentIndex >= 0 && liveCurrentIndex < cachedSetlist.length) {
+                return cachedSetlist[liveCurrentIndex].id;
+            }
+            return currentLiveSongId;
+        }
+
+        // ===== MUSIC THEORY =====
+        const NOTES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+        const NOTES_PL = ['C', 'Cis', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H'];
+        // pisownia wyniku dziedziczy "smak" źródła: G# transponuje się na
+        // krzyżyki, Ab na bemole (Ab w tonacji C#m było błędem)
+        const NOTES_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const NOTES_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+        function flavorTable(rootStr) {
+            const r = rootStr.toLowerCase();
+            if (r.includes('#') || r.endsWith('is')) return NOTES_SHARP;
+            if ((r.length > 1 && r.slice(1).includes('b')) || r.endsWith('es') || r === 'as' || r === 'es') return NOTES_FLAT;
+            return NOTES;
+        }
+        // bezpośrednie tłumaczenie nazwy INT->PL (zachowuje enharmonię: G#->Gis, Ab->As)
+        const INT_TO_PL = { 'C#':'Cis','Db':'Des','D#':'Dis','Eb':'Es','F#':'Fis','Gb':'Ges',
+                            'G#':'Gis','Ab':'As','A#':'Ais','Bb':'B','B':'H','Cb':'H','E#':'F','Fb':'E','B#':'C' };
+        function toPolishRoot(rootStr) {
+            const r = rootStr.charAt(0).toUpperCase() + rootStr.slice(1);
+            return INT_TO_PL[r] || r;
+        }
+
+        const NOTE_MAP_INT = {};
+        NOTES.forEach((n, i) => NOTE_MAP_INT[n] = i);
+        Object.assign(NOTE_MAP_INT, {
+            'Db': 1, 'D#': 3, 'E#': 5, 'Fb': 4, 'Gb': 6,
+            'G#': 8, 'A#': 10, 'B#': 0, 'Cb': 11
+        });
+        const NOTE_MAP_PL = {};
+        NOTES_PL.forEach((n, i) => NOTE_MAP_PL[n] = i);
+        Object.assign(NOTE_MAP_PL, {
+            'Cis': 1, 'Dis': 3, 'Es': 3, 'Fis': 6, 'Gis': 8, 'As': 8, 'Ais': 10, 'His': 0, 'H': 11, 'B': 10
+        });
+
+        const CHORD_RE = /^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$/;
+
+        function parseRoot(str) {
+            const m = str.match(CHORD_RE);
+            return m ? { root: m[1], suffix: m[2] } : null;
+        }
+
+        function rootToPitch(root) {
+            let r = root.charAt(0).toUpperCase() + root.slice(1);
+            if (NOTE_MAP_INT[r] !== undefined) return NOTE_MAP_INT[r];
+            if (NOTE_MAP_PL[r] !== undefined) return NOTE_MAP_PL[r];
+            return null;
+        }
+
+        function pitchToNote(p) {
+            return NOTES[((p % 12) + 12) % 12];
+        }
+
+        function transposeChord(chord, semi) {
+            if (chord.includes('/')) {
+                const parts = chord.split('/');
+                return transposeChord(parts[0], semi) + '/' + transposeChord(parts.slice(1).join('/'), semi);
+            }
+            const p = parseRoot(chord);
+            if (!p) return chord;
+            const pc = rootToPitch(p.root);
+            if (pc === null) return chord;
+            return flavorTable(p.root)[((pc + semi) % 12 + 12) % 12] + p.suffix;
+        }
+
+        function simplifyChord(chord) {
+            if (chord.includes('/')) chord = chord.split('/')[0];
+            const p = parseRoot(chord);
+            if (!p) return chord;
+            const isMinor = /^m(?!aj)/i.test(p.suffix);
+            return p.root + (isMinor ? 'm' : '');
+        }
+
+        function toNashville(chord, keyRoot) {
+            if (chord.includes('/')) {
+                const parts = chord.split('/');
+                return toNashville(parts[0], keyRoot) + '/' + toNashville(parts.slice(1).join('/'), keyRoot);
+            }
+            const p = parseRoot(chord);
+            if (!p) return chord;
+            const pc = rootToPitch(p.root);
+            const kpc = rootToPitch(keyRoot);
+            if (pc === null || kpc === null) return chord;
+            const interval = ((pc - kpc) % 12 + 12) % 12;
+            const NASH = {0:'1',1:'♭2',2:'2',3:'♭3',4:'3',5:'4',6:'♭5',7:'5',8:'♭6',9:'6',10:'♭7',11:'7'};
+            let num = NASH[interval];
+            let suffix = p.suffix;
+            if (/^m(?!aj)/i.test(suffix)) { suffix = suffix.replace(/^m/i, ''); num += 'm'; }
+            if (suffix) num += suffix;
+            return num;
+        }
+
+        function isHardChord(chordDisplay) {
+            if (!chordDisplay) return false;
+            const base = chordDisplay.includes('/') ? chordDisplay.split('/')[0] : chordDisplay;
+            const p = parseRoot(base);
+            if (!p) return false;
+            const simple = p.root + (/^m(?!aj)/i.test(p.suffix) ? 'm' : '');
+            return !EASY_CHORDS.has(simple);
+        }
+
+        function convertNotation(chord) {
+            if (chord.includes('/')) {
+                const parts = chord.split('/');
+                return convertNotation(parts[0]) + '/' + convertNotation(parts.slice(1).join('/'));
+            }
+            const p = parseRoot(chord);
+            if (!p) return chord;
+            const pc = rootToPitch(p.root);
+            if (pc === null) return chord;
+            const notation = currentSettings.chord_notation || 'international';
+            // NIE przepisuj pisowni przez tabelę mieszaną - zachowaj enharmonię źródła
+            let newRoot = notation === 'polish'
+                ? toPolishRoot(p.root)
+                : p.root.charAt(0).toUpperCase() + p.root.slice(1);
+            let suffix = p.suffix;
+            const isMinor = /^m(?!aj)/i.test(suffix);
+            if (currentSettings.lowercase_minor) {
+                if (isMinor) {
+                    newRoot = newRoot[0].toLowerCase() + newRoot.slice(1);
+                    suffix = suffix.replace(/^m/i, '');
+                }
+            }
+            return newRoot + suffix;
+        }
+
+        function processChord(chord) {
+            let display = chord;
+            let cls = 'chord';
+            if (currentSettings.capo_fret > 0) {
+                display = transposeChord(display, -currentSettings.capo_fret);
+                cls += ' capo';
+            }
+            if (currentSettings.beginner_mode) display = simplifyChord(display);
+            const notation = currentSettings.chord_notation || 'international';
+            if (notation === 'nashville') {
+                // Numery nashville są względne do tonacji i NIEZALEŻNE od kapo —
+                // liczymy je z brzmiącego akordu (przed transpozycją pod kapo).
+                display = toNashville(chord, currentKey.replace('m', ''));
+                cls = 'chord nashville';
+                if (currentSettings.lowercase_minor) {
+                    display = applyLowercaseMinorNashville(display);
+                }
+            } else {
+                display = convertNotation(display);
+            }
+            if (notation !== 'nashville' && currentSettings.beginner_mode && isHardChord(display)) cls += ' hard-chord';
+            return { display, cls };
+        }
+
+        // Akord tak, jak muzyk faktycznie go chwyta z założonym kapodastrem —
+        // sam kształt (bez konwersji notacji / trybu początkującego, bo baza
+        // diagramów jest międzynarodowa). Z kapo na progu N grasz kształt o N
+        // półtonów niżej niż brzmiący akord.
+        function diagramChord(ch) {
+            var capo = (currentSettings.capo_fret > 0) ? currentSettings.capo_fret : 0;
+            return capo > 0 ? transposeChord(ch, -capo) : ch;
+        }
+
+        function applyLowercaseMinorNashville(nashStr) {
+            if (nashStr.includes('/')) {
+                const parts = nashStr.split('/');
+                return applyLowercaseMinorNashville(parts[0]) + '/' + applyLowercaseMinorNashville(parts.slice(1).join('/'));
+            }
+            const m = nashStr.match(/^([♭#]*\d+)(m)(.*)$/);
+            if (m) return m[1].toLowerCase() + m[3];
+            return nashStr;
+        }
+
+        // ===== CAPO SUGGESTION =====
+        const EASY_CHORDS = new Set(['C','G','D','A','E','Am','Em','Dm','F','Bm']);
+
+        function extractChords(rawText) {
+            if (!rawText) return [];
+            const matches = rawText.match(/\[(.*?)\]/g);
+            if (!matches) return [];
+            const unique = new Set();
+            for (const m of matches) {
+                let ch = m.slice(1, -1);
+                if (ch.includes('/')) ch = ch.split('/')[0];
+                const p = parseRoot(ch);
+                if (p) unique.add(ch);
+            }
+            return [...unique];
+        }
+
+        function extractChordCounts(rawText) {
+            const counts = new Map();
+            if (!rawText) return counts;
+            const matches = rawText.match(/\[(.*?)\]/g);
+            if (!matches) return counts;
+            for (const m of matches) {
+                let ch = m.slice(1, -1);
+                if (ch.includes('/')) ch = ch.split('/')[0];
+                if (parseRoot(ch)) counts.set(ch, (counts.get(ch) || 0) + 1);
+            }
+            return counts;
+        }
+
+        function chordSimplifiedRoot(chord) {
+            const p = parseRoot(chord);
+            if (!p) return chord;
+            const pc = rootToPitch(p.root);
+            if (pc === null) return chord;
+            const note = pitchToNote(pc);
+            const isMinor = /^m(?!aj)/i.test(p.suffix);
+            return note + (isMinor ? 'm' : '');
+        }
+
+        function suggestCapo() {
+            const box = document.getElementById('capo-suggestion');
+            const rawCounts = extractChordCounts(currentRawText);
+            if (rawCounts.size === 0) { box.style.display = 'none'; return; }
+            // Apply current transposition so capo suggestions match what's actually displayed
+            const counts = new Map();
+            for (const [ch, n] of rawCounts) {
+                const t = currentTranspose !== 0 ? transposeChord(ch, currentTranspose) : ch;
+                counts.set(t, (counts.get(t) || 0) + n);
+            }
+
+            let bestCapo = 0;
+            let bestScore = -1;
+            let bestChords = [];
+
+            for (let capo = 0; capo <= 7; capo++) {
+                // Ważone częstością występowania: akord grany 20x w piosence liczy
+                // się bardziej niż przejściowy grany raz.
+                let easyWeight = 0, totalWeight = 0;
+                const uniqueT = new Set();
+                for (const [ch, n] of counts) {
+                    const simple = chordSimplifiedRoot(simplifyChord(transposeChord(ch, -capo)));
+                    uniqueT.add(simple);
+                    totalWeight += n;
+                    if (EASY_CHORDS.has(simple)) easyWeight += n;
+                }
+                const score = easyWeight / totalWeight;
+                if (score > bestScore || (score === bestScore && capo < bestCapo)) {
+                    bestScore = score;
+                    bestCapo = capo;
+                    bestChords = [...uniqueT];
+                }
+            }
+
+            if (bestCapo === 0 && bestScore >= 1) {
+                box.style.display = 'block';
+                document.getElementById('capo-suggest-title').textContent = t('bm_capo_simple');
+                document.getElementById('capo-suggest-details').textContent = bestChords.join(', ');
+            } else if (bestCapo > 0) {
+                box.style.display = 'block';
+                document.getElementById('capo-suggest-title').textContent = t('bm_capo_suggest') + ' ' + bestCapo;
+                document.getElementById('capo-suggest-details').innerHTML =
+                    t('bm_capo_chords') + ' ' + bestCapo + ': <span style="color:var(--text-primary);">' + bestChords.join(', ') + '</span>';
+            } else {
+                box.style.display = 'none';
+            }
+        }
+
+        // ===== RENDERING =====
+        // Use server-generated HTML (same as stage view) and transform chords client-side
+        function transformServerHtml(html) {
+            if (!html) return '';
+
+            const container = document.createElement('div');
+            container.innerHTML = html;
+
+            if (!currentSettings.show_chords) {
+                container.querySelectorAll('.chord-pair .chord').forEach(el => el.remove());
+                return container.innerHTML;
+            }
+            const chordEls = container.querySelectorAll('.chord');
+            chordEls.forEach(el => {
+                const rawChord = el.textContent;
+                const { display, cls } = processChord(rawChord);
+
+                el.className = cls;
+                const isNashville = currentSettings.chord_notation === 'nashville';
+                if (currentSettings.diagram_instrument !== 'off' && !isNashville) {
+                    el.classList.add('clickable');
+                    el.setAttribute('data-chord', rawChord);
+                    el.setAttribute('data-chord-display', display);
+                    el.setAttribute('onclick', 'showChordPopup(event, this.dataset.chord, this.dataset.chordDisplay)');
+                }
+
+                if (display.includes('/') && !isNashville) {
+                    // Buduj DOM-em, nie innerHTML — treść akordu pochodzi z pieśni
+                    // (textContent ODKODOWUJE encje serwera), sklejanie stringów w
+                    // innerHTML otwierało z powrotem drogę do wstrzyknięcia HTML.
+                    const parts = display.split('/');
+                    el.textContent = '';
+                    el.appendChild(document.createTextNode(parts[0]));
+                    const slash = document.createElement('span');
+                    slash.className = 'bass-slash'; slash.textContent = '/';
+                    el.appendChild(slash);
+                    const bass = document.createElement('span');
+                    bass.className = 'bass-note'; bass.textContent = parts.slice(1).join('/');
+                    el.appendChild(bass);
+                } else {
+                    el.textContent = display;
+                }
+            });
+            var result = container.innerHTML;
+            var parts = result.split(/<br\s*\/?>/gi);
+            var out = [];
+            for (var p = 0; p < parts.length; p++) {
+                var tmp = document.createElement('span');
+                tmp.innerHTML = parts[p];
+                var textOnly = tmp.textContent.replace(/ /g, '').trim();
+                var hasChords = tmp.querySelector('.chord');
+                var hasNonChordText = false;
+                if (textOnly) {
+                    var clone = tmp.cloneNode(true);
+                    clone.querySelectorAll('.chord').forEach(function(el) { el.remove(); });
+                    hasNonChordText = clone.textContent.replace(/ /g, '').trim().length > 0;
+                }
+                if (hasChords && !hasNonChordText) {
+                    out.push('<span class="chord-only-line">' + parts[p] + '</span>');
+                } else {
+                    out.push(parts[p]);
+                }
+            }
+            return out.join('<br>');
+        }
+
+        function getNoteHtml() {
+            var songId = getCurrentSongId();
+            if (!songId || !currentProfile) return '';
+            var notes = getSongNotes(songId);
+            var sectionIdx = browseMode ? browseSectionIdx : (liveSectionIndex || 0);
+            var note = notes[sectionIdx];
+            if (note) {
+                return '<div class="section-note" onclick="openNoteEditor(' + sectionIdx + ')">' + note + '</div>';
+            }
+            return '<div class="add-note-btn" onclick="openNoteEditor(' + sectionIdx + ')">' + t('note_add') + '</div>';
+        }
+
+        var liveSectionIndex = 0;
+
+        function rerender() {
+            // Jeśli nakładka Silent MD jest aktywna, przelicz ją pod nowe capo/notację
+            if (typeof lastSMD !== 'undefined' && lastSMD && lastSMD.active) renderSilentMD();
+            if (currentContent.style.display === 'none') return;
+            currentContent.innerHTML = transformServerHtml(currentBandHtml);
+            currentContent.style.fontSize = currentSettings.font_size + 'vh';
+            setTimeout(() => { fitText('current-slide', 'current-content', currentSettings.font_size, 3); }, 0);
+
+            // Next section (max 4 lines like stage view)
+            if (currentBandNext && currentBandNext.trim()) {
+                let rawLines = currentBandNext.split('<br>');
+                let trimmed = rawLines.length > 4
+                    ? rawLines.slice(0, 4).join('<br>') + '<br><span style="opacity:0.6;font-size:0.8em;">(...)</span>'
+                    : currentBandNext;
+                document.getElementById('next-text-inner').innerHTML = transformServerHtml(trimmed);
+                document.getElementById('next-label').style.display = 'block';
+                setTimeout(() => { fitText('next-content', 'next-text-inner', 4.5, 2.5); }, 0);
+            } else {
+                document.getElementById('next-text-inner').innerHTML = '';
+                document.getElementById('next-label').style.display = 'none';
+            }
+
+            // Meta info
+            const keyBox = document.getElementById('key-display');
+            const capoBox = document.getElementById('capo-display');
+            if (currentKey && currentKey !== 'N/A' && currentKey.trim() !== '-') {
+                const displayKey = convertNotation(currentKey);
+                keyBox.innerText = t('bm_key_prefix') + ' ' + displayKey;
+                keyBox.style.display = 'block';
+                if (currentSettings.capo_fret > 0) {
+                    const capoKey = convertNotation(transposeChord(currentKey, -currentSettings.capo_fret));
+                    capoBox.innerText = 'Capo ' + currentSettings.capo_fret + ' → graj ' + capoKey;
+                    capoBox.style.display = 'block';
+                } else {
+                    capoBox.style.display = 'none';
+                }
+            } else {
+                keyBox.style.display = 'none';
+                capoBox.style.display = 'none';
+            }
+
+            const bpmBox = document.getElementById('bpm-display');
+            if (currentBpm && currentBpm > 0) {
+                bpmBox.innerText = currentBpm + ' BPM';
+                bpmBox.style.display = 'block';
+            } else {
+                bpmBox.style.display = 'none';
+            }
+
+            document.getElementById('section-note-area').innerHTML = getNoteHtml();
+
+            renderNowDiagrams();
+            suggestCapo();
+        }
+
+        // fixChordOverlap usunięty — pary akord+sylaba (server-side) fizycznie
+        // uniemożliwiają nachodzenie akordów, JS-owe rozsuwanie jest zbędne.
+
+        // Auto-Scale (same as stage)
+        // Obrót telefonu / zmiana rozmiaru: przelicz dopasowanie tekstu
+        // (wcześniej rozmiar zostawał "zamrożony" do następnego slajdu).
+        let _fitResizeTimer;
+        window.addEventListener('resize', function () {
+            clearTimeout(_fitResizeTimer);
+            _fitResizeTimer = setTimeout(function () {
+                fitText('current-slide', 'current-content', (currentSettings && currentSettings.font_size) || 8, 3);
+                fitText('next-content', 'next-text-inner', 4.5, 2.5);
+            }, 150);
+        });
+
+        function fitText(containerId, contentId, maxVh, minVh) {
+            const container = document.getElementById(containerId);
+            const content = document.getElementById(contentId);
+            if (!container || !content) return;
+            if (container.style.display === 'none' || content.style.display === 'none') return;
+            const cs = getComputedStyle(container);
+            const avail = container.clientHeight
+                - (parseFloat(cs.paddingTop) || 0)
+                - (parseFloat(cs.paddingBottom) || 0);
+            let size = maxVh;
+            content.style.fontSize = size + 'vh';
+            while (content.scrollHeight > avail && size > minVh) {
+                size -= 0.2;
+                content.style.fontSize = size + 'vh';
+            }
+        }
+
+        // Clock
+        function updateClock() {
+            document.getElementById('realtime-clock').innerText =
+                new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ===== FULLSCREEN =====
+        function toggleFullscreen() {
+            var doc = window.document, docEl = doc.documentElement;
+            var req = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            var cancel = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                if (req) req.call(docEl).catch(() => {});
+            } else {
+                if (cancel) cancel.call(doc);
+            }
+        }
+
+        // ===== BROWSE MODE =====
+        let browseMode = false;
+        let browseData = null;  // { id, title, key, bpm, sections: [{band_html, raw_text}] }
+        let browseSectionIdx = 0;
+        let cachedSetlist = [];
+        let liveCurrentIndex = -1;
+        let pendingLiveData = null;
+
+        function toggleSetlistDrawer() {
+            const drawer = document.getElementById('setlist-drawer');
+            const overlay = document.getElementById('setlist-overlay');
+            const opening = !drawer.classList.contains('open');
+            drawer.classList.toggle('open');
+            overlay.style.display = opening ? 'block' : 'none';
+            if (opening) refreshSetlist();
+        }
+
+        function refreshSetlist() {
+            fetch('/api/setlist').then(r => r.json()).then(function(data) {
+                cachedSetlist = data.setlist || [];
+                liveCurrentIndex = data.current_index;
+                renderSetlistDrawer();
+            }).catch(function() {});
+        }
+
+        function renderSetlistDrawer() {
+            const list = document.getElementById('setlist-song-list');
+            if (!cachedSetlist.length) {
+                list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-tertiary);font-size:var(--text-sm);">' +
+                    (currentLang === 'en' ? 'No songs in setlist yet' : 'Brak piosenek na setliście') + '</div>';
+                return;
+            }
+            list.innerHTML = cachedSetlist.map(function(song, i) {
+                var isLive = (i === liveCurrentIndex);
+                var isActive = browseMode && browseData && browseData.id === song.id;
+                var cls = 'setlist-song-item' + (isLive ? ' live-now' : '') + (isActive ? ' active' : '');
+                return '<div class="' + cls + '" onclick="browseSong(' + song.id + ')">' +
+                    '<span class="setlist-song-item-title">' + (song.title || 'Untitled') + '</span>' +
+                    (song.key ? '<span class="setlist-song-item-key">' + song.key + '</span>' : '') +
+                    '</div>';
+            }).join('');
+        }
+
+        function browseSong(songId) {
+            fetch('/api/song/' + songId + '/band').then(r => r.json()).then(function(data) {
+                if (data.error) return;
+                browseData = data;
+                browseSectionIdx = -1;
+                browseMode = true;
+                if (currentProfile) loadSongSettings(songId);
+                showBrowseTiles();
+                toggleSetlistDrawer();
+                renderSetlistDrawer();
+            });
+        }
+
+        function showBrowseTiles() {
+            if (!browseData) return;
+            var tilesView = document.getElementById('browse-tiles-view');
+            document.getElementById('browse-tiles-title').textContent = browseData.title;
+            document.getElementById('browse-tiles-key').textContent = browseData.key ? (t('bm_key_prefix') + ' ' + browseData.key) : '';
+            var linkEl = document.getElementById('browse-tiles-link');
+            if (browseData.link) {
+                linkEl.href = browseData.link;
+                linkEl.textContent = '▶ ' + (t('bm_recording') || 'Recording');
+                linkEl.style.display = '';
+            } else {
+                linkEl.style.display = 'none';
+            }
+
+            var songId = browseData.id;
+            var notes = currentProfile ? getSongNotes(songId) : {};
+            var grid = document.getElementById('browse-tiles-grid');
+            grid.innerHTML = browseData.sections.map(function(sec, i) {
+                var preview = sec.raw_text.replace(/\[.*?\]/g, '').substring(0, 80);
+                var noteText = notes[i] ? '<div class="browse-tile-note">' + notes[i] + '</div>' : '';
+                return '<div class="browse-tile' + (i === browseSectionIdx ? ' active' : '') +
+                    '" onclick="selectBrowseTile(' + i + ')">' +
+                    '<div class="browse-tile-label">' + sec.label + '</div>' +
+                    '<div class="browse-tile-preview">' + preview + '</div>' +
+                    noteText + '</div>';
+            }).join('');
+
+            tilesView.classList.add('open');
+            document.getElementById('browse-nav').classList.add('visible');
+        }
+
+        function selectBrowseTile(idx) {
+            browseSectionIdx = idx;
+            document.getElementById('browse-tiles-view').classList.remove('open');
+            renderBrowseSection();
+        }
+
+        function closeBrowseTiles() {
+            document.getElementById('browse-tiles-view').classList.remove('open');
+            if (browseSectionIdx < 0) {
+                returnToLive();
+            }
+        }
+
+        function renderBrowseSection() {
+            if (!browseData || !browseData.sections.length) return;
+            var section = browseData.sections[browseSectionIdx];
+            var nextSection = browseData.sections[browseSectionIdx + 1] || null;
+
+            currentRawText = section.raw_text;
+            currentBandHtml = section.band_html;
+            currentRawNext = nextSection ? nextSection.raw_text : '';
+            currentBandNext = nextSection ? nextSection.band_html : '';
+            currentKey = browseData.key || 'C';
+            currentBpm = browseData.bpm || 0;
+
+            worshipView.style.display = 'flex';
+            confView.style.display = 'none';
+            stageLogo.style.display = 'none';
+            currentContent.style.display = 'block';
+            rerender();
+
+            var info = document.getElementById('browse-section-info');
+            info.textContent = browseData.title + '  (' + (browseSectionIdx + 1) + '/' + browseData.sections.length + ')';
+            document.getElementById('browse-nav').classList.add('visible');
+        }
+
+        function browsePrev() {
+            if (!browseData) return;
+            if (browseSectionIdx > 0) { browseSectionIdx--; renderBrowseSection(); }
+        }
+        function browseNext() {
+            if (!browseData) return;
+            if (browseSectionIdx < browseData.sections.length - 1) {
+                browseSectionIdx++;
+                renderBrowseSection();
+            } else {
+                showBrowseTiles();
+            }
+        }
+
+        function returnToLive() {
+            browseMode = false;
+            browseData = null;
+            browseSectionIdx = -1;
+            document.getElementById('browse-nav').classList.remove('visible');
+            document.getElementById('browse-tiles-view').classList.remove('open');
+            if (pendingLiveData) {
+                applyLiveUpdate(pendingLiveData);
+                pendingLiveData = null;
+            } else {
+                socket.emit('request_current_slide');
+                fetch('/api/current-slide').then(r => r.json()).then(function(data) {
+                    if (data.mode && data.mode !== 'none') applyLiveUpdate(data);
+                }).catch(function() {});
+            }
+        }
+
+        function applyLiveUpdate(data) {
+            if (data.mode === 'logo') {
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+                currentContent.style.display = 'none';
+                stageLogo.style.display = 'block';
+                document.getElementById('next-text-inner').innerHTML = '';
+                document.getElementById('next-label').style.display = 'none';
+                currentRawText = ''; currentRawNext = '';
+                currentBandHtml = ''; currentBandNext = '';
+                renderNowDiagrams();
+            } else if (data.mode === 'blackout') {
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+                document.getElementById('next-text-inner').innerHTML = '';
+                document.getElementById('next-label').style.display = 'none';
+                currentRawNext = ''; currentBandNext = '';
+                currentBandHtml = '';
+                renderNowDiagrams();
+            } else if (data.mode === 'conference' || data.mode === 'presentation' || data.mode === 'canva') {
+                // Konferencja/prezentacja: muzyk nie gra. Pokazujemy logo/idle,
+                // BEZ zegara mówcy — ten jest tylko na scenie (ZESPÓŁ) i u prezentera.
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+                currentContent.style.display = 'none';
+                stageLogo.style.display = 'block';
+                document.getElementById('next-text-inner').innerHTML = '';
+                document.getElementById('next-label').style.display = 'none';
+                currentBandHtml = ''; currentBandNext = '';
+                renderNowDiagrams();
+            } else {
+                worshipView.style.display = 'flex';
+                confView.style.display = 'none';
+                stageLogo.style.display = 'none';
+                currentContent.style.display = 'block';
+                if (data.raw_text !== undefined) currentRawText = data.raw_text;
+                if (data.raw_next !== undefined) currentRawNext = data.raw_next;
+                if (data.band !== undefined) currentBandHtml = data.band;
+                if (data.band_next !== undefined) currentBandNext = data.band_next;
+                if (data.current_key && data.current_key !== 'N/A') currentKey = data.current_key;
+                if (data.current_bpm && data.current_bpm > 0) currentBpm = data.current_bpm;
+                if (data.transpose !== undefined) currentTranspose = parseInt(data.transpose) || 0;
+                rerender();
+            }
+        }
+
+        // ===== SOCKET EVENTS =====
+        socket.on('update_slide', function(data) {
+            if (browseMode) {
+                pendingLiveData = data;
+                return;
+            }
+            applyLiveUpdate(data);
+        });
+
+        socket.on('sync_state_to_client', function(state) {
+            if (state.setlist) cachedSetlist = state.setlist;
+            if (state.current_index !== undefined) {
+                var oldIdx = liveCurrentIndex;
+                liveCurrentIndex = state.current_index;
+                if (oldIdx !== liveCurrentIndex) {
+                    liveSectionIndex = 0;
+                    var songId = getCurrentSongId();
+                    if (songId && !browseMode) loadSongSettings(songId);
+                }
+            }
+            if (state.is_blackout && !browseMode) {
+                document.getElementById('next-text-inner').innerHTML = '';
+                document.getElementById('next-label').style.display = 'none';
+                currentBandNext = '';
+                renderNowDiagrams();
+            }
+        });
+
+        socket.on('refresh_logo', function() { location.reload(); });
+
+        // ===== SILENT MUSIC DIRECTOR — akordy na żywo z pianina =====
+        // Akordy przychodzą w stroju koncertowym (to, co gra pianista). Każdy
+        // muzyk widzi je po SWOIM capo i w SWOJEJ notacji — z wyraźną informacją.
+        var lastSMD = null;
+
+        function smdTransformChord(name) {
+            if (!name) return name;
+            var display = name;
+            var capo = currentSettings.capo_fret || 0;
+            if (capo > 0) display = transposeChord(display, -capo); // kształty pod capo
+            display = convertNotation(display);                     // notacja + małe mol
+            return display;
+        }
+
+        function renderSilentMD() {
+            var ov = document.getElementById('silent-md-overlay');
+            if (!ov) return;
+            var d = lastSMD;
+            if (!d || !d.active) { ov.classList.remove('show'); return; }
+
+            document.getElementById('smd-current').textContent = smdTransformChord(d.current) || '—';
+            var hist = document.getElementById('smd-history');
+            hist.innerHTML = '';
+            (d.history || []).forEach(function(name) {
+                var s = document.createElement('span');
+                s.textContent = smdTransformChord(name);
+                hist.appendChild(s);
+            });
+
+            // Informacja o capo — akordy są JUŻ transponowane
+            var capo = currentSettings.capo_fret || 0;
+            var badge = document.getElementById('smd-capo-badge');
+            var tag = document.getElementById('smd-tag');
+            if (capo > 0) {
+                badge.textContent = (currentLang === 'en' ? 'CAPO ' : 'CAPO ') + capo + ' · ' +
+                    (currentLang === 'en' ? 'shapes already transposed' : 'akordy już przeliczone na capo');
+                badge.style.display = 'inline-block';
+                tag.textContent = currentLang === 'en' ? 'SILENT MODE · piano leads' : 'SILENT MODE · pianino prowadzi';
+            } else {
+                badge.style.display = 'none';
+                tag.textContent = currentLang === 'en' ? 'SILENT MODE · piano leads' : 'SILENT MODE · pianino prowadzi';
+            }
+            ov.classList.add('show');
+        }
+
+        socket.on('silent_md', function(d) {
+            lastSMD = d;
+            renderSilentMD();
+        });
+
+        // ===== SETTINGS UI =====
+        function toggleSettings() {
+            const panel = document.getElementById('settings-panel');
+            const overlay = document.getElementById('settings-overlay');
+            const open = panel.classList.toggle('open');
+            overlay.style.display = open ? 'block' : 'none';
+        }
+
+        // ===================== TUNER (STROIK) =====================
+        const TUNER = {
+            ctx: null, analyser: null, stream: null, source: null,
+            buf: null, raf: null, running: false,
+            // wygładzanie i histereza „nastrojenia"
+            smoothCents: 0, lastNote: '', holdMs: 0, lastTs: 0
+        };
+        const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+        // Standardowe struny gitary (E2 A2 D3 G3 B3 E4)
+        const GUITAR_STRINGS = [
+            { name: 'E', midi: 40 }, { name: 'A', midi: 45 }, { name: 'D', midi: 50 },
+            { name: 'G', midi: 55 }, { name: 'B', midi: 59 }, { name: 'E', midi: 64 }
+        ];
+
+        function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+        function buildTunerStrings() {
+            const wrap = document.getElementById('tuner-strings');
+            if (!wrap || wrap.childElementCount) return;
+            GUITAR_STRINGS.forEach((s, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'tuner-string-chip';
+                chip.id = 'tstr-' + i;
+                chip.textContent = s.name;
+                wrap.appendChild(chip);
+            });
+        }
+
+        async function toggleTuner() {
+            const ov = document.getElementById('tuner-overlay');
+            const btn = document.getElementById('tuner-btn');
+            if (ov.classList.contains('show')) { stopTuner(); return; }
+            buildTunerStrings();
+
+            // Mikrofon (getUserMedia) na telefonie działa TYLKO w bezpiecznym
+            // kontekście — czyli po HTTPS albo na localhost. Po zwykłym HTTP w
+            // sieci lokalnej iOS/Android w ogóle nie udostępniają mediaDevices,
+            // więc nie ma jak nawet zapytać o zgodę. Wtedy dajemy jasny komunikat.
+            const en = currentLang === 'en';
+            if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                // Telefony blokują mikrofon bez HTTPS — stroik oficjalnie
+                // działa na komputerze (localhost to bezpieczny kontekst).
+                alert(en
+                    ? 'The tuner uses the microphone, which phones block over a local-network connection. Use the tuner on the computer instead.'
+                    : 'Stroik korzysta z mikrofonu, którego telefony blokują przy połączeniu po sieci lokalnej. Użyj stroika na komputerze.');
+                return;
+            }
+
+            try {
+                TUNER.stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false }
+                });
+            } catch (e) {
+                if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) {
+                    alert(en
+                        ? 'Microphone permission was denied. Allow the mic for this site in your browser settings, then try again.'
+                        : 'Odmówiono dostępu do mikrofonu. Zezwól na mikrofon dla tej strony w ustawieniach przeglądarki i spróbuj ponownie.');
+                } else {
+                    alert(t('tuner_mic_denied') || (en ? 'Could not access the microphone.' : 'Nie udało się uruchomić mikrofonu.'));
+                }
+                return;
+            }
+            TUNER.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (TUNER.ctx.state === 'suspended') await TUNER.ctx.resume();
+            TUNER.analyser = TUNER.ctx.createAnalyser();
+            TUNER.analyser.fftSize = 4096;
+            TUNER.source = TUNER.ctx.createMediaStreamSource(TUNER.stream);
+            TUNER.source.connect(TUNER.analyser);
+            TUNER.buf = new Float32Array(TUNER.analyser.fftSize);
+            TUNER.running = true;
+            ov.classList.add('show');
+            if (btn) btn.classList.add('active');
+            tunerLoop();
+        }
+
+        function stopTuner() {
+            TUNER.running = false;
+            if (TUNER.raf) cancelAnimationFrame(TUNER.raf);
+            try { if (TUNER.source) TUNER.source.disconnect(); } catch (e) {}
+            if (TUNER.stream) TUNER.stream.getTracks().forEach(tr => tr.stop());
+            if (TUNER.ctx) { try { TUNER.ctx.close(); } catch (e) {} }
+            TUNER.ctx = TUNER.analyser = TUNER.stream = TUNER.source = null;
+            document.getElementById('tuner-overlay').classList.remove('show');
+            const btn = document.getElementById('tuner-btn');
+            if (btn) btn.classList.remove('active');
+            resetTunerUI();
+        }
+
+        function resetTunerUI() {
+            document.getElementById('tuner-note').textContent = '—';
+            document.getElementById('tuner-note').className = '';
+            document.getElementById('tuner-octave').textContent = '';
+            document.getElementById('tuner-freq').textContent = '—';
+            document.getElementById('tuner-target').textContent = '—';
+            document.getElementById('tuner-cents-val').textContent = '–';
+            const dir = document.getElementById('tuner-direction');
+            dir.className = ''; dir.textContent = t('tuner_hint_play') || 'Zagraj jedną strunę…';
+            const needle = document.getElementById('tuner-needle');
+            needle.className = ''; needle.style.left = '50%';
+            document.querySelectorAll('.tuner-string-chip').forEach(c => c.className = 'tuner-string-chip');
+        }
+
+        // Autokorelacja — solidne wykrywanie wysokości dla pojedynczego dźwięku
+        function autoCorrelate(buf, sampleRate) {
+            const SIZE = buf.length;
+            let rms = 0;
+            for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+            rms = Math.sqrt(rms / SIZE);
+            if (rms < 0.008) return -1; // za cicho
+
+            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+            for (let i = 0; i < SIZE / 2; i++) { if (Math.abs(buf[i]) < thres) { r1 = i; break; } }
+            for (let i = 1; i < SIZE / 2; i++) { if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; } }
+            const b = buf.slice(r1, r2);
+            const n = b.length;
+            const c = new Array(n).fill(0);
+            for (let lag = 0; lag < n; lag++)
+                for (let i = 0; i < n - lag; i++) c[lag] += b[i] * b[i + lag];
+
+            let d = 0; while (d < n - 1 && c[d] > c[d + 1]) d++;
+            let maxval = -1, maxpos = -1;
+            for (let i = d; i < n; i++) { if (c[i] > maxval) { maxval = c[i]; maxpos = i; } }
+            let T0 = maxpos;
+            if (T0 <= 0) return -1;
+            // interpolacja paraboliczna dla dokładności
+            const x1 = c[T0 - 1] || 0, x2 = c[T0], x3 = c[T0 + 1] || 0;
+            const a = (x1 + x3 - 2 * x2) / 2, bb = (x3 - x1) / 2;
+            if (a) T0 = T0 - bb / (2 * a);
+            return sampleRate / T0;
+        }
+
+        function tunerLoop() {
+            if (!TUNER.running) return;
+            TUNER.analyser.getFloatTimeDomainData(TUNER.buf);
+            const freq = autoCorrelate(TUNER.buf, TUNER.ctx.sampleRate);
+
+            if (freq > 0 && freq < 2000) {
+                const midiFloat = 69 + 12 * Math.log2(freq / 440);
+                const midi = Math.round(midiFloat);
+                const cents = Math.round((midiFloat - midi) * 100);
+                // wygładzenie igły
+                TUNER.smoothCents += (cents - TUNER.smoothCents) * 0.35;
+                renderTuner(freq, midi, TUNER.smoothCents);
+            }
+            TUNER.raf = requestAnimationFrame(tunerLoop);
+        }
+
+        function renderTuner(freq, midi, cents) {
+            const name = NOTE_NAMES[((midi % 12) + 12) % 12];
+            const octave = Math.floor(midi / 12) - 1;
+            const noteEl = document.getElementById('tuner-note');
+            noteEl.textContent = name.replace('#', '♯');
+            document.getElementById('tuner-octave').textContent = octave;
+            document.getElementById('tuner-freq').textContent = freq.toFixed(1);
+            document.getElementById('tuner-target').textContent = midiToFreq(midi).toFixed(1);
+            document.getElementById('tuner-cents-val').textContent = (cents > 0 ? '+' : '') + Math.round(cents);
+
+            const inTune = Math.abs(cents) <= 5;
+            noteEl.className = inTune ? 'in-tune' : 'off';
+
+            // igła: -50..+50 centów => 0%..100%
+            const pct = Math.max(0, Math.min(100, 50 + cents));
+            const needle = document.getElementById('tuner-needle');
+            needle.style.left = pct + '%';
+            needle.className = inTune ? 'in-tune' : (cents < 0 ? 'flat' : 'sharp');
+
+            const dir = document.getElementById('tuner-direction');
+            if (inTune) { dir.className = 'good'; dir.textContent = '✓ ' + (t('tuner_in_tune') || 'Nastrojone'); }
+            else if (cents < 0) { dir.className = 'flat'; dir.textContent = '↑ ' + (t('tuner_tune_up') || 'za nisko — podciągnij'); }
+            else { dir.className = 'sharp'; dir.textContent = '↓ ' + (t('tuner_tune_down') || 'za wysoko — poluzuj'); }
+
+            // podświetlenie najbliższej struny gitary
+            let nearest = 0, best = 1e9;
+            GUITAR_STRINGS.forEach((s, i) => { const d = Math.abs(s.midi - midi); if (d < best) { best = d; nearest = i; } });
+            GUITAR_STRINGS.forEach((s, i) => {
+                const chip = document.getElementById('tstr-' + i);
+                if (!chip) return;
+                if (i === nearest) chip.className = 'tuner-string-chip ' + (inTune && s.midi === midi ? 'locked' : 'near');
+                else chip.className = 'tuner-string-chip';
+            });
+        }
+
+        function toggleOpt(key) {
+            currentSettings[key] = !currentSettings[key];
+            updateToggles();
+            rerender();
+            saveProfileSettings();
+        }
+
+        function setDiagramInstrument(val) {
+            currentSettings.diagram_instrument = val;
+            rerender();
+            saveProfileSettings();
+        }
+
+        function setNotation(val) {
+            currentSettings.chord_notation = val;
+            document.getElementById('chord-notation').value = val;
+            rerender();
+            saveProfileSettings();
+        }
+
+        function updateToggles() {
+            document.getElementById('tog-chords').classList.toggle('active', currentSettings.show_chords);
+            document.getElementById('tog-lowercase-minor').classList.toggle('active', currentSettings.lowercase_minor);
+            document.getElementById('tog-beginner').classList.toggle('active', currentSettings.beginner_mode);
+            document.getElementById('chord-notation').value = currentSettings.chord_notation || 'international';
+            document.getElementById('diagram-instrument').value = currentSettings.diagram_instrument || 'guitar';
+            var inlineTog = document.getElementById('tog-inline-diagrams');
+            if (inlineTog) inlineTog.classList.toggle('active', inlineDiagrams);
+        }
+
+        // ===== CHORD POPUP =====
+        // Character labels + one-line "when to use" hints for each voicing tag.
+        const VOICING_META = {
+            base:    { pl: 'podstawowy',   en: 'basic',       hpl: 'pewny wybór, zawsze pasuje',            hen: 'safe choice, always fits' },
+            color:   { pl: 'kolor',        en: 'color',       hpl: 'add9 — jaśniej, bardziej „worshipowo”',  hen: 'add9 — brighter, more worshipful' },
+            open:    { pl: 'otwarty',      en: 'open',        hpl: 'sus2 — zwiewny, dobre na zwrotki',       hen: 'sus2 — airy, great for verses' },
+            tension: { pl: 'napięcie',     en: 'tension',     hpl: 'sus4 — zawieś i rozwiąż do podstawy',    hen: 'sus4 — suspend, then resolve' },
+            jazzy:   { pl: 'miękki',       en: 'mellow',      hpl: 'm7 — łagodniejszy, mniej „ostry”',       hen: 'm7 — softer, less harsh' },
+            soft:    { pl: 'ciepły',       en: 'warm',        hpl: '6 — ciepłe zakończenie frazy',           hen: '6 — warm phrase ending' },
+            resolve: { pl: 'rozwiązanie',  en: 'resolve',     hpl: 'wróć do czystego akordu',                hen: 'return to the plain chord' },
+        };
+
+        // Pitch class → note name (app enharmonic convention).
+        const PC_NAMES = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+
+        // Unique chords (in order) from a chunk of server chord-HTML — same raw
+        // domain as data-chord, so recommendations match the clicked chord.
+        function chordsFromHtml(html) {
+            try {
+                const tmp = document.createElement('div');
+                tmp.innerHTML = html || '';
+                const seen = new Set(), order = [];
+                tmp.querySelectorAll('.chord').forEach(function(el) {
+                    const c = (el.textContent || '').trim();
+                    if (c && !seen.has(c)) { seen.add(c); order.push(c); }
+                });
+                return order;
+            } catch (e) { return []; }
+        }
+        function currentProgressionChords() { return chordsFromHtml(currentBandHtml); }
+
+        // ===== INLINE "NOW PLAYING" DIAGRAMS (center of bottom bar) =====
+        function toggleInlineDiagrams() {
+            inlineDiagrams = !inlineDiagrams;
+            localStorage.setItem('bm_inline_diagrams', inlineDiagrams ? '1' : '0');
+            updateToggles();
+            renderNowDiagrams();
+        }
+        function setInlineVoicing(on) {
+            inlineVoicing = !!on;
+            localStorage.setItem('bm_inline_voicing', inlineVoicing ? '1' : '0');
+            renderNowDiagrams();
+        }
+
+        function renderNowDiagrams() {
+            const strip = document.getElementById('now-diagrams');
+            if (!strip) return;
+            const inst = currentSettings.diagram_instrument;
+            const isNash = currentSettings.chord_notation === 'nashville';
+            if (!inlineDiagrams || inst === 'off' || isNash || !currentBandHtml || !currentBandHtml.trim()) {
+                strip.style.display = 'none'; strip.innerHTML = ''; return;
+            }
+            // Akordy aktualnie granej części (to, co muzyk gra TERAZ).
+            const chords = chordsFromHtml(currentBandHtml);
+            if (!chords.length) { strip.style.display = 'none'; strip.innerHTML = ''; return; }
+            // Kształty rysujemy dla akordów PO uwzględnieniu kapodastra,
+            // a złożone akordy (np. Amadd11/E) upraszczamy do trójdźwięku (Am).
+            const dchords = chords.map(diagramChord);
+            const sdchords = dchords.map(simplifyDiagramChord);
+
+            const en = currentLang === 'en';
+            let html = '<div class="nd-head"><span class="nd-title">' +
+                (en ? 'Playing now' : 'Teraz grasz') + '</span>' +
+                '<div class="nd-seg">' +
+                    '<button class="nd-seg-btn' + (inlineVoicing ? ' on' : '') + '" onclick="setInlineVoicing(true)">' +
+                        (en ? '★ Suggested' : '★ Sugerowany') + '</button>' +
+                    '<button class="nd-seg-btn' + (!inlineVoicing ? ' on' : '') + '" onclick="setInlineVoicing(false)">' +
+                        (en ? 'Basic' : 'Podstawowy') + '</button>' +
+                '</div></div><div class="nd-row' + (inst === 'piano' ? ' nd-row--piano' : '') + '">';
+
+            chords.forEach(function(ch, i) {
+                const dch = dchords[i];               // kształt z kapo
+                const sdch = sdchords[i];             // uproszczony (złożone → trójdźwięk)
+                // Jeśli akord uprościliśmy, etykieta = uproszczony akord (np. Am);
+                // w przeciwnym razie pełna nazwa z notacją/kapo.
+                const wasSimplified = (sdch !== dch && sdch !== dch.split('/')[0]);
+                const label = wasSimplified ? convertNotation(sdch) : processChord(ch).display;
+                let svg = null, star = false;
+                try {
+                    if (inlineVoicing) {
+                        const vs = getChordVoicings(sdch, inst);
+                        const rec = recommendVoicing(sdch, sdchords, inst);
+                        const idx = (rec && vs[rec.index]) ? rec.index : 0;
+                        const pick = vs[idx];
+                        if (pick) {
+                            // Etykietę chwytu zastąp lokalną — respektuje notację i „małe
+                            // litery = mol" (np. Dm→d, więc alternatywa Dm7→d7).
+                            const shownLabel = (idx === 0) ? label : convertNotation(pick.label);
+                            svg = pick.svg.replace('>' + pick.label + '<', '>' + shownLabel + '<');
+                            star = idx > 0;
+                        }
+                    } else if (inst === 'piano') {
+                        const n = lookupPianoChord(sdch);
+                        svg = n ? renderPianoSVG(label, n) : null;
+                    } else {
+                        const d = lookupChord(sdch.split('/')[0]);
+                        svg = d ? renderChordSVG(label, d) : null;
+                    }
+                } catch (e) { svg = null; }
+
+                if (!svg) {
+                    html += '<div class="nd-card"><div class="nd-miss">' + label + '</div></div>';
+                } else {
+                    html += '<div class="nd-card">' + (star ? '<div class="nd-star">★</div>' : '') +
+                            '<div class="nd-svg">' + svg + '</div></div>';
+                }
+            });
+            html += '</div>';
+            strip.innerHTML = html;
+            strip.style.display = 'block';
+        }
+
+        function showChordPopup(event, chordName, displayName) {
+            event.stopPropagation();
+            const popup = document.getElementById('chord-popup');
+            const content = document.getElementById('chord-popup-content');
+
+            const inst = currentSettings.diagram_instrument;
+            const en = currentLang === 'en';
+
+            // Kształty i rekomendacja liczone w przestrzeni kapodastra;
+            // złożone akordy upraszczamy do trójdźwięku (np. Amadd11/E → Am).
+            const rawDch = diagramChord(chordName);
+            const dch = simplifyDiagramChord(rawDch);
+            const wasSimplified = (dch !== rawDch && dch !== rawDch.split('/')[0]);
+            const label = wasSimplified ? convertNotation(dch) : (displayName || chordName);
+
+            let voicings = [];
+            try { voicings = getChordVoicings(dch, inst) || []; } catch (e) { voicings = []; }
+
+            if (!voicings.length) {
+                content.innerHTML = `<div class="no-diagram"><strong>${label}</strong><br>${t('bm_no_diagram')}</div>`;
+            } else {
+                // Progression-aware pick: which voicing ties THIS song together best.
+                let rec = null;
+                try {
+                    const prog = currentProgressionChords().map(diagramChord).map(simplifyDiagramChord);
+                    rec = recommendVoicing(dch, prog, inst);
+                } catch (e) { rec = null; }
+                const recIdx = rec ? rec.index : -1;
+                const pedalName = (rec && rec.pedalPc != null) ? PC_NAMES[rec.pedalPc] : null;
+                const recVoicing = (recIdx >= 0) ? voicings[recIdx] : null;
+                const baseVoicing = voicings[0];
+
+                // Pianino: keyboardy są szerokie — pokaż tylko podstawowy +
+                // rekomendowany (max 2), żeby zmieściły się bez przewijania
+                // (pianista nie ma ręki na scrollowanie).
+                let displayVoicings = voicings;
+                if (inst === 'piano' && voicings.length > 2) {
+                    displayVoicings = [baseVoicing];
+                    if (recVoicing && recVoicing !== baseVoicing) displayVoicings.push(recVoicing);
+                }
+
+                // Etykiety respektują notację i „małe litery = mol" — także na
+                // alternatywach (np. baza d → alternatywa d7, nie Dm7).
+                let html = `<div class="voicing-title">${label} · ${en ? 'voicings' : 'voicingi'}</div>`;
+                html += '<div class="voicing-row">';
+                displayVoicings.forEach(function(v) {
+                    const meta = VOICING_META[v.tag] || VOICING_META.base;
+                    const isBase = (v === baseVoicing);
+                    const shownLabel = isBase ? label : convertNotation(v.label);
+                    const svg = v.svg.replace('>' + v.label + '<', '>' + shownLabel + '<');
+                    const isRec = (v === recVoicing);
+                    const star = isRec ? '<div class="voicing-star">★ ' + (en ? 'best here' : 'do tej progresji') + '</div>' : '';
+                    let hint = en ? meta.hen : meta.hpl;
+                    if (isRec && pedalName) {
+                        hint = (en ? 'ties the progression (drone ' : 'spina progresję (wspólny dźwięk ') + pedalName + ')';
+                    }
+                    html += '<div class="voicing-card' + (isRec ? ' voicing-card--rec' : '') + '">' +
+                                star +
+                                '<div class="voicing-svg">' + svg + '</div>' +
+                                '<div class="voicing-tag voicing-tag--' + v.tag + '">' + (en ? meta.en : meta.pl) + '</div>' +
+                                '<div class="voicing-hint">' + hint + '</div>' +
+                            '</div>';
+                });
+                html += '</div>';
+
+                // ── Przewroty na gryfie (chords-db) + dobór pod piosenkę ──
+                // „można patrzeć" (wszystkie pozycje) i algorytm gwiazdką wskazuje
+                // najlepszą dla TEJ piosenki, zależnie od poziomu gracza.
+                if (inst !== 'piano') {
+                    let positions = [];
+                    try { positions = getAllVoicings(dch, inst) || []; } catch (e) { positions = []; }
+                    if (positions.length > 1) {
+                        const level = currentSettings.beginner_mode ? 'beginner' : 'advanced';
+                        let pickIdx = 0;
+                        try {
+                            const prog2 = currentProgressionChords().map(diagramChord).map(simplifyDiagramChord);
+                            const picks = pickProgressionVoicings(prog2, inst, level);
+                            const at = prog2.indexOf(dch);
+                            if (at >= 0 && picks[at] != null) pickIdx = picks[at];
+                        } catch (e) { pickIdx = 0; }
+                        const modeLbl = (level === 'beginner')
+                            ? (en ? 'easy picks' : 'łatwe chwyty')
+                            : (en ? 'smooth for this song' : 'płynnie do tej piosenki');
+                        html += '<div class="voicing-title" style="margin-top:12px;">' +
+                                (en ? 'Positions on the neck' : 'Przewroty na gryfie') +
+                                ' · <span style="opacity:.65;font-weight:400;">' + modeLbl + '</span></div>';
+                        html += '<div class="voicing-row">';
+                        positions.forEach(function (pv, pi) {
+                            const isPick = (pi === pickIdx);
+                            const svg = pv.svg.replace('>' + pv.label + '<', '>' + label + '<');
+                            const fretTag = pv.open ? (en ? 'open' : 'otwarty')
+                                                    : (en ? 'fret ' : 'próg ') + pv.fret;
+                            const star = isPick ? '<div class="voicing-star">★ ' +
+                                (en ? 'best here' : 'najlepszy tu') + '</div>' : '';
+                            html += '<div class="voicing-card' + (isPick ? ' voicing-card--rec' : '') + '">' +
+                                        star +
+                                        '<div class="voicing-svg">' + svg + '</div>' +
+                                        '<div class="voicing-tag voicing-tag--base">' + fretTag + '</div>' +
+                                    '</div>';
+                        });
+                        html += '</div>';
+                    }
+                }
+
+                content.innerHTML = html;
+            }
+
+            popup.style.display = 'block';
+
+            // Width now depends on how many voicings we show (clamped to viewport).
+            const rect = event.target.getBoundingClientRect();
+            const popupW = Math.min(popup.offsetWidth || 300, window.innerWidth - 16);
+            let x = rect.left + rect.width / 2 - popupW / 2;
+            let y = rect.bottom + 8;
+
+            if (x < 8) x = 8;
+            if (x + popupW > window.innerWidth) x = window.innerWidth - popupW - 8;
+            const popupH = popup.offsetHeight || 220;
+            if (y + popupH > window.innerHeight) y = Math.max(8, rect.top - popupH - 8);
+
+            popup.style.left = x + 'px';
+            popup.style.top = y + 'px';
+        }
+
+        function hideChordPopup() {
+            document.getElementById('chord-popup').style.display = 'none';
+        }
+
+        document.addEventListener('click', function(e) {
+            const popup = document.getElementById('chord-popup');
+            if (popup.style.display === 'block' && !popup.contains(e.target) && !e.target.classList.contains('clickable')) {
+                hideChordPopup();
+            }
+        });
+
+        function setCapo(val) {
+            currentSettings.capo_fret = val;
+            rerender();
+            var songId = getCurrentSongId();
+            if (songId && currentProfile) saveSongCapo(songId, val);
+        }
+
+        function setFontSize(val) {
+            currentSettings.font_size = val;
+            document.getElementById('font-size-val').textContent = val;
+            rerender();
+            saveProfileSettings();
+        }
+
+        // Preset functions removed — profiles auto-save settings
+
+        socket.on('apply_settings', function(data) {
+            if (data.lang) initI18n(data.lang);
+        });
+
+        updateToggles();
+        initI18n();
+        initProfile();
+
+        fetch('/api/current-slide').then(r => r.json()).then(function(data) {
+            if (data.mode && data.mode !== 'none') applyLiveUpdate(data);
+        }).catch(function() {});
+        fetch('/api/setlist').then(r => r.json()).then(function(data) {
+            cachedSetlist = data.setlist || [];
+            liveCurrentIndex = data.current_index;
+            var songId = getCurrentSongId();
+            if (songId && currentProfile) loadSongSettings(songId);
+        }).catch(function() {});
+
+        // ── Mobile tip banner ──
+        function dismissMobileTip() {
+            document.getElementById('mobile-tip').style.display = 'none';
+            localStorage.setItem('jafa_bm_mobile_tip_done', 'true');
+        }
+        (function() {
+            var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            var isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+            var dismissed = localStorage.getItem('jafa_bm_mobile_tip_done');
+            if (isMobile && !isStandalone && !dismissed) {
+                document.getElementById('mobile-tip').style.display = 'block';
+            }
+        })();
+
+        // ── Band Member Onboarding Tour ──
+        (function() {
+            var isTourParam = new URLSearchParams(window.location.search).has('tour');
+            var onboardingDone = localStorage.getItem('jafa_bm_onboarding_done');
+            if (!isTourParam && onboardingDone) return;
+
+            var BM_STEPS = [
+                {
+                    target: '#profile-screen',
+                    get title() { return currentLang === 'en' ? 'Create your profile' : 'Stwórz swój profil'; },
+                    get text() { return currentLang === 'en' ? 'First, create your musician profile. Your personal settings (chords, notation, capo, font size) will be saved automatically.' : 'Na poczatek stwórz swój profil muzyka. Twoje ustawienia (akordy, notacja, kapo, czcionka) beda zapisywane automatycznie.'; },
+                    position: 'bottom',
+                    showIf: function() { return !currentProfile; },
+                    beforeShow: function() {
+                        var ps = document.getElementById('profile-screen');
+                        if (ps) ps.style.zIndex = '99992';
+                    },
+                    waitFor: function(cb) {
+                        var check = setInterval(function() {
+                            if (currentProfile) {
+                                clearInterval(check);
+                                var ps = document.getElementById('profile-screen');
+                                if (ps) ps.style.zIndex = '';
+                                cb();
+                            }
+                        }, 300);
+                    }
+                },
+                {
+                    target: '#current-slide',
+                    get title() { return currentLang === 'en' ? 'Live view' : 'Widok na zywo'; },
+                    get text() { return currentLang === 'en' ? 'This is your main screen. Here you see the lyrics and chords sent live by the worship leader. Everything updates in real time.' : 'To jest Twój glówny ekran. Tutaj widzisz tekst i akordy wysylane na zywo przez prowadzacego. Wszystko aktualizuje sie w czasie rzeczywistym.'; },
+                    position: 'bottom'
+                },
+                {
+                    target: '#next-slide-container',
+                    get title() { return currentLang === 'en' ? 'Info panel' : 'Panel informacji'; },
+                    get text() { return currentLang === 'en' ? 'Key, BPM, capo and your notes for the current song are shown here, along with a preview of the next section. Tap the note pill to add your own reminder for this section.' : 'Tonacja, BPM, kapo i Twoje notatki do piosenki sa tutaj widoczne, razem z podgladem nastepnej sekcji. Kliknij pole notatki, aby dodac wlasna podpowiedz do tej sekcji.'; },
+                    position: 'top'
+                },
+                {
+                    target: '#now-diagrams',
+                    get title() { return currentLang === 'en' ? 'Chord diagrams' : 'Diagramy akordow'; },
+                    get text() { return currentLang === 'en' ? 'Fingering shapes for every chord you are playing right now - guitar or piano. Switch between the Suggested voicing (that fits the song) and the Basic shape. Turn it on in Settings.' : 'Ksztalty chwytow do kazdego akordu, ktory teraz grasz - gitara lub pianino. Przelaczasz miedzy Sugerowanym (pasujacym do piosenki) a Podstawowym. Wlaczysz to w Ustawieniach.'; },
+                    position: 'top',
+                    showIf: function() { var s = document.getElementById('now-diagrams'); return s && s.offsetParent !== null; }
+                },
+                {
+                    target: '#setlist-btn',
+                    get title() { return currentLang === 'en' ? 'Browse setlist' : 'Setlista'; },
+                    get text() { return currentLang === 'en' ? 'Open the setlist to browse songs before they\'re played live. Set up your capo, check chords and prepare — then hit LIVE to follow the worship leader!' : 'Otworz setliste aby przegladac piosenki zanim zostana zagrane na zywo. Ustaw kapo, sprawdz akordy i przygotuj sie — potem kliknij LIVE aby podazac za prowadzacym!'; },
+                    position: 'bottom'
+                },
+                {
+                    target: '#tuner-btn',
+                    get title() { return currentLang === 'en' ? 'Built-in tuner' : 'Wbudowany stroik'; },
+                    get text() { return currentLang === 'en' ? 'Tune your instrument with the phone mic - no app switching. The needle turns green when you are in tune, amber when flat, red when sharp.' : 'Nastroj instrument mikrofonem telefonu - bez wychodzenia z apki. Wskazowka robi sie zielona gdy jestes w stroju, bursztynowa gdy za nisko, czerwona gdy za wysoko.'; },
+                    position: 'bottom'
+                },
+                {
+                    target: '#settings-btn',
+                    get title() { return currentLang === 'en' ? 'Your settings' : 'Twoje ustawienia'; },
+                    get text() { return currentLang === 'en' ? 'Open settings to personalize your view — chord display, notation (international / Polish / Nashville), capo with smart suggestions, beginner mode, chord diagrams and font size. Everything saves to your profile automatically.' : 'Otworz ustawienia aby spersonalizowac widok — akordy, notacja (miedzynarodowa / polska / Nashville), kapo z podpowiedziami, tryb poczatkujacego, diagramy akordow i rozmiar czcionki. Wszystko zapisuje sie automatycznie na Twoim profilu.'; },
+                    position: 'bottom'
+                }
+            ];
+
+            var bmStep = 0, bmOverlay, bmSpot, bmTip, bmInteract = null;
+
+            function bmCleanInteract() {
+                if (bmInteract) { bmInteract.el.removeEventListener('click', bmInteract.fn); bmInteract.el.style.zIndex = ''; bmInteract = null; }
+            }
+
+            function bmEnd() {
+                bmCleanInteract();
+                if (bmSpot) bmSpot.style.display = 'none';
+                localStorage.setItem('jafa_bm_onboarding_done', 'true');
+
+                if (bmOverlay) bmOverlay.classList.remove('active');
+                if (bmTip) bmTip.classList.remove('visible');
+                setTimeout(function() {
+                    [bmOverlay, bmSpot, bmTip].forEach(function(el) { if (el && el.parentNode) el.parentNode.removeChild(el); });
+                    bmOverlay = bmSpot = bmTip = null;
+                }, 400);
+                var url = new URL(window.location);
+                url.searchParams.delete('tour');
+                history.replaceState(null, '', url.toString());
+            }
+
+            function bmShow(idx) {
+                while (idx < BM_STEPS.length && BM_STEPS[idx].showIf && !BM_STEPS[idx].showIf()) {
+                    idx++;
+                }
+                if (idx >= BM_STEPS.length) { bmEnd(); return; }
+                bmStep = idx;
+                bmCleanInteract();
+                var s = BM_STEPS[idx];
+                if (s.beforeShow) s.beforeShow();
+
+                if (s.waitFor) {
+                    bmSpot.style.display = 'none';
+                    var el = document.querySelector(s.target);
+                    if (el) {
+                        var r = el.getBoundingClientRect();
+                        bmSpot.style.cssText = 'display:block;top:' + (r.top - 8) + 'px;left:' + (r.left - 8) + 'px;width:' + (r.width + 16) + 'px;height:' + (r.height + 16) + 'px;';
+                    }
+                    var arrowMap = { bottom: 'top', top: 'bottom', left: 'right', right: 'left' };
+                    var skipLabel = currentLang === 'en' ? 'Skip' : 'Pomin';
+                    bmTip.innerHTML = '<div class="onboarding-tooltip-arrow arrow-' + (arrowMap[s.position] || 'top') + '"></div>' +
+                        '<div class="onboarding-step-counter">1 / ' + BM_STEPS.length + '</div>' +
+                        '<h3>' + s.title + '</h3><p>' + s.text + '</p>' +
+                        '<div class="onboarding-btn-row">' +
+                        '<button class="onboarding-btn-skip" data-a="skip">' + skipLabel + '</button></div>';
+                    bmTip.querySelector('[data-a="skip"]').onclick = function(e) { e.stopPropagation(); bmEnd(); };
+                    var tw = 320, G = 16;
+                    if (el) {
+                        var rr = el.getBoundingClientRect();
+                        bmTip.style.top = (rr.bottom + G) + 'px';
+                        bmTip.style.left = Math.max(10, rr.left + rr.width / 2 - tw / 2) + 'px';
+                    } else {
+                        bmTip.style.top = '30%'; bmTip.style.left = '50%'; bmTip.style.transform = 'translateX(-50%)';
+                    }
+                    bmTip.classList.add('visible');
+                    s.waitFor(function() { bmShow(idx + 1); });
+                    return;
+                }
+
+                setTimeout(function() {
+                    var el = document.querySelector(s.target);
+                    if (!el || el.offsetParent === null) { bmShow(idx + 1); return; }
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    setTimeout(function() {
+                        var r = el.getBoundingClientRect(), P = 8;
+                        bmSpot.style.cssText = 'display:block;top:' + (r.top - P) + 'px;left:' + (r.left - P) + 'px;width:' + (r.width + P * 2) + 'px;height:' + (r.height + P * 2) + 'px;';
+
+                        var isLast = (idx === BM_STEPS.length - 1);
+                        var nextLabel = currentLang === 'en' ? (isLast ? 'Done!' : 'Next') : (isLast ? 'Gotowe!' : 'Dalej');
+                        var skipLabel = currentLang === 'en' ? 'Skip' : 'Pomin';
+                        var backLabel = currentLang === 'en' ? 'Back' : 'Wstecz';
+                        var arrowMap = { bottom: 'top', top: 'bottom', left: 'right', right: 'left' };
+
+                        bmTip.innerHTML = '<div class="onboarding-tooltip-arrow arrow-' + (arrowMap[s.position] || 'top') + '"></div>' +
+                            '<div class="onboarding-step-counter">' + (idx + 1) + ' / ' + BM_STEPS.length + '</div>' +
+                            '<h3>' + s.title + '</h3><p>' + s.text + '</p>' +
+                            '<div class="onboarding-btn-row">' +
+                            (idx > 0 ? '<button class="onboarding-btn-ghost" data-a="back">' + backLabel + '</button>' : '') +
+                            '<button class="onboarding-btn-primary" data-a="next">' + nextLabel + '</button>' +
+                            '<button class="onboarding-btn-skip" data-a="skip">' + skipLabel + '</button></div>';
+
+                        bmTip.querySelector('[data-a="next"]').onclick = function(e) { e.stopPropagation(); if (s.afterInteract) s.afterInteract(); bmShow(idx + 1); };
+                        var bb = bmTip.querySelector('[data-a="back"]');
+                        if (bb) bb.onclick = function(e) { e.stopPropagation(); bmShow(idx - 1); };
+                        bmTip.querySelector('[data-a="skip"]').onclick = function(e) { e.stopPropagation(); bmEnd(); };
+
+                        bmTip.classList.remove('visible');
+                        bmTip.style.visibility = 'hidden'; bmTip.style.display = 'block';
+                        var tr = bmTip.getBoundingClientRect(), tw = tr.width, th = tr.height, G = 16;
+                        var top, left;
+                        switch (s.position) {
+                            case 'bottom': top = r.bottom + G; left = r.left + r.width / 2 - tw / 2; break;
+                            case 'top': top = r.top - th - G; left = r.left + r.width / 2 - tw / 2; break;
+                            case 'left': top = r.top + r.height / 2 - th / 2; left = r.left - tw - G; break;
+                            case 'right': top = r.top + r.height / 2 - th / 2; left = r.right + G; break;
+                            default: top = r.bottom + G; left = r.left;
+                        }
+                        var vw = window.innerWidth, vh = window.innerHeight;
+                        if (left < 10) left = 10; if (left + tw > vw - 10) left = vw - tw - 10;
+                        if (top < 10) top = 10; if (top + th > vh - 10) top = vh - th - 10;
+                        bmTip.style.top = top + 'px'; bmTip.style.left = left + 'px'; bmTip.style.transform = ''; bmTip.style.visibility = '';
+                        requestAnimationFrame(function() { bmTip.classList.add('visible'); });
+
+                        if (s.interactive) {
+                            var iEl = document.querySelector(s.target);
+                            if (iEl) {
+                                iEl.style.zIndex = '100001';
+                                var handler = function() { if (s.afterInteract) s.afterInteract(); setTimeout(function() { bmShow(idx + 1); }, 300); };
+                                iEl.addEventListener('click', handler);
+                                bmInteract = { el: iEl, fn: handler };
+                            }
+                        }
+                    }, 300);
+                }, 100);
+            }
+
+            var style = document.createElement('style');
+            style.textContent = '.onboarding-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99990;opacity:0;transition:opacity .3s;pointer-events:all}.onboarding-overlay.active{opacity:1}.onboarding-spotlight{position:fixed;z-index:99995;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.65);pointer-events:none;transition:all .35s cubic-bezier(.4,0,.2,1);display:none}.onboarding-spotlight::after{content:"";position:absolute;inset:-4px;border-radius:14px;border:2px solid var(--accent-primary,#6366f1);animation:onboarding-pulse 2s ease-in-out infinite}@keyframes onboarding-pulse{0%,100%{opacity:.6}50%{opacity:1}}.onboarding-tooltip{position:fixed;z-index:100000;background:var(--bg-elevated,#1e293b);border:1px solid var(--border-default,#334155);border-radius:14px;padding:20px 24px;max-width:340px;min-width:260px;box-shadow:0 20px 60px rgba(0,0,0,.4);opacity:0;transform:translateY(8px);transition:all .25s}.onboarding-tooltip.visible{opacity:1;transform:translateY(0)}.onboarding-tooltip-arrow{position:absolute;width:12px;height:12px;background:var(--bg-elevated,#1e293b);border:1px solid var(--border-default,#334155);transform:rotate(45deg)}.arrow-top{top:-7px;left:50%;margin-left:-6px;border-right:none;border-bottom:none}.arrow-bottom{bottom:-7px;left:50%;margin-left:-6px;border-left:none;border-top:none}.arrow-left{left:-7px;top:50%;margin-top:-6px;border-top:none;border-right:none}.arrow-right{right:-7px;top:50%;margin-top:-6px;border-bottom:none;border-left:none}.onboarding-step-counter{font-size:.7rem;color:var(--text-tertiary,#64748b);margin-bottom:8px;letter-spacing:1px;font-weight:600}.onboarding-tooltip h3{margin:0 0 6px;font-size:1rem;color:var(--text-primary,#f1f5f9)}.onboarding-tooltip p{margin:0 0 16px;font-size:.85rem;line-height:1.5;color:var(--text-secondary,#94a3b8)}.onboarding-btn-row{display:flex;gap:8px;align-items:center}.onboarding-btn-primary{padding:8px 20px;background:var(--accent-primary,#6366f1);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:600}.onboarding-btn-primary:hover{filter:brightness(1.1)}.onboarding-btn-ghost{padding:8px 14px;background:transparent;color:var(--text-secondary,#94a3b8);border:1px solid var(--border-default,#334155);border-radius:8px;cursor:pointer;font-size:.8rem}.onboarding-btn-ghost:hover{background:rgba(255,255,255,.05)}.onboarding-btn-skip{padding:4px 10px;background:transparent;color:var(--text-tertiary,#64748b);border:none;cursor:pointer;font-size:.7rem;margin-left:auto}.onboarding-btn-skip:hover{color:var(--text-secondary,#94a3b8)}';
+            document.head.appendChild(style);
+
+            setTimeout(function() {
+                bmOverlay = document.createElement('div'); bmOverlay.className = 'onboarding-overlay';
+                bmOverlay.addEventListener('click', function(e) { if (e.target === bmOverlay) bmShow(bmStep + 1); });
+                document.body.appendChild(bmOverlay);
+                bmSpot = document.createElement('div'); bmSpot.className = 'onboarding-spotlight'; document.body.appendChild(bmSpot);
+                bmTip = document.createElement('div'); bmTip.className = 'onboarding-tooltip'; document.body.appendChild(bmTip);
+                requestAnimationFrame(function() { bmOverlay.classList.add('active'); });
+                setTimeout(function() { bmShow(0); }, 200);
+            }, 800);
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ church_name }} — Ekran powitalny</title>
+  <style>
+    @font-face{font-family:'League Spartan';font-weight:700;font-display:swap;
+      src:url("{{ url_for('static', filename='fonts/LeagueSpartan-700.ttf') }}") format('truetype')}
+    @font-face{font-family:'League Spartan';font-weight:900;font-display:swap;
+      src:url("{{ url_for('static', filename='fonts/LeagueSpartan-900.ttf') }}") format('truetype')}
+
+    :root{ --jafa-cyan:#0eb1df; --jafa-black:#111111; --jafa-white:#ffffff; --flow:1.2s;
+      --ease:cubic-bezier(0.77,0,0.175,1); }
+    body,html{ margin:0; padding:0; width:100vw; height:100vh; background:#000;
+      overflow:hidden; font-family:'League Spartan',sans-serif; }
+
+    #countdown-view{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      z-index:18; overflow:hidden; container-type:size; aspect-ratio:16/9;
+      width:100vw; max-height:100vh; max-width:calc(100vh*(16/9));
+      background:var(--jafa-white); transition:background-color var(--flow) var(--ease); }
+
+    /* ── Stałe elementy ── */
+    .cv-timer-box{ position:absolute; top:4.5cqi; right:4.5cqi; z-index:50; padding:1.6cqi 3.2cqi;
+      display:flex; flex-direction:column; align-items:flex-end;
+      clip-path:polygon(6% 0,100% 0,94% 100%,0 100%);
+      transition:background-color var(--flow) ease, color var(--flow) ease; }
+    .cv-timer-label{ font-size:1.4cqi; font-weight:900; letter-spacing:.18em; opacity:.9; }
+    .cv-timer-value{ font-size:5.2cqi; font-weight:900; font-variant-numeric:tabular-nums; line-height:.92; }
+    .cv-logo-ui{ position:absolute; top:4.5cqi; left:6cqi; z-index:50; height:6cqi; max-width:30cqi;
+      object-fit:contain; object-position:left center; transition:filter var(--flow) ease; }
+
+    /* Znak wodny przez multiply: białe tło ikony znika, ciemny kształt zostaje
+       na dowolnym tle. Działa z każdym plikiem (nie wymaga przezroczystości). */
+    .cv-watermark{ position:absolute; inset:-20%; z-index:2; pointer-events:none;
+      background-size:52cqi; background-repeat:no-repeat; background-position:center;
+      mix-blend-mode:multiply; opacity:.12;
+      transition:transform 1.4s var(--ease), opacity var(--flow) ease; }
+
+    /* ── Zdjęcie (crossfade A/B) w morphującym kadrze ── */
+    .cv-image-morph{ position:absolute; inset:0; z-index:10; overflow:hidden;
+      transition:clip-path var(--flow) var(--ease); }
+    /* Overscan (inset) MUSI być większy niż zasięg pan-a (scale+translate),
+       inaczej zdjęcie odsuwa się od ukośnej krawędzi kadru i przy dolnym rogu
+       (48%/34%) wychodzi biały klin. -12% daje zapas na scale 1.06 + translate. */
+    .cv-img-layer{ position:absolute; inset:-12%; background-size:cover; background-position:center;
+      background-repeat:no-repeat; transition:opacity .8s ease-in-out;
+      transform-origin:center center; animation:gentlePan 22s infinite alternate ease-in-out; }
+    @keyframes gentlePan{ 0%{transform:scale(1.06) translate(0,0)} 100%{transform:scale(1.06) translate(-1.6%,1.4%)} }
+    .cv-img-b{ opacity:0; }
+    .show-b .cv-img-a{ opacity:0; }
+    .show-b .cv-img-b{ opacity:1; }
+    .cv-tape{ position:absolute; inset:0; z-index:11; pointer-events:none; background:var(--jafa-cyan);
+      transition:clip-path var(--flow) var(--ease), background var(--flow) ease; }
+
+    /* ── Kinetyczny tekst — strefa o stałych krawędziach, treść wyśrodkowana pionowo ── */
+    .cv-text{ position:absolute; z-index:15; display:flex; flex-direction:column;
+      justify-content:center; box-sizing:border-box; }
+    .cv-text-inner{ width:100%; }
+    .cv-badge-wrap{ overflow:hidden; margin-bottom:1.6cqi; }
+    .cv-badge-wrap:has(.cv-badge.hide){ display:none; }
+    .cv-badge{ display:inline-block; padding:.9cqi 2.2cqi .7cqi; font-size:1.9cqi; font-weight:900;
+      letter-spacing:.12em; text-transform:uppercase; clip-path:polygon(0 0,100% 0,95% 100%,0 100%);
+      transform:translateY(110%); transition:transform .55s var(--ease), background-color var(--flow), color var(--flow); }
+    .cv-title{ font-weight:900; line-height:.88; text-transform:uppercase;
+      letter-spacing:-.02em; margin:0; display:flex; flex-direction:column;
+      color:var(--jafa-black); transition:color var(--flow); }
+    /* Bufory na diakrytyki: górny (Ó/Ś/Ż nad wersalikami) i dolny (ogonki Ą/Ę). */
+    .title-wrap{ overflow:hidden; padding:.18em 0 .45em; margin:-.18em 0 -.32em; }
+    .title-line{ display:block; white-space:nowrap; transform:translateY(115%); transition:transform .6s var(--ease); }
+    .title-wrap.empty{ display:none; }
+    .cv-desc-wrap{ overflow:hidden; margin-top:2.2cqi; }
+    .cv-desc{ line-height:1.3; font-weight:700; margin:0; padding-left:1.8cqi;
+      border-left:.8cqi solid var(--jafa-cyan); color:var(--jafa-black);
+      transform:translateY(108%);
+      transition:color var(--flow), border-color var(--flow), transform .7s var(--ease);
+      display:-webkit-box; -webkit-box-orient:vertical; overflow:hidden; }
+
+    .cv-text.active .cv-badge{ transform:translateY(0); }
+    .cv-text.active .title-line{ transform:translateY(0); }
+    .cv-text.active .title-wrap:nth-child(1) .title-line{ transition-delay:.08s; }
+    .cv-text.active .title-wrap:nth-child(2) .title-line{ transition-delay:.16s; }
+    .cv-text.active .title-wrap:nth-child(3) .title-line{ transition-delay:.24s; }
+    .cv-text.active .cv-desc{ transform:translateY(0); transition-delay:.34s; }
+    .cv-badge.hide, .cv-desc.hide{ display:none; }
+
+    /* ── LAYOUT 1: tekst L / zdjęcie P (białe tło) ── */
+    #countdown-view[data-layout="1"]{ background:var(--jafa-white); }
+    #countdown-view[data-layout="1"] .cv-text{ left:6cqi; width:43cqi; top:13cqi; bottom:5cqi; }
+    #countdown-view[data-layout="1"] .cv-image-morph{ clip-path:polygon(56% 0,100% 0,100% 100%,48% 100%); }
+    /* Prawa krawędź taśmy = lewa krawędź zdjęcia (ten sam kąt), z lekkim
+       zachodzeniem NA zdjęcie — taśma jest nad zdjęciem (z-index), więc nigdy
+       nie zostaje biała szpara między linią a zdjęciem. */
+    #countdown-view[data-layout="1"] .cv-tape{ clip-path:polygon(54.8% -5%,57.6% -5%,48.8% 105%,46% 105%); background:var(--jafa-cyan); }
+    #countdown-view[data-layout="1"] .cv-badge{ background:var(--jafa-cyan); color:var(--jafa-white); }
+    #countdown-view[data-layout="1"] .cv-desc{ border-color:var(--jafa-cyan); }
+    #countdown-view[data-layout="1"] .cv-timer-box{ background:var(--jafa-cyan); color:var(--jafa-white); }
+    #countdown-view[data-layout="1"] .cv-logo-ui{ filter:brightness(0); }
+    #countdown-view[data-layout="1"] .cv-watermark{ transform:translate(-18%,10%) rotate(-14deg); opacity:.10; }
+
+    /* ── LAYOUT 2: tekst P / zdjęcie L (cyan tło) ── */
+    #countdown-view[data-layout="2"]{ background:var(--jafa-cyan); }
+    #countdown-view[data-layout="2"] .cv-text{ left:51cqi; width:43cqi; top:13cqi; bottom:5cqi; }
+    #countdown-view[data-layout="2"] .cv-image-morph{ clip-path:polygon(0 0,44% 0,34% 100%,0 100%); }
+    #countdown-view[data-layout="2"] .cv-tape{ clip-path:polygon(43.3% -5%,46.1% -5%,35.1% 105%,32.3% 105%); background:var(--jafa-black); }
+    #countdown-view[data-layout="2"] .cv-badge{ background:var(--jafa-black); color:var(--jafa-white); }
+    #countdown-view[data-layout="2"] .cv-title,
+    #countdown-view[data-layout="2"] .cv-desc{ color:var(--jafa-white); }
+    #countdown-view[data-layout="2"] .cv-desc{ border-color:var(--jafa-black); }
+    #countdown-view[data-layout="2"] .cv-timer-box{ background:var(--jafa-black); color:var(--jafa-white); }
+    #countdown-view[data-layout="2"] .cv-logo-ui{ filter:brightness(0) invert(1); }
+    #countdown-view[data-layout="2"] .cv-watermark{ transform:translate(28%,-10%) rotate(22deg); opacity:.11; }
+
+    /* ── LAYOUT 3: wielki tekst na górze / pas zdjęcia na dole (białe tło) ── */
+    #countdown-view[data-layout="3"]{ background:var(--jafa-white); }
+    #countdown-view[data-layout="3"] .cv-text{ left:6cqi; width:86cqi; top:12cqi; bottom:25cqi; }
+    #countdown-view[data-layout="3"] .cv-image-morph{ clip-path:polygon(0 68%,100% 60%,100% 100%,0 100%); }
+    #countdown-view[data-layout="3"] .cv-tape{ clip-path:polygon(-5% 66.8%,105% 58%,105% 60.8%,-5% 69.6%); background:var(--jafa-cyan); }
+    #countdown-view[data-layout="3"] .cv-badge{ background:var(--jafa-black); color:var(--jafa-white); }
+    #countdown-view[data-layout="3"] .cv-desc{ border-color:var(--jafa-cyan); }
+    #countdown-view[data-layout="3"] .cv-timer-box{ background:var(--jafa-black); color:var(--jafa-white); }
+    #countdown-view[data-layout="3"] .cv-logo-ui{ filter:brightness(0); }
+    #countdown-view[data-layout="3"] .cv-watermark{ transform:translate(14%,-24%) rotate(-5deg); opacity:.12; }
+
+    /* ── Slajd bez zdjęcia: pełna szerokość, jeszcze większy tytuł ── */
+    #countdown-view.no-photo .cv-image-morph,
+    #countdown-view.no-photo .cv-tape{ display:none; }
+    #countdown-view.no-photo .cv-text{ left:8cqi; width:84cqi; top:13cqi; bottom:6cqi; }
+
+    /* Pusty stan (brak ogłoszeń) — logo/zegar na czysto */
+    .cv-empty{ position:absolute; inset:0; z-index:15; display:none; align-items:center; justify-content:center;
+      text-align:center; padding:14cqi; font-size:4cqi; font-weight:900; text-transform:uppercase;
+      color:var(--jafa-black); letter-spacing:-.01em; }
+    #countdown-view.is-empty .cv-empty{ display:flex; }
+    #countdown-view.is-empty .cv-image-morph,
+    #countdown-view.is-empty .cv-tape,
+    #countdown-view.is-empty .cv-text{ display:none; }
+  </style>
+</head>
+<body>
+  <div id="countdown-view" data-layout="1">
+    <div class="cv-watermark" id="cv-watermark"></div>
+
+    <div class="cv-timer-box" id="cv-timer" style="display:none;">
+      <span class="cv-timer-label">{{ starts_label }}</span>
+      <span class="cv-timer-value" id="cv-timer-value">00:00</span>
+    </div>
+
+    <img src="{{ url_for('static', filename='logo.png') }}" class="cv-logo-ui" alt="{{ church_name }}" onerror="this.style.display='none'">
+
+    <div class="cv-image-morph" id="cv-image">
+      <div class="cv-img-layer cv-img-a" id="cv-img-a"></div>
+      <div class="cv-img-layer cv-img-b" id="cv-img-b"></div>
+    </div>
+    <div class="cv-tape"></div>
+
+    <div class="cv-text active" id="cv-text">
+      <div class="cv-text-inner" id="cv-text-inner">
+        <div class="cv-badge-wrap"><div class="cv-badge" id="cv-badge"></div></div>
+        <h1 class="cv-title" id="cv-title">
+          <div class="title-wrap"><span class="title-line" id="cv-title-1"></span></div>
+          <div class="title-wrap"><span class="title-line" id="cv-title-2"></span></div>
+          <div class="title-wrap"><span class="title-line" id="cv-title-3"></span></div>
+        </h1>
+        <div class="cv-desc-wrap"><p class="cv-desc" id="cv-desc"></p></div>
+      </div>
+    </div>
+
+    <div class="cv-empty" id="cv-empty">{{ church_name }}</div>
+  </div>
+
+  <script>
+    const CONFIG = {{ config|tojson }};
+    const view = document.getElementById('countdown-view');
+    let slides = (CONFIG.slides || []).filter(function(s){ return s.title || s.text || s.image_url; });
+    const SLIDE_MS = Math.max(3, (CONFIG.slide_seconds || 8)) * 1000;
+    let idx = 0, showB = false, rot = null, tick = null;
+
+    // Ikony w tle: własne wspólnoty (jeśli wgrane) albo wbudowane domyślne.
+    const DEFAULT_ICONS = [
+      "data:image/svg+xml;utf8,<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><rect x='42' y='8' width='16' height='84' fill='black'/><rect x='20' y='30' width='60' height='16' fill='black'/></svg>",
+      "data:image/svg+xml;utf8,<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><path fill='black' d='M14 52c22-30 52-30 72 0-20 30-50 30-72 0z'/><circle cx='68' cy='46' r='5' fill='white'/></svg>",
+      "data:image/svg+xml;utf8,<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><path fill='black' d='M50 8l10 26 28 2-22 18 8 28-24-16-24 16 8-28-22-18 28-2z'/></svg>"
+    ];
+    const ICONS = (CONFIG.icons && CONFIG.icons.length) ? CONFIG.icons : DEFAULT_ICONS;
+
+    /* ═══ SILNIK TYPOGRAFII ═══
+       Tytuł ma WYPEŁNIAĆ kolumnę: mierzymy szerokość każdego wariantu łamania
+       (1/2/3 linie) i wybieramy ten, który daje NAJWIĘKSZY font. Krótki tytuł
+       rośnie do maksimum, długi łamie się zamiast się kurczyć. */
+    // Pomiar DOM-owy (nie canvas): ukryty span z DOKŁADNIE tymi samymi stylami
+    // co linia tytułu (font, waga, letter-spacing) — mierzy to, co realnie
+    // wyrenderuje przeglądarka, więc nic nigdy nie jest ucięte.
+    const meas = document.createElement('span');
+    meas.style.cssText = 'position:absolute;left:-99999px;top:0;visibility:hidden;' +
+      'white-space:nowrap;font-weight:900;letter-spacing:-0.02em;font-size:100px;' +
+      "font-family:'League Spartan',sans-serif;text-transform:uppercase;";
+    document.body.appendChild(meas);
+    function lineWidth100(s) {
+      meas.textContent = s;
+      return meas.getBoundingClientRect().width || 1;
+    }
+    function splitK(words, k) {
+      if (k >= words.length) return words.slice(0, 3).map(function(w){ return w; });
+      const total = words.reduce(function(a,w){ return a + w.length + 1; }, 0);
+      const lines = []; let cur = [], acc = 0, li = 1;
+      for (const w of words) {
+        cur.push(w); acc += w.length + 1;
+        if (li < k && acc >= (total * li) / k) { lines.push(cur.join(' ')); cur = []; li++; }
+      }
+      if (cur.length) lines.push(cur.join(' '));
+      return lines;
+    }
+    function bestTitle(title, availW, maxPx) {
+      const words = (title || '').trim().split(/\s+/).filter(Boolean);
+      if (!words.length) return { lines: [], size: maxPx };
+      let best = null;
+      for (let k = 1; k <= Math.min(3, words.length); k++) {
+        const lines = splitK(words, k);
+        const widest = Math.max.apply(null, lines.map(lineWidth100));
+        const size = Math.min(maxPx, (availW / widest) * 100 * 0.985);
+        // preferuj mniej linii, jeśli rozmiar niemal ten sam (≤4% różnicy)
+        if (!best || size > best.size * 1.04) best = { lines: lines, size: size };
+      }
+      return best;
+    }
+    function descSizeFor(text, cw, wide) {
+      const n = (text || '').length;
+      const base = wide ? 3.2 : 3.0;             // cqi
+      const s = n <= 90 ? base : (n <= 150 ? base - 0.4 : base - 0.7);
+      return cw * (s / 100);
+    }
+
+    function fitText() {
+      const text = document.getElementById('cv-text');
+      const title = document.getElementById('cv-title');
+      const desc = document.getElementById('cv-desc');
+      const wraps = title.querySelectorAll('.title-wrap');
+      const cw = view.clientWidth;
+      const d = slides[idx] || {};
+      const noPhoto = view.classList.contains('no-photo');
+      const layout = view.getAttribute('data-layout');
+      const wide = noPhoto || layout === '3';
+
+      const availW = text.clientWidth - 2;
+      const maxPx = cw * (noPhoto ? 0.105 : (layout === '3' ? 0.115 : 0.088));
+      const minPx = cw * 0.042;
+
+      const bt = bestTitle(d.title, availW, maxPx);
+      const spans = [document.getElementById('cv-title-1'),
+                     document.getElementById('cv-title-2'),
+                     document.getElementById('cv-title-3')];
+      spans.forEach(function (sp, i) {
+        sp.textContent = bt.lines[i] || '';
+        wraps[i].classList.toggle('empty', !bt.lines[i]);
+      });
+      let size = Math.max(bt.size, minPx);
+      title.style.fontSize = size + 'px';
+
+      let dsize = descSizeFor(d.text, cw, wide);
+      desc.style.fontSize = dsize + 'px';
+      desc.style.webkitLineClamp = '5';
+
+      // Strefa ma stałą wysokość (top+bottom w CSS) — dociśnij pionowo.
+      // Mierzymy WEWNĘTRZNY wrapper (offsetHeight), bo scrollHeight kontenera
+      // flex z justify-content:center nie liczy górnego przepełnienia.
+      const inner = document.getElementById('cv-text-inner');
+      const zoneH = text.clientHeight;
+      let guard = 80;
+      while (guard-- > 0 && inner.offsetHeight > zoneH) {
+        if (size > minPx) { size *= 0.95; title.style.fontSize = size + 'px'; }
+        else if (dsize > cw * 0.024) { dsize *= 0.95; desc.style.fontSize = dsize + 'px'; }
+        else if (desc.style.webkitLineClamp !== '2') { desc.style.webkitLineClamp = '2'; }
+        else { break; }
+      }
+    }
+
+    function paint(i) {
+      idx = i;                 // fitText czyta bieżący slajd przez idx
+      const d = slides[i];
+      const badge = document.getElementById('cv-badge');
+      badge.innerText = d.category || '';
+      badge.classList.toggle('hide', !d.category);
+      const desc = document.getElementById('cv-desc');
+      desc.innerText = d.text || '';
+      desc.classList.toggle('hide', !d.text);
+
+      view.classList.toggle('no-photo', !d.image_url);
+      const img = document.getElementById('cv-image');
+      if (d.image_url) {
+        const url = "url('" + d.image_url.replace(/'/g, "\\'") + "')";
+        showB = !showB;
+        if (showB) { document.getElementById('cv-img-b').style.backgroundImage = url; img.classList.add('show-b'); }
+        else { document.getElementById('cv-img-a').style.backgroundImage = url; img.classList.remove('show-b'); }
+      }
+
+      const wm = document.getElementById('cv-watermark');
+      wm.style.backgroundImage = "url(\"" + ICONS[i % ICONS.length] + "\")";
+
+      fitText();
+    }
+
+    function next() {
+      const text = document.getElementById('cv-text');
+      text.classList.remove('active');            // 1) schowaj tekst
+      setTimeout(function () {
+        idx = (idx + 1) % slides.length;
+        view.setAttribute('data-layout', String((idx % 3) + 1)); // 2) morph (tekst schowany)
+        paint(idx);                               // 3) podmień treść + dopasuj
+        requestAnimationFrame(function () {
+          setTimeout(function () { text.classList.add('active'); }, 120); // 4) odsłoń
+        });
+      }, 620);
+    }
+
+    function pad(n, w){ return String(n).padStart(w || 2, '0'); }
+    // Format zegara USTALAMY RAZ na starcie (na podstawie startowej — czyli
+    // największej — pozostałej wartości). Odliczanie tylko maleje, więc liczba
+    // znaków się nie zmienia → szerokość boksu jest stała (tabular-nums).
+    let cdFmt = null;
+    function updateTimer(endTs) {
+      const el = document.getElementById('cv-timer-value');
+      const total = Math.max(0, Math.floor((endTs - new Date().getTime()) / 1000));
+      const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60;
+      if (cdFmt === null) cdFmt = { hours: h > 0, hd: Math.max(1, String(h).length) };
+      el.innerText = cdFmt.hours
+        ? (pad(h, cdFmt.hd) + ':' + pad(m, 2) + ':' + pad(s, 2))
+        : (pad(m, 2) + ':' + pad(s, 2));
+    }
+
+    function start() {
+      if (slides.length === 0) { view.classList.add('is-empty'); }
+      else {
+        view.setAttribute('data-layout', '1');
+        paint(0);
+        document.getElementById('cv-text').classList.add('active');
+        if (slides.length > 1) rot = setInterval(next, SLIDE_MS);
+      }
+      if (CONFIG.start_local) {
+        const endTs = new Date(CONFIG.start_local).getTime();
+        if (!isNaN(endTs)) {
+          document.getElementById('cv-timer').style.display = 'flex';
+          updateTimer(endTs);
+          tick = setInterval(function () { updateTimer(endTs); }, 1000);
+        }
+      }
+    }
+    window.addEventListener('resize', fitText);
+    // Font musi być załadowany zanim zmierzymy szerokości linii.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () { start(); fitText(); });
+    } else { start(); }
+    window.paint = paint;   // used by dev harness
+  </script>
+</body>
+</html>

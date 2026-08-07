@@ -3,15 +3,16 @@
 <head>
     <title>Rzutnik</title>
     <link href="https://fonts.googleapis.com/css2?family=Sen:wght@700&family=Roboto:wght@700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+    <script src="{{ url_for('static', filename='socket.io.js') }}"></script>
     <style>
         :root {
             --bg-color: {{ settings.bg_color }};
             --text-color: {{ settings.text_color }};
             --font-family: '{{ settings.font_family }}', sans-serif;
         }
-        body { 
-            background-color: var(--bg-color); 
+        body {
+            background-color: var(--bg-color);
             /* Tło graficzne jeśli jest wgrane */
             background-image: url("{{ url_for('static', filename='background.png') }}?v={{ range(1,1000)|random }}");
             background-size: cover; background-position: center; background-repeat: no-repeat;
@@ -20,15 +21,33 @@
         }
         /* Jeśli pliku nie ma (404), przeglądarka po prostu użyje background-color */
 
-        #slide-content { 
+        #slide-content {
             font-size: 5vw; font-weight: 700; line-height: 1.3;
             text-shadow: 2px 2px 10px rgba(0,0,0,0.8); /* Mocny cień dla czytelności na zdjęciach */
             padding: 50px;
             z-index: 10;
         }
+        #countdown-view {
+            display: none; position: absolute; inset: 0; z-index: 18;
+            flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 4vw; box-sizing: border-box;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.8);
+        }
+        #countdown-view.show { display: flex; }
+        #cd-heading { font-size: 2.6vw; font-weight: 700; opacity: 0.85; margin-bottom: 0.5vh; letter-spacing: .02em; }
+        #cd-clock { font-size: 13vw; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+        #cd-card { display: flex; flex-direction: column; align-items: center; gap: 2.2vh;
+            margin-top: 4vh; max-width: 80vw; transition: opacity .5s ease; }
+        #cd-card-img { max-width: 70vw; max-height: 42vh; object-fit: contain;
+            border-radius: 1.2vw; box-shadow: 0 1vh 4vh rgba(0,0,0,0.45); display: none; }
+        #cd-card-text { font-size: 3vw; font-weight: 700; line-height: 1.3; max-width: 78vw; }
         #logo-image { display: none; max-width: 80vw; max-height: 80vh; object-fit: contain; z-index: 20; }
         #canva-frame { display: none; width: 100vw; height: 100vh; border: none; z-index: 15; position: absolute; }
         #pres-image { display: none; width: 100vw; height: 100vh; object-fit: contain; z-index: 15; position: absolute; background: black; }
+        /* Przejście-wideo: bez natywnych kontrolek (pasek z czasem) — ma być płynne. */
+        #transition-video::-webkit-media-controls,
+        #transition-video::-webkit-media-controls-enclosure { display: none !important; }
+        #transition-video::-webkit-media-controls-panel { display: none !important; }
     </style>
 </head>
 <body>
@@ -36,30 +55,196 @@
     <img id="logo-image" src="{{ url_for('static', filename='logo.png') }}?v={{ range(1,1000)|random }}" alt="Logo">
     <iframe id="canva-frame" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>
     <img id="pres-image" src="">
+    <iframe id="welcome-frame" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; border:none; z-index:16;"></iframe>
+    <div id="countdown-view">
+        <div id="cd-heading"></div>
+        <div id="cd-clock">00:00</div>
+        <div id="cd-card">
+            <img id="cd-card-img" src="" alt="">
+            <div id="cd-card-text"></div>
+        </div>
+    </div>
+    <!-- Warstwa przejścia — nad wszystkim, zakrywa moment zmiany trybu. -->
+    <video id="transition-video" muted playsinline preload="auto" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; object-fit:cover; background:#000; z-index:60;"></video>
+    <iframe id="transition-html" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; border:none; background:#000; z-index:60;"></iframe>
 
     <script>
+        {% set _tf = settings.transition_file if (settings and settings.transition_kind) else '' %}
+        window.JAFA_TRANSITION = {
+            kind: {{ ((settings.transition_kind if settings else '') or '')|tojson }},
+            url: {{ (url_for('static', filename=_tf) if _tf else '')|tojson }},
+            ms: {{ ((settings.transition_ms if settings else 4000) or 4000)|int }}
+        };
         var socket = io();
         const slide = document.getElementById('slide-content');
         const logo = document.getElementById('logo-image');
         const root = document.documentElement;
         const canvaFrame = document.getElementById('canva-frame');
         const presImage = document.getElementById('pres-image');
+        const welcomeFrame = document.getElementById('welcome-frame');
+
+        function welcomeUrl(sid) {
+            var u = '/welcome/screen';
+            return sid ? u + '?setlist_id=' + encodeURIComponent(sid) : u;
+        }
+
+        const countdownView = document.getElementById('countdown-view');
+        var cdTick = null, cdRotate = null, cdEnd = 0, cdItems = [], cdIdx = 0;
+
+        function stopCountdown() {
+            if (cdTick) { clearInterval(cdTick); cdTick = null; }
+            if (cdRotate) { clearInterval(cdRotate); cdRotate = null; }
+            countdownView.classList.remove('show');
+        }
+        function renderCdClock() {
+            var left = Math.max(0, Math.round((cdEnd - Date.now()) / 1000));
+            var h = Math.floor(left / 3600), m = Math.floor((left % 3600) / 60), s = left % 60;
+            var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+            document.getElementById('cd-clock').innerText =
+                (h > 0 ? h + ':' + pad(m) : m) + ':' + pad(s);
+        }
+        function showCdCard(idx) {
+            var card = document.getElementById('cd-card');
+            var img = document.getElementById('cd-card-img');
+            var txt = document.getElementById('cd-card-text');
+            var it = cdItems[idx] || {};
+            if (it.image) { img.src = it.image; img.style.display = 'block'; }
+            else { img.removeAttribute('src'); img.style.display = 'none'; }
+            txt.innerText = it.text || '';
+            card.style.opacity = 1;
+        }
+        function startCountdown(data) {
+            cdEnd = data.end_ts || Date.now();
+            // Zgodność wstecz: starsze payloady niosły announcements jako stringi.
+            cdItems = (data.items || (data.announcements || []).map(function (a) { return {text: a, image: ''}; }))
+                .filter(function (it) { return it && (it.text || it.image); });
+            cdIdx = 0;
+            document.getElementById('cd-heading').innerText = data.heading || '';
+            document.getElementById('cd-card').style.display = cdItems.length ? 'flex' : 'none';
+            if (cdItems.length) showCdCard(0);
+            renderCdClock();
+            countdownView.classList.add('show');
+            if (cdTick) clearInterval(cdTick);
+            cdTick = setInterval(renderCdClock, 1000);
+            if (cdRotate) clearInterval(cdRotate);
+            if (cdItems.length > 1) {
+                cdRotate = setInterval(function () {
+                    cdIdx = (cdIdx + 1) % cdItems.length;
+                    var card = document.getElementById('cd-card');
+                    card.style.opacity = 0;
+                    setTimeout(function () { showCdCard(cdIdx); }, 500);
+                }, 8000);
+            }
+        }
+
+        // ── Przejście (stinger) między trybami: Ogłoszenia / Uwielbienie / Konferencja ──
+        var TR = window.JAFA_TRANSITION || {kind: '', url: '', ms: 4000};
+        var trVideo = document.getElementById('transition-video');
+        var trHtml = document.getElementById('transition-html');
+        var currentMajor = null;
+        var trTimer = null;
+        if (TR.url && TR.kind === 'video') trVideo.src = TR.url;
+
+        function majorMode(m) {
+            if (m === 'welcome' || m === 'countdown') return 'announcements';
+            if (m === 'worship' || m === 'note') return 'worship';
+            if (m === 'conference' || m === 'canva' || m === 'presentation') return 'conference';
+            return null;   // logo / blackout — bez przejścia
+        }
+        function hideTransition() {
+            clearTimeout(trTimer); trTimer = null;
+            trVideo.style.display = 'none';
+            try { trVideo.pause(); } catch (e) {}
+            trHtml.style.display = 'none';
+            trHtml.src = 'about:blank';
+        }
+        function styleTransitionFrame() {
+            // Przejście HTML bywa cienką otoczką na <video> z domyślnymi
+            // kontrolkami — chowamy je, rozciągamy na pełny ekran i wymuszamy
+            // płynne, wyciszone autoodtwarzanie. Ten sam origin => mamy dostęp.
+            try {
+                var d = trHtml.contentDocument;
+                if (!d) return;
+                var st = d.createElement('style');
+                st.textContent =
+                    'html,body{margin:0;height:100%;overflow:hidden;background:#000}' +
+                    'video::-webkit-media-controls,video::-webkit-media-controls-enclosure{display:none!important}' +
+                    'video{width:100%!important;height:100%!important;object-fit:cover!important}';
+                (d.head || d.documentElement).appendChild(st);
+                var vids = d.querySelectorAll('video');
+                for (var i = 0; i < vids.length; i++) {
+                    var v = vids[i];
+                    v.removeAttribute('controls'); v.controls = false;
+                    v.muted = true; v.loop = true;
+                    v.setAttribute('playsinline', '');
+                    var pr = v.play && v.play();
+                    if (pr && pr.catch) pr.catch(function () {});
+                }
+            } catch (e) { /* inny origin / brak dostępu — pomiń */ }
+        }
+        function playTransition() {
+            if (!TR.url || !TR.kind) return;
+            if (TR.kind === 'video') {
+                trHtml.style.display = 'none';
+                trVideo.style.display = 'block';
+                try { trVideo.currentTime = 0; } catch (e) {}
+                var p = trVideo.play();
+                if (p && p.catch) p.catch(function () { hideTransition(); });
+            } else {
+                trVideo.style.display = 'none';
+                trHtml.onload = styleTransitionFrame;
+                trHtml.src = TR.url;
+                trHtml.style.display = 'block';
+                clearTimeout(trTimer);
+                trTimer = setTimeout(hideTransition, TR.ms || 4000);
+            }
+        }
+        trVideo.addEventListener('ended', hideTransition);
+        trVideo.addEventListener('play', function () {
+            clearTimeout(trTimer);
+            trTimer = setTimeout(hideTransition, 20000);
+        });
+        socket.on('refresh_transition', function (data) {
+            TR = data || {kind: '', url: '', ms: 4000};
+            hideTransition();
+            trVideo.src = (TR.kind === 'video' && TR.url) ? TR.url : '';
+        });
 
         socket.on('update_slide', function(data) {
-            slide.style.display = 'none'; 
+            var nm = majorMode(data.mode);
+            if (nm) {
+                if (currentMajor !== null && nm !== currentMajor) playTransition();
+                currentMajor = nm;
+            }
+            slide.style.display = 'none';
             logo.style.display = 'none';
             canvaFrame.style.display = 'none';
             presImage.style.display = 'none';
-            if (data.mode === 'logo') {
+            if (data.mode !== 'welcome') welcomeFrame.style.display = 'none';
+            if (data.mode !== 'countdown') stopCountdown();
+            if (data.mode === 'welcome') {
+                // Ekran powitalny setlisty (odliczanie + ogłoszenia). Reładuj
+                // tylko przy zmianie, żeby nie restartować animacji.
+                var url = welcomeUrl(data.setlist_id);
+                if (welcomeFrame.getAttribute('data-url') !== url) {
+                    welcomeFrame.src = url; welcomeFrame.setAttribute('data-url', url);
+                }
+                welcomeFrame.style.display = data.is_blackout ? 'none' : 'block';
+            }
+            else if (data.mode === 'countdown') {
+                if (data.is_blackout) { stopCountdown(); }
+                else { startCountdown(data); }
+            }
+            else if (data.mode === 'logo') {
                 logo.style.display = 'block';
             }
             else if (data.mode === 'blackout') {}
-            else if (data.mode === 'worship') { 
+            else if (data.mode === 'worship') {
                 if (data.is_blackout) {
                     // Ekran zostaje czarny, nic nie pokazujemy
                 } else {
-                    slide.style.display = 'block'; 
-                    slide.innerHTML = data.people; 
+                    slide.style.display = 'block';
+                    slide.innerHTML = data.people;
                 }
             }
             else if (data.mode === 'canva') {
@@ -73,9 +258,15 @@
         });
 
         socket.on('apply_settings', function(data) {
-            root.style.setProperty('--bg-color', data.bg_color);
-            root.style.setProperty('--text-color', data.text_color);
-            root.style.setProperty('--font-family', data.font_family);
+            // Ustawiaj TYLKO pola obecne w zdarzeniu. Zdarzenia częściowe (np.
+            // sama zmiana języka) nie niosą bg_color — bez tej straży
+            // setProperty('--bg-color', undefined) czyściło tło rzutnika na białe.
+            if (data.bg_color) root.style.setProperty('--bg-color', data.bg_color);
+            if (data.text_color) root.style.setProperty('--text-color', data.text_color);
+            if (data.font_family) root.style.setProperty('--font-family', data.font_family);
+            if (data.lang) {
+                initI18n(data.lang);
+            }
         });
 
         socket.on('refresh_logo', function() {
@@ -86,6 +277,9 @@
             if(data.has_bg) document.body.style.backgroundImage = "url('/static/background.png?v=" + new Date().getTime() + "')";
             else document.body.style.backgroundImage = "none";
         });
+
+        // Initialize translations
+        initI18n();
     </script>
 </body>
 </html>
