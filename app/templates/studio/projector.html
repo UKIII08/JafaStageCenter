@@ -157,7 +157,8 @@
                 for (var i = 0; i < vids.length; i++) {
                     var v = vids[i];
                     if (v.controls) { v.removeAttribute('controls'); v.controls = false; }
-                    v.muted = true; v.loop = true;
+                    // Graj CAŁY klip raz, do końca (bez zapętlania i bez ucinania).
+                    v.muted = true; v.loop = false;
                     v.setAttribute('playsinline', '');
                     v.setAttribute('disablepictureinpicture', '');
                     if (v.paused) { var pr = v.play && v.play(); if (pr && pr.catch) pr.catch(function () {}); }
@@ -169,22 +170,44 @@
             sanitizeFrameOnce();
             trSanitizeTimer = setInterval(sanitizeFrameOnce, 250);
         }
+        function hookFrameVideoEnd() {
+            // HTML bywa otoczką na <video> — chowamy przejście dokładnie wtedy,
+            // gdy ten film się skończy (odtwarzamy całość, od początku do końca).
+            try {
+                var d = trHtml.contentDocument;
+                if (!d) return;
+                var v = d.querySelector('video');
+                if (!v) return;
+                v.loop = false;
+                v.addEventListener('ended', hideTransition, {once: true});
+                var setCap = function () {
+                    if (v.duration && isFinite(v.duration)) {
+                        clearTimeout(trTimer);
+                        trTimer = setTimeout(hideTransition, v.duration * 1000 + 1500);
+                    }
+                };
+                if (v.readyState >= 1) setCap();
+                else v.addEventListener('loadedmetadata', setCap, {once: true});
+            } catch (e) {}
+        }
         function playTransition() {
             if (!TR.url || !TR.kind) return;
             if (TR.kind === 'video') {
                 trHtml.style.display = 'none';
                 trVideo.style.display = 'block';
+                trVideo.loop = false;   // cały film raz, do końca
                 try { trVideo.currentTime = 0; } catch (e) {}
                 var p = trVideo.play();
                 if (p && p.catch) p.catch(function () { hideTransition(); });
             } else {
                 trVideo.style.display = 'none';
-                trHtml.onload = startFrameSanitizer;
+                trHtml.onload = function () { startFrameSanitizer(); hookFrameVideoEnd(); };
                 trHtml.src = TR.url;   // przeładowanie => animacja startuje od zera
                 trHtml.style.display = 'block';
                 startFrameSanitizer();
                 clearTimeout(trTimer);
-                trTimer = setTimeout(hideTransition, TR.ms || 4000);
+                // Bezpiecznik dla czystej animacji CSS (brak <video> = brak „końca").
+                trTimer = setTimeout(hideTransition, 12000);
             }
         }
         trVideo.addEventListener('ended', hideTransition);

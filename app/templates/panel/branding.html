@@ -96,17 +96,6 @@
     </form>
     {% endif %}
   </div>
-  {% if transition.kind == 'html' %}
-  <form method="POST" action="{{ url_for('studio.upload_transition', church_id=church.id) }}" style="display:flex; gap:var(--s2); align-items:flex-end; flex-wrap:wrap; margin-top:var(--s3);">
-    <input type="hidden" name="next" value="{{ next_url }}">
-    <div>
-      <label style="margin-top:0;">{{ _('HTML transition length (seconds)') }}</label>
-      <input type="number" name="transition_secs" min="1" max="20" step="0.5"
-             value="{{ '%.1f'|format((appearance.transition_ms|int) / 1000) }}" style="width:120px;">
-    </div>
-    <button class="btn btn-ghost btn-sm" type="submit">{{ _('Save length') }}</button>
-  </form>
-  {% endif %}
 </div>
 
 {# ── Ikony (znak wodny) ── #}
@@ -237,9 +226,19 @@ function prevSanitize(){
     }
     d.querySelectorAll('video').forEach(function(v){
       if (v.controls){ v.removeAttribute('controls'); v.controls = false; }
-      v.muted = true; v.loop = true; v.setAttribute('playsinline','');
+      v.muted = true; v.loop = false; v.setAttribute('playsinline','');
       if (v.paused){ var pr = v.play && v.play(); if (pr && pr.catch) pr.catch(function(){}); }
     });
+  } catch(e){}
+}
+function prevHookVideoEnd(){
+  try {
+    var d = prevHtml.contentDocument; if (!d) return;
+    var v = d.querySelector('video'); if (!v) return;
+    v.loop = false;
+    v.addEventListener('ended', closePreview, {once:true});
+    var cap = function(){ if (v.duration && isFinite(v.duration)){ clearTimeout(prevTimer); prevTimer = setTimeout(closePreview, v.duration*1000 + 1500); } };
+    if (v.readyState >= 1) cap(); else v.addEventListener('loadedmetadata', cap, {once:true});
   } catch(e){}
 }
 function closePreview(){
@@ -253,16 +252,16 @@ function previewTransition(){
   document.getElementById('tr-preview-overlay').style.display = 'flex';
   if (TR.kind === 'video'){
     prevHtml.style.display = 'none';
-    prevVideo.src = TR.url; prevVideo.style.display = 'block';
+    prevVideo.src = TR.url; prevVideo.loop = false; prevVideo.style.display = 'block';
     try { prevVideo.currentTime = 0; } catch(e){}
     var p = prevVideo.play(); if (p && p.catch) p.catch(function(){});
     prevVideo.onended = closePreview;
   } else {
     prevVideo.style.display = 'none';
-    prevHtml.onload = function(){ prevSanitize(); };
+    prevHtml.onload = function(){ prevSanitize(); prevHookVideoEnd(); };
     prevHtml.src = TR.url; prevHtml.style.display = 'block';
     if (prevSan) clearInterval(prevSan); prevSan = setInterval(prevSanitize, 250);
-    clearTimeout(prevTimer); prevTimer = setTimeout(closePreview, TR.ms || 4000);
+    clearTimeout(prevTimer); prevTimer = setTimeout(closePreview, 12000);
   }
 }
 document.getElementById('tr-preview-overlay').addEventListener('click', function(e){
