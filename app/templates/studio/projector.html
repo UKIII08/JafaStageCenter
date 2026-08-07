@@ -90,7 +90,7 @@
     <img id="pres-image" src="">
     <iframe id="welcome-frame" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; border:none; z-index:16;"></iframe>
     <!-- Warstwa przejścia — nad wszystkim (z-index 60), zakrywa moment zmiany trybu. -->
-    <video id="transition-video" muted playsinline preload="auto" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; object-fit:cover; background:#000; z-index:60;"></video>
+    <video id="transition-video" muted playsinline preload="auto" disablepictureinpicture controlslist="nodownload nofullscreen noremoteplayback" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; object-fit:cover; background:#000; z-index:60;"></video>
     <iframe id="transition-html" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; border:none; background:#000; z-index:60;"></iframe>
 
     <script>
@@ -124,36 +124,50 @@
             if (m === 'conference' || m === 'canva' || m === 'presentation') return 'conference';
             return null;   // logo / blackout — bez przejścia
         }
+        var trSanitizeTimer = null;
+        function stopFrameSanitizer() {
+            if (trSanitizeTimer) { clearInterval(trSanitizeTimer); trSanitizeTimer = null; }
+        }
         function hideTransition() {
             clearTimeout(trTimer); trTimer = null;
+            stopFrameSanitizer();
             trVideo.style.display = 'none';
             try { trVideo.pause(); } catch (e) {}
             trHtml.style.display = 'none';
             trHtml.src = 'about:blank';
         }
-        function styleTransitionFrame() {
+        function sanitizeFrameOnce() {
             // Przejście HTML bywa cienką otoczką na <video> z domyślnymi
-            // kontrolkami — chowamy je, rozciągamy na pełny ekran i wymuszamy
-            // płynne, wyciszone autoodtwarzanie. Ten sam origin => mamy dostęp.
+            // kontrolkami (czasem tworzoną przez JS PO załadowaniu). Powtarzamy
+            // czyszczenie: chowamy kontrolki, rozciągamy na cały ekran, wymuszamy
+            // wyciszone autoodtwarzanie. Ten sam origin => mamy dostęp do ramki.
             try {
                 var d = trHtml.contentDocument;
                 if (!d) return;
-                var st = d.createElement('style');
-                st.textContent =
-                    'html,body{margin:0;height:100%;overflow:hidden;background:#000}' +
-                    'video::-webkit-media-controls,video::-webkit-media-controls-enclosure{display:none!important}' +
-                    'video{width:100%!important;height:100%!important;object-fit:cover!important}';
-                (d.head || d.documentElement).appendChild(st);
+                if (!d.getElementById('__jafa_tr_style')) {
+                    var st = d.createElement('style');
+                    st.id = '__jafa_tr_style';
+                    st.textContent =
+                        'html,body{margin:0;height:100%;overflow:hidden;background:#000}' +
+                        'video::-webkit-media-controls,video::-webkit-media-controls-enclosure,video::-webkit-media-controls-panel{display:none!important;opacity:0!important}' +
+                        'video{width:100%!important;height:100%!important;object-fit:cover!important}';
+                    (d.head || d.documentElement).appendChild(st);
+                }
                 var vids = d.querySelectorAll('video');
                 for (var i = 0; i < vids.length; i++) {
                     var v = vids[i];
-                    v.removeAttribute('controls'); v.controls = false;
+                    if (v.controls) { v.removeAttribute('controls'); v.controls = false; }
                     v.muted = true; v.loop = true;
                     v.setAttribute('playsinline', '');
-                    var pr = v.play && v.play();
-                    if (pr && pr.catch) pr.catch(function () {});
+                    v.setAttribute('disablepictureinpicture', '');
+                    if (v.paused) { var pr = v.play && v.play(); if (pr && pr.catch) pr.catch(function () {}); }
                 }
             } catch (e) { /* inny origin / brak dostępu — pomiń */ }
+        }
+        function startFrameSanitizer() {
+            stopFrameSanitizer();
+            sanitizeFrameOnce();
+            trSanitizeTimer = setInterval(sanitizeFrameOnce, 250);
         }
         function playTransition() {
             if (!TR.url || !TR.kind) return;
@@ -165,9 +179,10 @@
                 if (p && p.catch) p.catch(function () { hideTransition(); });
             } else {
                 trVideo.style.display = 'none';
-                trHtml.onload = styleTransitionFrame;
+                trHtml.onload = startFrameSanitizer;
                 trHtml.src = TR.url;   // przeładowanie => animacja startuje od zera
                 trHtml.style.display = 'block';
+                startFrameSanitizer();
                 clearTimeout(trTimer);
                 trTimer = setTimeout(hideTransition, TR.ms || 4000);
             }

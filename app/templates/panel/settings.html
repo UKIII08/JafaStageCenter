@@ -62,90 +62,18 @@
     </form>
 </div>
 
-{# ── Logo wspólnoty i wygląd projekcji ── #}
-{% set next_url = url_for('panel.church_settings', church_id=church.id) %}
-<div class="panel" style="max-width:560px;">
-    <div class="section-title">{{ _('Church logo & projection look') }}</div>
-    <p class="hint" style="margin:0 0 var(--s3);">{{ _('The logo shows on the projector when nothing is being displayed. Colors and font apply to what the congregation sees on screen.') }}</p>
-
-    <label>{{ _('Logo (PNG/JPG, up to 8 MB)') }}</label>
-    <div style="display:flex; gap:var(--s3); align-items:center; flex-wrap:wrap; margin-bottom:var(--s4);">
-        <img src="{{ url_for('studio.media', church_id=church.id, filename='logo.png') }}?v={{ range(100000)|random }}"
-             alt="logo" style="height:46px; max-width:140px; object-fit:contain; background:var(--bg-inset); border:1px solid var(--border-default); border-radius:var(--r-sm); padding:4px;">
-        <form method="POST" action="{{ url_for('studio.upload_logo', church_id=church.id) }}" enctype="multipart/form-data" style="display:inline;">
-            <input type="hidden" name="next" value="{{ next_url }}">
-            <label class="btn" style="cursor:pointer;">{{ _('Choose logo') }}
-                <input type="file" name="logo_file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" hidden onchange="this.form.submit()">
-            </label>
-        </form>
+{# ── Wygląd projekcji i wszystkie zasoby → jedno miejsce (Branding) ── #}
+<a class="panel" href="{{ url_for('panel.branding', church_id=church.id) }}"
+   style="max-width:560px; display:flex; align-items:center; gap:var(--s3); text-decoration:none; color:inherit;">
+    <div style="flex:0 0 auto; width:44px; height:44px; border-radius:var(--r-md); background:var(--accent-subtle); color:var(--accent); display:flex; align-items:center; justify-content:center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
     </div>
-
-    <label>{{ _('Projector background (optional)') }}</label>
-    <div style="display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap; margin-bottom:var(--s4);">
-        <form method="POST" action="{{ url_for('studio.upload_background', church_id=church.id) }}" enctype="multipart/form-data" style="display:inline;">
-            <input type="hidden" name="next" value="{{ next_url }}">
-            <label class="btn" style="cursor:pointer;">{{ _('Choose background') }}
-                <input type="file" name="bg_file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" hidden onchange="this.form.submit()">
-            </label>
-        </form>
-        {% if has_bg %}
-        <form method="POST" action="{{ url_for('studio.delete_background', church_id=church.id) }}" style="display:inline;">
-            <input type="hidden" name="next" value="{{ next_url }}">
-            <button class="btn btn-ghost btn-sm" type="submit">{{ _('Remove background') }}</button>
-        </form>
-        {% endif %}
+    <div style="flex:1;">
+        <div class="section-title" style="margin:0;">{{ _('Templates & branding') }}</div>
+        <p class="hint" style="margin:var(--s1) 0 0;">{{ _('Logo, projector background, the transition between screens, watermark icons and welcome-screen photos — all in one place.') }}</p>
     </div>
-
-    <label>{{ _('Transition between screens (optional)') }}</label>
-    <p class="hint" style="margin:0 0 var(--s2);">{{ _('A short MP4/WebM video or an HTML animation that plays whenever you switch between Announcements, Worship and Conference. Up to 60 MB.') }}</p>
-    <div style="display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap; margin-bottom:var(--s3);">
-        <form method="POST" action="{{ url_for('studio.upload_transition', church_id=church.id) }}" enctype="multipart/form-data" style="display:inline;">
-            <input type="hidden" name="next" value="{{ next_url }}">
-            <label class="btn" style="cursor:pointer;">{{ _('Choose transition file') }}
-                <input type="file" name="transition_file" accept=".mp4,.webm,.html,.htm,video/mp4,video/webm,text/html" hidden onchange="this.form.submit()">
-            </label>
-        </form>
-        {% if appearance.transition_kind %}
-        <span class="badge">{{ appearance.transition_file }}</span>
-        <form method="POST" action="{{ url_for('studio.delete_transition', church_id=church.id) }}" style="display:inline;">
-            <input type="hidden" name="next" value="{{ next_url }}">
-            <button class="btn btn-ghost btn-sm" type="submit">{{ _('Remove transition') }}</button>
-        </form>
-        {% endif %}
-    </div>
-    {% if appearance.transition_kind == 'html' %}
-    <form method="POST" action="{{ url_for('studio.upload_transition', church_id=church.id) }}" style="display:flex; gap:var(--s2); align-items:flex-end; flex-wrap:wrap; margin-bottom:var(--s4);">
-        <input type="hidden" name="next" value="{{ next_url }}">
-        <div>
-            <label style="margin-top:0;">{{ _('HTML transition length (seconds)') }}</label>
-            <input type="number" name="transition_secs" min="1" max="20" step="0.5"
-                   value="{{ '%.1f'|format((appearance.transition_ms|int) / 1000) }}" style="width:120px;">
-        </div>
-        <button class="btn btn-ghost btn-sm" type="submit">{{ _('Save length') }}</button>
-    </form>
-    {% else %}
-    <div style="margin-bottom:var(--s4);"></div>
-    {% endif %}
-
-    <form method="POST" action="{{ url_for('studio.update_settings', church_id=church.id) }}">
-        <input type="hidden" name="next" value="{{ next_url }}">
-        <label>{{ _('Projection font') }}</label>
-        <select name="font_family">
-            <option value="Sen" {% if appearance.font_family == 'Sen' %}selected{% endif %}>Sen</option>
-            <option value="Arial" {% if appearance.font_family == 'Arial' %}selected{% endif %}>Arial</option>
-            <option value="Times New Roman" {% if appearance.font_family == 'Times New Roman' %}selected{% endif %}>Times New Roman</option>
-        </select>
-        <div style="display:flex; gap:var(--s4); margin-top:var(--s3); flex-wrap:wrap;">
-            <label style="flex:1; min-width:130px;">{{ _('Background') }}
-                <input type="color" name="bg_color" value="{{ appearance.bg_color }}" style="width:100%; height:40px; padding:2px;"></label>
-            <label style="flex:1; min-width:130px;">{{ _('Text') }}
-                <input type="color" name="text_color" value="{{ appearance.text_color }}" style="width:100%; height:40px; padding:2px;"></label>
-            <label style="flex:1; min-width:130px;">{{ _('Chords') }}
-                <input type="color" name="chord_color" value="{{ appearance.chord_color }}" style="width:100%; height:40px; padding:2px;"></label>
-        </div>
-        <div style="margin-top:var(--s4);"><button type="submit">{{ _('Save appearance') }}</button></div>
-    </form>
-</div>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-tertiary);"><polyline points="9 18 15 12 9 6"/></svg>
+</a>
 
 <script>
 function setTheme(t) {

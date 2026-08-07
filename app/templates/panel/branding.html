@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Templates & branding') }} — {{ church.name }}{% endblock %}
+{% block content %}
+{% set next_url = url_for('panel.branding', church_id=church.id) %}
+<style>
+  .brand-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:var(--s3); }
+  .brand-tile { position:relative; aspect-ratio:16/10; border-radius:var(--r-md); overflow:hidden;
+      border:1px solid var(--border-default); background:var(--bg-inset); }
+  .brand-tile img { width:100%; height:100%; object-fit:cover; display:block; }
+  .brand-tile.icon { aspect-ratio:1; display:flex; align-items:center; justify-content:center; }
+  .brand-tile.icon img { width:66%; height:66%; object-fit:contain; mix-blend-mode:multiply; }
+  .brand-tile .del { position:absolute; top:6px; right:6px; background:rgba(0,0,0,.6); color:#fff;
+      border:none; width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:14px; line-height:1; }
+  .brand-add { display:flex; align-items:center; justify-content:center; cursor:pointer;
+      border:1px dashed var(--border-strong); border-radius:var(--r-md); color:var(--text-tertiary);
+      font-size:26px; aspect-ratio:16/10; }
+  .brand-add.icon { aspect-ratio:1; }
+  .brand-add:hover { border-color:var(--accent); color:var(--accent); }
+  /* Podgląd przejścia — dokładnie jak na rzutniku (pełny kadr, bez pasków). */
+  #tr-preview-overlay { position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.85);
+      display:none; align-items:center; justify-content:center; }
+  #tr-preview-stage { position:relative; width:min(80vw,900px); aspect-ratio:16/9; background:#000;
+      border-radius:var(--r-md); overflow:hidden; box-shadow:0 20px 80px rgba(0,0,0,.6); }
+  #tr-preview-video, #tr-preview-html { position:absolute; inset:0; width:100%; height:100%; border:none; background:#000; }
+  #tr-preview-video { object-fit:cover; }
+  #tr-preview-video::-webkit-media-controls, #tr-preview-video::-webkit-media-controls-enclosure,
+  #tr-preview-video::-webkit-media-controls-panel { display:none !important; }
+  #tr-preview-close { position:absolute; top:14px; right:18px; z-index:2; background:rgba(0,0,0,.6);
+      color:#fff; border:none; border-radius:99px; padding:8px 16px; cursor:pointer; font-weight:700; }
+</style>
+
+<div class="panel-header" style="max-width:820px; margin:0 auto var(--s3);">
+  <div>
+    <h2 style="margin:0;">{{ _('Templates & branding') }}</h2>
+    <p class="hint" style="margin:var(--s1) 0 0;">{{ _('One place for everything shown on the projector — logo, background, the transition between screens, watermark icons and the welcome-screen photos.') }}</p>
+  </div>
+</div>
+
+{# ── Logo ── #}
+<div class="panel" style="max-width:820px; margin:0 auto var(--s4);">
+  <div class="section-title">{{ _('Logo') }}</div>
+  <p class="hint" style="margin:0 0 var(--s3);">{{ _('Shows on the projector when nothing else is displayed. PNG/JPG, up to 8 MB.') }}</p>
+  <div style="display:flex; gap:var(--s3); align-items:center; flex-wrap:wrap;">
+    <img src="{{ url_for('studio.media', church_id=church.id, filename='logo.png') }}?v={{ range(100000)|random }}"
+         alt="logo" style="height:56px; max-width:180px; object-fit:contain; background:var(--bg-inset); border:1px solid var(--border-default); border-radius:var(--r-sm); padding:6px;">
+    <form method="POST" action="{{ url_for('studio.upload_logo', church_id=church.id) }}" enctype="multipart/form-data">
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <label class="btn" style="cursor:pointer;">{{ _('Choose logo') }}
+        <input type="file" name="logo_file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" hidden onchange="this.form.submit()">
+      </label>
+    </form>
+  </div>
+</div>
+
+{# ── Tło rzutnika ── #}
+<div class="panel" style="max-width:820px; margin:0 auto var(--s4);">
+  <div class="section-title">{{ _('Projector background') }}</div>
+  <p class="hint" style="margin:0 0 var(--s3);">{{ _('Optional image behind the lyrics. PNG/JPG, up to 8 MB.') }}</p>
+  <div style="display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap;">
+    {% if has_bg %}
+    <img src="{{ url_for('studio.media', church_id=church.id, filename='background.png') }}?v={{ range(100000)|random }}"
+         alt="bg" style="height:56px; width:100px; object-fit:cover; border:1px solid var(--border-default); border-radius:var(--r-sm);">
+    {% endif %}
+    <form method="POST" action="{{ url_for('studio.upload_background', church_id=church.id) }}" enctype="multipart/form-data">
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <label class="btn" style="cursor:pointer;">{{ _('Choose background') }}
+        <input type="file" name="bg_file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" hidden onchange="this.form.submit()">
+      </label>
+    </form>
+    {% if has_bg %}
+    <form method="POST" action="{{ url_for('studio.delete_background', church_id=church.id) }}">
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <button class="btn btn-ghost btn-sm" type="submit">{{ _('Remove background') }}</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Przejście (stinger) ── #}
+<div class="panel" style="max-width:820px; margin:0 auto var(--s4);">
+  <div class="section-title">{{ _('Transition between screens') }}</div>
+  <p class="hint" style="margin:0 0 var(--s3);">{{ _('A short MP4/WebM video or an HTML animation that plays whenever you switch between Announcements, Worship and Conference. Up to 60 MB. Tip: for a smooth clip, upload an MP4 — it plays full-screen with no player controls.') }}</p>
+  <div style="display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap;">
+    <form method="POST" action="{{ url_for('studio.upload_transition', church_id=church.id) }}" enctype="multipart/form-data">
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <label class="btn" style="cursor:pointer;">{{ _('Choose transition file') }}
+        <input type="file" name="transition_file" accept=".mp4,.webm,.html,.htm,video/mp4,video/webm,text/html" hidden onchange="this.form.submit()">
+      </label>
+    </form>
+    {% if transition.kind %}
+    <span class="badge">{{ appearance.transition_file }}</span>
+    <button type="button" class="btn btn-sm" onclick="previewTransition()">▶ {{ _('Preview') }}</button>
+    <form method="POST" action="{{ url_for('studio.delete_transition', church_id=church.id) }}">
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <button class="btn btn-ghost btn-sm" type="submit">{{ _('Remove transition') }}</button>
+    </form>
+    {% endif %}
+  </div>
+  {% if transition.kind == 'html' %}
+  <form method="POST" action="{{ url_for('studio.upload_transition', church_id=church.id) }}" style="display:flex; gap:var(--s2); align-items:flex-end; flex-wrap:wrap; margin-top:var(--s3);">
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <div>
+      <label style="margin-top:0;">{{ _('HTML transition length (seconds)') }}</label>
+      <input type="number" name="transition_secs" min="1" max="20" step="0.5"
+             value="{{ '%.1f'|format((appearance.transition_ms|int) / 1000) }}" style="width:120px;">
+    </div>
+    <button class="btn btn-ghost btn-sm" type="submit">{{ _('Save length') }}</button>
+  </form>
+  {% endif %}
+</div>
+
+{# ── Ikony (znak wodny) ── #}
+<div class="panel" style="max-width:820px; margin:0 auto var(--s4);">
+  <div class="section-title">{{ _('Background icons (watermark)') }} <span class="muted" id="icount"></span></div>
+  <p class="hint" style="margin:0 0 var(--s3);">{{ _('Faint symbols behind the welcome screen. Any image works — a white background disappears automatically.') }}</p>
+  <div class="brand-grid" id="icons-grid"></div>
+  <input type="file" id="icon-file" accept="image/*" hidden>
+</div>
+
+{# ── Zdjęcia ekranu oczekiwania ── #}
+<div class="panel" style="max-width:820px; margin:0 auto var(--s4);">
+  <div class="section-title">{{ _('Welcome-screen photos') }} <span class="muted" id="pcount"></span></div>
+  <p class="hint" style="margin:0 0 var(--s3);">{{ _('Shared photo pool for the announcements/welcome screen. Pick which one each slide uses in the welcome editor.') }}</p>
+  <div class="brand-grid" id="photos-grid"></div>
+  <input type="file" id="photo-file" accept="image/*" hidden>
+</div>
+
+{# ── Kolory i czcionka projekcji ── #}
+<div class="panel" style="max-width:820px; margin:0 auto var(--s4);">
+  <div class="section-title">{{ _('Projection colors & font') }}</div>
+  <form method="POST" action="{{ url_for('studio.update_settings', church_id=church.id) }}">
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <label>{{ _('Projection font') }}</label>
+    <select name="font_family">
+      <option value="Sen" {% if appearance.font_family == 'Sen' %}selected{% endif %}>Sen</option>
+      <option value="Arial" {% if appearance.font_family == 'Arial' %}selected{% endif %}>Arial</option>
+      <option value="Times New Roman" {% if appearance.font_family == 'Times New Roman' %}selected{% endif %}>Times New Roman</option>
+    </select>
+    <div style="display:flex; gap:var(--s4); margin-top:var(--s3); flex-wrap:wrap;">
+      <label style="flex:1; min-width:130px;">{{ _('Background') }}
+        <input type="color" name="bg_color" value="{{ appearance.bg_color }}" style="width:100%; height:40px; padding:2px;"></label>
+      <label style="flex:1; min-width:130px;">{{ _('Text') }}
+        <input type="color" name="text_color" value="{{ appearance.text_color }}" style="width:100%; height:40px; padding:2px;"></label>
+      <label style="flex:1; min-width:130px;">{{ _('Chords') }}
+        <input type="color" name="chord_color" value="{{ appearance.chord_color }}" style="width:100%; height:40px; padding:2px;"></label>
+    </div>
+    <div style="margin-top:var(--s4);"><button type="submit">{{ _('Save appearance') }}</button></div>
+  </form>
+</div>
+
+{# ── Podgląd przejścia ── #}
+<div id="tr-preview-overlay">
+  <div id="tr-preview-stage">
+    <button id="tr-preview-close" type="button" onclick="closePreview()">✕ {{ _('Close') }}</button>
+    <video id="tr-preview-video" muted playsinline preload="auto" disablepictureinpicture controlslist="nodownload nofullscreen noremoteplayback" style="display:none;"></video>
+    <iframe id="tr-preview-html" style="display:none;"></iframe>
+  </div>
+</div>
+
+<script>
+const CHURCH = {{ church.id|tojson }};
+const TR = {{ transition|tojson }};
+
+// ── Ikony (watermark) ──
+let ICONS = {{ icons|tojson }};
+const IMAX = {{ max_icons }};
+const iconUrl = n => '/c/' + CHURCH + '/media/welcome_icons/' + n;
+function renderIcons(){
+  const box = document.getElementById('icons-grid');
+  box.innerHTML = ICONS.map(n =>
+    '<div class="brand-tile icon"><img src="' + iconUrl(n) + '" alt="">' +
+    '<button class="del" onclick="delIcon(\'' + n + '\')">×</button></div>').join('');
+  if (ICONS.length < IMAX){
+    const add = document.createElement('div');
+    add.className = 'brand-add icon'; add.textContent = '+';
+    add.onclick = () => document.getElementById('icon-file').click();
+    box.appendChild(add);
+  }
+  document.getElementById('icount').textContent = ICONS.length + ' / ' + IMAX;
+}
+document.getElementById('icon-file').addEventListener('change', function(){
+  if (!this.files[0]) return;
+  const fd = new FormData(); fd.append('icon', this.files[0]);
+  fetch('/c/' + CHURCH + '/welcome/icons', { method:'POST', body: fd })
+    .then(r => r.json()).then(d => { if (d.status === 'ok'){ ICONS.push(d.name); renderIcons(); } else alert(d.message || 'Error'); });
+  this.value = '';
+});
+function delIcon(n){
+  fetch('/c/' + CHURCH + '/welcome/icons/' + n + '/delete', { method:'POST' })
+    .then(() => { ICONS = ICONS.filter(x => x !== n); renderIcons(); });
+}
+
+// ── Zdjęcia ekranu oczekiwania ──
+let PHOTOS = {{ photos|tojson }};
+const PMAX = {{ max_photos }};
+const photoUrl = n => '/c/' + CHURCH + '/media/welcome/' + n;
+function renderPhotos(){
+  const box = document.getElementById('photos-grid');
+  box.innerHTML = PHOTOS.map(n =>
+    '<div class="brand-tile"><img src="' + photoUrl(n) + '" alt="">' +
+    '<button class="del" onclick="delPhoto(\'' + n + '\')">×</button></div>').join('');
+  if (PHOTOS.length < PMAX){
+    const add = document.createElement('div');
+    add.className = 'brand-add'; add.textContent = '+';
+    add.onclick = () => document.getElementById('photo-file').click();
+    box.appendChild(add);
+  }
+  document.getElementById('pcount').textContent = PHOTOS.length + ' / ' + PMAX;
+}
+document.getElementById('photo-file').addEventListener('change', function(){
+  if (!this.files[0]) return;
+  const fd = new FormData(); fd.append('photo', this.files[0]);
+  fetch('/c/' + CHURCH + '/welcome/photos', { method:'POST', body: fd })
+    .then(r => r.json()).then(d => { if (d.status === 'ok'){ PHOTOS.push(d.name); renderPhotos(); } else alert(d.message || 'Error'); });
+  this.value = '';
+});
+function delPhoto(n){
+  fetch('/c/' + CHURCH + '/welcome/photos/' + n + '/delete', { method:'POST' })
+    .then(() => { PHOTOS = PHOTOS.filter(x => x !== n); renderPhotos(); });
+}
+
+renderIcons(); renderPhotos();
+
+// ── Podgląd przejścia (ta sama logika co rzutnik: bez pasków wideo) ──
+var prevVideo = document.getElementById('tr-preview-video');
+var prevHtml = document.getElementById('tr-preview-html');
+var prevTimer = null, prevSan = null;
+function prevSanitize(){
+  try {
+    var d = prevHtml.contentDocument; if (!d) return;
+    if (!d.getElementById('__jafa_tr_style')){
+      var st = d.createElement('style'); st.id = '__jafa_tr_style';
+      st.textContent = 'html,body{margin:0;height:100%;overflow:hidden;background:#000}' +
+        'video::-webkit-media-controls,video::-webkit-media-controls-enclosure,video::-webkit-media-controls-panel{display:none!important;opacity:0!important}' +
+        'video{width:100%!important;height:100%!important;object-fit:cover!important}';
+      (d.head || d.documentElement).appendChild(st);
+    }
+    d.querySelectorAll('video').forEach(function(v){
+      if (v.controls){ v.removeAttribute('controls'); v.controls = false; }
+      v.muted = true; v.loop = true; v.setAttribute('playsinline','');
+      if (v.paused){ var pr = v.play && v.play(); if (pr && pr.catch) pr.catch(function(){}); }
+    });
+  } catch(e){}
+}
+function closePreview(){
+  document.getElementById('tr-preview-overlay').style.display = 'none';
+  clearTimeout(prevTimer); if (prevSan){ clearInterval(prevSan); prevSan = null; }
+  try { prevVideo.pause(); } catch(e){}
+  prevVideo.style.display = 'none'; prevHtml.style.display = 'none'; prevHtml.src = 'about:blank';
+}
+function previewTransition(){
+  if (!TR.url || !TR.kind) return;
+  document.getElementById('tr-preview-overlay').style.display = 'flex';
+  if (TR.kind === 'video'){
+    prevHtml.style.display = 'none';
+    prevVideo.src = TR.url; prevVideo.style.display = 'block';
+    try { prevVideo.currentTime = 0; } catch(e){}
+    var p = prevVideo.play(); if (p && p.catch) p.catch(function(){});
+    prevVideo.onended = closePreview;
+  } else {
+    prevVideo.style.display = 'none';
+    prevHtml.onload = function(){ prevSanitize(); };
+    prevHtml.src = TR.url; prevHtml.style.display = 'block';
+    if (prevSan) clearInterval(prevSan); prevSan = setInterval(prevSanitize, 250);
+    clearTimeout(prevTimer); prevTimer = setTimeout(closePreview, TR.ms || 4000);
+  }
+}
+document.getElementById('tr-preview-overlay').addEventListener('click', function(e){
+  if (e.target === this) closePreview();
+});
+</script>
+{% endblock %}

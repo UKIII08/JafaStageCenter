@@ -771,6 +771,48 @@ PL.update({
 })
 
 
+# ── Branding / szablony: jedno miejsce na zasoby wizualne ──
+PL.update({
+    'Templates & branding': 'Szablony i branding',
+    'One place for everything shown on the projector — logo, background, the '
+    'transition between screens, watermark icons and the welcome-screen photos.':
+        'Jedno miejsce na wszystko, co widać na rzutniku — logo, tło, przejście '
+        'między ekranami, ikony znaku wodnego i zdjęcia ekranu oczekiwania.',
+    'Logo, projector background, the transition between screens, watermark '
+    'icons and welcome-screen photos — all in one place.':
+        'Logo, tło rzutnika, przejście między ekranami, ikony znaku wodnego i '
+        'zdjęcia ekranu oczekiwania — wszystko w jednym miejscu.',
+    'Logo': 'Logo',
+    'Shows on the projector when nothing else is displayed. PNG/JPG, up to 8 MB.':
+        'Pokazuje się na rzutniku, gdy nic innego nie jest wyświetlane. '
+        'PNG/JPG, do 8 MB.',
+    'Projector background': 'Tło rzutnika',
+    'Optional image behind the lyrics. PNG/JPG, up to 8 MB.':
+        'Opcjonalny obraz za tekstem. PNG/JPG, do 8 MB.',
+    'Transition between screens': 'Przejście między ekranami',
+    'A short MP4/WebM video or an HTML animation that plays whenever you switch '
+    'between Announcements, Worship and Conference. Up to 60 MB. Tip: for a '
+    'smooth clip, upload an MP4 — it plays full-screen with no player controls.':
+        'Krótki film MP4/WebM albo animacja HTML odtwarzana przy przełączaniu '
+        'między Ogłoszeniami, Uwielbieniem i Konferencją. Do 60 MB. Wskazówka: '
+        'dla płynnego klipu wgraj MP4 — gra na pełnym ekranie, bez pasków '
+        'odtwarzacza.',
+    'Preview': 'Podgląd',
+    'Background icons (watermark)': 'Ikony w tle (znak wodny)',
+    'Faint symbols behind the welcome screen. Any image works — a white '
+    'background disappears automatically.':
+        'Delikatne symbole za ekranem oczekiwania. Każdy obraz zadziała — białe '
+        'tło znika automatycznie.',
+    'Welcome-screen photos': 'Zdjęcia ekranu oczekiwania',
+    'Shared photo pool for the announcements/welcome screen. Pick which one '
+    'each slide uses in the welcome editor.':
+        'Wspólna pula zdjęć dla ekranu ogłoszeń/oczekiwania. Który slajd używa '
+        'którego, wybierzesz w edytorze ekranu oczekiwania.',
+    'Projection colors & font': 'Kolory i czcionka projekcji',
+    'Close': 'Zamknij',
+})
+
+
 # ── Przejście (stinger) między trybami ekranu ──
 PL.update({
     'Transition between screens (optional)':

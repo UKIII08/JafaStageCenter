@@ -458,6 +458,28 @@ def church_settings(church_id, membership):
                            membership=membership, user=current_user())
 
 
+@panel_bp.get('/c/<church_id>/branding')
+@require_membership('admin')
+def branding(church_id, membership):
+    """Jedno miejsce na wszystkie zasoby wizualne wspólnoty: logo, tło,
+    przejście (stinger), ikony znaku wodnego i zdjęcia ekranu oczekiwania."""
+    church = db.session.get(Church, church_id)
+    from app.studio.routes import (get_settings, media_dir,
+                                    _transition_payload)
+    from app.events.routes import (_welcome_photos, _welcome_icons,
+                                    WELCOME_MAX_PHOTOS, WELCOME_MAX_ICONS)
+    appearance = get_settings(church)
+    has_bg = os.path.exists(os.path.join(media_dir(church_id), 'background.png'))
+    has_logo = os.path.exists(os.path.join(media_dir(church_id), 'logo.png'))
+    return render_template(
+        'panel/branding.html', church=church, appearance=appearance,
+        has_bg=has_bg, has_logo=has_logo,
+        transition=_transition_payload(church_id, appearance),
+        photos=_welcome_photos(church_id), icons=_welcome_icons(church_id),
+        max_photos=WELCOME_MAX_PHOTOS, max_icons=WELCOME_MAX_ICONS,
+        membership=membership, user=current_user())
+
+
 @panel_bp.get('/pl')
 def landing_pl():
     """Polska wersja landinga (domyślny '/' jest po angielsku — rynek USA)."""
