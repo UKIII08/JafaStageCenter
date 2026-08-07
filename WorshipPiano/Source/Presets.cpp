@@ -65,7 +65,9 @@ const std::vector<Preset>& factory()
             { pid::delayMix, 0.28f }, { pid::delayDiv, 2 }, { pid::delayFeedback, 0.44f },
             { pid::reverbDuck, 0.2f }, { pid::reverbMix, 0.34f }, { pid::reverbSize, 0.68f }, { pid::reverbDecay, 3.6f },
             { pid::shimmer, 0.08f },
-            { pid::padLevel, -20.0f }, { pid::padAttack, 800.0f }, { pid::padRelease, 2200.0f } } },
+            { pid::tackOn, 1 }, { pid::tackAmount, 0.22f },
+            { pid::padType, 2 }, { pid::padLevel, -20.0f },
+            { pid::padAttack, 800.0f }, { pid::padRelease, 2200.0f } } },
 
         { "Arena Anthem", "Modern",
           "Compressed, forward and huge. The big chorus.",
@@ -75,7 +77,8 @@ const std::vector<Preset>& factory()
             { pid::compAmount, 0.52f }, { pid::drive, 0.22f }, { pid::chorusAmount, 0.15f },
             { pid::delayMix, 0.30f }, { pid::delayDiv, 2 }, { pid::delayFeedback, 0.42f },
             { pid::reverbDuck, 0.25f }, { pid::reverbMix, 0.40f }, { pid::reverbSize, 0.75f }, { pid::reverbDecay, 4.5f },
-            { pid::shimmer, 0.08f }, { pid::padLevel, -60.0f }, { pid::outputGain, -1.0f } } },
+            { pid::shimmer, 0.08f }, { pid::padLevel, -60.0f },
+            { pid::tackOn, 1 }, { pid::tackAmount, 0.30f }, { pid::outputGain, -1.0f } } },
 
         { "Pad Underneath", "Modern",
           "Piano with a synth bed swelling on the same notes.",
@@ -86,7 +89,7 @@ const std::vector<Preset>& factory()
             { pid::delayMix, 0.16f }, { pid::delayDiv, 2 }, { pid::delayFeedback, 0.34f },
             { pid::reverbMix, 0.32f }, { pid::reverbSize, 0.65f }, { pid::reverbDecay, 3.5f },
             { pid::shimmer, 0.10f },
-            { pid::padLevel, -15.0f }, { pid::padTone, 1800.0f },
+            { pid::padType, 0 }, { pid::padLevel, -15.0f }, { pid::padTone, 1800.0f },
             { pid::padAttack, 900.0f }, { pid::padRelease, 2600.0f } } },
 
         //======================================================== Ambient =====
@@ -99,7 +102,7 @@ const std::vector<Preset>& factory()
             { pid::delayMix, 0.26f }, { pid::delayDiv, 3 }, { pid::delayFeedback, 0.48f },
             { pid::reverbMix, 0.50f }, { pid::reverbSize, 0.88f }, { pid::reverbDecay, 8.0f },
             { pid::shimmer, 0.40f },
-            { pid::padLevel, -15.0f }, { pid::padTone, 1200.0f },
+            { pid::padType, 1 }, { pid::padLevel, -15.0f }, { pid::padTone, 1200.0f },
             { pid::padAttack, 1200.0f }, { pid::padRelease, 3500.0f } } },
 
         { "Felt & Air", "Ambient",
@@ -121,7 +124,7 @@ const std::vector<Preset>& factory()
             { pid::delayMix, 0.36f }, { pid::delayDiv, 4 }, { pid::delayFeedback, 0.58f },
             { pid::reverbMix, 0.60f }, { pid::reverbSize, 1.0f }, { pid::reverbDecay, 12.0f },
             { pid::shimmer, 0.55f },
-            { pid::padLevel, -11.0f }, { pid::padTone, 900.0f },
+            { pid::padType, 3 }, { pid::padLevel, -11.0f }, { pid::padTone, 900.0f },
             { pid::padAttack, 2500.0f }, { pid::padRelease, 6000.0f },
             { pid::width, 1.30f }, { pid::outputGain, -1.5f } } },
 
@@ -135,7 +138,7 @@ const std::vector<Preset>& factory()
             { pid::delayMix, 0.18f }, { pid::delayDiv, 2 }, { pid::delayFeedback, 0.40f },
             { pid::reverbMix, 0.48f }, { pid::reverbSize, 0.85f }, { pid::reverbDecay, 8.0f },
             { pid::shimmer, 0.22f }, { pid::reverbDuck, 0.25f },
-            { pid::padLevel, -14.0f }, { pid::padTone, 1300.0f },
+            { pid::padType, 1 }, { pid::padLevel, -14.0f }, { pid::padTone, 1300.0f },
             { pid::padAttack, 1400.0f }, { pid::padRelease, 4000.0f },
             { pid::soak, 0.35f } } },
 
@@ -148,7 +151,7 @@ const std::vector<Preset>& factory()
             { pid::delayMix, 0.26f }, { pid::delayDiv, 3 }, { pid::delayFeedback, 0.50f },
             { pid::reverbMix, 0.58f }, { pid::reverbSize, 1.0f }, { pid::reverbDecay, 16.0f },
             { pid::shimmer, 0.45f }, { pid::shimmerMode, 1 }, { pid::reverbDuck, 0.20f },
-            { pid::padLevel, -11.0f }, { pid::padTone, 1000.0f },
+            { pid::padType, 4 }, { pid::padLevel, -11.0f }, { pid::padTone, 1000.0f },
             { pid::padAttack, 2200.0f }, { pid::padRelease, 5500.0f },
             { pid::soak, 0.50f }, { pid::width, 1.25f }, { pid::outputGain, -1.0f } } },
 
@@ -161,7 +164,7 @@ const std::vector<Preset>& factory()
             { pid::delayMix, 0.14f }, { pid::delayDiv, 3 }, { pid::delayFeedback, 0.36f },
             { pid::reverbMix, 0.46f }, { pid::reverbSize, 0.80f }, { pid::reverbDecay, 9.0f },
             { pid::shimmer, 0.18f }, { pid::reverbDuck, 0.35f },
-            { pid::padLevel, -12.0f }, { pid::padTone, 950.0f },
+            { pid::padType, 1 }, { pid::padLevel, -12.0f }, { pid::padTone, 950.0f },
             { pid::padAttack, 1800.0f }, { pid::padRelease, 5000.0f },
             { pid::soak, 0.30f } } },
 
@@ -175,7 +178,7 @@ const std::vector<Preset>& factory()
             { pid::delayMix, 0.32f }, { pid::delayDiv, 4 }, { pid::delayFeedback, 0.55f },
             { pid::reverbMix, 0.62f }, { pid::reverbSize, 1.0f }, { pid::reverbDecay, 24.0f },
             { pid::shimmer, 0.60f }, { pid::shimmerMode, 3 }, { pid::reverbDuck, 0.15f },
-            { pid::padLevel, -9.0f }, { pid::padTone, 900.0f },
+            { pid::padType, 3 }, { pid::padLevel, -9.0f }, { pid::padTone, 900.0f },
             { pid::padAttack, 2600.0f }, { pid::padRelease, 6500.0f },
             { pid::soak, 0.62f }, { pid::width, 1.35f }, { pid::outputGain, -2.5f } } },
 
@@ -189,7 +192,7 @@ const std::vector<Preset>& factory()
             { pid::reverseMix, 0.55f }, { pid::reverseTime, 1 },
             { pid::reverbMix, 0.44f }, { pid::reverbSize, 0.82f }, { pid::reverbDecay, 7.0f },
             { pid::shimmer, 0.20f }, { pid::reverbDuck, 0.20f },
-            { pid::padLevel, -16.0f }, { pid::padTone, 1100.0f },
+            { pid::padType, 4 }, { pid::padLevel, -16.0f }, { pid::padTone, 1100.0f },
             { pid::padAttack, 1600.0f }, { pid::padRelease, 4500.0f },
             { pid::soak, 0.30f }, { pid::outputGain, -1.5f } } },
 
@@ -276,7 +279,7 @@ StringArray userPresetNames()
     return names;
 }
 
-String saveUser (AudioProcessorValueTreeState& apvts, const String& name)
+String saveUser (AudioProcessorValueTreeState& apvts, const String& name, const String& libraryPath)
 {
     const auto cleaned = sanitiseName (name);
 
@@ -285,6 +288,11 @@ String saveUser (AudioProcessorValueTreeState& apvts, const String& name)
 
     XmlElement xml ("WorshipPianoPreset");
     xml.setAttribute ("name", cleaned);
+
+    // deliberately not written when empty, so "no library" and "the library this
+    // was built on" stay two different things a preset can say
+    if (libraryPath.isNotEmpty())
+        xml.setAttribute ("libraryPath", libraryPath);
 
     for (const auto& id : allParameterIDs())
         if (auto* p = apvts.getParameter (id))
@@ -298,8 +306,11 @@ String saveUser (AudioProcessorValueTreeState& apvts, const String& name)
     return {};
 }
 
-bool applyUser (AudioProcessorValueTreeState& apvts, const String& name)
+bool applyUser (AudioProcessorValueTreeState& apvts, const String& name, String* libraryPathOut)
 {
+    if (libraryPathOut != nullptr)
+        libraryPathOut->clear();
+
     auto file = userPresetDirectory().getChildFile (sanitiseName (name) + ".wppreset");
 
     if (! file.existsAsFile())
@@ -309,6 +320,9 @@ bool applyUser (AudioProcessorValueTreeState& apvts, const String& name)
 
     if (xml == nullptr || ! xml->hasTagName ("WorshipPianoPreset"))
         return false;
+
+    if (libraryPathOut != nullptr)
+        *libraryPathOut = xml->getStringAttribute ("libraryPath");
 
     // same as the factory path: start from defaults so a preset saved by an
     // older build cannot leave a stray knob behind
@@ -338,6 +352,25 @@ namespace
     {
         return userPresetDirectory().getParentDirectory().getChildFile ("favourites.txt");
     }
+
+    File viewFile()
+    {
+        return userPresetDirectory().getParentDirectory().getChildFile ("view.txt");
+    }
+}
+
+bool presetListVisible()
+{
+    auto file = viewFile();
+
+    // shown until somebody says otherwise: a fresh install that hid its own
+    // preset list would look broken
+    return ! file.existsAsFile() || ! file.loadFileAsString().trim().equalsIgnoreCase ("hidden");
+}
+
+void setPresetListVisible (bool shouldBeVisible)
+{
+    viewFile().replaceWithText (shouldBeVisible ? "shown" : "hidden");
 }
 
 StringArray favourites()

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <vector>
 
 #include "Parameters.h"
 #include "dsp/PadLayer.h"
@@ -61,9 +62,19 @@ public:
     void panic();
 
     //--------------------------------------------------------------------------
-    /** Sample library: loaded on a background thread, swapped in as a pointer. */
+    /*  Sample library: loaded on a background thread, swapped in as a pointer.
+
+        Once loaded a library stays in memory, so asking for one that has already
+        been read is an instant pointer swap rather than another minute of disk.
+        That is what makes a per-preset library usable at all - a preset button
+        that stopped the stage for a re-read of a gigabyte would never be pressed
+        twice.
+    */
     void loadSampleLibrary (const juce::File& fileOrFolder);
     void clearSampleLibrary();
+
+    /** Path the current library came from, empty when none is loaded. */
+    juce::String getLibraryPath() const;
 
     juce::String getLibraryStatus() const;
     float getLoadProgress() const noexcept { return loadProgress.load(); }
@@ -125,11 +136,32 @@ private:
 
     void libraryLoaded (wp::SampleLibrary::Ptr library, const juce::String& error);
 
+    /** Points the sampler at a library that is already in memory. */
+    void activateLibrary (wp::SampleLibrary::Ptr library);
+
+    wp::SampleLibrary::Ptr findCachedLibrary (const juce::String& path);
+    void trimLibraryCache();
+
     wp::SamplerEngine sampler;
     std::unique_ptr<LibraryLoader> loader;
 
-    // keeps previous libraries alive so the audio thread never frees one
-    juce::ReferenceCountedArray<wp::SampleLibrary> retainedLibraries;
+    /*  Every library that has been read this session, newest use last. Doubles as
+        what keeps them alive: the audio thread's reference is never the last one,
+        so nothing is ever freed on it.
+    */
+    struct CachedLibrary
+    {
+        wp::SampleLibrary::Ptr library;
+        juce::uint32 lastUsed = 0;
+    };
+
+    std::vector<CachedLibrary> libraryCache;
+    juce::uint32 libraryUseCounter = 0;
+
+    // two full piano libraries in memory at once is already a lot to ask of a
+    // laptop; past this the least recently played one goes
+    static constexpr juce::int64 maxCachedLibraryBytes = 2LL * 1024 * 1024 * 1024;
+
     juce::CriticalSection statusLock;
     juce::String libraryStatus { "Brak biblioteki - silnik modelowany" };
     juce::String libraryPath;

@@ -37,10 +37,23 @@ namespace presets
     /** Names of the user's own presets, sorted, refreshed from disk. */
     juce::StringArray userPresetNames();
 
-    /** @returns an error message, or empty on success. */
-    juce::String saveUser (juce::AudioProcessorValueTreeState& apvts, const juce::String& name);
+    /*  A preset can carry the sample library it was built on. Two songs in one
+        set often want two different pianos - a felt one under a prayer and a
+        bright grand under the last chorus - and having to go and find the folder
+        by hand between them is not something anybody does on a stage.
 
-    bool applyUser (juce::AudioProcessorValueTreeState& apvts, const juce::String& name);
+        An empty libraryPath saves the preset without one, and such a preset
+        leaves whatever is loaded alone.
+
+        @returns an error message, or empty on success.
+    */
+    juce::String saveUser (juce::AudioProcessorValueTreeState& apvts, const juce::String& name,
+                           const juce::String& libraryPath = {});
+
+    /** @param libraryPathOut  receives the preset's library, empty when it has none. */
+    bool applyUser (juce::AudioProcessorValueTreeState& apvts, const juce::String& name,
+                    juce::String* libraryPathOut = nullptr);
+
     bool deleteUser (const juce::String& name);
 
     /** Strips what a file name cannot hold, so a preset name is always usable. */
@@ -57,4 +70,16 @@ namespace presets
     bool isFavourite (const juce::String& name);
 
     static constexpr int maxFavourites = 6;
+
+    //==========================================================================
+    /*  Whether the LIVE page shows the full preset list at all. Playing a set
+        means reaching for the same handful of sounds, and the list is mostly
+        something to knock with an elbow; folding it away leaves the quick bar
+        as the only way in - and gives the width to the knobs.
+
+        Kept on disk next to the favourites rather than in the project, because
+        it describes the machine on the stage, not one song.
+    */
+    bool presetListVisible();
+    void setPresetListVisible (bool shouldBeVisible);
 }

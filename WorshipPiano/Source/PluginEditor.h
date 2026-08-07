@@ -108,7 +108,9 @@ private:
     void showLibraryMenu();
     void savePreset();
     void deletePreset();
+    void applyUserPreset (const juce::String& name);
     void setLiveMode (bool shouldBeLive);
+    void setPresetListShown (bool shouldBeShown);
     void addKnob (juce::OwnedArray<ParamKnob>& group, const juce::String& paramID,
                   const juce::String& caption, int maxDiameter = 64);
     static void layoutGrid (juce::OwnedArray<ParamKnob>& group, juce::Rectangle<int> area, int columns);
@@ -120,6 +122,11 @@ private:
     wpui::WorshipLookAndFeel lookAndFeel;
 
     bool liveMode = true;
+
+    /*  The full preset list can be folded away, leaving the quick bar as the only
+        way to change sound. Playing a set is six buttons, not twenty rows.
+    */
+    bool showPresetList = true;
 
     //---- top bar -------------------------------------------------------------
     juce::TextButton liveTab { "LIVE" }, editTab { "EDIT" }, panicButton { "PANIC" };
@@ -133,6 +140,7 @@ private:
 
     //---- quick access --------------------------------------------------------
     juce::OwnedArray<juce::TextButton> quickButtons;
+    juce::TextButton presetListButton { "PRESETY" };
     juce::Rectangle<int> quickPanel;
     juce::StringArray quickNames;
     void refreshQuickAccess();

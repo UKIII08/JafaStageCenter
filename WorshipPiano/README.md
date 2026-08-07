@@ -67,6 +67,26 @@ W widoku **LIVE**, pod listą presetów, są dwa przyciski:
   presecie, nazwa podpowiada się sama, więc nadpisanie to jedno kliknięcie.
 - **USUN** — kasuje własny preset (fabrycznych nie ruszy).
 
+### Własny preset pamięta bibliotekę sampli
+
+Okienko zapisu ma listę **`Sample:`** z dwoma wyborami:
+
+| Wybór | Co robi |
+|---|---|
+| **Zapamietaj biblioteke sampli** | Preset zapisuje ścieżkę do biblioteki, na której powstał. Wczytanie presetu przełącza sample |
+| **Bez biblioteki** | Preset rusza tylko gałki i zostawia wczytane sample w spokoju |
+
+Dzięki temu jeden set może mieć **różne pianina pod różnymi pieśniami** — filcowe pod
+modlitwę, jasny koncertowy pod ostatni refren — bez szukania folderu między numerami.
+Presety fabryczne nigdy nie ruszają biblioteki: nie mogą znać ścieżek na Twoim dysku.
+
+Każda raz wczytana biblioteka **zostaje w pamięci do końca sesji**. Powrót do niej to
+podmiana wskaźnika, a nie ponowne czytanie z dysku — pierwsze przełączenie na nową
+bibliotekę kosztuje te kilkadziesiąt sekund, każde kolejne jest natychmiastowe. Powyżej
+**2 GB** w puli najdawniej używana biblioteka jest zwalniana (nigdy ta, która właśnie gra).
+Trzymanie dwóch dużych bibliotek naraz to około 1,5–2 GB RAM — warto o tym wiedzieć,
+zanim wpiszesz trzecią do setu.
+
 Własne presety pojawiają się na dole listy z etykietą **MOJE**. Leżą jako osobne pliki
 `.wppreset` w:
 
@@ -121,6 +141,9 @@ Pinezki wbite w filc młoteczków. Metal dotyka struny pierwszy, więc jasność
 piszczałkę. Stopień wykrywa transjent (szybka obwiednia ponad wolną) i podbija górę tylko
 na czas uderzenia. Gałka **Tack** w widoku EDIT ustawia siłę.
 
+Domyślnie wyłączony. Dwa presety mają go włączonego od razu, delikatnie — *Modern Worship
+Lead* (22 %) i *Arena Anthem* (30 %) — bo obydwa mają się przebić przez zespół.
+
 ---
 
 ## Szybki dostęp
@@ -129,6 +152,18 @@ Nikt nie przewija listy dwudziestu presetów między dwiema pieśniami. Przycisk
 ZAPISZ/USUN dodaje bieżący preset do sześciu slotów szybkiego dostępu — pasek nad panelami,
 jedno kliknięcie. Wybór jest zapisywany na dysku (`favourites.txt` obok presetów), więc
 idzie za komputerem, a nie za projektem. Preset, który przestał istnieć, zwalnia slot sam.
+
+### Chowanie listy presetów
+
+Przycisk **`PRESETY`** na końcu paska szybkiego dostępu zwija **całą lewą sekcję z listą**.
+Zostaje sam pasek sześciu slotów, a zwolniona jedna trzecia szerokości idzie do pokręteł
+i pedalboardu — na scenie lista jest głównie czymś, co można trącić łokciem.
+
+Razem z listą znikają **ZAPISZ**, **USUN** i **`*`** — to rzeczy, które robi się przy
+budowaniu setu, a nie w trakcie grania. Wracają jednym kliknięciem tego samego przycisku.
+
+Ustawienie leży na dysku (`view.txt` obok presetów), więc opisuje **komputer na scenie**,
+a nie pojedynczy projekt — raz zwinięta lista zostaje zwinięta w każdym następnym projekcie.
 
 ---
 
@@ -147,6 +182,11 @@ Pięć charakterów, wybierane listą w panelu PAD:
 Każdy typ zmienia nie tylko falę, ale i filtr, rozstrojenie oraz czasy narastania —
 sekcja smyczkowa to nie piła z inną falą, tylko wolniejsza i szersza.
 
+Presety fabryczne z padem korzystają z różnych typów, żeby nie brzmiały tak samo pod
+spodem: **Glass** w *Modern Worship Lead*, **Warm Saw** w *Pad Underneath*, **Soft Choir**
+w *Upper Room*, *Soaking Grand* i *Prayer Room*, **Strings** w *Ambient Bed* i *Infinite
+Wash*, **Air Vox** w *Soaking Cloud* i *Reverse Swell*.
+
 ---
 
 ## Reverse piano
@@ -159,6 +199,10 @@ stała.
 Lista obok wybiera, jak daleko wstecz sięga każdy swell: **1/2 taktu do 4 taktów**,
 zsynchronizowane z tempem projektu. Wyjście reverse idzie też mocniej w pogłos niż sygnał
 suchy, żeby swell mieszkał w przestrzeni, a nie przed nią.
+
+Pokrętło **Reverse** jest też w panelu MIX na stronie **LIVE**, obok Piano, Pad, Reverb,
+Delay i Tone. Stopa REVERSE decyduje *czy* swell w ogóle jest, a to pokrętło *ile* go w
+brzmieniu — i tego drugiego nie da się prowadzić w trakcie grania z widoku EDIT.
 
 Preset **Reverse Swell** pokazuje ustawienie. Graj rzadko i zostaw miejsce.
 
@@ -445,7 +489,11 @@ Sprawdza też trzy rzeczy osobno:
 * **kalibracja poziomu i zapas na limiter** — czy biblioteka trafia w spodziewany poziom
   i czy żaden preset nie wchodzi w kolano limitera na twardym akordzie
 * **presety użytkownika** — zapis na dysk, odczyt i skasowanie, plus nazwa z takimi znakami,
-  że nie da się nią wyjść poza folder presetów
+  że nie da się nią wyjść poza folder presetów; osobno sprawdzane, czy preset zapisany
+  z biblioteką oddaje dokładnie tę ścieżkę, a zapisany bez niej nie przyciąga żadnej
+* **pula bibliotek** — powrót do raz wczytanej biblioteki nie może ruszyć dysku ani wątku
+  ładującego i musi grać już w następnym bloku; inaczej preset przełączający sample
+  zatrzymywałby scenę na kilkadziesiąt sekund
 * **kontrolki sceniczne** — transpozycja musi przesuwać wysokość dźwięku (mierzone w centach)
   a split trzymać pianino poza lewą ręką; obie funkcje przepisują numery nut na wejściu,
   co łatwo zepsuć w sposób niewidoczny aż do próby

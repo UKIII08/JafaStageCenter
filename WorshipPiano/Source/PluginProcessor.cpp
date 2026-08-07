@@ -66,27 +66,111 @@ void WorshipPianoProcessor::libraryLoaded (wp::SampleLibrary::Ptr library, const
         return;
     }
 
-    // hold on to it here so the audio thread's release never frees anything
-    retainedLibraries.add (library);
-    sampler.setLibrary (library);
-    libraryPath = library->getSourcePath();
+    // into the pool first: from here on the cache is what owns it, so the audio
+    // thread's reference is never the last one to go
+    libraryCache.push_back ({ library, ++libraryUseCounter });
 
-    // drop anything nothing else references any more
-    for (int i = retainedLibraries.size(); --i >= 0;)
-        if (retainedLibraries[i] != library && retainedLibraries[i]->getReferenceCount() == 1)
-            retainedLibraries.remove (i);
-
-    {
-        const ScopedLock sl (statusLock);
-        libraryStatus = library->getName() + "  -  " + String (library->getNumRegions()) + " sampli, "
-                      + String (library->getMemoryUsage() / (1024 * 1024)) + " MB";
-    }
+    activateLibrary (library);
+    trimLibraryCache();
 
     updateHostDisplay();
 }
 
+void WorshipPianoProcessor::activateLibrary (wp::SampleLibrary::Ptr library)
+{
+    if (library == nullptr)
+        return;
+
+    sampler.setLibrary (library);
+    libraryPath = library->getSourcePath();
+
+    const ScopedLock sl (statusLock);
+    libraryStatus = library->getName() + "  -  " + String (library->getNumRegions()) + " sampli, "
+                  + String (library->getMemoryUsage() / (1024 * 1024)) + " MB";
+}
+
+wp::SampleLibrary::Ptr WorshipPianoProcessor::findCachedLibrary (const String& path)
+{
+    for (auto& cached : libraryCache)
+    {
+        if (cached.library->getSourcePath() == path)
+        {
+            cached.lastUsed = ++libraryUseCounter;
+            return cached.library;
+        }
+    }
+
+    return nullptr;
+}
+
+void WorshipPianoProcessor::trimLibraryCache()
+{
+    auto totalBytes = [this]
+    {
+        int64 total = 0;
+
+        for (const auto& cached : libraryCache)
+            total += cached.library->getMemoryUsage();
+
+        return total;
+    };
+
+    while (totalBytes() > maxCachedLibraryBytes && libraryCache.size() > 1)
+    {
+        /*  Only entries nothing else holds can go: a reference count above one
+            means the sampler still has it, either playing or queued, and dropping
+            it here would hand the free to the audio thread.
+        */
+        int victim = -1;
+
+        for (int i = 0; i < (int) libraryCache.size(); ++i)
+            if (libraryCache[(size_t) i].library->getReferenceCount() == 1)
+                if (victim < 0 || libraryCache[(size_t) i].lastUsed < libraryCache[(size_t) victim].lastUsed)
+                    victim = i;
+
+        if (victim < 0)
+            break;
+
+        libraryCache.erase (libraryCache.begin() + victim);
+    }
+}
+
 void WorshipPianoProcessor::loadSampleLibrary (const File& fileOrFolder)
 {
+    const auto path = fileOrFolder.getFullPathName();
+
+    // already the one that is sounding: a preset that names the library it was
+    // built on must be free to say so without costing anything
+    if (path == libraryPath && sampler.hasLibrary())
+        return;
+
+    if (auto cached = findCachedLibrary (path))
+    {
+        if (loader != nullptr)
+        {
+            loader->abort = true;
+            loader->stopThread (3000);
+            loader.reset();
+        }
+
+        loadProgress.store (1.0f);
+        activateLibrary (cached);
+        updateHostDisplay();
+        return;
+    }
+
+    /*  A preset can outlive the folder it names - a library moved, a laptop that
+        is not the one the preset was written on. Say so and keep playing whatever
+        is loaded, rather than sending a loader after a file that is not there and
+        leaving the stage with an error where the piano was.
+    */
+    if (! fileOrFolder.exists())
+    {
+        const ScopedLock sl (statusLock);
+        libraryStatus = "Nie znaleziono biblioteki: " + fileOrFolder.getFileName();
+        return;
+    }
+
     if (loader != nullptr)
     {
         loader->abort = true;
@@ -113,11 +197,18 @@ void WorshipPianoProcessor::clearSampleLibrary()
         loader.reset();
     }
 
+    // the pool is left alone: clearing is usually a step on the way to loading
+    // something else, and re-reading what is already in memory helps nobody
     sampler.setLibrary (nullptr);
     libraryPath.clear();
 
     const ScopedLock sl (statusLock);
     libraryStatus = "Brak biblioteki sampli";
+}
+
+String WorshipPianoProcessor::getLibraryPath() const
+{
+    return libraryPath;
 }
 
 String WorshipPianoProcessor::getLibraryStatus() const

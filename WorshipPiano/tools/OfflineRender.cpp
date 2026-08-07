@@ -91,6 +91,51 @@ namespace
         return false;
     }
 
+    /*  A preset that names a library is only usable if going back to one already
+        read is instant. Re-reading a gigabyte between two songs is not a feature
+        anybody would use twice, so the second load has to come off the pool: no
+        loader thread, and sound on the very next block.
+    */
+    bool checkLibraryCache (const File& sfzFile, String& report)
+    {
+        report << "library pool:" << newLine;
+
+        WorshipPianoProcessor processor;
+        processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+        processor.prepareToPlay (sampleRate, blockSize);
+
+        if (! attachLibrary (processor, sfzFile))
+        {
+            report << "   !! library never reached the audio thread" << newLine << newLine;
+            return false;
+        }
+
+        const auto path = processor.getLibraryPath();
+
+        // away and back again, the way switching preset does it
+        processor.clearSampleLibrary();
+        processor.loadSampleLibrary (File (path));
+
+        // no dispatch loop and no waiting: if this needs the loader, it fails
+        const bool noLoaderRan = ! processor.isLoadingLibrary();
+
+        AudioBuffer<float> block (2, blockSize);
+        block.clear();
+        MidiBuffer empty;
+        processor.processBlock (block, empty);
+
+        const bool liveAgain = processor.isSampleSourceActive();
+
+        report << "   second load without touching disk: "
+               << (noLoaderRan ? "OK" : "STARTED A LOADER") << newLine
+               << "   sounding on the next block:        "
+               << (liveAgain ? "OK" : "FAILED") << newLine
+               << "   path preserved:                    "
+               << (processor.getLibraryPath() == path ? "OK" : "FAILED") << newLine << newLine;
+
+        return noLoaderRan && liveAgain && processor.getLibraryPath() == path;
+    }
+
     /*  The pedalboard. Two things have to hold for every stomp: switching it off
         actually removes the effect, and the transition does not click. The second
         one is the whole reason the ramps exist - a hard cut on a sounding piano
@@ -362,11 +407,37 @@ namespace
             }
         }
 
+        /*  A preset can also carry the sample library it was built on, so a set
+            can run a felt piano under one song and a grand under the next. The
+            path has to come back exactly - and a preset saved without one has to
+            stay without one, or changing preset would drag a library along
+            uninvited and stop the stage for a load nobody asked for.
+        */
+        const String libraryPresetName = "__wp_test_preset_lib";
+        presets::deleteUser (libraryPresetName);
+
+        const auto libraryPath = File::getSpecialLocation (File::tempDirectory)
+                                     .getChildFile ("some piano.sfz").getFullPathName();
+
+        presets::saveUser (processor.apvts, libraryPresetName, libraryPath);
+
+        String carried = "not empty";
+        const bool carriedOK = presets::applyUser (restored.apvts, libraryPresetName, &carried)
+                                 && carried == libraryPath;
+
+        // the preset saved further up went to disk without a library
+        String none = "not empty";
+        const bool noneOK = presets::applyUser (restored.apvts, name, &none) && none.isEmpty();
+
+        presets::deleteUser (libraryPresetName);
+
         const bool deleted = presets::deleteUser (name);
         const bool gone = ! presets::userPresetNames().contains (name);
 
         report << "   round trip through disk: "
                << (mismatches == 0 ? "OK" : String (mismatches) + " MISMATCHES") << newLine
+               << "   library in preset: " << (carriedOK ? "carried" : "LOST")
+               << ", without: " << (noneOK ? "stays empty" : "LEAKED") << newLine
                << "   delete: " << (deleted && gone ? "OK" : "FAILED") << newLine;
 
         // a name with characters no file system will take must not silently
@@ -381,7 +452,7 @@ namespace
             report << "   !! a preset name can escape the preset folder" << newLine;
 
         report << newLine;
-        return mismatches == 0 && deleted && gone && safeName;
+        return mismatches == 0 && deleted && gone && safeName && carriedOK && noneOK;
     }
 
     /** A project reload in the host must bring every knob back exactly. */
@@ -1685,6 +1756,7 @@ int main (int argc, char** argv)
     allOk &= checkSampleLoading (sfz, report);
     allOk &= checkPerformanceControls (sfz, report);
     allOk &= checkStomps (sfz, report);
+    allOk &= checkLibraryCache (sfz, report);
 
     for (int i = 0; i < (int) presets::factory().size(); ++i)
     {

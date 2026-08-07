@@ -315,18 +315,14 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
     presetBlurb.setJustificationType (Justification::centredLeft);
 
     //---- live view -----------------------------------------------------------
+    showPresetList = presets::presetListVisible();
+
     addAndMakeVisible (presetList);
     presetList.onPresetChosen = [this] (int index)
     {
         if (presetList.isUserRow (index))
         {
-            const auto name = presetList.userNameForRow (index);
-
-            if (presets::applyUser (processor.apvts, name))
-            {
-                currentUserPreset = name;
-                lastPresetIndex = -2;       // force the header to refresh
-            }
+            applyUserPreset (presetList.userNameForRow (index));
         }
         else
         {
@@ -356,6 +352,11 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
     addLive (pid::padLevel,   "Pad");
     addLive (pid::reverbMix,  "Reverb");
     addLive (pid::delayMix,   "Delay");
+
+    // the REVERSE stomp says whether the swell happens at all; how much of it
+    // sits in the sound is a mix, and a mix that only lives in EDIT is a mix
+    // nobody can ride while playing
+    addLive (pid::reverseMix, "Reverse");
     addLive (pid::tone,       "Tone");
 
     for (auto* k : liveKnobs)
@@ -456,13 +457,12 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
                 {
                     currentUserPreset = {};
                     processor.loadPreset (factoryIndex);
+                    lastPresetIndex = -2;
                 }
-                else if (presets::applyUser (processor.apvts, name))
+                else
                 {
-                    currentUserPreset = name;
+                    applyUserPreset (name);
                 }
-
-                lastPresetIndex = -2;
             }
         };
         addAndMakeVisible (b);
@@ -472,6 +472,12 @@ WorshipPianoEditor::WorshipPianoEditor (WorshipPianoProcessor& p)
     favouriteButton.setTooltip ("Dodaj lub usun z szybkiego dostepu");
     favouriteButton.onClick = [this] { toggleFavourite(); };
     refreshQuickAccess();
+
+    addAndMakeVisible (presetListButton);
+    presetListButton.setClickingTogglesState (true);
+    presetListButton.setToggleState (showPresetList, dontSendNotification);
+    presetListButton.setTooltip ("Pokaz lub schowaj pelna liste presetow");
+    presetListButton.onClick = [this] { setPresetListShown (presetListButton.getToggleState()); };
 
     addAndMakeVisible (freezeButton);
     freezeAttachment = std::make_unique<AudioProcessorValueTreeState::ButtonAttachment> (
@@ -609,10 +615,19 @@ void WorshipPianoEditor::setLiveMode (bool shouldBeLive)
     liveTab.setToggleState (liveMode, dontSendNotification);
     editTab.setToggleState (! liveMode, dontSendNotification);
 
-    presetList.setVisible (liveMode);
-    savePresetButton.setVisible (liveMode);
-    deletePresetButton.setVisible (liveMode);
-    favouriteButton.setVisible (liveMode);
+    /*  Save, delete and the star live inside the preset panel, so folding the
+        panel away takes them with it. That is the right way round: those are
+        things you do while building a set, and the folded view is for playing
+        one - the toggle brings all four back in a click.
+    */
+    const bool listShown = liveMode && showPresetList;
+
+    presetList.setVisible (listShown);
+    savePresetButton.setVisible (listShown);
+    deletePresetButton.setVisible (listShown);
+    favouriteButton.setVisible (listShown);
+
+    presetListButton.setVisible (liveMode);
 
     for (auto* b : quickButtons)
         b->setVisible (liveMode);
@@ -651,6 +666,16 @@ void WorshipPianoEditor::setLiveMode (bool shouldBeLive)
     repaint();
 }
 
+void WorshipPianoEditor::setPresetListShown (bool shouldBeShown)
+{
+    showPresetList = shouldBeShown;
+    presets::setPresetListVisible (shouldBeShown);
+    presetListButton.setToggleState (shouldBeShown, dontSendNotification);
+
+    // re-runs the visibility pass and the layout for the width that just changed
+    setLiveMode (liveMode);
+}
+
 /*  Saving is asynchronous because a plugin editor must never block the host's
     message thread with a modal loop - some hosts deadlock, and Reaper will stop
     painting until the window goes away.
@@ -666,6 +691,19 @@ void WorshipPianoEditor::savePreset()
                                                           : presetName.getText().upToFirstOccurrenceOf (" *", false, false);
 
     nameWindow->addTextEditor ("name", suggested, "Nazwa:");
+
+    /*  A preset can remember which piano it was built on, so a set can run a felt
+        library under one song and a bright grand under the next without anybody
+        going hunting for a folder between them. Off by hand for the common case
+        where every sound in the set shares one library.
+    */
+    nameWindow->addComboBox ("library",
+                             { "Zapamietaj biblioteke sampli", "Bez biblioteki" },
+                             "Sample:");
+
+    if (auto* box = nameWindow->getComboBoxComponent ("library"))
+        box->setSelectedItemIndex (processor.getLibraryPath().isNotEmpty() ? 0 : 1);
+
     nameWindow->addButton ("Zapisz", 1, KeyPress (KeyPress::returnKey));
     nameWindow->addButton ("Anuluj", 0, KeyPress (KeyPress::escapeKey));
 
@@ -678,9 +716,14 @@ void WorshipPianoEditor::savePreset()
         }
 
         const auto name = nameWindow->getTextEditorContents ("name");
+
+        auto* box = nameWindow->getComboBoxComponent ("library");
+        const bool withLibrary = box != nullptr && box->getSelectedItemIndex() == 0;
+
         nameWindow.reset();
 
-        const auto error = presets::saveUser (processor.apvts, name);
+        const auto error = presets::saveUser (processor.apvts, name,
+                                              withLibrary ? processor.getLibraryPath() : String());
 
         if (error.isNotEmpty())
         {
@@ -731,6 +774,25 @@ void WorshipPianoEditor::deletePreset()
                                      processor.loadPreset (processor.getPresetIndex());
                                      lastPresetIndex = -2;
                                  });
+}
+
+void WorshipPianoEditor::applyUserPreset (const String& name)
+{
+    String library;
+
+    if (! presets::applyUser (processor.apvts, name, &library))
+        return;
+
+    currentUserPreset = name;
+
+    /*  A preset that names a library gets it; one that does not leaves whatever
+        is loaded alone. The processor keeps everything it has already read in
+        memory, so this is a pointer swap unless the library really is new.
+    */
+    if (library.isNotEmpty())
+        processor.loadSampleLibrary (File (library));
+
+    lastPresetIndex = -2;       // force the header to refresh
 }
 
 void WorshipPianoEditor::refreshQuickAccess()
@@ -990,14 +1052,23 @@ void WorshipPianoEditor::layoutLive (Rectangle<int> area)
     quickPanel = area.removeFromTop (40);
     area.removeFromTop (gap);
 
-    livePresetPanel = area.removeFromLeft (roundToInt (area.getWidth() * 0.34f));
-    area.removeFromLeft (gap);
+    // folded away, the whole width belongs to the knobs and the pedalboard
+    if (showPresetList)
+    {
+        livePresetPanel = area.removeFromLeft (roundToInt (area.getWidth() * 0.34f));
+        area.removeFromLeft (gap);
+    }
+    else
+    {
+        livePresetPanel = {};
+    }
 
     auto right = area;
     livePerformPanel = right.removeFromBottom (roundToInt (right.getHeight() * 0.34f));
     right.removeFromBottom (gap);
     liveMixPanel = right;
 
+    if (! livePresetPanel.isEmpty())
     {
         auto panel = livePresetPanel.reduced (10, 8).withTrimmedTop (panelTitleH - 6);
         auto buttons = panel.removeFromBottom (30);
@@ -1013,6 +1084,12 @@ void WorshipPianoEditor::layoutLive (Rectangle<int> area)
     //---- quick access -------------------------------------------------------
     {
         auto inner = quickPanel.reduced (10, 5);
+
+        // the fold sits at the end of the quick bar, which is the one row that is
+        // on screen whether the list is or not
+        presetListButton.setBounds (inner.removeFromRight (84).reduced (2, 0));
+        inner.removeFromRight (8);
+
         const int each = jmax (1, inner.getWidth() / jmax (1, quickButtons.size()));
 
         for (auto* b : quickButtons)
