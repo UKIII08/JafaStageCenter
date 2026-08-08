@@ -5,6 +5,22 @@ using namespace juce;
 namespace wp
 {
 
+/*  31 tap windowed sinc, cut at 0.23 of the oversampled rate, Blackman window.
+    Passes everything the host can represent and reaches about -70 dB by the
+    point where anything left would fold back into the audible band.
+*/
+const std::array<float, PadLayer::decimatorTaps> PadLayer::Decimator::coefficients =
+{
+    -0.00000000f,  0.00008956f, -0.00002577f, -0.00106467f,
+    -0.00041795f,  0.00393584f,  0.00302363f, -0.00972598f,
+    -0.01142163f,  0.01851522f,  0.03245010f, -0.02860947f,
+    -0.08378579f,  0.03682480f,  0.31019215f,  0.46003991f,
+     0.31019215f,  0.03682480f, -0.08378579f, -0.02860947f,
+     0.03245010f,  0.01851522f, -0.01142163f, -0.00972598f,
+     0.00302363f,  0.00393584f, -0.00041795f, -0.00106467f,
+    -0.00002577f,  0.00008956f, -0.00000000f
+};
+
 namespace
 {
     inline double noteToHz (double n) { return 440.0 * std::pow (2.0, (n - 69.0) / 12.0); }
@@ -17,13 +33,19 @@ namespace
 
 void PadLayer::prepare (double sampleRate, int maxBlockSize)
 {
-    ignoreUnused (maxBlockSize);
-    sr = sampleRate;
-    lfoInc = (float) (0.07 / sampleRate);
+    // everything inside this class runs at the oversampled rate, so every
+    // envelope and phase increment derived from sr stays correct on its own
+    sr = sampleRate * oversample;
+    lfoInc = (float) (0.07 / sr);
 
-    smoothedGain.reset (sampleRate, 0.055);
+    smoothedGain.reset (sr, 0.055);
     smoothedGain.setCurrentAndTargetValue (0.0f);
 
+    scratchL.assign ((size_t) jmax (1, maxBlockSize) * oversample, 0.0f);
+    scratchR.assign (scratchL.size(), 0.0f);
+
+    // the DC blocker sits after the rate comes back down, where it belongs:
+    // it is correcting the host's output, not the oscillators
     auto hp = dsp::IIR::Coefficients<float>::makeHighPass (sampleRate, 30.0f);
     dcL.coefficients = hp;
     dcR.coefficients = hp;
@@ -41,42 +63,34 @@ void PadLayer::reset()
     }
 
     pedalDown = false;
+    hijacked = stolen = 0;
     lfoPhase = 0.0f;
+    decimateL.reset();
+    decimateR.reset();
     dcL.reset();
     dcR.reset();
 }
 
-void PadLayer::noteOn (int midiNote, float velocity)
+void PadLayer::startNote (Voice& v, int midiNote, float velocity)
 {
-    Voice* voice = nullptr;
+    /*  Starting a note on a voice that is still sounding is exactly the blip
+        this design exists to avoid, so it is counted rather than left to be
+        noticed by ear on a Sunday. Re-triggering the same note is fine - that
+        keeps the pitch it already had.
+    */
+    if (v.env > 1.0e-3f && v.note != midiNote)
+        ++hijacked;
 
-    for (auto& v : voices)
-        if (v.active && v.note == midiNote)
-            voice = &v;
-
-    if (voice == nullptr)
-        for (auto& v : voices)
-            if (! v.active) { voice = &v; break; }
-
-    if (voice == nullptr)
-    {
-        float quietest = std::numeric_limits<float>::max();
-
-        for (auto& v : voices)
-            if (! v.held && v.env < quietest) { quietest = v.env; voice = &v; }
-
-        if (voice == nullptr)
-            voice = &voices[0];
-    }
-
-    voice->note = midiNote;
-    voice->active = true;
-    voice->held = true;
-    voice->sustained = false;
-    voice->target = 1.0f;
-    voice->velocity = jlimit (0.15f, 1.0f, velocity);
-    voice->attackCoef = envCoefFor (settings.attackMs, sr);
-    voice->releaseCoef = envCoefFor (settings.releaseMs, sr);
+    v.note = midiNote;
+    v.active = true;
+    v.held = true;
+    v.sustained = false;
+    v.stealing = false;
+    v.pendingNote = -1;
+    v.target = 1.0f;
+    v.velocity = jlimit (0.15f, 1.0f, velocity);
+    v.attackCoef = envCoefFor (settings.attackMs, sr);
+    v.releaseCoef = envCoefFor (settings.releaseMs, sr);
 
     const double base = noteToHz ((double) midiNote);
     static constexpr float spread[oscsPerVoice] = { 0.0f, -1.0f, 1.0f };
@@ -84,13 +98,80 @@ void PadLayer::noteOn (int midiNote, float velocity)
     for (int i = 0; i < oscsPerVoice; ++i)
     {
         const double f = base * std::pow (2.0, (spread[i] * settings.detuneCents) / 1200.0);
-        voice->inc[(size_t) i] = (float) (f / sr);
+        v.inc[(size_t) i] = (float) (f / sr);
     }
 
     const float p = jlimit (-1.0f, 1.0f, ((float) midiNote - 60.0f) / 36.0f) * 0.5f;
     const float angle = (p * 0.5f + 0.5f) * MathConstants<float>::halfPi;
-    voice->panL = std::cos (angle);
-    voice->panR = std::sin (angle);
+    v.panL = std::cos (angle);
+    v.panR = std::sin (angle);
+}
+
+void PadLayer::noteOn (int midiNote, float velocity)
+{
+    // the same note again: keep the voice it already has, so repeating a chord
+    // thickens it rather than starting a second copy beating against the first
+    for (auto& v : voices)
+    {
+        if (v.active && v.note == midiNote && ! v.stealing)
+        {
+            startNote (v, midiNote, velocity);
+            return;
+        }
+    }
+
+    for (auto& v : voices)
+    {
+        if (! v.active)
+        {
+            v.env = 0.0f;
+            v.ic1L = v.ic2L = v.ic1R = v.ic2R = 0.0f;
+            startNote (v, midiNote, velocity);
+            return;
+        }
+    }
+
+    /*  Everything is busy. Pick the quietest voice that is not under a finger
+        and fade it out rather than repitching it where it stands: the new note
+        starts from silence a few milliseconds later, in render(), once the old
+        one has actually gone.
+    */
+    Voice* victim = nullptr;
+    float quietest = std::numeric_limits<float>::max();
+
+    for (auto& v : voices)
+        if (! v.held && ! v.stealing && v.env < quietest) { quietest = v.env; victim = &v; }
+
+    // every voice held down, or already fading: take the quietest of all of them
+    if (victim == nullptr)
+    {
+        quietest = std::numeric_limits<float>::max();
+
+        for (auto& v : voices)
+            if (v.env < quietest) { quietest = v.env; victim = &v; }
+    }
+
+    if (victim == nullptr)
+        return;
+
+    // already silent: nothing to fade, start straight away
+    if (victim->env < 1.0e-4f)
+    {
+        victim->env = 0.0f;
+        victim->ic1L = victim->ic2L = victim->ic1R = victim->ic2R = 0.0f;
+        startNote (*victim, midiNote, velocity);
+        return;
+    }
+
+    ++stolen;
+
+    victim->stealing = true;
+    victim->held = false;
+    victim->sustained = false;
+    victim->target = 0.0f;
+    victim->releaseCoef = envCoefFor (stealFadeMs, sr);
+    victim->pendingNote = midiNote;
+    victim->pendingVelocity = velocity;
 }
 
 void PadLayer::noteOff (int midiNote)
@@ -121,58 +202,36 @@ void PadLayer::sustainPedal (bool down)
 void PadLayer::allNotesOff()
 {
     for (auto& v : voices)
-        if (v.active) { v.held = false; v.sustained = false; v.target = 0.0f; }
-}
-
-/*  One oscillator per pad character. All of them are built out of the same
-    band-limited saw so nothing aliases: folding a saw into a triangle keeps the
-    band limiting, and subtracting a phase-shifted copy gives a pulse whose
-    discontinuities are already corrected.
-*/
-inline float PadLayer::oscillator (float& phase, float inc) noexcept
-{
-    const float saw = polyBlepSaw (phase, inc);
-
-    switch (settings.voice)
     {
-        case PadVoice::softChoir:
-        {
-            // integrating a saw gives a triangle: same harmonics, falling off
-            // an order faster, so it breathes instead of buzzing
-            const float tri = 2.0f * std::abs (saw) - 1.0f;
-            return 0.5f * tri + 0.2f * saw;
-        }
+        if (! v.active)
+            continue;
 
-        case PadVoice::glass:
-        {
-            // a touch of second harmonic to put a bell-like edge on top, where
-            // it will sit above the piano rather than fight it
-            const float second = 2.0f * saw * saw - 1.0f;
-            return 0.72f * saw + 0.28f * second;
-        }
+        v.held = false;
+        v.sustained = false;
+        v.target = 0.0f;
 
-        case PadVoice::airVox:
-        {
-            // a narrow pulse is saw minus a delayed saw; approximate the delay
-            // with the squared term so the result stays band limited
-            const float pulse = saw - (saw * std::abs (saw));
-            return 1.35f * pulse;
-        }
-
-        case PadVoice::strings:
-        case PadVoice::warmSaw:
-        default:
-            return saw;
+        // a note waiting behind a fade must not arrive after everything was
+        // told to stop
+        v.stealing = false;
+        v.pendingNote = -1;
     }
 }
 
-inline float PadLayer::polyBlepSaw (float& phase, float inc) noexcept
+/*  Every character is built out of band-limited saws and nothing else.
+
+    A polyBLEP saw has no energy above Nyquist. Multiplying one by itself does -
+    squaring doubles the bandwidth, and folding through abs() is a corner, which
+    has no bandwidth limit at all. Both of those were how the triangle and the
+    pulse used to be made, and both folded energy back down between the
+    harmonics, which is heard as grit rather than as brightness.
+
+    A square is two saws half a period apart. A pulse is two saws a fraction of
+    a period apart. A triangle is the integral of a square. All three inherit the
+    saw's band limiting instead of destroying it, and none of them costs more
+    than the multiply they replace.
+*/
+inline float PadLayer::polyBlepSawAt (float phase, float inc) noexcept
 {
-    phase += inc;
-
-    if (phase >= 1.0f)
-        phase -= 1.0f;
-
     float value = 2.0f * phase - 1.0f;
 
     // polyBLEP correction around the discontinuity
@@ -188,6 +247,58 @@ inline float PadLayer::polyBlepSaw (float& phase, float inc) noexcept
     }
 
     return value;
+}
+
+inline float PadLayer::oscillator (float& phase, float inc, float& integrator) noexcept
+{
+    phase += inc;
+
+    if (phase >= 1.0f)
+        phase -= 1.0f;
+
+    const float saw = polyBlepSawAt (phase, inc);
+
+    auto shifted = [phase] (float by)
+    {
+        float p = phase + by;
+        return p >= 1.0f ? p - 1.0f : p;
+    };
+
+    switch (settings.voice)
+    {
+        case PadVoice::softChoir:
+        {
+            // square, then integrated: a triangle whose harmonics fall away an
+            // order faster than a saw's, so it breathes instead of buzzing
+            const float square = saw - polyBlepSawAt (shifted (0.5f), inc);
+
+            integrator += 4.0f * inc * square;
+            integrator -= 0.0004f * integrator;      // leak, or DC walks away
+
+            return 1.05f * integrator + 0.12f * saw;
+        }
+
+        case PadVoice::glass:
+        {
+            // a touch of second harmonic puts a bell-like edge on top, where it
+            // sits above the piano rather than fighting it. Squaring is smooth -
+            // no corner - so oversampling is enough to keep it clean.
+            const float second = 2.0f * saw * saw - 1.0f;
+            return 0.72f * saw + 0.28f * second;
+        }
+
+        case PadVoice::airVox:
+        {
+            // a genuinely narrow pulse: two saws a sixth of a period apart
+            const float pulse = saw - polyBlepSawAt (shifted (0.16f), inc);
+            return 1.25f * pulse;
+        }
+
+        case PadVoice::strings:
+        case PadVoice::warmSaw:
+        default:
+            return saw;
+    }
 }
 
 void PadLayer::render (float* left, float* right, int numSamples)
@@ -215,7 +326,15 @@ void PadLayer::render (float* left, float* right, int numSamples)
     const float res = 0.85f;                       // gentle, no self oscillation
     const float k = 1.0f / jmax (0.05f, res);
 
-    for (int n = 0; n < numSamples; ++n)
+    const int oversampled = numSamples * oversample;
+
+    if ((int) scratchL.size() < oversampled)
+    {
+        scratchL.assign ((size_t) oversampled, 0.0f);
+        scratchR.assign ((size_t) oversampled, 0.0f);
+    }
+
+    for (int n = 0; n < oversampled; ++n)
     {
         lfoPhase += lfoInc;
         if (lfoPhase >= 1.0f) lfoPhase -= 1.0f;
@@ -243,9 +362,23 @@ void PadLayer::render (float* left, float* right, int numSamples)
 
             if (v.target <= 0.0f && v.env < 1.0e-4f)
             {
-                v.active = false;
                 v.env = 0.0f;
                 v.ic1L = v.ic2L = v.ic1R = v.ic2R = 0.0f;
+
+                // the voice was taken for a new note: it has faded, so the new
+                // one can start now, from silence and with its own attack
+                if (v.stealing && v.pendingNote >= 0)
+                {
+                    for (auto& ph : v.phase)
+                        ph = Random::getSystemRandom().nextFloat();
+
+                    startNote (v, v.pendingNote, v.pendingVelocity);
+                    continue;
+                }
+
+                v.active = false;
+                v.stealing = false;
+                v.pendingNote = -1;
                 continue;
             }
 
@@ -259,7 +392,8 @@ void PadLayer::render (float* left, float* right, int numSamples)
 
             for (int i = 0; i < oscsPerVoice; ++i)
             {
-                const float osc = oscillator (v.phase[(size_t) i], v.inc[(size_t) i]);
+                const float osc = oscillator (v.phase[(size_t) i], v.inc[(size_t) i],
+                                              v.integrator[(size_t) i]);
                 oscL += osc * oscPanL[i];
                 oscR += osc * oscPanR[i];
             }
@@ -288,8 +422,26 @@ void PadLayer::render (float* left, float* right, int numSamples)
         }
 
         const float gain = smoothedGain.getNextValue();
-        left[n]  += dcL.processSample (sumL * gain);
-        right[n] += dcR.processSample (sumR * gain);
+        scratchL[(size_t) n] = sumL * gain;
+        scratchR[(size_t) n] = sumR * gain;
+    }
+
+    /*  Back down to the host's rate. The filter sees every oversampled sample -
+        that is what removes the folded energy - but only every second result is
+        kept, which is the decimation itself.
+    */
+    for (int n = 0; n < numSamples; ++n)
+    {
+        float outL = 0.0f, outR = 0.0f;
+
+        for (int k2 = 0; k2 < oversample; ++k2)
+        {
+            outL = decimateL.process (scratchL[(size_t) (n * oversample + k2)]);
+            outR = decimateR.process (scratchR[(size_t) (n * oversample + k2)]);
+        }
+
+        left[n]  += dcL.processSample (outL);
+        right[n] += dcR.processSample (outR);
     }
 }
 

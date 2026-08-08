@@ -11,11 +11,13 @@
 #include <juce_audio_formats/juce_audio_formats.h>
 
 #include <map>
+#include <algorithm>
 
 #include "../Source/PluginProcessor.h"
 #include "../Source/Presets.h"
 #include "../Source/Parameters.h"
 #include "../Source/dsp/SampleLibrary.h"
+#include "../Source/dsp/PadLayer.h"
 
 using namespace juce;
 
@@ -245,6 +247,474 @@ namespace
         if (! ok)
             report << "   !! a released key is still sounding long after the damper should have stopped it"
                    << newLine;
+
+        report << newLine;
+        return ok;
+    }
+
+    /*  Aliasing in the pad oscillators.
+
+        The measurable difference between a pad that sounds expensive and one
+        that sounds cheap. A band-limited saw has all its energy on harmonics of
+        the note; anything that folds back off the top of the spectrum lands
+        between them, at frequencies unrelated to what is being played, and that
+        is what a listener hears as harsh or grainy rather than as bright.
+
+        Measured high, at C6, where a saw's harmonics run out of room fastest.
+        Everything sitting on a harmonic of the note is signal; everything
+        between harmonics, above the fundamental, is not.
+    */
+    bool checkPadAliasing (String& report)
+    {
+        report << "pad oscillator aliasing (C6):" << newLine;
+
+        struct Case { const char* name; int type; };
+
+        const Case cases[] = {
+            { "Warm Saw",   0 },
+            { "Soft Choir", 1 },
+            { "Glass",      2 },
+            { "Strings",    3 },
+            { "Air Vox",    4 },
+        };
+
+        const int note = 84;                        // C6, 1046.5 Hz
+        const double fundamental = 440.0 * std::pow (2.0, (note - 69) / 12.0);
+        const int fftOrder = 15;
+        const int fftSize = 1 << fftOrder;
+
+        bool ok = true;
+
+        for (const auto& c : cases)
+        {
+            wp::PadLayer pad;
+            pad.prepare (sampleRate, blockSize);
+
+            wp::PadSettings s;
+            s.level = 1.0f;
+            s.attackMs = 5.0f;
+            s.releaseMs = 500.0f;
+            s.cutoffHz = 18000.0f;                  // filter wide open: this is
+            s.detuneCents = 0.0f;                   // about the oscillator alone
+            s.voice = (wp::PadVoice) c.type;
+            pad.setSettings (s);
+
+            pad.noteOn (note, 1.0f);
+
+            // let the swell finish before measuring
+            AudioBuffer<float> warm (2, blockSize);
+
+            for (int i = 0; i < (int) (sampleRate * 0.4 / blockSize); ++i)
+            {
+                warm.clear();
+                pad.render (warm.getWritePointer (0), warm.getWritePointer (1), blockSize);
+            }
+
+            std::vector<float> fft ((size_t) fftSize * 2, 0.0f);
+            AudioBuffer<float> block (2, blockSize);
+
+            for (int done = 0; done < fftSize; done += blockSize)
+            {
+                block.clear();
+                pad.render (block.getWritePointer (0), block.getWritePointer (1), blockSize);
+
+                for (int i = 0; i < blockSize && done + i < fftSize; ++i)
+                    fft[(size_t) (done + i)] = block.getSample (0, i);
+            }
+
+            // Hann, so harmonics do not smear across the bins between them
+            for (int i = 0; i < fftSize; ++i)
+                fft[(size_t) i] *= 0.5f - 0.5f * std::cos (MathConstants<float>::twoPi * i / (fftSize - 1));
+
+            dsp::FFT transform (fftOrder);
+            transform.performFrequencyOnlyForwardTransform (fft.data());
+
+            const double binHz = sampleRate / fftSize;
+            float harmonicEnergy = 0.0f, aliasEnergy = 0.0f;
+
+            for (int bin = 1; bin < fftSize / 2; ++bin)
+            {
+                const double hz = bin * binHz;
+
+                if (hz < fundamental * 0.5 || hz > sampleRate * 0.48)
+                    continue;
+
+                const double ratio = hz / fundamental;
+                const double nearest = std::round (ratio);
+                const double distance = std::abs (ratio - nearest);
+
+                const float energy = fft[(size_t) bin] * fft[(size_t) bin];
+
+                // within a fifteenth of the spacing counts as on the harmonic,
+                // which is comfortably wider than the window smears one
+                if (nearest >= 1.0 && distance < 0.07)
+                    harmonicEnergy += energy;
+                else
+                    aliasEnergy += energy;
+            }
+
+            const float db = Decibels::gainToDecibels (
+                                 std::sqrt (aliasEnergy / jmax (1.0e-20f, harmonicEnergy)));
+
+            report << "   " << String (c.name).paddedRight (' ', 12)
+                   << "aliasing " << String (db, 1) << " dB below the harmonics";
+
+            /*  -40 dB is about where folded-back energy stops being a texture on
+                top of the note and starts being audible as its own thing.
+            */
+            if (db > -40.0f)
+            {
+                report << "   <-- AUDIBLE";
+                ok = false;
+            }
+
+            report << newLine;
+        }
+
+        if (! ok)
+            report << "   !! an oscillator is folding energy back into the audible band" << newLine;
+
+        report << newLine;
+        return ok;
+    }
+
+    /*  Pad voice stealing.
+
+        The pad follows every note the piano plays, and this instrument is played
+        with the sustain pedal down, so voices pile up until every new note has
+        to take one. Taking one that is still sounding - repitching it where it
+        stands - is heard as a blip: the note jumps to another frequency at full
+        volume, mid-phase, dragging its filter state along.
+
+        That artefact is invisible to a waveform test. A pitch jump is perfectly
+        continuous sample to sample; nothing steps. So this asks the pad directly
+        how many voices it took while they were still audible, which has to be
+        none - a voice must be faded out first and the new note started from
+        silence behind it.
+    */
+    bool checkPadVoiceStealing (String& report)
+    {
+        report << "pad voice stealing:" << newLine;
+
+        wp::PadLayer pad;
+        pad.prepare (sampleRate, blockSize);
+
+        wp::PadSettings s;
+        s.level = 0.5f;
+        s.attackMs = 700.0f;
+        s.releaseMs = 2200.0f;
+        pad.setSettings (s);
+
+        AudioBuffer<float> block (2, blockSize);
+
+        // pedal down and stays down, then eight five note chords: forty notes
+        // through a pad, which is an ordinary verse and chorus
+        pad.sustainPedal (true);
+
+        // twelve distinct chords, no note repeated between them, so the pad runs
+        // well past its voice count and the stealing path is genuinely used
+        const int roots[12] = { 24, 29, 34, 39, 44, 49, 54, 59, 64, 69, 74, 79 };
+
+        for (int chord = 0; chord < 12; ++chord)
+        {
+            for (int interval : { 0, 1, 2, 3, 4 })
+                pad.noteOn (roots[chord] + interval, 0.85f);
+
+            const int blocks = (int) (sampleRate * 1.2 / blockSize);
+
+            for (int i = 0; i < blocks; ++i)
+            {
+                block.clear();
+                pad.render (block.getWritePointer (0), block.getWritePointer (1), blockSize);
+            }
+        }
+
+        const int stolen = pad.getStolenVoiceCount();
+        const int hijacked = pad.getHijackedVoiceCount();
+
+        report << "   60 notes on the pedal, 32 voices" << newLine
+               << "   voices taken (faded first): " << stolen << newLine
+               << "   repitched while sounding:   " << hijacked << newLine;
+
+        // if nothing was ever taken the test proves nothing, so that fails too
+        const bool ok = hijacked == 0 && stolen > 0;
+
+        if (hijacked != 0)
+            report << "   !! a sounding pad voice was repitched instead of being faded out"
+                   << newLine;
+        else if (stolen == 0)
+            report << "   !! the pad never ran out of voices, so this proved nothing"
+                   << newLine;
+
+        report << newLine;
+        return ok;
+    }
+
+    /*  Clicks while simply playing.
+
+        Not a knob being moved - just notes, the way a set actually runs: chords
+        held on the pedal, new ones landing on top, voices being taken from
+        whatever was quietest. Any of that stealing a voice, or a grain in the
+        shimmer wrapping, puts a step in the output.
+
+        Found by outlier rather than by threshold. A pad is a slow waveform, so
+        the overwhelming majority of its sample-to-sample steps sit in a narrow
+        band; a discontinuity is a lone value far above that band. Comparing the
+        largest step against the 99.99th percentile finds it without needing to
+        know how loud the passage happens to be.
+    */
+    bool checkClicksWhilePlaying (const File& sfzFile, String& report)
+    {
+        report << "clicks while playing:" << newLine;
+
+        bool ok = true;
+
+        // the presets that lean hardest on the pad and the ambience
+        for (int preset : { 6, 7, 9, 10, 13 })
+        {
+            WorshipPianoProcessor processor;
+            processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+            processor.prepareToPlay (sampleRate, blockSize);
+            processor.loadPreset (preset);
+
+            if (! attachLibrary (processor, sfzFile))
+            {
+                report << "   !! library never reached the audio thread" << newLine << newLine;
+                return false;
+            }
+
+            if (auto* p = processor.apvts.getParameter (pid::padLevel))
+                p->setValueNotifyingHost (p->convertTo0to1 (-6.0f));
+
+            AudioBuffer<float> block (2, blockSize);
+            std::vector<float> captured;
+
+            const int seconds = 14;
+            const int totalBlocks = (int) (sampleRate * seconds / blockSize);
+
+            // a progression that keeps taking voices: five note chords every
+            // bar and a pedal that never comes up, which is how this is played
+            const int chords[4][5] = {
+                { 48, 55, 60, 64, 67 },
+                { 45, 52, 57, 60, 64 },
+                { 43, 50, 55, 59, 62 },
+                { 41, 48, 53, 57, 60 },
+            };
+
+            const int blocksPerChord = (int) (sampleRate * 1.6 / blockSize);
+            int chordIndex = 0;
+
+            for (int i = 0; i < totalBlocks; ++i)
+            {
+                block.clear();
+                MidiBuffer midi;
+
+                if (i % blocksPerChord == 0)
+                {
+                    if (i == 0)
+                        midi.addEvent (MidiMessage::controllerEvent (1, 64, 127), 0);
+
+                    for (int note : chords[chordIndex % 4])
+                        midi.addEvent (MidiMessage::noteOn (1, note, 0.85f), 1);
+
+                    ++chordIndex;
+                }
+
+                processor.processBlock (block, midi);
+
+                for (int n = 0; n < blockSize; ++n)
+                    captured.push_back (0.5f * (block.getSample (0, n) + block.getSample (1, n)));
+            }
+
+            std::vector<float> steps;
+            steps.reserve (captured.size());
+
+            for (size_t i = 1; i < captured.size(); ++i)
+                steps.push_back (std::abs (captured[i] - captured[i - 1]));
+
+            auto sorted = steps;
+            std::sort (sorted.begin(), sorted.end());
+
+            const float p9999 = sorted[(size_t) ((double) sorted.size() * 0.9999)];
+            const float worst = sorted.back();
+            const float ratio = p9999 > 1.0e-8f ? worst / p9999 : 0.0f;
+
+            // where, so a failure can be listened to rather than guessed at
+            size_t worstAt = 0;
+
+            for (size_t i = 0; i < steps.size(); ++i)
+                if (steps[i] >= worst) { worstAt = i; break; }
+
+            report << "   " << String (presets::factory()[(size_t) preset].name).paddedRight (' ', 22)
+                   << "worst step " << String (worst, 5)
+                   << "   p99.99 " << String (p9999, 5)
+                   << "   x" << String (ratio, 1)
+                   << "   at " << String ((double) worstAt / sampleRate, 2) << " s";
+
+            /*  Four times the 99.99th percentile. One sample in ten thousand is
+                already the top of the waveform's own movement; four times that
+                is not the waveform, it is a jump.
+            */
+            if (ratio > 4.0f)
+            {
+                report << "   <-- CLICK";
+                ok = false;
+            }
+
+            report << newLine;
+        }
+
+        if (! ok)
+            report << "   !! the output steps while notes are simply being played" << newLine;
+
+        report << newLine;
+        return ok;
+    }
+
+    /*  Clicks under a sounding note.
+
+        Changing a preset, or a knob, while the pad is holding a chord must not
+        put a step in the waveform. Anything the player or the app can move
+        during a song is a candidate, and a preset change now happens on its own
+        every time the song changes - so a click there fires in front of the
+        congregation rather than in a rehearsal.
+
+        Measured as a ratio, not an absolute: the worst sample-to-sample step
+        just after the change against the worst step the same passage was
+        already making. A pad is a slow waveform, so a genuine discontinuity
+        stands out by an order of magnitude; a level ramp or a filter sweep does
+        not move the ratio at all.
+    */
+    bool checkParameterClicks (const File& sfzFile, String& report)
+    {
+        report << "clicks under a held chord:" << newLine;
+
+        struct Case
+        {
+            const char* name;
+            const char* id;       // nullptr = whole preset change
+            float value;
+            int   presetIndex;
+        };
+
+        const Case cases[] = {
+            { "pad type",       pid::padType,       3.0f,    -1 },
+            { "pad tone",       pid::padTone,       3200.0f, -1 },
+            { "pad swell",      pid::padAttack,     2400.0f, -1 },
+            { "reverb machine", pid::reverbMachine, 3.0f,    -1 },
+            { "reverb size",    pid::reverbSize,    0.95f,   -1 },
+            { "reverb decay",   pid::reverbDecay,   14.0f,   -1 },
+            { "shimmer voice",  pid::shimmerMode,   2.0f,    -1 },
+            { "reverse time",   pid::reverseTime,   3.0f,    -1 },
+            { "delay division", pid::delayDiv,      6.0f,    -1 },
+            { "preset change",  nullptr,            0.0f,     7 },
+        };
+
+        bool ok = true;
+
+        for (const auto& c : cases)
+        {
+            WorshipPianoProcessor processor;
+            processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+            processor.prepareToPlay (sampleRate, blockSize);
+            processor.loadPreset (10);      // Soaking Grand: pad, reverb, delay all live
+
+            if (! attachLibrary (processor, sfzFile))
+            {
+                report << "   !! library never reached the audio thread" << newLine << newLine;
+                return false;
+            }
+
+            auto set = [&processor] (const char* id, float v)
+            {
+                if (auto* p = processor.apvts.getParameter (id))
+                    p->setValueNotifyingHost (p->convertTo0to1 (v));
+            };
+
+            // a pad that is unmistakably present, so a step in it is a step we
+            // can actually see
+            set (pid::padLevel, -6.0f);
+
+            AudioBuffer<float> block (2, blockSize);
+
+            // chord down, sustain pedal, then let it settle into its swell
+            {
+                MidiBuffer midi;
+                for (int note : { 48, 55, 60, 64, 67 })
+                    midi.addEvent (MidiMessage::noteOn (1, note, 0.8f), 0);
+                midi.addEvent (MidiMessage::controllerEvent (1, 64, 127), 1);
+
+                block.clear();
+                processor.processBlock (block, midi);
+            }
+
+            auto runFor = [&] (double seconds, std::vector<float>& captured)
+            {
+                const int total = (int) (sampleRate * seconds);
+
+                for (int done = 0; done < total; done += blockSize)
+                {
+                    const int n = jmin (blockSize, total - done);
+                    block.setSize (2, n, false, false, true);
+                    block.clear();
+                    MidiBuffer empty;
+                    processor.processBlock (block, empty);
+
+                    for (int i = 0; i < n; ++i)
+                        captured.push_back (0.5f * (block.getSample (0, i) + block.getSample (1, i)));
+                }
+            };
+
+            std::vector<float> before, after;
+            runFor (1.5, before);
+
+            if (c.id != nullptr)
+                set (c.id, c.value);
+            else
+                processor.loadPreset (c.presetIndex);
+
+            runFor (0.35, after);
+
+            auto worstStep = [] (const std::vector<float>& v, size_t from, size_t to)
+            {
+                float worst = 0.0f;
+
+                for (size_t i = jmax ((size_t) 1, from); i < jmin (to, v.size()); ++i)
+                    worst = jmax (worst, std::abs (v[i] - v[i - 1]));
+
+                return worst;
+            };
+
+            // what the passage was already doing, over its last half second
+            const size_t tail = (size_t) (sampleRate * 0.5);
+            const float settled = worstStep (before, before.size() - jmin (tail, before.size()),
+                                             before.size());
+
+            // and what it did in the 30 ms around the change
+            const float atChange = worstStep (after, 0, (size_t) (sampleRate * 0.03));
+
+            const float ratio = settled > 1.0e-7f ? atChange / settled : 0.0f;
+
+            report << "   " << String (c.name).paddedRight (' ', 16)
+                   << "step " << String (atChange, 5)
+                   << "   vs settled " << String (settled, 5)
+                   << "   x" << String (ratio, 1);
+
+            /*  Three times the slew the passage was already making. Below that a
+                step is indistinguishable from the waveform's own movement; above
+                it, something jumped.
+            */
+            if (ratio > 3.0f)
+            {
+                report << "   <-- CLICK";
+                ok = false;
+            }
+
+            report << newLine;
+        }
+
+        if (! ok)
+            report << "   !! something steps the waveform under a sounding note" << newLine;
 
         report << newLine;
         return ok;
@@ -2036,6 +2506,10 @@ int main (int argc, char** argv)
     allOk &= checkLibraryCache (sfz, report);
     allOk &= checkNoteRelease (sfz, report);
     allOk &= checkStageLink (report);
+    allOk &= checkParameterClicks (sfz, report);
+    allOk &= checkClicksWhilePlaying (sfz, report);
+    allOk &= checkPadVoiceStealing (report);
+    allOk &= checkPadAliasing (report);
 
     for (int i = 0; i < (int) presets::factory().size(); ++i)
     {

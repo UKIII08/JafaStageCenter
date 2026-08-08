@@ -260,6 +260,60 @@ Wash*, **Air Vox** w *Soaking Cloud* i *Reverse Swell*.
 
 ---
 
+## Jakość dźwięku — co jest mierzone
+
+Trzy rzeczy, które odróżniają pad brzmiący drogo od brzmiącego tanio, i które da
+się zmierzyć zamiast dyskutować.
+
+### Aliasing oscylatorów
+
+Piła band-limited (polyBLEP) nie ma energii powyżej Nyquista. Ale **mnożenie
+sygnału przez siebie podwaja pasmo**, a przepuszczenie go przez `abs()` to
+załamanie, które nie ma limitu pasma w ogóle. Nadmiar składowych odbija się od
+góry widma i ląduje **pomiędzy** harmonicznymi, na częstotliwościach niezwiązanych
+z graną nutą. Słychać to jako szorstkość i ziarno, nie jako jasność.
+
+Mierzone na C6, z filtrem otwartym, jako stosunek energii między harmonicznymi do
+energii na harmonicznych:
+
+| Charakter | Przedtem | Teraz |
+|---|---|---|
+| Warm Saw | −34,4 dB | **−55,4 dB** |
+| Soft Choir | −18,4 dB | **−72,5 dB** |
+| Glass | −26,6 dB | **−43,4 dB** |
+| Strings | −34,9 dB | **−50,9 dB** |
+| Air Vox | −15,9 dB | **−53,4 dB** |
+
+Naprawione dwiema rzeczami. Po pierwsze oscylatory chodzą na **podwójnej
+częstotliwości** i wracają przez 31-punktowy filtr półpasmowy. Po drugie — i to
+dało większość poprawy — każdy kształt jest teraz budowany **wyłącznie z pił
+band-limited**: prostokąt to dwie piły odległe o pół okresu, impuls to dwie piły
+odległe o ułamek okresu, trójkąt to całka z prostokąta. Wcześniej trójkąt
+powstawał przez `abs()`, a impuls przez mnożenie — obie metody niszczyły to, co
+polyBLEP właśnie zbudował.
+
+Kosztuje to około 4 punkty procentowe czasu procesora (z ~7,6 % do ~11,6 % czasu
+rzeczywistego), co przy zapasie, jaki jest, nie ma znaczenia.
+
+### Kradzież głosów w padzie
+
+Pad idzie za każdą nutą pianina, a gra się z wciśniętym pedałem — więc głosy
+piętrzą się i po dwóch akordach każda nowa nuta musi któryś zabrać. Zabranie
+**grającego** głosu przez podmianę wysokości w locie słychać jako „strzał":
+brzmiąca nuta skacze na inną częstotliwość, przy pełnej głośności, w środku
+okresu, ciągnąc za sobą stan filtra.
+
+Teraz głosów jest **32 zamiast 16**, a gdy któryś naprawdę trzeba zabrać, jest
+najpierw **wygaszany przez 6 ms**, a nowa nuta startuje od ciszy dopiero za nim.
+Pod padem, który narasta przez 700 ms, tego opóźnienia nie da się usłyszeć.
+
+To jest wada niewidoczna dla testu przebiegu — skok wysokości jest idealnie
+ciągły próbka po próbce, nic się nie „schodkuje". Dlatego pad liczy takie
+przypadki sam, a test sprawdza, że licznik stoi na zerze przy 60 nutach na
+pedale (i że kradzież w ogóle zaszła, inaczej test nie dowodziłby niczego).
+
+---
+
 ## Reverse piano
 
 `Reverse` w panelu AMBIENCE odtwarza to, co właśnie zagrałeś, **od tyłu**. Każda fraza
