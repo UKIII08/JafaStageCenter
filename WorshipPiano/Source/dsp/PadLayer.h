@@ -67,7 +67,17 @@ private:
         was taking one off something still sounding.
     */
     static constexpr int maxVoices = 32;
-    static constexpr int oscsPerVoice = 3;
+
+    /*  Seven, the way the JP-8000 does it, not three.
+
+        Three detuned saws give one beating; seven with unevenly spaced offsets
+        fill the space around every harmonic instead, and that filling is what
+        is heard as thickness rather than as chorus. The offsets and the two gain
+        curves below are Adam Szabo's reverse engineering of the original
+        (Bachelor thesis, "How to Emulate the Super Saw", 2010), which is the
+        reference nearly every software supersaw is built from.
+    */
+    static constexpr int oscsPerVoice = 7;
 
     // how fast a voice that has to be taken gets out of the way
     static constexpr float stealFadeMs = 6.0f;

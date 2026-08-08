@@ -295,6 +295,55 @@ polyBLEP właśnie zbudował.
 Kosztuje to około 4 punkty procentowe czasu procesora (z ~7,6 % do ~11,6 % czasu
 rzeczywistego), co przy zapasie, jaki jest, nie ma znaczenia.
 
+### Gęstość — supersaw zamiast trzech pił
+
+Trzy rozstrojone piły dają jedno dudnienie. Siedem, rozstawionych **nierówno**,
+wypełnia przestrzeń wokół każdej harmonicznej — i to wypełnienie słychać jako
+gęstość, a nie jako chorus.
+
+Offsety i krzywe głośności pochodzą z pracy Adama Szabo *„How to Emulate the
+Super Saw"* (2010), która jest odwrotną inżynierią oscylatora Rolanda JP-8000 i
+punktem odniesienia dla większości programowych supersawów:
+
+- siedem oscylatorów o offsetach `−0.11002313 … 0 … +0.10745242`, **celowo
+  nierównych** — równy rozstaw zlewa się w jedną słyszalną częstotliwość dudnienia
+- głośność środka `−0.55366·x + 0.99785`
+- głośność boków `−0.73764·x² + 1.2841·x + 0.044372`
+
+Środek cichnie, a boki rosną wraz z rozstrojeniem — to jest ta zależność, która
+przy szerokim ustawieniu nie zamienia pada w papkę bez nuty w środku.
+
+Zakres jest nasz: oryginał przy pełnym rozstrojeniu rozjeżdża się o blisko dwa
+półtony, co jest leadem trance'owym, a nie łóżkiem pod zborem. Ustawienie w
+centach mapuje się na dolną część tej skali.
+
+Liczone jako rozróżnialne prążki widma w paśmie 80 Hz – 4 kHz, ponad −40 dB:
+
+| Charakter | 3 oscylatory | 7 oscylatorów |
+|---|---|---|
+| Warm Saw | 44 | **99** |
+| Glass | 43 | **100** |
+| Strings | 44 | **99** |
+| Air Vox | 44 | **99** |
+| Soft Choir | 29 | **33** |
+
+Soft Choir rośnie najmniej i tak ma być — trójkąt ma z natury mało harmonicznych,
+na tym polega jego charakter.
+
+Koszt: z ~11,6 % do ~14,4 % czasu rzeczywistego.
+
+### Zgodność mono
+
+Sporo sal ma nagłośnienie mono, a pad zbudowany przez rozrzucenie rozstrojonych
+kopii w panoramie to dokładnie ten materiał, który przy sumowaniu potrafi się
+częściowo wykasować. Pad, który znika po złożeniu do mono, nie jest szeroki,
+tylko zepsuty.
+
+Mierzone jako poziom sumy `(L+R)/2` względem średniej z obu stron: **−0,3 dB**
+dla każdego charakteru, czyli praktycznie nic. Panorama bierze się z tego, że
+każdy oscylator ma **inną częstotliwość**, a nie ze sztuczek fazowych, które
+rozpadają się dalej w torze.
+
 ### Kradzież głosów w padzie
 
 Pad idzie za każdą nutą pianina, a gra się z wciśniętym pedałem — więc głosy

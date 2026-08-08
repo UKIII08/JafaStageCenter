@@ -93,13 +93,26 @@ void PadLayer::startNote (Voice& v, int midiNote, float velocity)
     v.releaseCoef = envCoefFor (settings.releaseMs, sr);
 
     const double base = noteToHz ((double) midiNote);
-    static constexpr float spread[oscsPerVoice] = { 0.0f, -1.0f, 1.0f };
+
+    /*  Szabo's offsets: deliberately not evenly spaced, which is what stops the
+        seven collapsing into a single audible beat rate the way an even spread
+        does. Ratios preserved exactly; only how far they are driven is ours.
+    */
+    static constexpr float offsets[oscsPerVoice] = {
+        -0.11002313f, -0.06288439f, -0.01952356f, 0.0f,
+         0.01991221f,  0.06216538f,  0.10745242f
+    };
+
+    /*  The detune knob in the original runs 0..1 and reaches nearly two
+        semitones wide at the top - a trance lead, not something to put under a
+        congregation. The pad's cents setting is mapped into the lower part of
+        that range, so the character stays a bed and the outer pair lands around
+        a quarter tone out at the widest preset.
+    */
+    const float x = jlimit (0.0f, 0.75f, settings.detuneCents / 45.0f);
 
     for (int i = 0; i < oscsPerVoice; ++i)
-    {
-        const double f = base * std::pow (2.0, (spread[i] * settings.detuneCents) / 1200.0);
-        v.inc[(size_t) i] = (float) (f / sr);
-    }
+        v.inc[(size_t) i] = (float) (base * (1.0 + offsets[i] * x) / sr);
 
     const float p = jlimit (-1.0f, 1.0f, ((float) midiNote - 60.0f) / 36.0f) * 0.5f;
     const float angle = (p * 0.5f + 0.5f) * MathConstants<float>::halfPi;
@@ -326,6 +339,9 @@ void PadLayer::render (float* left, float* right, int numSamples)
     const float res = 0.85f;                       // gentle, no self oscillation
     const float k = 1.0f / jmax (0.05f, res);
 
+    // same mapping as startNote uses, so the gain balance matches the spread
+    const float padDetune = jlimit (0.0f, 0.75f, settings.detuneCents / 45.0f);
+
     const int oversampled = numSamples * oversample;
 
     if ((int) scratchL.size() < oversampled)
@@ -385,8 +401,23 @@ void PadLayer::render (float* left, float* right, int numSamples)
             // the three detuned saws are spread hard across the field, which is
             // what turns a pad from a block in the middle into something you can
             // sit inside
-            static constexpr float oscPanL[oscsPerVoice] = { 0.92f, 0.70f, 0.36f };
-            static constexpr float oscPanR[oscsPerVoice] = { 0.36f, 0.70f, 0.92f };
+            /*  Panned by how far each one is detuned: the centre oscillator sits
+                dead centre and the pairs open outwards. Every oscillator is on a
+                different frequency, so none of this cancels when a mono desk
+                sums the two sides - the width comes from the spread, not from
+                phase tricks that fall apart downstream.
+            */
+            static constexpr float oscPanL[oscsPerVoice] =
+                { 0.97f, 0.86f, 0.75f, 0.7071f, 0.66f, 0.51f, 0.24f };
+            static constexpr float oscPanR[oscsPerVoice] =
+                { 0.24f, 0.51f, 0.66f, 0.7071f, 0.75f, 0.86f, 0.97f };
+
+            // Szabo again: the centre falls away and the sides come up as the
+            // detune widens, which is what keeps a wide setting from turning
+            // into mush with no note left in the middle of it
+            const float centreGain = -0.55366f * padDetune + 0.99785f;
+            const float sideGain = -0.73764f * padDetune * padDetune
+                                 +  1.28410f * padDetune + 0.044372f;
 
             float oscL = 0.0f, oscR = 0.0f;
 
@@ -394,11 +425,15 @@ void PadLayer::render (float* left, float* right, int numSamples)
             {
                 const float osc = oscillator (v.phase[(size_t) i], v.inc[(size_t) i],
                                               v.integrator[(size_t) i]);
-                oscL += osc * oscPanL[i];
-                oscR += osc * oscPanR[i];
+                const float g = (i == oscsPerVoice / 2) ? centreGain : sideGain;
+
+                oscL += osc * g * oscPanL[i];
+                oscR += osc * g * oscPanR[i];
             }
 
-            constexpr float oscNorm = 1.0f / (float) oscsPerVoice;
+            // normalised by what the gains actually sum to, so widening the
+            // detune does not also make the pad louder
+            const float oscNorm = 1.0f / jmax (0.5f, centreGain + 6.0f * sideGain);
             oscL *= oscNorm;
             oscR *= oscNorm;
 

@@ -252,6 +252,158 @@ namespace
         return ok;
     }
 
+    /*  Mono compatibility, and how dense the pad actually is.
+
+        Two numbers that decide whether a pad sounds expensive.
+
+        The first is what survives a mono sum. Plenty of rooms this will be
+        played in run a mono PA, and a pad built by spreading detuned copies hard
+        across the stereo field is exactly the thing that partly cancels when the
+        two sides are added. A pad that vanishes when the desk is folded to mono
+        is not a wide pad, it is a broken one.
+
+        The second is spectral density: how much of the spectrum around each
+        harmonic is filled in rather than left as one bare line. That density is
+        the difference between one detuned chorus and the thick moving bed a
+        Nord or a JP-8000 makes.
+    */
+    bool checkPadRichness (String& report)
+    {
+        report << "pad width and density (C4):" << newLine;
+
+        struct Case { const char* name; int type; };
+
+        const Case cases[] = {
+            { "Warm Saw",   0 },
+            { "Soft Choir", 1 },
+            { "Glass",      2 },
+            { "Strings",    3 },
+            { "Air Vox",    4 },
+        };
+
+        const int note = 60;
+        const double fundamental = 440.0 * std::pow (2.0, (note - 69) / 12.0);
+        const int fftOrder = 15;
+        const int fftSize = 1 << fftOrder;
+
+        bool ok = true;
+
+        for (const auto& c : cases)
+        {
+            wp::PadLayer pad;
+            pad.prepare (sampleRate, blockSize);
+
+            wp::PadSettings s;
+            s.level = 1.0f;
+            s.attackMs = 5.0f;
+            s.cutoffHz = 12000.0f;
+            s.detuneCents = 14.0f;
+            s.voice = (wp::PadVoice) c.type;
+            pad.setSettings (s);
+
+            pad.noteOn (note, 1.0f);
+
+            AudioBuffer<float> warm (2, blockSize);
+
+            for (int i = 0; i < (int) (sampleRate * 0.5 / blockSize); ++i)
+            {
+                warm.clear();
+                pad.render (warm.getWritePointer (0), warm.getWritePointer (1), blockSize);
+            }
+
+            std::vector<float> mono ((size_t) fftSize * 2, 0.0f);
+            double energyL = 0.0, energyR = 0.0, energyMono = 0.0;
+
+            AudioBuffer<float> block (2, blockSize);
+
+            for (int done = 0; done < fftSize; done += blockSize)
+            {
+                block.clear();
+                pad.render (block.getWritePointer (0), block.getWritePointer (1), blockSize);
+
+                for (int i = 0; i < blockSize && done + i < fftSize; ++i)
+                {
+                    const float l = block.getSample (0, i);
+                    const float r = block.getSample (1, i);
+                    const float m = 0.5f * (l + r);
+
+                    energyL += (double) l * l;
+                    energyR += (double) r * r;
+                    energyMono += (double) m * m;
+
+                    mono[(size_t) (done + i)] = m;
+                }
+            }
+
+            /*  What a mono desk keeps. Two identical sides sum to the same level
+                (0 dB); anything out of phase between them loses.
+            */
+            const double sideAverage = 0.5 * (energyL + energyR);
+            const float monoDb = Decibels::gainToDecibels (
+                                     (float) std::sqrt (energyMono / jmax (1.0e-20, sideAverage)));
+
+            for (int i = 0; i < fftSize; ++i)
+                mono[(size_t) i] *= 0.5f - 0.5f * std::cos (MathConstants<float>::twoPi * i / (fftSize - 1));
+
+            dsp::FFT transform (fftOrder);
+            transform.performFrequencyOnlyForwardTransform (mono.data());
+
+            /*  Density, counted as resolvable partials rather than as energy
+                either side of a line.
+
+                An earlier version of this split energy by its distance from the
+                harmonic, which turned out to measure the window rather than the
+                sound: widening the detune moved the inner oscillators from one
+                side of the boundary to the other and the number went down while
+                the pad got thicker. Counting peaks has no such boundary. One saw
+                puts one partial on each harmonic; seven detuned saws put seven
+                near it, and that is what is heard as thick.
+            */
+            const double binHz = sampleRate / fftSize;
+
+            float strongest = 0.0f;
+
+            for (int bin = (int) (80.0 / binHz); bin < (int) (4000.0 / binHz); ++bin)
+                strongest = jmax (strongest, mono[(size_t) bin]);
+
+            const float floorLevel = strongest * Decibels::decibelsToGain (-40.0f);
+            int partials = 0;
+
+            for (int bin = (int) (80.0 / binHz) + 1; bin < (int) (4000.0 / binHz) - 1; ++bin)
+            {
+                const float here = mono[(size_t) bin];
+
+                // a local maximum standing clear of its neighbours: one partial,
+                // however many bins the window smears it across
+                if (here > floorLevel
+                    && here > mono[(size_t) (bin - 1)]
+                    && here >= mono[(size_t) (bin + 1)])
+                    ++partials;
+            }
+
+            const float density = (float) partials;
+
+            report << "   " << String (c.name).paddedRight (' ', 12)
+                   << "mono sum " << String (monoDb, 1) << " dB"
+                   << "   partials " << String ((int) density);
+
+            // below -3 dB the mono desk is losing real level, not just width
+            if (monoDb < -3.0f)
+            {
+                report << "   <-- COLLAPSES IN MONO";
+                ok = false;
+            }
+
+            report << newLine;
+        }
+
+        if (! ok)
+            report << "   !! the pad loses level when the desk is folded to mono" << newLine;
+
+        report << newLine;
+        return ok;
+    }
+
     /*  Aliasing in the pad oscillators.
 
         The measurable difference between a pad that sounds expensive and one
@@ -2510,6 +2662,7 @@ int main (int argc, char** argv)
     allOk &= checkClicksWhilePlaying (sfz, report);
     allOk &= checkPadVoiceStealing (report);
     allOk &= checkPadAliasing (report);
+    allOk &= checkPadRichness (report);
 
     for (int i = 0; i < (int) presets::factory().size(); ++i)
     {
