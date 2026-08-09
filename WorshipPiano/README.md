@@ -586,7 +586,7 @@ zaszyte w kodzie. Presety mają być do grania, a nie do kręcenia.
 | **Sample library...** | Wczytanie pliku SFZ albo folderu z WAV-ami. Bez tego wtyczka milczy |
 | **Tone** | Ciemno ↔ jasno. Przesuwa filtr filcu i nachylenie widma jednocześnie |
 | **Attack** | Ile słychać uderzenia filcu o strunę i stuku mechaniki |
-| **Sustain** | Mnożnik czasu tłumienia po puszczeniu klawisza (0.5× – 2×). 1× = tyle, ile deklaruje biblioteka (`ampeg_release`) |
+| **Sustain** | Mnożnik czasu tłumienia po puszczeniu klawisza (**0× – 2×**). 1× = tyle, ile deklaruje biblioteka (`ampeg_release`). **0× = nuta kończy się z klawiszem** i sustain robisz wyłącznie pedałem |
 | **Dynamics** | Zakres głośności między najcichszym a najgłośniejszym uderzeniem |
 | **Level** | Głośność fortepianu przed torem efektów |
 

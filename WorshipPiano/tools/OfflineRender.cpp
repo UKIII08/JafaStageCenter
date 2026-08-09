@@ -106,6 +106,22 @@ namespace
     {
         report << "note release:" << newLine;
 
+        /*  What the plugin itself adds between a key and a sound. Everything
+            else a player feels is the audio interface's buffer, which is the
+            host's business - but this part is ours, and it is worth a number
+            rather than an assumption.
+        */
+        {
+            WorshipPianoProcessor probe;
+            probe.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+            probe.prepareToPlay (sampleRate, blockSize);
+
+            const int latency = probe.getLatencySamples();
+
+            report << "   plugin's own latency: " << latency << " samples ("
+                   << String (1000.0 * latency / sampleRate, 2) << " ms)" << newLine;
+        }
+
         // what the test library writes in its <global>
         const float ampegRelease = 0.75f;
 
@@ -114,7 +130,8 @@ namespace
         const double tailSeconds = 3.0;
         const int window = 512;
 
-        auto capture = [&] (bool releaseTheKey, std::vector<float>& windows)
+        auto capture = [&] (bool releaseTheKey, float decayScale, std::vector<float>& windows,
+                            std::vector<float>* raw = nullptr)
         {
             WorshipPianoProcessor processor;
             processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
@@ -137,7 +154,7 @@ namespace
                 set (id, 0.0f);
 
             set (pid::padLevel, -60.0f);
-            set (pid::decayTime, 1.0f);      // the Sustain knob at neutral
+            set (pid::decayTime, decayScale);
             set (pid::pianoLevel, 0.0f);
             set (pid::outputGain, 0.0f);
 
@@ -178,6 +195,9 @@ namespace
                 {
                     if (done + i >= releaseAt)
                     {
+                        if (raw != nullptr)
+                            raw->push_back (0.5f * (block.getSample (0, i) + block.getSample (1, i)));
+
                         windowPeak = jmax (windowPeak,
                                            std::abs (block.getSample (0, i)),
                                            std::abs (block.getSample (1, i)));
@@ -199,7 +219,7 @@ namespace
 
         std::vector<float> releasedRun, heldRun;
 
-        if (! capture (true, releasedRun) || ! capture (false, heldRun))
+        if (! capture (true, 1.0f, releasedRun) || ! capture (false, 1.0f, heldRun))
         {
             report << "   !! library never reached the audio thread" << newLine << newLine;
             return false;
@@ -242,11 +262,71 @@ namespace
             would be. Half a release time of slack, no more: past that a released
             note is still under the next one.
         */
-        const bool ok = to60 >= 0.0f && to60 <= ampegRelease * 1.5f;
+        /*  Sustain at zero: the note stops with the key and the pedal is the
+            only thing that holds anything. A pianist playing quickly needs the
+            previous note gone before the next one lands, and needs it to stop
+            without a click at the end of a five millisecond fade.
+        */
+        std::vector<float> zeroRun, zeroHeld, zeroRaw;
+        capture (true, 0.0f, zeroRun, &zeroRaw);
+        capture (false, 0.0f, zeroHeld);
 
-        if (! ok)
+        float zeroTo60 = -1.0f;
+
+        for (int i = 0; i < jmin ((int) zeroRun.size(), (int) zeroHeld.size()); ++i)
+        {
+            if (zeroHeld[(size_t) i] < 1.0e-6f)
+                continue;
+
+            if (Decibels::gainToDecibels (zeroRun[(size_t) i] / zeroHeld[(size_t) i]) <= -20.0f)
+            {
+                zeroTo60 = (float) (i * perWindow);
+                break;
+            }
+        }
+
+        /*  Whether the stop is a discontinuity or merely a fast fade.
+
+            Comparing against the held run's slew was misleading: releasing a key
+            also starts the damper noise sample, which in this library sits an
+            octave up, and a higher note moves further between samples for the
+            same level. That is not a click, it is a different note.
+
+            An outlier test has no such problem. A discontinuity is one lone step
+            far above the rest; a fast fade over a bright sample raises every
+            step in the window together and moves the ratio hardly at all.
+        */
+        std::vector<float> zeroSteps;
+
+        for (size_t i = 1; i < jmin (zeroRaw.size(), (size_t) (sampleRate * 0.2)); ++i)
+            zeroSteps.push_back (std::abs (zeroRaw[i] - zeroRaw[i - 1]));
+
+        std::sort (zeroSteps.begin(), zeroSteps.end());
+
+        const float zeroWorst = zeroSteps.empty() ? 0.0f : zeroSteps.back();
+        const float zeroTypical = zeroSteps.empty() ? 0.0f
+                                : zeroSteps[(size_t) ((double) zeroSteps.size() * 0.99)];
+        const float zeroRatio = zeroTypical > 1.0e-8f ? zeroWorst / zeroTypical : 0.0f;
+
+
+        report << "   Sustain at 0, -20 dB in: " << fmt (zeroTo60)
+               << "   worst step vs typical x" << String (zeroRatio, 1) << newLine;
+
+        /*  Under a tenth of a second to twenty down: the previous note is out
+            of the way before the next one lands, which is the whole point. The
+            damper noise sample keeps sounding after that, as it should - a real
+            one does too - so this deliberately does not wait for silence.
+        */
+        const bool zeroOk = zeroTo60 >= 0.0f && zeroTo60 < 0.10f && zeroRatio < 3.0f;
+
+        const bool ok = to60 >= 0.0f && to60 <= ampegRelease * 1.5f && zeroOk;
+
+        if (to60 < 0.0f || to60 > ampegRelease * 1.5f)
             report << "   !! a released key is still sounding long after the damper should have stopped it"
                    << newLine;
+
+        if (! zeroOk)
+            report << "   !! Sustain at 0 does not stop the note cleanly" << newLine;
 
         report << newLine;
         return ok;

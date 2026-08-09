@@ -64,7 +64,15 @@ AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     // ---- Piano -------------------------------------------------------------
     c.add (f (pid::tone,         "Tone",     range (-1.0f, 1.0f, 0.0f),   0.0f,  bipolar));
     c.add (f (pid::attack,       "Attack",   range (0.0f, 1.0f, 0.5f),    0.35f, pct));
-    c.add (f (pid::decayTime,    "Sustain",  range (0.5f, 2.0f, 1.0f),    1.0f,  mult));
+    /*  Down to zero, not to a half.
+
+        At zero the note stops with the key, in about five milliseconds - a
+        damper, not a tail - and the sustain pedal is the only thing that holds
+        anything. That is how a pianist expects a piano to behave, and half the
+        library's release time was still far too long a tail for anyone playing
+        quickly and pedalling for themselves.
+    */
+    c.add (f (pid::decayTime,    "Sustain",  range (0.0f, 2.0f, 1.0f),    1.0f,  mult));
     c.add (f (pid::dynamicRange, "Dynamics", range (6.0f, 40.0f, 24.0f),  26.0f, dB));
     c.add (f (pid::pianoLevel,   "Piano",    range (-24.0f, 6.0f, -6.0f), 0.0f,  dB));
 

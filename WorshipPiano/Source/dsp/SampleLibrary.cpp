@@ -600,7 +600,17 @@ namespace
     {
         constexpr float toInaudible = 6.907755f;    // ln(1000), i.e. -60 dB
 
-        const float tau = juce::jmax (0.005f, releaseSeconds) / toInaudible;
+        /*  Floor at 45 ms, which is about as fast as a real damper stops a
+            string. Below that the envelope falls faster than the note's own
+            period and the stop is heard as a thud rather than as a damper -
+            at 5 ms the time constant is under a millisecond, and a note in the
+            middle of the keyboard takes four to complete one cycle.
+
+            This is what makes a Sustain setting of zero usable: the note ends
+            with the key, cleanly, and the pedal becomes the only thing holding
+            anything.
+        */
+        const float tau = juce::jmax (0.045f, releaseSeconds) / toInaudible;
         return 1.0f - std::exp (-1.0f / (float) (tau * sampleRate));
     }
 }
