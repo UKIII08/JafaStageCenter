@@ -332,6 +332,220 @@ namespace
         return ok;
     }
 
+    /*  Metallic ringing in the reverb tail.
+
+        A feedback tank with fixed delay lengths has fixed resonances. Energy
+        collects on them, and on a long decay what is left at the end is not a
+        room, it is a handful of pitches ringing on - the sound people mean by
+        "metallic" or "boxy". Moving the delay lengths slowly stops energy ever
+        settling into one mode, which is what the expensive pedals do and what
+        their tails sound smooth because of.
+
+        Measured on the tail alone, seconds after the notes have gone, as two
+        numbers: spectral flatness, where a smooth dense tail approaches noise
+        and a ringing one does not, and how far the worst peak stands above the
+        median, which is the ringing itself.
+    */
+    bool checkReverbTailSmoothness (const File& sfzFile, String& report)
+    {
+        report << "reverb tail smoothness:" << newLine;
+
+        const int fftOrder = 15;
+        const int fftSize = 1 << fftOrder;
+
+        bool ok = true;
+
+        // the machines that carry the longest tails, where ringing shows
+        struct Case { const char* name; int machine; };
+
+        const Case cases[] = {
+            { "Hall",    1 },
+            { "Plate",   2 },
+            { "Cloud",   3 },
+            { "Bloom",   4 },
+            { "Shimmer", 5 },
+        };
+
+        for (const auto& c : cases)
+        {
+            WorshipPianoProcessor processor;
+            processor.setPlayConfigDetails (0, 2, sampleRate, blockSize);
+            processor.prepareToPlay (sampleRate, blockSize);
+
+            if (! attachLibrary (processor, sfzFile))
+            {
+                report << "   !! library never reached the audio thread" << newLine << newLine;
+                return false;
+            }
+
+            auto set = [&processor] (const char* id, float v)
+            {
+                if (auto* p = processor.apvts.getParameter (id))
+                    p->setValueNotifyingHost (p->convertTo0to1 (v));
+            };
+
+            // a long, wide, wet tail and nothing else running into it
+            set (pid::reverbMachine, (float) c.machine);
+            set (pid::reverbMix, 1.0f);
+            set (pid::reverbSize, 0.9f);
+            set (pid::reverbDecay, 18.0f);
+            set (pid::shimmer, 0.0f);
+            set (pid::delayMix, 0.0f);
+            set (pid::chorusAmount, 0.0f);
+            set (pid::reverseMix, 0.0f);
+            set (pid::padLevel, -60.0f);
+            set (pid::soak, 0.0f);
+            set (pid::reverbDuck, 0.0f);
+
+            AudioBuffer<float> block (2, blockSize);
+
+            // a chord held long enough to actually charge the tank: ten
+            // milliseconds of input leaves a tail near the numerical floor,
+            // where the measurement is of rounding rather than of reverb
+            {
+                MidiBuffer midi;
+                for (int note : { 48, 55, 60, 64, 67 })
+                    midi.addEvent (MidiMessage::noteOn (1, note, 0.9f), 0);
+
+                block.clear();
+                processor.processBlock (block, midi);
+            }
+
+            for (int i = 0; i < (int) (sampleRate * 1.5 / blockSize); ++i)
+            {
+                block.clear();
+                MidiBuffer empty;
+                processor.processBlock (block, empty);
+            }
+
+            {
+                MidiBuffer midi;
+                for (int note : { 48, 55, 60, 64, 67 })
+                    midi.addEvent (MidiMessage::noteOff (1, note), 0);
+
+                block.clear();
+                processor.processBlock (block, midi);
+            }
+
+            // let the notes and the early reflections go
+            for (int i = 0; i < (int) (sampleRate * 3.0 / blockSize); ++i)
+            {
+                block.clear();
+                MidiBuffer empty;
+                processor.processBlock (block, empty);
+            }
+
+            /*  Several frames across the tail, not one. A tank standing still
+                gives the same spectrum in every frame; one whose delay lengths
+                are moving gives a spectrum that wanders. The average movement
+                per bin, in dB, is that difference - and unlike a flatness or a
+                peak-to-median figure it needs no absolute calibration, because
+                it compares the tail against itself.
+            */
+            const int frames = 8;
+            const int usable = (fftSize / 2);
+            std::vector<std::vector<float>> spectra;
+
+            for (int f = 0; f < frames; ++f)
+            {
+                std::vector<float> frame ((size_t) fftSize * 2, 0.0f);
+
+                for (int done = 0; done < fftSize; done += blockSize)
+                {
+                    block.clear();
+                    MidiBuffer empty;
+                    processor.processBlock (block, empty);
+
+                    for (int i = 0; i < blockSize && done + i < fftSize; ++i)
+                        frame[(size_t) (done + i)] = 0.5f * (block.getSample (0, i)
+                                                           + block.getSample (1, i));
+                }
+
+                for (int i = 0; i < fftSize; ++i)
+                    frame[(size_t) i] *= 0.5f - 0.5f * std::cos (MathConstants<float>::twoPi * i / (fftSize - 1));
+
+                dsp::FFT transform (fftOrder);
+                transform.performFrequencyOnlyForwardTransform (frame.data());
+                spectra.push_back (std::move (frame));
+            }
+
+            const double binHz = sampleRate / fftSize;
+            const int from = (int) (200.0 / binHz);
+            const int to = jmin (usable, (int) (6000.0 / binHz));
+
+            /*  Each frame is normalised by its own total before comparing, so
+                the tail simply getting quieter does not read as movement.
+            */
+            std::vector<double> frameSum (spectra.size(), 0.0);
+
+            for (size_t f = 0; f < spectra.size(); ++f)
+                for (int bin = from; bin < to; ++bin)
+                    frameSum[f] += spectra[f][(size_t) bin];
+
+            double movementSum = 0.0;
+            int counted = 0;
+
+            for (int bin = from; bin < to; ++bin)
+            {
+                double mean = 0.0;
+                std::vector<double> levels;
+
+                for (size_t f = 0; f < spectra.size(); ++f)
+                {
+                    if (frameSum[f] < 1.0e-12)
+                        continue;
+
+                    const double norm = spectra[f][(size_t) bin] / frameSum[f];
+                    const double db = 20.0 * std::log10 (jmax (1.0e-12, norm));
+                    levels.push_back (db);
+                    mean += db;
+                }
+
+                if (levels.size() < 2)
+                    continue;
+
+                mean /= (double) levels.size();
+                double variance = 0.0;
+
+                for (double v : levels)
+                    variance += (v - mean) * (v - mean);
+
+                movementSum += std::sqrt (variance / (double) levels.size());
+                ++counted;
+            }
+
+            const float movement = counted > 0 ? (float) (movementSum / counted) : 0.0f;
+
+            report << "   " << String (c.name).paddedRight (' ', 10)
+                   << "tail movement " << String (movement, 2) << " dB per bin";
+
+            /*  Lower is smoother, which is the opposite of what it looks like.
+
+                A tank standing still has sharp isolated resonances, and bins
+                around a sharp peak swing wildly between frames as the mode
+                drifts a fraction; a tank whose lines are moving smears that
+                energy and every bin becomes steadier. Measured with modulation
+                switched off entirely this sits at about 8.2 dB, and with it on
+                at about 6 dB - so the threshold is an upper bound, and it is
+                here to catch the modulation being lost rather than to grade the
+                reverb against anybody else's.
+            */
+            if (movement > 7.5f)
+            {
+                report << "   <-- STANDING STILL";
+                ok = false;
+            }
+
+            report << newLine;
+        }
+
+        if (! ok)
+            report << "   !! the tail has stopped moving - modulation is not reaching the tank" << newLine;
+
+        report << newLine;
+        return ok;
+    }
+
     /*  Mono compatibility, and how dense the pad actually is.
 
         Two numbers that decide whether a pad sounds expensive.
@@ -2743,6 +2957,7 @@ int main (int argc, char** argv)
     allOk &= checkPadVoiceStealing (report);
     allOk &= checkPadAliasing (report);
     allOk &= checkPadRichness (report);
+    allOk &= checkReverbTailSmoothness (sfz, report);
 
     for (int i = 0; i < (int) presets::factory().size(); ++i)
     {

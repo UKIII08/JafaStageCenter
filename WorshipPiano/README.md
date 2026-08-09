@@ -344,6 +344,44 @@ dla każdego charakteru, czyli praktycznie nic. Panorama bierze się z tego, że
 każdy oscylator ma **inną częstotliwość**, a nie ze sztuczek fazowych, które
 rozpadają się dalej w torze.
 
+### Ruch ogona pogłosu
+
+Zbiornik ze sztywnymi długościami linii opóźniających ma sztywne rezonanse.
+Energia zbiera się na nich i po długim wybrzmieniu zostaje nie pomieszczenie,
+tylko kilka dzwoniących wysokości — to jest to, co ludzie nazywają brzmieniem
+„metalicznym" albo „pudełkowym".
+
+Modulacja tu **była** od początku, ale w dwóch rzeczach kulała:
+
+- pole `modRate` siedziało w tabeli maszyn i **nigdzie nie było użyte** — `lfoInc`
+  liczyło się ze sztywnego wzoru, więc każda maszyna modulowała tak samo szybko
+  mimo zapisanej własnej szybkości
+- przebieg był czystą sinusoidą, czyli ruchem okresowym, na który ucho potrafi
+  się zestroić; szesnaście linii chodziło w takt
+
+Teraz każda linia wędruje **wygładzanym losowym przebiegiem** — kolejne losowe
+cele, sklejane podniesionym cosinusem, więc ciągła jest zarówno wartość, jak i
+prędkość zmian i nigdzie nie powstaje załamanie wysokości. Szybkość bierze się z
+maszyny, a każda linia dostaje własny mnożnik, żeby szesnaście linii nigdy nie
+wróciło do wspólnego rytmu.
+
+Mierzone jako **zmienność poziomu prążka między kolejnymi ramkami widma ogona**,
+kilka sekund po ucichnięciu nut. Uwaga: **niżej znaczy gładziej**, co jest
+odwrotnie, niż podpowiada intuicja — stojący zbiornik ma ostre, izolowane
+rezonanse, a prążki wokół ostrego piku skaczą między ramkami; rozmyty ogon ma
+każdy prążek spokojniejszy.
+
+| Stan | Ruch prążka |
+|---|---|
+| modulacja wyłączona | ~8,2 dB |
+| sinus (poprzednio) | ~6,2 dB |
+| losowa (teraz) | ~6,0 dB |
+
+Uczciwie: **większość efektu była już wcześniej**. Sama zamiana sinusa na losowy
+przebieg daje niewiele, a zwiększanie głębokości nie daje nic — powyżej dwukrotnej
+wskaźnik stoi, a dla maszyny Plate wręcz się pogarsza. Realną wartością tej zmiany
+jest ożywienie `modRate` i zdjęcie okresowości, a nie skok jakości.
+
 ### Kradzież głosów w padzie
 
 Pad idzie za każdą nutą pianina, a gra się z wciśniętym pedałem — więc głosy

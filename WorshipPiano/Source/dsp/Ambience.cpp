@@ -168,7 +168,12 @@ void Ambience::prepare (double sampleRate, int maxBlockSize)
         lines[(size_t) i].prepare ((int) (baseLength[(size_t) i] * 2.2f) + 512);
 
         lfoPhase[(size_t) i] = (float) i * 0.0619f;
-        lfoInc[(size_t) i] = (float) ((0.07 + 0.041 * (double) i) / sampleRate);
+        modFrom[(size_t) i] = 0.0f;
+        modTo[(size_t) i] = juce::Random::getSystemRandom().nextFloat() * 2.0f - 1.0f;
+
+        // rate comes from the machine now; it was carried in the table and then
+        // ignored, so every character modulated at the same fixed speed
+        lfoInc[(size_t) i] = (float) (0.5 / sampleRate);
     }
 
     for (int i = 0; i < numDiffusers; ++i)
@@ -245,6 +250,15 @@ void Ambience::setSettings (const AmbienceSettings& s)
     // the machine sets a floor, the control can only take more low end out
     lowCutCoef = onePole ((double) jmax (m.lowCutHz, settings.lowCutHz), sr);
     modDepth = m.modDepth;
+
+    /*  Each line wanders at its own speed, spread around the machine's rate, so
+        sixteen lines never come back into step with each other.
+    */
+    for (int i = 0; i < numLines; ++i)
+    {
+        const double spread = 0.62 + 0.055 * (double) i;
+        lfoInc[(size_t) i] = (float) (jmax (0.02f, m.modRate) * spread / sr);
+    }
 
     for (int i = 0; i < numDiffusers; ++i)
     {
@@ -330,9 +344,20 @@ void Ambience::process (const float* sendL, const float* sendR,
         for (int i = 0; i < numLines; ++i)
         {
             lfoPhase[(size_t) i] += lfoInc[(size_t) i];
-            if (lfoPhase[(size_t) i] >= 1.0f) lfoPhase[(size_t) i] -= 1.0f;
 
-            const float mod = std::sin (lfoPhase[(size_t) i] * MathConstants<float>::twoPi) * modDepth;
+            if (lfoPhase[(size_t) i] >= 1.0f)
+            {
+                lfoPhase[(size_t) i] -= 1.0f;
+                modFrom[(size_t) i] = modTo[(size_t) i];
+                modTo[(size_t) i] = Random::getSystemRandom().nextFloat() * 2.0f - 1.0f;
+            }
+
+            // raised cosine between the two targets: the value is continuous and
+            // so is its slope, so the delay length never changes direction
+            // sharply enough to put a kink in the pitch
+            const float blend = 0.5f - 0.5f * std::cos (lfoPhase[(size_t) i] * MathConstants<float>::pi);
+            const float mod = (modFrom[(size_t) i]
+                                 + (modTo[(size_t) i] - modFrom[(size_t) i]) * blend) * modDepth;
             node[(size_t) i] = lines[(size_t) i].read (length[(size_t) i] + mod);
         }
 

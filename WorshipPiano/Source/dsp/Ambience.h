@@ -206,8 +206,19 @@ private:
     std::array<float, numLines> feedback {};
     std::array<float, numLines> damper {};
     std::array<float, numLines> lowCut {};
+    /*  Modulation of the tank lengths, which is what stops energy settling on
+        a fixed set of resonances and ringing there.
+
+        Smoothed random rather than a sine. A sine moves every line on a fixed
+        period, and the ear finds a periodic pitch wobble - the lines end up
+        chorusing in step. A random walk between held targets, interpolated with
+        a raised cosine so the velocity is continuous at every join, keeps each
+        line wandering on its own with nothing periodic to lock onto. This is
+        what the tails on the expensive pedals are doing.
+    */
     std::array<float, numLines> lfoPhase {};
     std::array<float, numLines> lfoInc {};
+    std::array<float, numLines> modFrom {}, modTo {};
 
     std::array<Allpass, numDiffusers> diffuseL, diffuseR;
     std::array<float, numDiffusers> diffusePhase {}, diffuseInc {};
