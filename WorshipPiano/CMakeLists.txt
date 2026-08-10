@@ -38,7 +38,10 @@ juce_add_plugin(JafaWorshipPiano
     BUNDLE_ID                   "com.jafastage.worshippiano"
     PLUGIN_MANUFACTURER_CODE    Jafa
     PLUGIN_CODE                 Jwp1
-    FORMATS                     VST3 Standalone
+    # AU jest budowany wyłącznie na macOS - JUCE pomija ten cel na pozostałych
+    # platformach. Bez niego Logic Pro i GarageBand nie widzą wtyczki w ogóle:
+    # one nie wczytują VST3, tylko Audio Unit.
+    FORMATS                     VST3 AU Standalone
     PRODUCT_NAME                "Jafa Worship Piano"
     IS_SYNTH                    TRUE
     NEEDS_MIDI_INPUT            TRUE

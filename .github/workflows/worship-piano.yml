@@ -107,3 +107,14 @@ jobs:
           name: JafaWorshipPiano-${{ steps.plat.outputs.name }}-standalone
           path: WorshipPiano/build/JafaWorshipPiano_artefacts/Release/Standalone/
           if-no-files-found: warn
+
+      # Audio Unit only exists on macOS, and it is the only format Logic and
+      # GarageBand will load. Without this step it would be built and thrown
+      # away with the runner.
+      - name: Upload AU
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: JafaWorshipPiano-${{ steps.plat.outputs.name }}-AU
+          path: WorshipPiano/build/JafaWorshipPiano_artefacts/Release/AU/
+          if-no-files-found: error
