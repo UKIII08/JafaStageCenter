@@ -258,6 +258,38 @@ button:hover, .btn:hover { background: var(--accent-hover); border-color: var(--
 .seg a:hover, .seg button:hover, .segmented-control button:hover { background: var(--bg-surface); color: var(--text-primary); }
 .seg a.active, .seg button.active, .segmented-control button.active { background: var(--accent-subtle); color: var(--text-accent); }
 
+/* ── Pick: wybór z listy (zamiast białego systemowego <select>) ── */
+.pick { position: relative; display: inline-flex; vertical-align: middle; }
+.pick-btn {
+    height: 36px; padding: 0 10px 0 12px; gap: 8px; background: transparent; color: var(--text-primary);
+    border: 1px solid var(--border-strong); border-radius: var(--r-md); font-weight: 500; font-size: 14px;
+}
+.pick-btn:hover, .pick.open .pick-btn { background: var(--bg-surface); border-color: var(--text-tertiary); color: var(--text-primary); }
+.pick-label { color: var(--text-tertiary); font-weight: 500; }
+.pick-val { font-weight: 600; color: var(--text-primary); }
+.pick.empty .pick-val { color: var(--text-accent); }
+.pick-chev { width: 14px; height: 14px; stroke: var(--text-tertiary); fill: none; stroke-width: 2; transition: transform .15s ease; }
+.pick.open .pick-chev { transform: rotate(180deg); }
+.pick-menu {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 120; min-width: 100%; max-height: 320px; overflow-y: auto;
+    padding: 6px; box-sizing: border-box; background: var(--bg-elevated); border: 1px solid var(--border-strong);
+    border-radius: var(--r-md); box-shadow: var(--shadow-lg);
+}
+.pick-menu[hidden] { display: none; }
+.pick-menu.right, .pick.right .pick-menu { left: auto; right: 0; }
+.pick-opt {
+    display: flex; width: 100%; height: 34px; padding: 0 10px; justify-content: space-between; gap: 16px;
+    background: transparent; border: 0; border-radius: 6px; color: var(--text-primary);
+    font-weight: 500; font-size: 14px; white-space: nowrap;
+}
+.pick-opt:hover, .pick-opt:focus-visible { background: var(--bg-surface-hover); color: var(--text-primary); border: 0; outline: none; }
+.pick-opt[aria-selected="true"] { color: var(--text-accent); }
+.pick-check { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.4; visibility: hidden; }
+.pick-opt[aria-selected="true"] .pick-check { visibility: visible; }
+.pick.sm .pick-btn { height: 26px; padding: 0 6px 0 8px; font-size: 12px; gap: 5px; border-radius: 7px; }
+.pick.sm .pick-chev { width: 11px; height: 11px; }
+.pick.sm .pick-opt { height: 30px; font-size: 13px; }
+
 /* ── Tabele: wiersze z cienką linią ── */
 table { width: 100%; border-collapse: collapse; }
 th {

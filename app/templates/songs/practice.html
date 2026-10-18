@@ -9,7 +9,8 @@
     .pr-crumb a:hover { color: var(--text-primary); }
     .pr-meta { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 18px; color: var(--text-secondary); font-size: 14px; align-items: center; }
     .pr-meta b { font-family: var(--font-mono); font-weight: 500; color: var(--text-primary); font-size: 13px; margin-left: 6px; }
-    .pr-meta select { width: auto; height: 30px; padding: 0 28px 0 10px; margin-left: 6px; font-size: 13px; font-weight: 600; }
+    .pr-picks { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+    .pr-picks .pick-opt small, .pick-opt small { font-size: 11.5px; font-weight: 400; color: var(--text-tertiary); margin-left: 8px; }
     .pr-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .tgroup { display: inline-flex; align-items: center; border: 1px solid var(--border-strong); border-radius: var(--r-md); height: 38px; overflow: hidden; }
     .tgroup button { height: 36px; width: 36px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--text-secondary); font-size: 16px; }
@@ -133,17 +134,33 @@
         <div class="pr-meta">
             {% if shown_key %}<span>{{ _('Key') }}<b id="key-label">{{ shown_key }}</b></span>{% endif %}
             {% if song.bpm %}<span>{{ _('Tempo') }}<b>{{ song.bpm }}</b></span>{% endif %}
-            {% if arr %}
-                {% if arrangements|length > 1 %}
-                <span>{{ _('Version') }}<select id="arr-pick">{% for a in arrangements %}<option value="{{ a.id }}" {{ 'selected' if a.id == arr.id }}>{{ a.name }}</option>{% endfor %}</select></span>
-                {% else %}
-                <span>{{ _('Version') }}<b>{{ arr.name }}</b></span>
-                {% endif %}
-                {% if arr.roles %}
-                <span>{{ _('I play') }}<select id="role-pick"><option value="">—</option>{% for r in arr.roles %}<option value="{{ r }}" {{ 'selected' if r == my_role }}>{{ r }}</option>{% endfor %}</select></span>
-                {% endif %}
+            {% if arr and arrangements|length < 2 %}<span>{{ _('Version') }}<b>{{ arr.name }}</b></span>{% endif %}
+        </div>
+        {% if arr and (arrangements|length > 1 or arr.roles) %}
+        <div class="pr-picks">
+            {% if arr.roles %}
+            <div class="pick" data-pick id="role-pick">
+                <button type="button" class="pick-btn"><span class="pick-label">{{ _('I play') }}</span><b class="pick-val">{{ my_role or _('choose your part') }}</b></button>
+                <div class="pick-menu" hidden>
+                    {% for r in arr.roles %}
+                    <button type="button" class="pick-opt" data-value="{{ r }}" data-short="{{ r }}" aria-selected="{{ 'true' if r == my_role else 'false' }}">
+                        <span>{{ r }}{% if r in rec.loud or r in rec.minus %} <small>{{ _('in the recording') }}</small>{% endif %}</span></button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% if arrangements|length > 1 %}
+            <div class="pick" data-pick id="arr-pick">
+                <button type="button" class="pick-btn"><span class="pick-label">{{ _('Version') }}</span><b class="pick-val">{{ arr.name }}</b></button>
+                <div class="pick-menu" hidden>
+                    {% for a in arrangements %}
+                    <button type="button" class="pick-opt" data-value="{{ a.id }}" data-short="{{ a.name }}" aria-selected="{{ 'true' if a.id == arr.id else 'false' }}"><span>{{ a.name }}{% if a.recorded_at %} <small>{{ _('with recording') }}</small>{% endif %}</span></button>
+                    {% endfor %}
+                </div>
+            </div>
             {% endif %}
         </div>
+        {% endif %}
     </div>
     <div class="pr-tools">
         <div class="tgroup" title="{{ _('my key') }}">
@@ -189,10 +206,14 @@
                 <button type="button" {{ 'class=active' if not (has_loud or has_minus) }} data-src="{{ rec.mix }}"
                     data-desc="{{ _('The rehearsal recording as it sounded.') }}">{{ _('Mix') }}</button>
             </div>
-            <select id="tp-rate" aria-label="{{ _('Speed') }}" title="{{ _('Slower without changing the key') }}">
-                <option value="1">100%</option><option value="0.9">90%</option>
-                <option value="0.8">80%</option><option value="0.7">70%</option>
-            </select>
+            <div class="pick right" data-pick id="tp-rate" data-value="1" title="{{ _('Slower without changing the key') }}">
+                <button type="button" class="pick-btn" aria-label="{{ _('Speed') }}"><span class="pick-label">{{ _('Tempo') }}</span><b class="pick-val">100%</b></button>
+                <div class="pick-menu" hidden>
+                    {% for v, t in [('1', '100%'), ('0.9', '90%'), ('0.8', '80%'), ('0.7', '70%')] %}
+                    <button type="button" class="pick-opt" data-value="{{ v }}" aria-selected="{{ 'true' if v == '1' else 'false' }}">{{ t }}</button>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
         {% else %}
         <div class="tp-now"><b>{{ _('Form') }} · {{ arr.name }}</b><span>{{ sections|length }} {{ _('parts') }}</span></div>
@@ -568,15 +589,15 @@ document.getElementById('metro').onclick = function () {
 
 // ── Wersja aranżacji i moja partia ──
 var arrPick = document.getElementById('arr-pick');
-if (arrPick) arrPick.onchange = function () {
-    location.href = `/c/${CHURCH}/songs/${SONG}/practice?a=${arrPick.value}`;
-};
+if (arrPick) arrPick.addEventListener('pick', function (e) {
+    location.href = `/c/${CHURCH}/songs/${SONG}/practice?a=${e.detail.value}`;
+});
 var rolePick = document.getElementById('role-pick');
-if (rolePick) rolePick.onchange = function () {
+if (rolePick) rolePick.addEventListener('pick', function (e) {
     fetch(`/c/${CHURCH}/arrangements/${ARR_ID}/my-role`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: rolePick.value }) }).then(function () { location.reload(); });
-};
+        body: JSON.stringify({ role: e.detail.value }) }).then(function () { location.reload(); });
+});
 
 // ── Forma + nagranie z próby: klik w część = graj od niej, ⟲ = pętla ──
 (function () {
@@ -617,7 +638,7 @@ if (rolePick) rolePick.onchange = function () {
         audio.addEventListener('loadedmetadata', function once() {
             audio.removeEventListener('loadedmetadata', once);
             try { audio.currentTime = t; } catch (e) {}
-            audio.playbackRate = +$('tp-rate').value;
+            audio.playbackRate = +$('tp-rate').dataset.value;
             if (playing) audio.play();
         });
     }
@@ -635,7 +656,7 @@ if (rolePick) rolePick.onchange = function () {
             showDesc();
         };
     });
-    $('tp-rate').onchange = function () { audio.playbackRate = +this.value; };
+    $('tp-rate').addEventListener('pick', function (e) { this.dataset.value = e.detail.value; audio.playbackRate = +e.detail.value; });
     $('tp-play').onclick = function () { audio.paused ? audio.play() : audio.pause(); };
     audio.onplay = function () { $('tp-ico').innerHTML = ICO_PAUSE; };
     audio.onpause = function () { $('tp-ico').innerHTML = ICO_PLAY; };
