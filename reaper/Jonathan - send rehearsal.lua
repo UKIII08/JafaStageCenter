@@ -13,8 +13,10 @@
   Jeśli jest zaznaczony zakres czasu, wysyłane są tylko regiony w tym zakresie.
   Format pliku bierze się z ostatnich ustawień File → Render (zalecane MP3 128–192 kb/s).
   Przy pierwszym uruchomieniu skrypt pyta o adres serwera i token studia
-  (Jonathan → Ustawienia → Nagrania z prób). Zmiana: uruchom z wciśniętym Shift
-  (z rozszerzeniem js_ReaScriptAPI) — albo okno pojawi się samo przy złym tokenie.
+  (Jonathan → Ustawienia → Nagrania z prób).
+  Zmiana adresu lub tokenu: akcja „Jonathan - settings" (drugi skrypt). Okno pojawi
+  się też samo, gdy serwer odrzuci token albo nie da się z nim połączyć.
+  (Z rozszerzeniem js_ReaScriptAPI działa też uruchomienie z wciśniętym Shift.)
 
   Wymaga: REAPER 6.x+, curl (wbudowany w Windows 10/11 i macOS).
 ]]
@@ -338,7 +340,11 @@ local function main()
     return
   end
   if status ~= 200 or not plan then
-    reaper.ShowMessageBox("Nie udało się połączyć z " .. server .. "\n\n" .. tostring(raw), TITLE, 0)
+    -- Zły adres (np. został stary) albo brak sieci — daj od razu poprawić ustawienia.
+    local again = reaper.ShowMessageBox("Nie udało się połączyć z:\n" .. server ..
+      "\n\n" .. trim(tostring(raw)):gsub("^%d%d%d", ""):sub(1, 300) ..
+      "\n\nZmienić adres serwera lub token?", TITLE, 4)
+    if again == 6 then config(true) end
     return
   end
 
@@ -359,7 +365,7 @@ local function main()
     return
   end
   local n_files = todo * (1 + 2 * #tracks)
-  local msg = "Wspólnota: " .. (plan.church or "?") .. "\n\n" .. table.concat(lines, "\n\n") ..
+  local msg = "Wspólnota: " .. (plan.church or "?") .. "   (" .. server .. ")\n\n" .. table.concat(lines, "\n\n") ..
               "\n\nDo wyrenderowania i wysłania: " .. n_files .. " plików. " ..
               "Poprzednie nagrania tych wersji zostaną zastąpione." .. warn
   if reaper.ShowMessageBox(msg, TITLE, 1) ~= 1 then return end

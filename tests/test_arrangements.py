@@ -253,6 +253,17 @@ def token(client, cid):
     return {'Authorization': f'Bearer {tok}'}
 
 
+def test_both_reaper_scripts_downloadable(app, client):
+    cid, sid = setup(client, app)
+    r = client.get(f'/c/{cid}/reaper/script?which=settings')
+    assert r.status_code == 200 and b'DeleteExtState' in r.data
+    assert 'settings.lua' in r.headers['Content-Disposition']
+    r = client.get(f'/c/{cid}/reaper/script')
+    assert r.status_code == 200 and b'EnumProjectMarkers3' in r.data
+    assert 'send%20rehearsal.lua' in r.headers['Content-Disposition'] or \
+        'send rehearsal.lua' in r.headers['Content-Disposition']
+
+
 def test_studio_token_auth(app, client):
     cid, sid = setup(client, app)
     h = token(client, cid)

@@ -364,11 +364,12 @@ def reaper_revoke(church_id, membership):
 @require_membership('admin')
 def reaper_script(church_id, membership):
     root = os.path.join(current_app.root_path, '..', 'reaper')
-    return send_from_directory(os.path.abspath(root), SCRIPT_NAME,
-                               as_attachment=True)
+    name = SCRIPTS.get(request.args.get('which', 'send'), SCRIPTS['send'])
+    return send_from_directory(os.path.abspath(root), name, as_attachment=True)
 
 
-SCRIPT_NAME = 'Jonathan - send rehearsal.lua'
+SCRIPTS = {'send': 'Jonathan - send rehearsal.lua',
+           'settings': 'Jonathan - settings.lua'}
 
 
 # ── audio (tylko członkowie wspólnoty) ──────────────────────────────────

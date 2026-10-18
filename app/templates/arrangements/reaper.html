@@ -64,9 +64,13 @@
                 <button class="btn btn-ghost" type="submit">{{ _('Disconnect') }}</button>
             </form>
             {% endif %}
-            <a class="btn btn-ghost" href="{{ url_for('arr.reaper_script', church_id=church.id) }}">
+            <a class="btn btn-ghost" href="{{ url_for('arr.reaper_script', church_id=church.id, which='send') }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                {{ _('Download the Reaper script') }}
+                {{ _('Download the send script') }}
+            </a>
+            <a class="btn btn-ghost" href="{{ url_for('arr.reaper_script', church_id=church.id, which='settings') }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                {{ _('Download the settings script') }}
             </a>
         </div>
     </div>
@@ -74,12 +78,13 @@
     <div class="panel">
         <div class="section-title">{{ _('Setup — once') }}</div>
         <ol class="rp-steps">
-            <li><h3>{{ _('Add the script to Reaper') }}</h3>
-                <p class="hint">{{ _('Actions → Show action list → New action → Load ReaScript… and pick the downloaded file. Tip: give it a toolbar button.') }}</p></li>
+            <li><h3>{{ _('Add both scripts to Reaper') }}</h3>
+                <p class="hint">{{ _('Actions → Show action list → New action → Load ReaScript… and pick each downloaded file. You get two actions: “Jonathan - send rehearsal” (sends) and “Jonathan - settings” (server address and token). Tip: give the send action a toolbar button.') }}</p></li>
             <li><h3>{{ _('Set the render format') }}</h3>
                 <p class="hint">{{ _('File → Render…: format MP3, 128–192 kbps (mono is fine for parts). Close the window — the script uses these settings and does the rest.') }}</p></li>
             <li><h3>{{ _('Paste the token') }}</h3>
-                <p class="hint">{{ _('On the first run the script asks for the server address and the token, and remembers them.') }}</p></li>
+                <p class="hint">{{ _('Run “Jonathan - settings”, enter the server address shown below and the token — it checks the connection right away. To change them later (new token, another server), run it again.') }}</p>
+                <p class="hint" style="margin-top:6px;">{{ _('Server address:') }} <code class="mono-url">{{ server }}</code></p></li>
         </ol>
     </div>
 
