@@ -65,7 +65,8 @@ class Profile(db.Model):
                           nullable=False, index=True)
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
     name = db.Column(db.String(120), nullable=False)
-    instrument = db.Column(db.String(60), default='')
+    instrument = db.Column(db.String(60), default='')   # pierwszy z listy (zgodność z desktopem)
+    instruments = db.Column(db.JSON, default=list)      # ["wokal", "gitara", "Ukulele"]
     color = db.Column(db.String(20), default='#6366f1')
     prefs = db.Column(db.JSON, default=dict)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow,
@@ -185,6 +186,80 @@ class SongPersonal(db.Model):
     # Studio (port panelu desktop): capo per piosenka + notatki per sekcja
     capo_fret = db.Column(db.Integer, nullable=True)
     section_notes = db.Column(db.Text, default='{}')   # JSON {"0": "...", ...}
+
+
+class Arrangement(db.Model):
+    """„Jak MY to gramy": forma (kafelki), obsada (role) i nagranie z próby.
+    Piosenka ma jedną Główną (is_main) i dowolnie wiele innych wersji.
+    form:    [{id, sec, label, repeat, dyn}] — sec = indeks sekcji piosenki
+             albo None (kafelek bez tekstu, np. Solo); id stały, więc komórki
+             nie gubią się przy przesuwaniu kafelków.
+    roles:   ["Wokal", "Wokal 2", "Gitara"] — role, nie osoby.
+    markers: {tile_id: [start_s, end_s]} — z markerów Reapera."""
+    __tablename__ = 'arrangements'
+    id = db.Column(db.String(36), primary_key=True, default=new_uuid)
+    church_id = db.Column(db.String(36), db.ForeignKey('churches.id'),
+                          nullable=False, index=True)
+    song_id = db.Column(db.String(36), db.ForeignKey('songs.id'),
+                        nullable=False, index=True)
+    name = db.Column(db.String(80), nullable=False)
+    is_main = db.Column(db.Boolean, default=False)
+    form = db.Column(db.JSON, default=list)
+    roles = db.Column(db.JSON, default=list)
+    markers = db.Column(db.JSON, default=dict)
+    recorded_at = db.Column(db.DateTime, nullable=True)
+    duration = db.Column(db.Float, nullable=True)
+    created_by = db.Column(db.String(36), db.ForeignKey('users.id'))
+    updated_by = db.Column(db.String(36), db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           onupdate=datetime.utcnow)
+    deleted = db.Column(db.Boolean, default=False)
+
+
+class ArrangementRevision(db.Model):
+    """Historia formy i obsady — każdy może edytować, więc zamiast blokad
+    jest „Przywróć"."""
+    __tablename__ = 'arrangement_revisions'
+    id = db.Column(db.Integer, primary_key=True)
+    arrangement_id = db.Column(db.String(36), db.ForeignKey('arrangements.id'),
+                               nullable=False, index=True)
+    snapshot = db.Column(db.JSON, nullable=False)   # {form, roles}
+    what = db.Column(db.String(20), default='form')  # form|roles|restore|reaper
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class ArrangementCell(db.Model):
+    """Rola × kafelek: notatka („tercja w górę", tab) + nagranie z telefonu."""
+    __tablename__ = 'arrangement_cells'
+    __table_args__ = (db.UniqueConstraint('arrangement_id', 'tile_id', 'role'),)
+    id = db.Column(db.Integer, primary_key=True)
+    arrangement_id = db.Column(db.String(36), db.ForeignKey('arrangements.id'),
+                               nullable=False, index=True)
+    tile_id = db.Column(db.String(16), nullable=False)
+    role = db.Column(db.String(60), nullable=False)
+    note = db.Column(db.Text, default='')
+    memo = db.Column(db.String(80), default='')       # nazwa pliku audio
+    memo_mime = db.Column(db.String(40), default='')
+    memo_by = db.Column(db.String(36), db.ForeignKey('users.id'))
+    updated_by = db.Column(db.String(36), db.ForeignKey('users.id'))
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           onupdate=datetime.utcnow)
+
+
+class ArrangementRecording(db.Model):
+    """Pliki z Reapera (nadpisywane przy każdym wysłaniu):
+    kind='mix' (rola ''), 'loud' = miks + rola głośniej, 'minus' = miks bez roli."""
+    __tablename__ = 'arrangement_recordings'
+    id = db.Column(db.Integer, primary_key=True)
+    arrangement_id = db.Column(db.String(36), db.ForeignKey('arrangements.id'),
+                               nullable=False, index=True)
+    kind = db.Column(db.String(10), nullable=False)
+    role = db.Column(db.String(60), default='')
+    filename = db.Column(db.String(80), nullable=False)
+    size = db.Column(db.Integer, default=0)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class BandPreset(db.Model):

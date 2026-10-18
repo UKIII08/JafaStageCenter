@@ -75,6 +75,19 @@
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-tertiary);"><polyline points="9 18 15 12 9 6"/></svg>
 </a>
 
+{# ── Nagrania z prób: Reaper → Jonathan ── #}
+<a class="panel" href="{{ url_for('arr.reaper', church_id=church.id) }}"
+   style="max-width:560px; display:flex; align-items:center; gap:var(--s3); text-decoration:none; color:inherit;">
+    <div style="flex:0 0 auto; width:44px; height:44px; border-radius:var(--r-md); background:var(--accent-subtle); color:var(--accent); display:flex; align-items:center; justify-content:center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </div>
+    <div style="flex:1;">
+        <div class="section-title" style="margin:0;">{{ _('Rehearsal recordings (Reaper)') }}</div>
+        <p class="hint" style="margin:var(--s1) 0 0;">{{ _('Connect the computer with Reaper — one click sends the rehearsal mix and each part to the arrangements.') }}</p>
+    </div>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-tertiary);"><polyline points="9 18 15 12 9 6"/></svg>
+</a>
+
 <script>
 function setTheme(t) {
     document.documentElement.setAttribute('data-theme', t);

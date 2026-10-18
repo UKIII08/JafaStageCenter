@@ -829,3 +829,144 @@ PL.update({
     'Upload an MP4/WebM video or an HTML file up to 60 MB.':
         'Wgraj film MP4/WebM albo plik HTML do 60 MB.',
 })
+
+
+# ── Aranżacje: forma, obsada, partie, nagrania z prób (Reaper) ──────────
+PL.update({
+    'Arrangement': 'Aranżacja', 'Main': 'Główna', 'New version': 'Nowa wersja',
+    'Version': 'Wersja', 'Version name': 'Nazwa wersji',
+    'Version options': 'Opcje wersji', 'Rename': 'Zmień nazwę',
+    'Delete version': 'Usuń wersję', 'Version deleted.': 'Wersja usunięta.',
+    'Delete this version with its notes and recordings?':
+        'Usunąć tę wersję razem z notatkami i nagraniami?',
+    'A version with this name already exists.':
+        'Wersja o tej nazwie już istnieje.',
+    'e.g. Acoustic, Easter': 'np. Akustyczna, Wielkanoc',
+    'Starts as a copy of the form and cast of':
+        'Zaczyna jako kopia formy i obsady wersji',
+    'Practice this version': 'Ćwicz tę wersję',
+    'Last change:': 'Ostatnia zmiana:',
+    'Has a rehearsal recording': 'Ma nagranie z próby',
+    'Form & parts': 'Forma i partie',
+    'Set up the arrangement: form, parts, recordings':
+        'Ustaw aranżację: forma, partie, nagrania',
+    # forma
+    'Form': 'Forma',
+    'Drag tiles to set the order. Anyone on the team can edit — earlier versions are in the history.':
+        'Przeciągaj kafelki, żeby ustawić kolejność. Edytować może każdy z zespołu — wcześniejsze wersje są w historii.',
+    'Add tile': 'Dodaj kafelek', 'From the song': 'Z piosenki',
+    'Without lyrics': 'Bez tekstu',
+    'e.g. Solo, Interlude, Tag': 'np. Solo, Przerywnik, Tag',
+    'The form is empty — add tiles.': 'Forma jest pusta — dodaj kafelki.',
+    'Repeats': 'Powtórzenia', 'Dynamics': 'Dynamika',
+    'Soft': 'Cicho', 'Build': 'Narasta', 'Full': 'Pełno',
+    'Break down': 'Wyciszenie', 'Band only': 'Sam zespół',
+    # obsada
+    'Cast': 'Obsada',
+    'Parts in this version — instruments, not people, so it keeps working when the line-up changes. In Reaper name tracks the same way with “J:” in front, e.g. J:Vocals 2.':
+        'Partie w tej wersji — instrumenty, nie osoby, więc wszystko działa przy zmianie składu. W Reaperze nazwij ślady tak samo z „J:” na początku, np. J:Wokal 2.',
+    'Another part, e.g. Choir, Cajon': 'Inna partia, np. Chórek, Cajon',
+    'Add part': 'Dodaj partię', 'me': 'ja',
+    'Remove the part? Its notes stay in the history of cells and come back if you add it again.':
+        'Usunąć partię? Jej notatki zostają i wrócą, jeśli dodasz ją ponownie.',
+    # partie
+    'Parts': 'Partie',
+    'Tap a cell to write what this part does there or record the idea on your phone — the whole team sees and hears it.':
+        'Kliknij komórkę, żeby wpisać, co ta partia tam robi, albo nagraj pomysł telefonem — cały zespół to zobaczy i usłyszy.',
+    'Add parts in the cast above — then each part gets its row here.':
+        'Dodaj partie w obsadzie powyżej — każda dostanie tu swój wiersz.',
+    'e.g. third above the melody from the 2nd chorus · riff e|--3--5--7--|':
+        'np. tercja nad melodią od 2. refrenu · riff e|--3--5--7--|',
+    'Tab font': 'Czcionka do tabów', 'could not save': 'nie zapisano',
+    'Idea recording': 'Nagranie pomysłu', 'Record': 'Nagraj',
+    'Record an idea': 'Nagraj pomysł',
+    'Record again (replaces)': 'Nagraj ponownie (zastępuje)',
+    'Sing the harmony, play the riff — up to a few minutes.':
+        'Zaśpiewaj głos, zagraj riff — do kilku minut.',
+    'Stop and save': 'Zatrzymaj i zapisz', 'Recording…': 'Nagrywanie…',
+    'Sending…': 'Wysyłanie…', 'Recorded by': 'Nagrał(a)',
+    'Delete recording': 'Usuń nagranie',
+    'Delete this recording?': 'Usunąć to nagranie?',
+    'The browser has no microphone access. Allow it in the site settings.':
+        'Przeglądarka nie ma dostępu do mikrofonu. Zezwól na niego w ustawieniach strony.',
+    'This is not an audio file, or it is too big (max 8 MB).':
+        'To nie jest plik audio albo jest za duży (maks. 8 MB).',
+    # historia
+    'History': 'Historia', 'Restore': 'Przywróć', 'before:': 'przed:',
+    'tiles': 'kafelków', 'parts': 'partii',
+    'changed the form': 'zmienił(a) formę',
+    'changed the cast': 'zmienił(a) obsadę',
+    'restored a version': 'przywrócił(a) wersję',
+    'form from the recording': 'forma z nagrania',
+    'Restore the form and cast from before this change?':
+        'Przywrócić formę i obsadę sprzed tej zmiany?',
+    'Restored the earlier version of the form and cast.':
+        'Przywrócono wcześniejszą formę i obsadę.',
+    # nagranie z próby
+    'Rehearsal recording': 'Nagranie z próby',
+    'Sent from Reaper': 'Wysłane z Reapera',
+    'A new send replaces it.': 'Kolejne wysłanie je zastąpi.',
+    'No recording yet': 'Jeszcze bez nagrania',
+    'In Reaper name the region after the song (and “| version”), markers after the tiles and tracks “J:part” — the script sends the mix and every part.':
+        'W Reaperze nazwij region jak piosenkę (i „| wersja”), markery jak kafelki, a ślady „J:partia” — skrypt wyśle miks i każdą partię.',
+    'Connect Reaper': 'Połącz Reapera',
+    # ćwiczenie
+    'I play': 'Gram', 'choose': 'wybierz', 'Other parts': 'Pozostałe partie',
+    'Play from here': 'Odtwórz od tego miejsca',
+    'Loop this part': 'Zapętl ten fragment', 'Play': 'Odtwórz',
+    'Learn': 'Nauka', 'Play along': 'Gram sam', 'Mix': 'Miks',
+    'Speed': 'Tempo',
+    'The full mix with your part louder — to learn it':
+        'Cały miks z Twoją partią głośniej — do nauki',
+    'The mix without your part — you play it':
+        'Miks bez Twojej partii — Ty ją grasz',
+    # profil
+    'What do you play?': 'Na czym grasz?',
+    'Something else? e.g. Cajon, Ukulele (comma-separated)':
+        'Coś innego? np. Cajon, Ukulele (po przecinku)',
+    'Pick everything you play — arrangements suggest these instruments as parts.':
+        'Zaznacz wszystko, na czym grasz — aranżacje podpowiedzą te instrumenty jako partie.',
+    # Reaper (admin)
+    'Rehearsal recordings (Reaper)': 'Nagrania z prób (Reaper)',
+    'Connect the computer with Reaper — one click sends the rehearsal mix and each part to the arrangements.':
+        'Połącz komputer z Reaperem — jedno kliknięcie wysyła miks z próby i każdą partię do aranżacji.',
+    'After rehearsal one click in Reaper sends the mix and every part to the arrangements. Each musician then practises with “mix + me louder” or “mix without me”. Only your community can listen.':
+        'Po próbie jedno kliknięcie w Reaperze wysyła miks i każdą partię do aranżacji. Każdy muzyk ćwiczy potem z „miks + ja głośniej” albo „miks beze mnie”. Słuchać może tylko Wasza wspólnota.',
+    'Studio computer': 'Komputer w studiu',
+    'Connected': 'Połączony', 'Not connected': 'Niepołączony',
+    'token created': 'token utworzony', 'last send': 'ostatnie wysłanie',
+    'Only one computer can send recordings — the one that has the token. A new token disconnects the old one.':
+        'Nagrania może wysyłać tylko jeden komputer — ten, który ma token. Nowy token odłącza stary.',
+    'Copy the token now — it will not be shown again.':
+        'Skopiuj token teraz — nie zostanie pokazany ponownie.',
+    'Copy': 'Kopiuj', 'Copied': 'Skopiowano',
+    'Server address:': 'Adres serwera:',
+    'Connect a computer': 'Połącz komputer',
+    'Generate a new token': 'Wygeneruj nowy token',
+    'Generate a new token? The computer using the old one will be disconnected.':
+        'Wygenerować nowy token? Komputer ze starym tokenem zostanie odłączony.',
+    'Disconnect the studio computer?': 'Odłączyć komputer w studiu?',
+    'Studio token revoked — Reaper can no longer send recordings.':
+        'Token studia unieważniony — Reaper nie może już wysyłać nagrań.',
+    'Download the Reaper script': 'Pobierz skrypt do Reapera',
+    'Setup — once': 'Konfiguracja — raz',
+    'Add the script to Reaper': 'Dodaj skrypt do Reapera',
+    'Actions → Show action list → New action → Load ReaScript… and pick the downloaded file. Tip: give it a toolbar button.':
+        'Actions → Show action list → New action → Load ReaScript… i wybierz pobrany plik. Wskazówka: dodaj mu przycisk na pasku narzędzi.',
+    'Set the render format': 'Ustaw format renderu',
+    'File → Render…: format MP3, 128–192 kbps (mono is fine for parts). Close the window — the script uses these settings and does the rest.':
+        'File → Render…: format MP3, 128–192 kb/s (do partii wystarczy mono). Zamknij okno — skrypt użyje tych ustawień i zrobi resztę.',
+    'Paste the token': 'Wklej token',
+    'On the first run the script asks for the server address and the token, and remembers them.':
+        'Przy pierwszym uruchomieniu skrypt zapyta o adres serwera i token i je zapamięta.',
+    'After each rehearsal — naming': 'Po każdej próbie — nazewnictwo',
+    'In Reaper': 'W Reaperze', 'Name it': 'Nazwa', 'Example': 'Przykład',
+    'Region = song': 'Region = piosenka',
+    'song title, optionally “| version”': 'tytuł piosenki, opcjonalnie „| wersja”',
+    'Markers in the region = tiles': 'Markery w regionie = kafelki',
+    'tile names in order': 'nazwy kafelków po kolei',
+    'Tracks to send = parts': 'Ślady do wysłania = partie',
+    '“J:” + part name from the cast': '„J:” + nazwa partii z obsady',
+    'Tracks without “J:” (room mics, click) are skipped. Short names work too: V = Verse, C/R = Chorus, B = Bridge. Before sending the script shows what matched — a missing version or part is created, and if the markers differ from the tiles the form follows the recording (the old one stays in the history).':
+        'Ślady bez „J:” (ambient, klik) są pomijane. Działają też skróty: Z = Zwrotka, R = Refren, B = Bridge. Przed wysłaniem skrypt pokazuje, co się dopasowało — brakująca wersja lub partia zostanie utworzona, a jeśli markery różnią się od kafelków, forma pójdzie za nagraniem (stara zostaje w historii).',
+})

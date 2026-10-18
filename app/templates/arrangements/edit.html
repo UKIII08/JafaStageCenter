@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+{% block title %}{{ song.title }} · {{ arr.name }} — {{ _('Arrangement') }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/arrangements.css') }}">
+
+<div class="arr-head">
+    <a class="arr-crumb" href="{{ url_for('songs.song_view', church_id=church.id, song_id=song.id) }}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        {{ _('Songs') }}
+    </a>
+    <div class="arr-title-row">
+        <div>
+            <h1>{{ song.title }}</h1>
+            <div class="arr-meta">
+                {% if song.key %}<span class="arr-key">{{ song.key }}</span>{% endif %}
+                {% if song.bpm %}<span>{{ song.bpm }} BPM</span>{% endif %}
+                <span id="arr-updated">{% if updated_by %}{{ _('Last change:') }} {{ updated_by }} · {{ arr.updated_at.strftime('%d.%m %H:%M') }}{% endif %}</span>
+            </div>
+        </div>
+        <a class="btn btn-primary" href="{{ url_for('songs.practice', church_id=church.id, song_id=song.id, a=arr.id) }}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+            {{ _('Practice this version') }}
+        </a>
+    </div>
+
+    {# ── wersje ── #}
+    <div class="arr-versions">
+        {% for a in arrangements %}
+        <a class="arr-ver {{ 'active' if a.id == arr.id }}" href="{{ url_for('arr.edit', church_id=church.id, arr_id=a.id) }}">
+            {% if a.is_main %}<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.1 8.6 22 9.3 16.8 14 18.2 21 12 17.3 5.8 21 7.2 14 2 9.3 8.9 8.6"/></svg>{% endif %}
+            {{ a.name }}
+            {% if a.recorded_at %}<i class="arr-dot" title="{{ _('Has a rehearsal recording') }}"></i>{% endif %}
+        </a>
+        {% endfor %}
+        <details class="arr-pop">
+            <summary class="arr-ver arr-ver-new">＋ {{ _('New version') }}</summary>
+            <form method="POST" action="{{ url_for('arr.create', church_id=church.id, song_id=song.id) }}" class="arr-pop-card">
+                <label>{{ _('Version name') }}</label>
+                <input name="name" required maxlength="80" placeholder="{{ _('e.g. Acoustic, Easter') }}" autofocus>
+                <input type="hidden" name="copy_from" value="{{ arr.id }}">
+                <p class="hint">{{ _('Starts as a copy of the form and cast of') }} „{{ arr.name }}”.</p>
+                <button type="submit" class="btn btn-primary btn-sm">{{ _('Create') }}</button>
+            </form>
+        </details>
+        <details class="arr-pop arr-pop-right">
+            <summary class="arr-icon-btn" title="{{ _('Version options') }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+            </summary>
+            <div class="arr-pop-card">
+                <form method="POST" action="{{ url_for('arr.rename', church_id=church.id, arr_id=arr.id) }}">
+                    <label>{{ _('Rename') }}</label>
+                    <div class="form-row"><input name="name" value="{{ arr.name }}" maxlength="80" required><button class="btn btn-sm" type="submit">{{ _('Save') }}</button></div>
+                </form>
+                {% if not arr.is_main and membership.role in ('prowadzacy', 'admin') %}
+                <form method="POST" action="{{ url_for('arr.delete', church_id=church.id, arr_id=arr.id) }}" onsubmit="return confirm({{ _('Delete this version with its notes and recordings?')|tojson }})" style="margin-top:var(--s3);">
+                    <button class="btn btn-danger btn-sm" type="submit">{{ _('Delete version') }}</button>
+                </form>
+                {% endif %}
+            </div>
+        </details>
+    </div>
+</div>
+
+{# ── FORMA ── #}
+<section class="panel arr-panel">
+    <div class="arr-panel-head">
+        <div>
+            <div class="section-title">{{ _('Form') }}</div>
+            <p class="hint">{{ _('Drag tiles to set the order. Anyone on the team can edit — earlier versions are in the history.') }}</p>
+        </div>
+        <span class="arr-save" id="form-status"></span>
+    </div>
+    <div class="form-strip" id="form-strip"></div>
+    <div class="tile-add">
+        <details class="arr-pop" id="add-tile-pop">
+            <summary class="btn btn-ghost btn-sm">＋ {{ _('Add tile') }}</summary>
+            <div class="arr-pop-card tile-palette">
+                <div class="section-title">{{ _('From the song') }}</div>
+                <div class="palette-list" id="palette"></div>
+                <div class="section-title" style="margin-top:var(--s3);">{{ _('Without lyrics') }}</div>
+                <div class="form-row">
+                    <input id="custom-tile" maxlength="40" placeholder="{{ _('e.g. Solo, Interlude, Tag') }}">
+                    <button type="button" class="btn btn-sm" id="custom-tile-add">{{ _('Add') }}</button>
+                </div>
+            </div>
+        </details>
+    </div>
+</section>
+
+{# ── OBSADA ── #}
+<section class="panel arr-panel">
+    <div class="arr-panel-head">
+        <div>
+            <div class="section-title">{{ _('Cast') }}</div>
+            <p class="hint">{{ _('Parts in this version — instruments, not people, so it keeps working when the line-up changes. In Reaper name tracks the same way with “J:” in front, e.g. J:Vocals 2.') }}</p>
+        </div>
+        <span class="arr-save" id="roles-status"></span>
+    </div>
+    <div class="role-chips" id="role-chips"></div>
+    <div class="role-add">
+        <div class="role-suggest" id="role-suggest"></div>
+        <div class="form-row role-custom">
+            <input id="role-custom" maxlength="60" list="role-datalist" placeholder="{{ _('Another part, e.g. Choir, Cajon') }}">
+            <datalist id="role-datalist">{% for s in suggestions %}<option value="{{ s }}">{% endfor %}</datalist>
+            <button type="button" class="btn btn-sm" id="role-custom-add">{{ _('Add part') }}</button>
+        </div>
+    </div>
+</section>
+
+{# ── PARTIE: rola × kafelek ── #}
+<section class="panel arr-panel">
+    <div class="arr-panel-head">
+        <div>
+            <div class="section-title">{{ _('Parts') }}</div>
+            <p class="hint">{{ _('Tap a cell to write what this part does there or record the idea on your phone — the whole team sees and hears it.') }}</p>
+        </div>
+    </div>
+    <div class="grid-wrap" id="grid-wrap"></div>
+</section>
+
+{# ── NAGRANIE Z PRÓBY ── #}
+<section class="panel arr-panel">
+    <div class="arr-panel-head">
+        <div>
+            <div class="section-title">{{ _('Rehearsal recording') }}</div>
+            {% if arr.recorded_at %}
+            <p class="hint">{{ _('Sent from Reaper') }} {{ arr.recorded_at.strftime('%d.%m.%Y %H:%M') }}{% if arr.duration %} · {{ '%d:%02d'|format(arr.duration // 60, arr.duration % 60) }}{% endif %}. {{ _('A new send replaces it.') }}</p>
+            {% endif %}
+        </div>
+    </div>
+    {% if rec.mix %}
+    <audio controls preload="none" src="{{ rec.mix }}" class="arr-audio"></audio>
+    <div class="rec-roles">
+        {% for r in arr.roles %}
+        <span class="rec-role {{ 'ok' if r in rec.loud or r in rec.minus }}">
+            {{ r }}
+            {% if r in rec.loud or r in rec.minus %}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>{% endif %}
+        </span>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:var(--s6) var(--s4);">
+        <div class="es-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/><path d="M8 17.5V5l12-2v12.5"/></svg></div>
+        <div class="es-title">{{ _('No recording yet') }}</div>
+        <div class="es-sub">{{ _('In Reaper name the region after the song (and “| version”), markers after the tiles and tracks “J:part” — the script sends the mix and every part.') }}
+        {% if membership.role == 'admin' %}<br><a href="{{ url_for('arr.reaper', church_id=church.id) }}">{{ _('Connect Reaper') }} →</a>{% endif %}</div>
+    </div>
+    {% endif %}
+</section>
+
+{# ── HISTORIA ── #}
+{% if history %}
+<details class="panel arr-panel arr-history">
+    <summary class="section-title">{{ _('History') }} <span class="muted">({{ history|length }})</span></summary>
+    <ul>
+    {% for h in history %}
+        <li>
+            <span class="h-when">{{ h.when.strftime('%d.%m %H:%M') }}</span>
+            <span class="h-who">{{ h.who if h.who != '?' else ('Reaper' if h.what == 'reaper' else '?') }}</span>
+            <span class="muted">{{ {'form': _('changed the form'), 'roles': _('changed the cast'), 'restore': _('restored a version'), 'reaper': _('form from the recording')}[h.what] }} · {{ _('before:') }} {{ h.tiles }} {{ _('tiles') }}, {{ h.roles }} {{ _('parts') }}</span>
+            <form method="POST" action="{{ url_for('arr.restore', church_id=church.id, arr_id=arr.id, rev_id=h.id) }}" onsubmit="return confirm({{ _('Restore the form and cast from before this change?')|tojson }})">
+                <button class="btn btn-ghost btn-sm" type="submit">{{ _('Restore') }}</button>
+            </form>
+        </li>
+    {% endfor %}
+    </ul>
+</details>
+{% endif %}
+
+{# ── edytor komórki (modal / arkusz na telefonie) ── #}
+<div class="cell-modal" id="cell-modal" hidden>
+    <div class="cell-card" role="dialog" aria-modal="true" aria-labelledby="cell-title">
+        <div class="cell-card-head">
+            <div>
+                <div class="cell-eyebrow" id="cell-eyebrow"></div>
+                <h3 id="cell-title"></h3>
+            </div>
+            <button type="button" class="arr-icon-btn" id="cell-close" aria-label="{{ _('Close') }}">✕</button>
+        </div>
+        <textarea id="cell-note" rows="5" maxlength="2000" placeholder="{{ _('e.g. third above the melody from the 2nd chorus · riff e|--3--5--7--|') }}"></textarea>
+        <div class="cell-tools">
+            <label class="cell-mono"><input type="checkbox" id="cell-mono"> {{ _('Tab font') }}</label>
+            <span class="arr-save" id="cell-status"></span>
+        </div>
+        <div class="memo">
+            <div class="section-title" style="margin-bottom:var(--s2);">{{ _('Idea recording') }}</div>
+            <div id="memo-existing" hidden>
+                <audio controls preload="none" id="memo-audio" class="arr-audio"></audio>
+                <div class="memo-meta"><span id="memo-by"></span>
+                    <button type="button" class="btn btn-ghost btn-sm" id="memo-delete">{{ _('Delete recording') }}</button></div>
+            </div>
+            <div class="memo-rec">
+                <button type="button" class="rec-btn" id="rec-btn" aria-label="{{ _('Record') }}"><i></i></button>
+                <div>
+                    <div class="rec-label" id="rec-label">{{ _('Record an idea') }}</div>
+                    <div class="muted" id="rec-sub">{{ _('Sing the harmony, play the riff — up to a few minutes.') }}</div>
+                </div>
+                <span class="rec-time" id="rec-time"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/Sortable.min.js') }}"></script>
+<script>
+window.ARR = {
+    church: {{ church.id|tojson }},
+    id: {{ arr.id|tojson }},
+    form: {{ (arr.form or [])|tojson }},
+    roles: {{ (arr.roles or [])|tojson }},
+    sections: {{ sections|tojson }},
+    suggestions: {{ suggestions|tojson }},
+    cells: {{ cells|tojson }},
+    markers: {{ (arr.markers or {})|tojson }},
+    myRole: {{ my_role|tojson }},
+    dynamics: {{ dynamics|tojson }},
+    L: {
+        saving: {{ _('saving…')|tojson }}, saved: {{ _('saved')|tojson }},
+        error: {{ _('could not save')|tojson }},
+        remove: {{ _('Remove')|tojson }}, repeat: {{ _('Repeats')|tojson }},
+        noRoles: {{ _('Add parts in the cast above — then each part gets its row here.')|tojson }},
+        noTiles: {{ _('The form is empty — add tiles.')|tojson }},
+        me: {{ _('me')|tojson }}, empty: {{ _('—')|tojson }},
+        rec: {{ _('Record an idea')|tojson }}, stop: {{ _('Stop and save')|tojson }},
+        recording: {{ _('Recording…')|tojson }}, uploading: {{ _('Sending…')|tojson }},
+        noMic: {{ _('The browser has no microphone access. Allow it in the site settings.')|tojson }},
+        by: {{ _('Recorded by')|tojson }}, rerec: {{ _('Record again (replaces)')|tojson }},
+        delMemo: {{ _('Delete this recording?')|tojson }},
+        removeRole: {{ _('Remove the part? Its notes stay in the history of cells and come back if you add it again.')|tojson }},
+        noDyn: {{ _('Dynamics')|tojson }},
+        dyn: {
+            soft: {{ _('Soft')|tojson }}, build: {{ _('Build')|tojson }}, full: {{ _('Full')|tojson }},
+            down: {{ _('Break down')|tojson }}, band: {{ _('Band only')|tojson }}
+        }
+    }
+};
+</script>
+<script src="{{ url_for('static', filename='js/arrangements.js') }}"></script>
+{% endblock %}

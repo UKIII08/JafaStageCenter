@@ -434,19 +434,38 @@ def practice(church_id, song_id, membership):
     except ValueError:
         pass
     transpose = max(-11, min(11, transpose))
-    sections = mc.parse_song_sections(song.content)
-    rendered = []
-    for sec in sections:
-        _, band, _ = mc.process_song(sec['content'],
-                                     transpose_amount=transpose)
-        rendered.append({'label': sec['label'], 'band_html': band})
     shown_key = song.key
     if song.key and transpose:
         shown_key = mc.apply_transpose_to_single_chord(
             f'[{song.key}]', transpose).strip('[]')
+
+    # Aranżacja: kafelki w kolejności formy + moja partia + nagranie z próby.
+    # Bez aranżacji — jak dotąd, sekcje w kolejności tekstu.
+    from app.arrangements import service as arr_svc
+    from app.arrangements.routes import cells_payload, recordings_payload
+    arrangements = arr_svc.song_arrangements(song)
+    arr = None
+    if arrangements:
+        want = request.args.get('a')
+        arr = next((a for a in arrangements if a.id == want), arrangements[0])
+    if arr:
+        rendered = [dict(t, sec_idx=t.get('sec'))
+                    for t in arr_svc.tiles_with_content(arr, song, transpose)]
+    else:
+        rendered = []
+        for i, sec in enumerate(mc.parse_song_sections(song.content)):
+            _, band, _ = mc.process_song(sec['content'],
+                                         transpose_amount=transpose)
+            rendered.append({'label': sec['label'], 'band_html': band,
+                             'sec_idx': i, 'repeat': 1, 'dyn': '', 'id': ''})
     return render_template('songs/practice.html', song=song,
                            sections=rendered, transpose=transpose,
                            shown_key=shown_key,
+                           arr=arr, arrangements=arrangements,
+                           my_role=arr_svc.my_role(arr, profile) if arr else '',
+                           cells=cells_payload(arr) if arr else {},
+                           rec=recordings_payload(arr) if arr else {},
+                           dyn_labels=arr_svc.DYNAMICS,
                            note=(sp.note if sp else ''),
                            section_notes=(_load_section_notes(sp) if sp else {}),
                            prefs=(profile.prefs if profile else {}) or {},
