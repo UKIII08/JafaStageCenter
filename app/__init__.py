@@ -51,12 +51,16 @@ def create_app(config_object='app.config.Config'):
     from app.live.routes import live_bp
     from app.studio.routes import studio_bp
     from app.events.routes import events_bp
+    from app.arrangements.routes import arr_bp
+    from app.arrangements.api import studio_api_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(panel_bp)
     app.register_blueprint(songs_bp)
     app.register_blueprint(live_bp)
     app.register_blueprint(studio_bp)
     app.register_blueprint(events_bp)
+    app.register_blueprint(arr_bp)
+    app.register_blueprint(studio_api_bp)
 
     _register_socket_handlers(app)
 
@@ -118,6 +122,9 @@ def _ensure_columns():
         ],
         'studio_setlists': [
             ('welcome_json', "TEXT DEFAULT ''"),
+        ],
+        'profiles': [
+            ('instruments', 'JSON'),
         ],
     }
     for table, cols in wanted.items():

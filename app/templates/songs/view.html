@@ -8,6 +8,7 @@
         </h2>
         <div style="display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap;">
             <a class="btn" href="{{ url_for('songs.practice', church_id=church.id, song_id=song.id) }}">{{ _('Practice') }}</a>
+            <a class="btn btn-ghost" href="{{ url_for('arr.song_main', church_id=church.id, song_id=song.id) }}">{{ _('Form & parts') }}</a>
             {% if song.link %}
             <a class="btn btn-ghost" href="{{ song.link }}" target="_blank" rel="noopener noreferrer" title="{{ song.link }}">▶ {{ _('Recording') }}</a>
             {% endif %}

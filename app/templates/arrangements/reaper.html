@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Rehearsal recordings (Reaper)') }} — {{ church.name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/arrangements.css') }}">
+<style>
+    .rp-wrap { max-width: 720px; margin: 0 auto; }
+    .rp-steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+    .rp-steps > li { counter-increment: s; position: relative; padding: 0 0 var(--s5) 44px; }
+    .rp-steps > li::before {
+        content: counter(s); position: absolute; left: 0; top: -2px; width: 28px; height: 28px;
+        border-radius: 50%; background: var(--accent-subtle); color: var(--accent);
+        font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center;
+    }
+    .rp-steps > li:last-child { padding-bottom: 0; }
+    .rp-steps h3 { margin: 0 0 var(--s1); font-size: 1rem; }
+    .rp-steps p { margin: 0; }
+    .rp-table { width: 100%; margin-top: var(--s3); }
+    .rp-table td, .rp-table th { font-size: var(--font-sm); }
+    .rp-table code { font-family: var(--font-mono); font-size: 12.5px; background: var(--bg-surface);
+        padding: 2px 7px; border-radius: 6px; border: 1px solid var(--border-subtle); white-space: nowrap; }
+    .tok-box { display: flex; gap: var(--s2); align-items: center; margin: var(--s3) 0; }
+    .tok-box input { font-family: var(--font-mono); font-size: 13px; }
+    .tok-state { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+    .tok-led { width: 9px; height: 9px; border-radius: 50%; background: var(--text-tertiary); flex: 0 0 auto; }
+    .tok-led.on { background: var(--sec-other); box-shadow: 0 0 0 4px rgba(63,182,122,.15); }
+    .tok-new { border: 1px solid var(--accent); background: var(--accent-subtle); border-radius: var(--r-lg); padding: var(--s4); margin-top: var(--s4); }
+</style>
+<div class="rp-wrap">
+    <div class="page-head">
+        <h1>{{ _('Rehearsal recordings (Reaper)') }}</h1>
+        <p class="page-sub">{{ _('After rehearsal one click in Reaper sends the mix and every part to the arrangements. Each musician then practises with “mix + me louder” or “mix without me”. Only your community can listen.') }}</p>
+    </div>
+
+    <div class="panel">
+        <div class="section-title">{{ _('Studio computer') }}</div>
+        <div class="tok-state">
+            <span class="tok-led {{ 'on' if has_token }}"></span>
+            {% if has_token %}
+            <b>{{ _('Connected') }}</b>
+            <span class="muted">{{ _('token created') }} {{ created[:16]|replace('T', ' ') }}{% if used %} · {{ _('last send') }} {{ used[:16]|replace('T', ' ') }}{% endif %}</span>
+            {% else %}
+            <b>{{ _('Not connected') }}</b>
+            {% endif %}
+        </div>
+        <p class="hint" style="margin-top:var(--s3);">{{ _('Only one computer can send recordings — the one that has the token. A new token disconnects the old one.') }}</p>
+
+        {% if new_token %}
+        <div class="tok-new">
+            <b>{{ _('Copy the token now — it will not be shown again.') }}</b>
+            <div class="tok-box">
+                <input id="tok" value="{{ new_token }}" readonly onclick="this.select()">
+                <button type="button" class="btn btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('tok').value);this.textContent={{ _('Copied')|tojson }}">{{ _('Copy') }}</button>
+            </div>
+            <span class="muted">{{ _('Server address:') }} <code class="mono-url">{{ server }}</code></span>
+        </div>
+        {% endif %}
+
+        <div style="display:flex; gap:var(--s2); flex-wrap:wrap; margin-top:var(--s4);">
+            <form method="POST" action="{{ url_for('arr.reaper_token', church_id=church.id) }}"
+                  {% if has_token %}onsubmit="return confirm({{ _('Generate a new token? The computer using the old one will be disconnected.')|tojson }})"{% endif %}>
+                <button class="btn btn-primary" type="submit">{{ _('Generate a new token') if has_token else _('Connect a computer') }}</button>
+            </form>
+            {% if has_token %}
+            <form method="POST" action="{{ url_for('arr.reaper_revoke', church_id=church.id) }}"
+                  onsubmit="return confirm({{ _('Disconnect the studio computer?')|tojson }})">
+                <button class="btn btn-ghost" type="submit">{{ _('Disconnect') }}</button>
+            </form>
+            {% endif %}
+            <a class="btn btn-ghost" href="{{ url_for('arr.reaper_script', church_id=church.id) }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                {{ _('Download the Reaper script') }}
+            </a>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="section-title">{{ _('Setup — once') }}</div>
+        <ol class="rp-steps">
+            <li><h3>{{ _('Add the script to Reaper') }}</h3>
+                <p class="hint">{{ _('Actions → Show action list → New action → Load ReaScript… and pick the downloaded file. Tip: give it a toolbar button.') }}</p></li>
+            <li><h3>{{ _('Set the render format') }}</h3>
+                <p class="hint">{{ _('File → Render…: format MP3, 128–192 kbps (mono is fine for parts). Close the window — the script uses these settings and does the rest.') }}</p></li>
+            <li><h3>{{ _('Paste the token') }}</h3>
+                <p class="hint">{{ _('On the first run the script asks for the server address and the token, and remembers them.') }}</p></li>
+        </ol>
+    </div>
+
+    <div class="panel">
+        <div class="section-title">{{ _('After each rehearsal — naming') }}</div>
+        <table class="rp-table">
+            <tr><th>{{ _('In Reaper') }}</th><th>{{ _('Name it') }}</th><th>{{ _('Example') }}</th></tr>
+            <tr><td>{{ _('Region = song') }}</td><td>{{ _('song title, optionally “| version”') }}</td><td><code>Oceans</code> <code>Oceans | Acoustic</code></td></tr>
+            <tr><td>{{ _('Markers in the region = tiles') }}</td><td>{{ _('tile names in order') }}</td><td><code>Intro</code> <code>V1</code> <code>Chorus</code> <code>Bridge</code></td></tr>
+            <tr><td>{{ _('Tracks to send = parts') }}</td><td>{{ _('“J:” + part name from the cast') }}</td><td><code>J:Vocals 2</code> <code>J:Guitar</code></td></tr>
+        </table>
+        <p class="hint" style="margin-top:var(--s4);">{{ _('Tracks without “J:” (room mics, click) are skipped. Short names work too: V = Verse, C/R = Chorus, B = Bridge. Before sending the script shows what matched — a missing version or part is created, and if the markers differ from the tiles the form follows the recording (the old one stays in the history).') }}</p>
+    </div>
+</div>
+{% endblock %}

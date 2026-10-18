@@ -346,8 +346,19 @@ def my_profile(church_id, membership):
         db.session.commit()
     if request.method == 'POST':
         profile.name = (request.form.get('name') or profile.name).strip()
-        inst = request.form.get('instrument', '')
-        profile.instrument = inst if inst in INSTRUMENTS else ''
+        # Kilka instrumentów (wokal + gitara…): z listy + własne wpisane
+        # ręcznie. Z nich bierze się podpowiedź ról w aranżacjach.
+        picked = [i for i in request.form.getlist('instruments')
+                  if i in INSTRUMENTS and i not in ('', 'inny')]
+        legacy = request.form.get('instrument')   # stary formularz / desktop
+        if not picked and legacy in INSTRUMENTS and legacy:
+            picked = [legacy]
+        for raw in (request.form.get('instruments_custom') or '').split(','):
+            raw = ' '.join(raw.split())[:40]
+            if raw and raw.lower() not in {p.lower() for p in picked}:
+                picked.append(raw)
+        profile.instruments = picked[:8]
+        profile.instrument = next((i for i in picked if i in INSTRUMENTS), '')
         prefs = dict(profile.prefs or {})
         prefs['notation'] = (request.form.get('notation')
                              if request.form.get('notation') in NOTATIONS
@@ -360,9 +371,14 @@ def my_profile(church_id, membership):
         db.session.commit()
         flash(_('Profile saved.'))
         return redirect(url_for('panel.my_profile', church_id=church_id))
+    mine = list(profile.instruments or []) or \
+        ([profile.instrument] if profile.instrument else [])
     return render_template('panel/profile.html', church=db.session.get(Church, church_id),
                            profile=profile, membership=membership,
-                           instruments=INSTRUMENTS, user=user)
+                           instruments=[i for i in INSTRUMENTS if i not in ('', 'inny')],
+                           mine=mine,
+                           custom=[i for i in mine if i not in INSTRUMENTS],
+                           user=user)
 
 
 # ── Zarządzanie zespołem (admin): zmiana roli, usuwanie ──

@@ -20,7 +20,7 @@
               {% else %}{{ role_label(m.role) }}{% endif %}
             </td>
             <td class="muted">
-              {% for p in profiles %}{% if p.user_id == m.user_id %}{{ instrument_label(p.instrument) or '—' }}{% endif %}{% endfor %}
+              {% for p in profiles %}{% if p.user_id == m.user_id %}{% set insts = p.instruments or ([p.instrument] if p.instrument else []) %}{% for i in insts %}{{ instrument_label(i) }}{{ ', ' if not loop.last }}{% else %}—{% endfor %}{% endif %}{% endfor %}
             </td>
             <td style="text-align:right;">
               {% if membership.role == 'admin' and m.user_id != church.owner_user_id %}
