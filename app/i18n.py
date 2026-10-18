@@ -902,6 +902,14 @@ PL.update({
     'This idea was recorded by %(name)s. Record over it?': 'Ten pomysł nagrał(a) %(name)s. Nagrać na nim swój?',
     'choose your part': 'wybierz partię', 'in the recording': 'jest w nagraniu',
     'with recording': 'z nagraniem',
+    # Reaper: dwa skrypty
+    'Download the send script': 'Pobierz skrypt wysyłki',
+    'Download the settings script': 'Pobierz skrypt ustawień',
+    'Add both scripts to Reaper': 'Dodaj oba skrypty do Reapera',
+    'Actions → Show action list → New action → Load ReaScript… and pick each downloaded file. You get two actions: “Jonathan - send rehearsal” (sends) and “Jonathan - settings” (server address and token). Tip: give the send action a toolbar button.':
+        'Actions → Show action list → New action → Load ReaScript… i wybierz po kolei oba pobrane pliki. Dostaniesz dwie akcje: „Jonathan - send rehearsal” (wysyłka) i „Jonathan - settings” (adres serwera i token). Wskazówka: akcji wysyłki daj przycisk na pasku narzędzi.',
+    'Run “Jonathan - settings”, enter the server address shown below and the token — it checks the connection right away. To change them later (new token, another server), run it again.':
+        'Uruchom „Jonathan - settings”, wpisz adres serwera podany niżej i token — od razu sprawdzi połączenie. Żeby je później zmienić (nowy token, inny serwer), uruchom go ponownie.',
 })
 
 
