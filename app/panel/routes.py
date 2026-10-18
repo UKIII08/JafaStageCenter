@@ -20,7 +20,7 @@ ENGINES = ('v2', 'v3', 'v4')
 INSTRUMENTS = ('', 'wokal', 'gitara', 'gitara elektryczna', 'bas',
                'klawisze', 'perkusja', 'skrzypce', 'inny')
 from app.auth.routes import current_user, login_required
-from app.i18n import translate as _
+from app.i18n import translate as _, instrument_label
 
 panel_bp = Blueprint('panel', __name__)
 
@@ -194,6 +194,30 @@ def church_home(church_id, membership):
                 if SongPersonal.query.filter_by(
                     profile_id=my_profile.id, song_id=song.id).first()}
             practice_done = len(done_titles)
+            for s in next_event_songs:
+                s.done = s.title in done_titles
+
+    # Piosenki z setlisty -> link do ćwiczenia (po tytule, bo setlista Studia
+    # trzyma migawkę tytułów, nie identyfikatory).
+    if next_event_songs:
+        ids = {s.title: s.id for s in Song.query.filter(
+            Song.church_id == church_id, Song.deleted.is_(False),
+            Song.title.in_([x.title for x in next_event_songs])).all()}
+        for s in next_event_songs:
+            s.song_id = ids.get(s.title)
+
+    # Skład najbliższego grania i moja partia w nim.
+    lineup, my_parts = [], []
+    if next_event:
+        rows = EventAssignment.query.filter_by(event_id=next_event.id).all()
+        names = {p.user_id: p.name for p in Profile.query.filter_by(
+            church_id=church_id, deleted=False).all()}
+        for a in rows:
+            lineup.append(SimpleNamespace(name=names.get(a.user_id, '?'),
+                                          instrument=a.instrument,
+                                          me=a.user_id == user.id))
+            if a.user_id == user.id and a.instrument:
+                my_parts.append(instrument_label(a.instrument).lower())
 
     # ── Zespół: awatary (imiona z profili) ──
     memberships = Membership.query.filter_by(
@@ -232,6 +256,7 @@ def church_home(church_id, membership):
         next_event_songs=next_event_songs, last_setlist=last_setlist,
         last_practiced=last_practiced, practice_done=practice_done,
         practice_total=practice_total, team_members=team_members,
+        lineup=lineup, my_parts=my_parts,
         today=today, show_welcome=show_welcome, onboarding=onboarding)
 
 

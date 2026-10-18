@@ -1,14 +1,29 @@
 {% extends 'base.html' %}
 {% block title %}{{ _('Songs') }} — {{ church.name }}{% endblock %}
 {% block content %}
+<style>
+    .lib-tools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    .lib-tools form { flex: 1 1 280px; }
+    .lib-tools input { height: 38px; }
+    .lib { margin-top: 24px; }
+    .lib-row { display: grid; grid-template-columns: minmax(0, 1fr) 64px 64px auto; gap: 16px; align-items: center;
+        padding: 14px 0; border-bottom: 1px solid var(--border-default); }
+    .lib-head { padding: 0 0 10px; font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-tertiary); }
+    .lib-row .t { color: var(--text-primary); font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lib-row .t:hover { color: var(--text-accent); }
+    .lib-row .k, .lib-row .b { font-family: var(--font-mono); font-size: 13px; color: var(--text-secondary); }
+    .lib-row .go { display: flex; gap: 6px; opacity: .55; transition: opacity .15s ease; }
+    .lib-row:hover .go { opacity: 1; }
+    @media (max-width: 700px) { .lib-row { grid-template-columns: minmax(0, 1fr) 40px auto; } .lib-row .b { display: none; } }
+</style>
 <div class="panel">
     <div class="panel-header">
-        <h2>{{ _('Songs') }} <span class="muted">({{ songs|length }})</span></h2>
+        <h2>{{ _('Songs') }} <span class="muted">{{ songs|length }}</span></h2>
         <div class="song-toolbar">
-            <a class="btn btn-primary" href="{{ url_for('songs.song_new', church_id=church.id) }}">{{ _('Add song') }}</a>
-            <button type="button" class="btn btn-primary" onclick="document.getElementById('import-input').click()">{{ _('Import songs') }}</button>
+            <a class="btn" href="{{ url_for('songs.song_new', church_id=church.id) }}">{{ _('Add song') }}</a>
+            <button type="button" class="btn btn-ghost" onclick="document.getElementById('import-input').click()">{{ _('Import songs') }}</button>
             {% if membership.role != 'muzyk' %}
-            <a class="btn btn-primary" href="{{ url_for('studio.control', church_id=church.id) }}">{{ _('Manage in Studio') }}</a>
+            <a class="btn btn-ghost" href="{{ url_for('studio.control', church_id=church.id) }}">{{ _('Manage in Studio') }}</a>
             {% endif %}
         </div>
     </div>
@@ -16,24 +31,31 @@
     <form method="POST" action="{{ url_for('songs.songs_import', church_id=church.id) }}" enctype="multipart/form-data" hidden>
         <input id="import-input" type="file" name="files" accept=".txt,.cho,.pro,.chopro,.chordpro,.crd,.onsong" multiple onchange="this.form.submit()">
     </form>
-    <p class="hint" style="margin:0 0 var(--s2);">{{ _('Import ChordPro (.cho) or .txt files. Title, key, CCLI number and copyright are picked up automatically. Only import songs you are licensed to use.') }}</p>
-    <form method="GET"><input name="q" value="{{ q }}" placeholder="{{ _('Search by title or lyrics') }}"></form>
-    <table style="margin-top:var(--s3);">
-        <tr><th>{{ _('Title') }}</th><th>{{ _('Key') }}</th><th>{{ _('BPM') }}</th></tr>
+    <div class="lib-tools">
+        <form method="GET"><input name="q" value="{{ q }}" placeholder="{{ _('Search by title or lyrics') }}"></form>
+    </div>
+    <p class="hint" style="margin:0;">{{ _('Import ChordPro (.cho) or .txt files. Title, key, CCLI number and copyright are picked up automatically. Only import songs you are licensed to use.') }}</p>
+
+    <div class="lib">
+        {% if songs %}
+        <div class="lib-row lib-head"><span>{{ _('Title') }}</span><span>{{ _('Key') }}</span><span>{{ _('BPM') }}</span><span></span></div>
+        {% endif %}
         {% for s in songs %}
-        <tr>
-            <td><a class="row-link" href="{{ url_for('songs.song_view', church_id=church.id, song_id=s.id) }}">{{ s.title }}</a></td>
-            <td class="muted">{{ s.key or '—' }}</td>
-            <td class="muted">{{ s.bpm or '—' }}</td>
-        </tr>
+        <div class="lib-row">
+            <a class="t row-link" href="{{ url_for('songs.song_view', church_id=church.id, song_id=s.id) }}">{{ s.title }}</a>
+            <span class="k">{{ s.key or '—' }}</span>
+            <span class="b">{{ s.bpm or '—' }}</span>
+            <span class="go">
+                <a class="btn btn-ghost btn-sm" href="{{ url_for('songs.practice', church_id=church.id, song_id=s.id) }}">{{ _('Practice') }}</a>
+                <a class="btn btn-ghost btn-sm" href="{{ url_for('arr.song_main', church_id=church.id, song_id=s.id) }}">{{ _('Form & parts') }}</a>
+            </span>
+        </div>
         {% else %}
-        <tr><td colspan="3" style="padding:0;">
-            <div class="empty-state">
-                <div class="es-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-                <div class="es-title">{{ _('The library is empty') }}</div>
-                <div class="es-sub">{{ _('Add your first song with the button above — or import a .txt file exported from the desktop app.') }}</div>
-            </div></td></tr>
+        <div class="empty-state">
+            <div class="es-title">{{ _('The library is empty') }}</div>
+            <div class="es-sub">{{ _('Add your first song with the button above — or import a .txt file exported from the desktop app.') }}</div>
+        </div>
         {% endfor %}
-    </table>
+    </div>
 </div>
 {% endblock %}

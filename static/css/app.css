@@ -201,10 +201,9 @@ button:hover, .btn:hover { background: var(--accent-hover); }
     content: "";
     position: absolute;
     left: 2px;
-    top: 8px;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
+    top: 10px;
+    width: 7px;
+    height: 1.5px;
     background: var(--accent);
 }
 .song-help-rules code {

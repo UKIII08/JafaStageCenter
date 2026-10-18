@@ -21,8 +21,7 @@
     .tok-box { display: flex; gap: var(--s2); align-items: center; margin: var(--s3) 0; }
     .tok-box input { font-family: var(--font-mono); font-size: 13px; }
     .tok-state { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
-    .tok-led { width: 9px; height: 9px; border-radius: 50%; background: var(--text-tertiary); flex: 0 0 auto; }
-    .tok-led.on { background: var(--sec-other); box-shadow: 0 0 0 4px rgba(63,182,122,.15); }
+    .tok-on { color: var(--text-accent); }
     .tok-new { border: 1px solid var(--accent); background: var(--accent-subtle); border-radius: var(--r-lg); padding: var(--s4); margin-top: var(--s4); }
 </style>
 <div class="rp-wrap">
@@ -34,9 +33,8 @@
     <div class="panel">
         <div class="section-title">{{ _('Studio computer') }}</div>
         <div class="tok-state">
-            <span class="tok-led {{ 'on' if has_token }}"></span>
             {% if has_token %}
-            <b>{{ _('Connected') }}</b>
+            <b class="tok-on">{{ _('Connected') }}</b>
             <span class="muted">{{ _('token created') }} {{ created[:16]|replace('T', ' ') }}{% if used %} · {{ _('last send') }} {{ used[:16]|replace('T', ' ') }}{% endif %}</span>
             {% else %}
             <b>{{ _('Not connected') }}</b>

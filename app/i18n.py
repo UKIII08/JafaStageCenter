@@ -523,7 +523,7 @@ PL = {
     "The setlist is empty — add songs below.":
         "Setlista jest pusta — dodaj piosenki poniżej.",
     "Up": "W górę", "Down": "W dół", "Add to setlist": "Dodaj do setlisty",
-    "Songs": "Piosenek", "Transpose": "Transpozycja", "Songs count": "Piosenek",
+    "Transpose": "Transpozycja", "Songs count": "Piosenek",
     "Practice — %(title)s": "Ćwiczenie — %(title)s", "my key": "moja tonacja",
     "Auto-scroll": "Autoprzewijanie", "Metronome": "Metronom", "Stop": "Stop",
     "Recording": "Nagranie",
@@ -696,6 +696,31 @@ ROLE_LABELS = {'muzyk': 'Musician', 'prowadzacy': 'Leader', 'admin': 'Admin'}
 PL.update({'Musician': 'Muzyk', 'Leader': 'Prowadzący', 'Admin': 'Admin'})
 
 
+# ── Daty po ludzku (bez strftime('%-d'), które nie działa na Windows) ──
+_PL_DAYS = ('poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota', 'niedziela')
+_PL_MONTHS = ('stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca',
+              'sierpnia', 'września', 'października', 'listopada', 'grudnia')
+_EN_DAYS = ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
+_EN_MONTHS = ('January', 'February', 'March', 'April', 'May', 'June', 'July',
+              'August', 'September', 'October', 'November', 'December')
+
+
+def nice_date(d, part='full'):
+    """'full' -> „niedziela, 20 października" / „Sunday, October 20";
+    'weekday' -> „niedziela"; 'daymonth' -> „20 października"."""
+    if not d:
+        return ''
+    pl = get_lang() == 'pl'
+    day = (_PL_DAYS if pl else _EN_DAYS)[d.weekday()]
+    month = (_PL_MONTHS if pl else _EN_MONTHS)[d.month - 1]
+    dm = f'{d.day} {month}' if pl else f'{month} {d.day}'
+    if part == 'weekday':
+        return day
+    if part == 'daymonth':
+        return dm
+    return f'{day}, {dm}'
+
+
 def role_label(value):
     v = (value or '').strip()
     return translate(ROLE_LABELS.get(v, v)) if v else ''
@@ -828,6 +853,32 @@ PL.update({
     'Save length': 'Zapisz długość',
     'Upload an MP4/WebM video or an HTML file up to 60 MB.':
         'Wgraj film MP4/WebM albo plik HTML do 60 MB.',
+})
+
+
+# ── Nowy wygląd panelu: menu boczne, pulpit, ćwiczenie ─────────────────
+PL.update({
+    'Start': 'Start', 'Menu': 'Menu', 'Leading': 'Prowadzenie',
+    'Hello, %(name)s.': 'Dzień dobry, %(name)s.',
+    'On %(day)s you play %(parts)s.': '%(day)s grasz: %(parts)s.',
+    '%(n)s of %(t)s songs still to practise.':
+        'Zostało %(n)s z %(t)s piosenek do przećwiczenia.',
+    'Every song is practised — nice.': 'Wszystkie piosenki przećwiczone — dobra robota.',
+    'Next up: %(name)s, %(day)s.': 'Najbliżej: %(name)s, %(day)s.',
+    'Discover what you can do': 'Zobacz, co potrafi Jonathan',
+    'Nothing planned': 'Nic zaplanowanego',
+    'No setlist attached yet.': 'Setlista nie jest jeszcze podpięta.',
+    'All services': 'Wszystkie granie',
+    'practised': 'przećwiczone', 'to practise': 'do przećwiczenia',
+    'nothing is playing': 'nic nie jest grane',
+    'a session is running': 'trwa sesja',
+    'Preparation': 'Przygotowanie', 'Line-up': 'Skład',
+    'Open the song library': 'Otwórz bibliotekę piosenek',
+    'recently practised': 'ostatnio ćwiczone',
+    'Tempo': 'Tempo', 'you': 'ty', 'Loop': 'Pętla',
+    'Listen': 'Posłuchaj', 'Listen to the idea': 'Posłuchaj pomysłu',
+    'recording from': 'nagranie z',
+    'Not running': 'Wyłączone', 'Running': 'Trwa', 'Practising': 'Ćwiczenie',
 })
 
 

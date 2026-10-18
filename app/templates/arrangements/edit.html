@@ -29,7 +29,6 @@
         <a class="arr-ver {{ 'active' if a.id == arr.id }}" href="{{ url_for('arr.edit', church_id=church.id, arr_id=a.id) }}">
             {% if a.is_main %}<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.1 8.6 22 9.3 16.8 14 18.2 21 12 17.3 5.8 21 7.2 14 2 9.3 8.9 8.6"/></svg>{% endif %}
             {{ a.name }}
-            {% if a.recorded_at %}<i class="arr-dot" title="{{ _('Has a rehearsal recording') }}"></i>{% endif %}
         </a>
         {% endfor %}
         <details class="arr-pop">

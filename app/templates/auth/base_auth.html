@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Jonathan App{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/panel.css') }}">
     <style>
-        body { background: var(--bg-app); color: var(--text-primary); font-family: 'Sen', system-ui, sans-serif; margin: 0; min-height: 100vh; }
+        body { background: var(--bg-app); color: var(--text-primary); font-family: 'Hanken Grotesk', system-ui, sans-serif; margin: 0; min-height: 100vh; }
         a { color: inherit; text-decoration: none; }
         .auth { min-height: 100vh; display: grid; grid-template-columns: 1.05fr 1fr; }
-        .auth-aside { position: relative; overflow: hidden; background: var(--bg-panel); border-right: 1px solid var(--border-default); padding: var(--s12) var(--s10); display: flex; flex-direction: column; justify-content: space-between; }
-        .auth-aside::before { content: ""; position: absolute; inset: 0; background: radial-gradient(60% 50% at 22% 12%, var(--accent-subtle), transparent 70%); pointer-events: none; }
+        .auth-aside { position: relative; overflow: hidden; background: var(--bg-app); border-right: 1px solid var(--border-default); padding: var(--s12) var(--s10); display: flex; flex-direction: column; justify-content: space-between; }
         .auth-aside > * { position: relative; }
         .auth-brand { font-weight: 800; font-size: 1.15rem; letter-spacing: -0.02em; }
         .auth-brand span { color: var(--accent); }
