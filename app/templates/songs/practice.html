@@ -19,20 +19,48 @@
     .tgroup .tv small { color: var(--text-tertiary); margin-left: 3px; font-size: 11px; }
     #save-status { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-tertiary); }
 
-    /* ── Forma: pasek kafelków ── */
-    .fbar { display: flex; gap: 3px; margin: 48px 0 10px; height: 44px; }
-    .fbar a { flex: var(--f, 1) 1 0; min-width: 0; display: flex; align-items: center; padding: 0 10px; border-radius: 6px;
-        background: var(--bg-surface); border-top: 2px solid var(--c, var(--text-tertiary)); color: var(--text-secondary);
-        font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background .15s ease; }
-    .fbar a:hover { background: var(--bg-surface-hover); color: var(--text-primary); }
-    .fbar a.now { background: var(--accent); border-top-color: var(--accent); color: #fff; }
-    .fbar-sub { display: flex; justify-content: space-between; gap: 16px; font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); }
     .t-intro { --c: #7A7973; } .t-verse { --c: #5B8CFF; } .t-prechorus { --c: #2BB3A3; } .t-chorus { --c: #E0A84A; }
     .t-bridge { --c: #A88BF0; } .t-other { --c: #3FB67A; }
 
+    /* ── Forma + odtwarzacz: jeden przyklejony pasek ── */
+    .tp { position: sticky; top: 0; z-index: 50; margin: 40px -12px 0; padding: 16px 12px 12px;
+        background: var(--bg-app); border-bottom: 1px solid var(--border-default); }
+    .tp-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .tp-play { width: 42px; height: 42px; border-radius: 50%; padding: 0; flex: 0 0 auto; background: var(--accent); border: 0; }
+    .tp-play svg { width: 15px; height: 15px; fill: #fff; }
+    .tp-now { min-width: 0; }
+    .tp-now b { display: block; font-size: 15px; font-weight: 600; color: var(--text-primary); line-height: 1.3; }
+    .tp-now span { font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); }
+    .tp-ctrl { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+    .tp-ctrl select { width: auto; height: 36px; padding: 0 26px 0 10px; font-family: var(--font-mono); font-size: 12px; }
+    .tp-tiles { display: flex; gap: 3px; margin-top: 14px; }
+    .tp-tile { flex: var(--f, 1) 1 0; min-width: 0; position: relative; overflow: hidden; height: 52px; box-sizing: border-box;
+        display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 0 10px; border-radius: 6px;
+        background: var(--bg-surface); border-top: 2px solid var(--c, var(--text-tertiary)); color: var(--text-secondary);
+        cursor: pointer; user-select: none; transition: background .15s ease, color .15s ease; }
+    .tp-tile:hover { background: var(--bg-surface-hover); color: var(--text-primary); }
+    .tp-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .tp-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--accent-subtle); pointer-events: none; }
+    .tp-tile.past .tp-fill { width: 100%; background: var(--bg-surface); }
+    .tp-tile.now { color: var(--text-primary); border-top-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent-line); }
+    .tp-l { position: relative; font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 18px; }
+    .tp-t { position: relative; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-tertiary); }
+    .tp-loop { position: absolute; right: 4px; top: 5px; width: 22px; height: 22px; border-radius: 5px;
+        display: none; align-items: center; justify-content: center; color: var(--text-secondary); }
+    .tp-loop svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .tp-tile:hover .tp-loop, .tp-tile.now .tp-loop, .tp-tile.loop .tp-loop { display: flex; }
+    .tp-loop:hover { background: var(--bg-surface-hover); color: var(--text-primary); }
+    .tp-tile.loop { box-shadow: inset 0 0 0 1px var(--accent); }
+    .tp-tile.loop .tp-loop { background: var(--accent); color: #fff; }
+    .tp-hint { display: flex; justify-content: space-between; gap: 8px 20px; flex-wrap: wrap; margin-top: 10px;
+        font-size: 12.5px; color: var(--text-secondary); }
+    .tp-hint .keys { color: var(--text-tertiary); }
+    .tp-hint kbd { font-family: var(--font-mono); font-size: 10.5px; border: 1px solid var(--border-strong); border-radius: 4px; padding: 0 4px; margin: 0 2px; }
+    .tp-hint .warn { color: var(--text-accent); }
+
     /* ── Treść: sekcje + diagramy ── */
     .pr-body { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 56px; margin-top: 56px; align-items: start; }
-    .sec { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 36px; padding: 34px 0; border-top: 1px solid var(--border-default); scroll-margin-top: 24px; }
+    .sec { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 36px; padding: 34px 0; border-top: 1px solid var(--border-default); scroll-margin-top: calc(var(--tp-h, 0px) + 24px); }
     .sec-name { font-weight: 600; font-size: 15px; color: var(--text-primary); transition: color .15s ease; }
     .sec.now .sec-name { color: var(--text-accent); }
     .sec-sub { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-tertiary); margin-top: 4px; line-height: 1.7; }
@@ -82,23 +110,7 @@
     .pos-cell .pos-star { position: absolute; top: 2px; right: 6px; color: var(--text-accent); font-size: .8rem; }
     .pr-setup { margin-top: 40px; font-size: 14px; }
 
-    /* ── Odtwarzacz ── */
-    .player { position: sticky; bottom: 24px; z-index: 60; margin-top: 40px; display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto; gap: 22px; align-items: center;
-        padding: 14px 18px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--r-lg); }
-    .pl-btn { width: 40px; height: 40px; border-radius: 50%; padding: 0; background: var(--accent); border: 0; }
-    .pl-btn svg { width: 14px; height: 14px; fill: #fff; }
-    .pl-mid { min-width: 0; }
-    .pl-bar { position: relative; height: 26px; cursor: pointer; }
-    .pl-track { position: absolute; left: 0; right: 0; top: 12px; height: 2px; background: var(--border-strong); }
-    .pl-fill { position: absolute; left: 0; top: 12px; height: 2px; width: 0; background: var(--accent); }
-    .pl-loop { position: absolute; top: 7px; height: 12px; border-radius: 3px; background: var(--accent-subtle); border: 1px solid var(--accent-line); display: none; }
-    .pl-tick { position: absolute; top: 6px; width: 1px; height: 14px; background: var(--border-strong); }
-    .pl-info { display: flex; justify-content: space-between; gap: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); }
-    .pl-info #pl-part { color: var(--text-secondary); }
-    .pl-side { display: flex; align-items: center; gap: 10px; }
-    .pl-side select { width: auto; height: 32px; padding: 0 26px 0 10px; font-family: var(--font-mono); font-size: 12px; }
-
+    @media (max-width: 900px) { .tp { top: 66px; margin: 28px -20px 0; padding: 12px 20px 10px; } }
     @media (max-width: 1000px) {
         .pr-body { grid-template-columns: 1fr; }
         .rail { position: static; order: -1; }
@@ -107,10 +119,10 @@
     @media (max-width: 700px) {
         .sec { grid-template-columns: 1fr; gap: 14px; padding: 26px 0; }
         .sec .song-render { font-size: 17px; }
-        .fbar { margin-top: 32px; height: 38px; }
-        .fbar a { padding: 0 6px; font-size: 11px; }
-        .player { bottom: 0; grid-template-columns: auto minmax(0, 1fr); border-radius: var(--r-lg) var(--r-lg) 0 0; margin: 32px -20px 0; }
-        .pl-side { grid-column: 1 / -1; justify-content: space-between; }
+        .tp-tile { height: 44px; padding: 0 6px; }
+        .tp-l { font-size: 11px; padding-right: 0; }
+        .tp-t, .tp-hint .keys { display: none; }
+        .tp-ctrl { margin-left: 0; width: 100%; justify-content: space-between; }
     }
 </style>
 
@@ -158,13 +170,62 @@
 {%- endmacro %}
 
 {% if arr and sections %}
-<div class="fbar" id="fbar">
-    {% for sec in sections %}
-    {% set dur = (sec.span[1] - sec.span[0]) if sec.span else 0 %}
-    <a href="#sec-{{ loop.index0 }}" class="{{ sec_type(sec.label) }}" data-tile="{{ sec.id }}" style="--f: {{ (dur or 8)|round(1) }}">{{ sec.label }}{% if sec.repeat > 1 %} ×{{ sec.repeat }}{% endif %}</a>
-    {% endfor %}
-</div>
-<div class="fbar-sub"><span>{{ arr.name }}</span><span>{{ sections|length }} {{ _('parts') }}{% if arr.recorded_at %} · {{ _('recording from') }} {{ arr.recorded_at.strftime('%d.%m') }}{% endif %}</span></div>
+{% set has_rec = rec.mix and sections|selectattr('span')|list %}
+{% set has_loud = my_role and my_role in rec.loud %}
+{% set has_minus = my_role and my_role in rec.minus %}
+<section class="tp" id="tp">
+    <div class="tp-top">
+        {% if has_rec %}
+        <button type="button" class="tp-play" id="tp-play" aria-label="{{ _('Play') }}">
+            <svg id="tp-ico" viewBox="0 0 24 24"><polygon points="7 4 20 12 7 20 7 4"/></svg>
+        </button>
+        <div class="tp-now"><b id="tp-part">{{ _('Press play or tap a part') }}</b><span id="tp-time">0:00</span></div>
+        <div class="tp-ctrl">
+            <div class="seg" id="tp-mode">
+                {% if has_loud %}<button type="button" class="active" data-src="{{ rec.loud[my_role] }}"
+                    data-desc="{{ _('You hear the whole band with your part louder — to learn it.') }}">{{ _('Learn') }}</button>{% endif %}
+                {% if has_minus %}<button type="button" {{ 'class=active' if not has_loud }} data-src="{{ rec.minus[my_role] }}"
+                    data-desc="{{ _('Your part is muted — you play it yourself with the band.') }}">{{ _('Play along') }}</button>{% endif %}
+                <button type="button" {{ 'class=active' if not (has_loud or has_minus) }} data-src="{{ rec.mix }}"
+                    data-desc="{{ _('The rehearsal recording as it sounded.') }}">{{ _('Mix') }}</button>
+            </div>
+            <select id="tp-rate" aria-label="{{ _('Speed') }}" title="{{ _('Slower without changing the key') }}">
+                <option value="1">100%</option><option value="0.9">90%</option>
+                <option value="0.8">80%</option><option value="0.7">70%</option>
+            </select>
+        </div>
+        {% else %}
+        <div class="tp-now"><b>{{ _('Form') }} · {{ arr.name }}</b><span>{{ sections|length }} {{ _('parts') }}</span></div>
+        {% endif %}
+    </div>
+    <div class="tp-tiles" id="tp-tiles">
+        {% for sec in sections %}
+        {% set dur = (sec.span[1] - sec.span[0]) if sec.span else 0 %}
+        <div class="tp-tile {{ sec_type(sec.label) }}" role="button" tabindex="0" data-i="{{ loop.index0 }}" data-label="{{ sec.label }}"
+             {% if sec.span %}data-start="{{ sec.span[0] }}" data-end="{{ sec.span[1] }}"{% endif %}
+             style="--f: {{ (dur or 8)|round(1) }}" title="{{ sec.label }}">
+            <span class="tp-fill"></span>
+            <span class="tp-l">{{ sec.label }}{% if sec.repeat > 1 %} ×{{ sec.repeat }}{% endif %}</span>
+            <span class="tp-t">{% if sec.span %}{{ '%d:%02d'|format(sec.span[0] // 60, sec.span[0] % 60) }}{% elif sec.dyn %}{{ _(dyn_labels[sec.dyn])|lower }}{% else %}&nbsp;{% endif %}</span>
+            {% if sec.span and has_rec %}<span class="tp-loop" title="{{ _('Loop this part') }}" aria-label="{{ _('Loop this part') }}"><svg viewBox="0 0 24 24"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    <div class="tp-hint">
+        {% if has_rec %}
+            {% if not my_role and arr.roles %}
+            <span class="warn">{{ _('Pick what you play above — you get the Learn and Play along modes.') }}</span>
+            {% elif my_role and not (has_loud or has_minus) %}
+            <span>{{ _('The recording has no separate track for %(role)s — you hear the full mix.') % {'role': my_role} }}</span>
+            {% else %}
+            <span id="tp-desc"></span>
+            {% endif %}
+            <span class="keys"><kbd>{{ _('Space') }}</kbd> {{ _('play') }} · <kbd>←</kbd><kbd>→</kbd> {{ _('parts') }} · <kbd>L</kbd> {{ _('loop') }}</span>
+        {% else %}
+            <span>{{ _('No rehearsal recording for this version yet — tap a part to jump to it.') }}</span>
+        {% endif %}
+    </div>
+</section>
 {% endif %}
 
 <div class="pr-body">
@@ -249,31 +310,6 @@
     <div id="diagram-list"></div>
   </aside>
 </div>
-
-{% if arr and rec.mix %}
-{% set has_loud = my_role and my_role in rec.loud %}
-{% set has_minus = my_role and my_role in rec.minus %}
-<div class="player" id="player">
-    <button type="button" class="pl-btn" id="pl-play" aria-label="{{ _('Play') }}">
-        <svg id="pl-ico" viewBox="0 0 24 24"><polygon points="7 4 20 12 7 20 7 4"/></svg>
-    </button>
-    <div class="pl-mid">
-        <div class="pl-bar" id="pl-bar"><div class="pl-track"></div><div class="pl-loop" id="pl-loopband"></div><div class="pl-fill" id="pl-fill"></div></div>
-        <div class="pl-info"><span id="pl-cur">0:00</span><span id="pl-part"></span><span id="pl-dur">0:00</span></div>
-    </div>
-    <div class="pl-side">
-        <div class="seg" id="pl-mode">
-            {% if has_loud %}<button type="button" data-src="{{ rec.loud[my_role] }}" class="active" title="{{ _('The full mix with your part louder — to learn it') }}">{{ _('Learn') }}</button>{% endif %}
-            {% if has_minus %}<button type="button" data-src="{{ rec.minus[my_role] }}" {{ 'class=active' if not has_loud }} title="{{ _('The mix without your part — you play it') }}">{{ _('Play along') }}</button>{% endif %}
-            <button type="button" data-src="{{ rec.mix }}" {{ 'class=active' if not (has_loud or has_minus) }}>{{ _('Mix') }}</button>
-        </div>
-        <select id="pl-rate" aria-label="{{ _('Speed') }}">
-            <option value="1">100%</option><option value="0.9">90%</option>
-            <option value="0.8">80%</option><option value="0.7">70%</option>
-        </select>
-    </div>
-</div>
-{% endif %}
 
 <div id="pos-modal" class="pos-modal" hidden onclick="if(event.target===this)this.hidden=true">
     <div class="pos-modal-card">
@@ -542,22 +578,38 @@ if (rolePick) rolePick.onchange = function () {
         body: JSON.stringify({ role: rolePick.value }) }).then(function () { location.reload(); });
 };
 
-// ── Odtwarzacz nagrania z próby: Nauka / Gram sam / Miks, pętla kafelka ──
+// ── Forma + nagranie z próby: klik w część = graj od niej, ⟲ = pętla ──
 (function () {
-    var box = document.getElementById('player');
-    if (!box) return;
+    var tp = document.getElementById('tp');
+    if (!tp) return;
+    var $ = function (id) { return document.getElementById(id); };
+    function syncH() { document.documentElement.style.setProperty('--tp-h', tp.offsetHeight + 'px'); }
+    syncH(); window.addEventListener('resize', syncH);
+
+    var tiles = Array.prototype.map.call(tp.querySelectorAll('.tp-tile'), function (el) {
+        return { el: el, fill: el.querySelector('.tp-fill'), sec: $('sec-' + el.dataset.i), label: el.dataset.label,
+                 start: el.dataset.start != null ? +el.dataset.start : null,
+                 end: el.dataset.end != null ? +el.dataset.end : null };
+    });
+    function goSec(t) { if (t.sec) t.sec.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    function tileOfSec(sec) { return tiles.find(function (t) { return t.sec === sec; }); }
+
+    if (!$('tp-play')) {                        // bez nagrania: kafelki = spis części
+        tiles.forEach(function (t) {
+            t.el.onclick = function () { goSec(t); };
+            t.el.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goSec(t); } };
+        });
+        return;
+    }
+
     var audio = new Audio();
     audio.preload = 'metadata';
-    if ('preservesPitch' in audio) audio.preservesPitch = true;     // wolniej bez zmiany tonacji
+    if ('preservesPitch' in audio) audio.preservesPitch = true;      // wolniej bez zmiany tonacji
     else if ('webkitPreservesPitch' in audio) audio.webkitPreservesPitch = true;
-    var tiles = Array.prototype.slice.call(document.querySelectorAll('.section-panel[data-start]')).map(function (p) {
-        return { el: p, start: +p.dataset.start, end: +p.dataset.end, label: p.dataset.label,
-                 bar: document.querySelector('#fbar a[data-tile="' + p.dataset.tile + '"]') };
-    });
     var loop = null, cur = null;
-    var $ = function (id) { return document.getElementById(id); };
+    var ICO_PLAY = '<polygon points="7 4 20 12 7 20 7 4"/>',
+        ICO_PAUSE = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
     function fmt(s) { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); }
-    var ICO_PLAY = '<polygon points="7 4 20 12 7 20 7 4"/>', ICO_PAUSE = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
 
     function setSrc(src, keepPlaying) {
         var t = audio.currentTime || 0, playing = keepPlaying && !audio.paused;
@@ -565,89 +617,97 @@ if (rolePick) rolePick.onchange = function () {
         audio.addEventListener('loadedmetadata', function once() {
             audio.removeEventListener('loadedmetadata', once);
             try { audio.currentTime = t; } catch (e) {}
-            audio.playbackRate = +$('pl-rate').value;
+            audio.playbackRate = +$('tp-rate').value;
             if (playing) audio.play();
         });
     }
-    var first = box.querySelector('#pl-mode button.active') || box.querySelector('#pl-mode button');
-    setSrc(first.dataset.src, false);
-    box.querySelectorAll('#pl-mode button').forEach(function (b) {
+    var modes = tp.querySelectorAll('#tp-mode button');
+    function showDesc() {
+        var a = tp.querySelector('#tp-mode button.active'), d = $('tp-desc');
+        if (a && d) d.textContent = a.dataset.desc;
+    }
+    setSrc((tp.querySelector('#tp-mode button.active') || modes[0]).dataset.src, false);
+    showDesc();
+    modes.forEach(function (b) {
         b.onclick = function () {
-            box.querySelectorAll('#pl-mode button').forEach(function (x) { x.classList.toggle('active', x === b); });
+            modes.forEach(function (x) { x.classList.toggle('active', x === b); });
             setSrc(b.dataset.src, true);
+            showDesc();
         };
     });
-    $('pl-rate').onchange = function () { audio.playbackRate = +this.value; };
-    $('pl-play').onclick = function () { audio.paused ? audio.play() : audio.pause(); };
-    audio.onplay = function () { $('pl-ico').innerHTML = ICO_PAUSE; };
-    audio.onpause = function () { $('pl-ico').innerHTML = ICO_PLAY; };
-    audio.onloadedmetadata = function () { $('pl-dur').textContent = fmt(audio.duration); drawTicks(); };
+    $('tp-rate').onchange = function () { audio.playbackRate = +this.value; };
+    $('tp-play').onclick = function () { audio.paused ? audio.play() : audio.pause(); };
+    audio.onplay = function () { $('tp-ico').innerHTML = ICO_PAUSE; };
+    audio.onpause = function () { $('tp-ico').innerHTML = ICO_PLAY; };
+    audio.onloadedmetadata = function () { paint(); };
 
-    function drawTicks() {
-        var bar = $('pl-bar');
-        bar.querySelectorAll('.pl-tick').forEach(function (n) { n.remove(); });
-        if (!audio.duration) return;
-        tiles.forEach(function (t) {
-            var k = document.createElement('div');
-            k.className = 'pl-tick';
-            k.style.left = (t.start / audio.duration * 100) + '%';
-            bar.appendChild(k);
+    function paintLoop() {
+        tiles.forEach(function (x) { x.el.classList.toggle('loop', x === loop); });
+        document.querySelectorAll('.pr-loop').forEach(function (b) {
+            b.classList.toggle('on', !!loop && b.closest('.sec') === loop.sec);
         });
     }
-    $('pl-bar').onclick = function (e) {
-        if (!audio.duration) return;
-        var r = this.getBoundingClientRect();
-        audio.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * audio.duration;
-    };
-    audio.ontimeupdate = function () {
-        var t = audio.currentTime;
-        if (loop && t >= loop.end) { audio.currentTime = loop.start; return; }
-        $('pl-cur').textContent = fmt(t);
-        if (audio.duration) $('pl-fill').style.width = (t / audio.duration * 100) + '%';
-        var now = null;
-        tiles.forEach(function (x) { if (t >= x.start && t < x.end) now = x; });
-        if (now !== cur) {
-            if (cur) { cur.el.classList.remove('now'); if (cur.bar) cur.bar.classList.remove('now'); }
-            cur = now;
-            $('pl-part').textContent = cur ? cur.label : '';
-            if (cur) {
-                cur.el.classList.add('now');
-                if (cur.bar) cur.bar.classList.add('now');
-                if (!audio.paused && !loop) cur.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }
-    };
-    function showLoop() {
-        var band = $('pl-loopband');
-        document.querySelectorAll('.pr-loop').forEach(function (b) { b.classList.remove('on'); });
-        if (!loop || !audio.duration) { band.style.display = 'none'; return; }
-        loop.btn.classList.add('on');
-        band.style.display = 'block';
-        band.style.left = (loop.start / audio.duration * 100) + '%';
-        band.style.width = ((loop.end - loop.start) / audio.duration * 100) + '%';
+    function playFrom(t) {
+        if (!t || t.start == null) { if (t) goSec(t); return; }
+        if (loop && loop !== t) { loop = null; paintLoop(); }
+        audio.currentTime = t.start;
+        audio.play();
+        goSec(t);
     }
+    function toggleLoop(t) {
+        if (!t || t.start == null) return;
+        loop = (loop === t) ? null : t;
+        paintLoop();
+        if (loop) { audio.currentTime = t.start; audio.play(); goSec(t); }
+    }
+    tiles.forEach(function (t) {
+        t.el.onclick = function (e) { if (e.target.closest('.tp-loop')) toggleLoop(t); else playFrom(t); };
+        t.el.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); playFrom(t); } };
+    });
     document.querySelectorAll('.pr-play').forEach(function (b) {
-        b.onclick = function () {
-            var t = tiles[tiles.findIndex(function (x) { return x.el === b.closest('.section-panel'); })];
-            if (!t) return;
-            if (loop && loop.el !== t.el) { loop = null; showLoop(); }
-            audio.currentTime = t.start; audio.play();
-        };
+        b.onclick = function () { playFrom(tileOfSec(b.closest('.sec'))); };
     });
     document.querySelectorAll('.pr-loop').forEach(function (b) {
-        b.onclick = function () {
-            var t = tiles[tiles.findIndex(function (x) { return x.el === b.closest('.section-panel'); })];
-            if (!t) return;
-            if (loop && loop.el === t.el) { loop = null; showLoop(); return; }
-            loop = { el: t.el, start: t.start, end: t.end, btn: b };
-            showLoop();
-            audio.currentTime = t.start; audio.play();
-        };
+        b.onclick = function () { toggleLoop(tileOfSec(b.closest('.sec'))); };
     });
-    document.addEventListener('keydown', function (e) {
-        if (e.code === 'Space' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) {
-            e.preventDefault(); $('pl-play').click();
+
+    function paint() {
+        var t = audio.currentTime;
+        $('tp-time').textContent = fmt(t) + ' / ' + fmt(audio.duration);
+        var now = null;
+        tiles.forEach(function (x) {
+            if (x.start == null) return;
+            var past = t >= x.end, inside = t >= x.start && t < x.end;
+            if (inside) now = x;
+            x.el.classList.toggle('past', past);
+            x.fill.style.width = inside ? ((t - x.start) / (x.end - x.start) * 100) + '%' : '';
+        });
+        if (now !== cur) {
+            if (cur) { cur.el.classList.remove('now'); if (cur.sec) cur.sec.classList.remove('now'); }
+            cur = now;
+            $('tp-part').textContent = cur ? cur.label : {{ _('Press play or tap a part')|tojson }};
+            if (cur) {
+                cur.el.classList.add('now');
+                if (cur.sec) {
+                    cur.sec.classList.add('now');
+                    if (!audio.paused && !loop) goSec(cur);
+                }
+            }
         }
+    }
+    audio.ontimeupdate = function () {
+        if (loop && audio.currentTime >= loop.end) { audio.currentTime = loop.start; return; }
+        paint();
+    };
+
+    document.addEventListener('keydown', function (e) {
+        if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+        var timed = tiles.filter(function (x) { return x.start != null; });
+        var idx = cur ? timed.indexOf(cur) : -1;
+        if (e.code === 'Space') { e.preventDefault(); $('tp-play').click(); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); playFrom(timed[Math.min(timed.length - 1, idx + 1)]); }
+        else if (e.key === 'ArrowLeft') { e.preventDefault(); playFrom(timed[Math.max(0, idx - 1)]); }
+        else if (e.key === 'l' || e.key === 'L') { toggleLoop(cur || timed[0]); }
     });
 })();
 </script>

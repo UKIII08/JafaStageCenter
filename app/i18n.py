@@ -879,6 +879,21 @@ PL.update({
     'Listen': 'Posłuchaj', 'Listen to the idea': 'Posłuchaj pomysłu',
     'recording from': 'nagranie z',
     'Not running': 'Wyłączone', 'Running': 'Trwa', 'Practising': 'Ćwiczenie',
+    # pasek formy w ćwiczeniu
+    'Press play or tap a part': 'Naciśnij start albo kliknij część',
+    'You hear the whole band with your part louder — to learn it.':
+        'Słyszysz cały zespół, a swoją partię głośniej — do nauki.',
+    'Your part is muted — you play it yourself with the band.':
+        'Twojej partii nie ma w nagraniu — grasz ją sam z zespołem.',
+    'The rehearsal recording as it sounded.': 'Nagranie z próby tak, jak brzmiało.',
+    'Slower without changing the key': 'Wolniej, bez zmiany tonacji',
+    'Pick what you play above — you get the Learn and Play along modes.':
+        'Wybierz wyżej, na czym grasz — dostaniesz tryby Nauka i Gram sam.',
+    'The recording has no separate track for %(role)s — you hear the full mix.':
+        'W nagraniu nie ma osobnego śladu dla: %(role)s — słyszysz cały miks.',
+    'No rehearsal recording for this version yet — tap a part to jump to it.':
+        'Ta wersja nie ma jeszcze nagrania z próby — kliknij część, żeby do niej przejść.',
+    'Space': 'Spacja', 'play': 'start/stop', 'loop': 'pętla',
 })
 
 
