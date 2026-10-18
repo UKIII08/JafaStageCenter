@@ -1,9 +1,9 @@
 /* ============================================================
-   AranĹĽacje â€” forma (kafelki), obsada, partie, nagrania.
-   Tokeny z design-system + theme-precision; dziaĹ‚a w jasnym i ciemnym.
+   Aranżacje — forma (kafelki), obsada, partie, nagrania.
+   Tokeny z design-system + theme-precision; działa w jasnym i ciemnym.
    ============================================================ */
 
-/* Kolory typĂłw sekcji â€” stonowane, rozrĂłĹĽnialne, czytelne w obu motywach */
+/* Kolory typów sekcji — stonowane, rozróżnialne, czytelne w obu motywach */
 :root {
     --sec-intro: #8C8A83;
     --sec-verse: #4F7FFF;
@@ -22,7 +22,7 @@
     --sec-other: #198754;
 }
 
-/* â”€â”€ NagĹ‚Ăłwek â”€â”€ */
+/* ── Nagłówek ── */
 .arr-head { margin: 0 0 40px; }
 .arr-crumb {
     display: inline-flex; align-items: center; gap: 4px;
@@ -39,7 +39,7 @@
     margin-top: var(--s1); color: var(--text-tertiary); font-size: var(--font-sm); }
 .arr-key { color: var(--text-primary); font-weight: 500; font-family: var(--font-mono); font-size: 13px; }
 
-/* â”€â”€ Wersje â”€â”€ */
+/* ── Wersje ── */
 .arr-versions { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
 .arr-ver {
     display: inline-flex; align-items: center; gap: 6px;
@@ -77,7 +77,12 @@
 .arr-pop-card label:first-child { margin-top: 0; }
 .arr-pop-card .hint { margin: var(--s2) 0 var(--s3); }
 
-/* â”€â”€ Panele â”€â”€ */
+/* ── Baner: zmiany od innych osób ── */
+.arr-notice { position: sticky; top: 12px; z-index: 70; margin: 0 0 16px; padding: 12px 16px; font-size: 14px;
+    color: var(--text-primary); background: var(--bg-elevated); border: 1px solid var(--accent-line); border-radius: var(--r-md); }
+.arr-notice[hidden] { display: none; }
+
+/* ── Panele ── */
 .arr-panel { padding: 36px 0; }
 .arr-panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s4); margin-bottom: var(--s4); }
 .arr-panel-head .section-title { margin-bottom: var(--s1); }
@@ -85,7 +90,7 @@
 .arr-save { font-size: var(--font-xs); color: var(--text-tertiary); white-space: nowrap; min-height: 1em; }
 .arr-save.err { color: var(--rec); }
 
-/* â”€â”€ Forma: kafelki â”€â”€ */
+/* ── Forma: kafelki ── */
 .form-strip { display: flex; flex-wrap: wrap; gap: var(--s2); min-height: 72px; }
 .form-strip .empty { color: var(--text-tertiary); font-size: var(--font-sm); align-self: center; }
 .ftile {
@@ -138,6 +143,12 @@
     width: auto; max-width: 96px; cursor: pointer;
 }
 .dyn.set { color: var(--c); border-color: var(--c); }
+.dyn-pick .pick-btn { height: 22px; font-size: 11px; color: var(--text-tertiary); border-color: var(--border-default); }
+.dyn-pick .pick-val { font-weight: 600; color: var(--text-tertiary); }
+.dyn-pick.set .pick-btn { border-color: var(--c); }
+.dyn-pick.set .pick-val { color: var(--c); }
+.dyn-pick .pick-menu { min-width: 150px; }
+.dyn-pick.empty .pick-val { color: var(--text-tertiary); }
 .ftile-time { font-family: var(--font-mono); font-size: 10px; color: var(--text-tertiary); }
 .tile-add { margin-top: var(--s3); }
 .tile-palette { width: min(360px, calc(100vw - 32px)); }
@@ -149,7 +160,7 @@
 }
 .palette-list button:hover { border-color: var(--accent); color: var(--accent); }
 
-/* â”€â”€ Obsada â”€â”€ */
+/* ── Obsada ── */
 .role-chips { display: flex; flex-wrap: wrap; gap: var(--s2); min-height: 38px; }
 .role-chips .empty { color: var(--text-tertiary); font-size: var(--font-sm); align-self: center; }
 .role-chip {
@@ -176,7 +187,7 @@
 .role-custom > input, .tile-palette .form-row > input, .arr-pop-card .form-row > input { flex: 1 1 auto; min-width: 0; }
 .role-custom > button, .tile-palette .form-row > button, .arr-pop-card .form-row > button { flex: 0 0 auto; width: auto; }
 
-/* â”€â”€ Partie: siatka rola Ă— kafelek â”€â”€ */
+/* ── Partie: siatka rola × kafelek ── */
 .grid-wrap { overflow-x: auto; margin: 0 calc(-1 * var(--s2)); padding: 0 var(--s2) var(--s2); }
 .pgrid { border-collapse: separate; border-spacing: 6px; min-width: 100%; }
 .pgrid th, .pgrid td { border: 0; padding: 0; background: none; text-transform: none; letter-spacing: 0; font-family: inherit; }
@@ -208,14 +219,14 @@
 .pcell .pmemo svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
 .pgrid .empty-row td { color: var(--text-tertiary); font-size: var(--font-sm); padding: var(--s3) 0; }
 
-/* â”€â”€ Nagranie â”€â”€ */
+/* ── Nagranie ── */
 .arr-audio { width: 100%; height: 40px; }
 .rec-roles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--s3); }
 .rec-role { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600;
     padding: 3px 10px; border-radius: var(--r-full); border: 1px solid var(--border-default); color: var(--text-tertiary); }
 .rec-role.ok { color: var(--text-accent); border-color: var(--accent-line); }
 
-/* â”€â”€ Historia â”€â”€ */
+/* ── Historia ── */
 .arr-history > summary { cursor: pointer; margin: 0; list-style: none; }
 .arr-history > summary::-webkit-details-marker { display: none; }
 .arr-history ul { list-style: none; margin: var(--s3) 0 0; padding: 0; }
@@ -224,7 +235,7 @@
 .h-when { font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); }
 .h-who { font-weight: 700; }
 
-/* â”€â”€ Modal komĂłrki (na telefonie: arkusz od doĹ‚u) â”€â”€ */
+/* ── Modal komórki (na telefonie: arkusz od dołu) ── */
 .cell-modal {
     position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,.55);
     display: flex; align-items: center; justify-content: center; padding: 16px;

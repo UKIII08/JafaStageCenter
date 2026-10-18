@@ -50,14 +50,26 @@
     }
 
     // ── FORMA ──
-    var formTimer = null;
+    var formTimer = null, saving = 0;
     function saveForm() {
         status('form-status', 'saving');
         clearTimeout(formTimer);
         formTimer = setTimeout(function () {
-            post(BASE + '/form', { form: A.form }).then(function (d) {
-                A.form = d.form; status('form-status', 'saved'); renderGrid();
-            }).catch(function () { status('form-status', 'error'); });
+            formTimer = null; saving++;
+            fetch(BASE + '/form', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ form: A.form, base: A.rev }) })
+                .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, code: r.status, d: d }; }); })
+                .then(function (res) {
+                    if (res.code === 409) {          // ktoś zmienił formę w międzyczasie
+                        applyState(res.d); notice(L.conflict); status('form-status', '');
+                    } else if (!res.ok) {
+                        throw new Error(res.code);
+                    } else {
+                        A.form = res.d.form; A.rev = res.d.rev; status('form-status', 'saved'); renderGrid();
+                    }
+                })
+                .catch(function () { status('form-status', 'error'); })
+                .then(function () { saving--; });
         }, 450);
     }
 
@@ -98,15 +110,12 @@
             rep.appendChild(minus); rep.appendChild(val); rep.appendChild(plus);
             ctrl.appendChild(rep);
 
-            var dyn = el('select', 'dyn' + (t.dyn ? ' set' : ''));
-            dyn.setAttribute('aria-label', L.noDyn);
-            var o0 = el('option', '', L.noDyn + '…'); o0.value = ''; dyn.appendChild(o0);
-            Object.keys(L.dyn).forEach(function (k) {
-                var o = el('option', '', L.dyn[k]); o.value = k;
-                if (t.dyn === k) o.selected = true;
-                dyn.appendChild(o);
+            var opts = [{ value: '', text: L.noDynNone, short: L.noDyn }].concat(
+                Object.keys(L.dyn).map(function (k) { return { value: k, text: L.dyn[k] }; }));
+            var dyn = Pick.create({
+                cls: 'sm dyn-pick' + (t.dyn ? ' set' : ''), options: opts, value: t.dyn || '', title: L.noDyn,
+                onChange: function (v) { t.dyn = v; dyn.classList.toggle('set', !!v); saveForm(); renderGrid(); }
             });
-            dyn.onchange = function () { t.dyn = dyn.value; dyn.classList.toggle('set', !!t.dyn); saveForm(); renderGrid(); };
             ctrl.appendChild(dyn);
             tile.appendChild(ctrl);
 
@@ -152,7 +161,7 @@
     function rolesCall(body) {
         status('roles-status', 'saving');
         return post(BASE + '/roles', body).then(function (d) {
-            A.roles = d.roles; renderRoles(); renderGrid(); status('roles-status', 'saved');
+            A.roles = d.roles; if (d.rev) A.rev = d.rev; renderRoles(); renderGrid(); status('roles-status', 'saved');
         }).catch(function () { status('roles-status', 'error'); });
     }
     function renderRoles() {
@@ -329,6 +338,9 @@
     $('rec-btn').onclick = function () {
         var b = this;
         if (rec && rec.state === 'recording') { rec.stop(); return; }
+        var mineNow = cur && A.cells[cellKey(cur.tile, cur.role)];
+        if (mineNow && mineNow.memo && mineNow.memo_by && mineNow.memo_by !== A.me &&
+                !confirm(L.replaceOther.replace('%(name)s', mineNow.memo_by))) return;
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
             alert(L.noMic); return;
         }
@@ -367,6 +379,37 @@
             })
             .catch(function () { alert(L.noMic); });
     };
+
+    // ── Kilka osób naraz: odświeżanie stanu i baner ze zmianami ──
+    var noticeTimer = null;
+    function notice(text) {
+        var n = $('arr-notice');
+        if (!n) return;
+        n.textContent = text; n.hidden = false;
+        clearTimeout(noticeTimer);
+        noticeTimer = setTimeout(function () { n.hidden = true; }, 6000);
+    }
+    function applyState(s) {
+        A.rev = s.rev; A.form = s.form; A.roles = s.roles; A.markers = s.markers || {}; A.cells = s.cells || {};
+        renderForm(); renderRoles();
+        if ($('cell-modal').hidden) renderGrid();
+    }
+    function refresh() {
+        if (document.hidden || formTimer || saving) return;
+        fetch(BASE + '/state').then(function (r) { return r.ok ? r.json() : null; }).then(function (s) {
+            if (!s || formTimer || saving) return;
+            if (s.rev !== A.rev) {
+                applyState(s);
+                notice(L.updatedBy + (s.updated_by ? ' ' + s.updated_by : '') + '.');
+            } else if (JSON.stringify(s.cells) !== JSON.stringify(A.cells)) {
+                A.cells = s.cells;
+                if ($('cell-modal').hidden) renderGrid();
+            }
+        }).catch(function () {});
+    }
+    setInterval(refresh, 15000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(); });
 
     renderForm();
     renderRoles();

@@ -91,6 +91,32 @@ def test_form_save_validates_and_keeps_history(app, client):
     assert len(db.session.get(Arrangement, aid).form) == 4
 
 
+def test_stale_form_save_is_rejected_not_overwritten(app, client):
+    cid, sid = setup(client, app)
+    aid = main_arr(client, cid, sid)
+    s0 = client.get(f'/c/{cid}/arrangements/{aid}/state').get_json()
+    form = s0['form']
+    # Kasia zapisuje pierwsza (na wersji, którą obie osoby wczytały)
+    d = client.post(f'/c/{cid}/arrangements/{aid}/form',
+                    json={'form': form[:2], 'base': s0['rev']}).get_json()
+    assert d['status'] == 'ok' and d['rev'] != s0['rev']
+    # Bartek wciąż ma starą wersję — jego zapis nie nadpisuje Kasi
+    r = client.post(f'/c/{cid}/arrangements/{aid}/form',
+                    json={'form': form[::-1], 'base': s0['rev']})
+    assert r.status_code == 409
+    body = r.get_json()
+    assert body['status'] == 'conflict' and len(body['form']) == 2
+    assert len(db.session.get(Arrangement, aid).form) == 2
+    # z aktualnym znacznikiem przechodzi
+    r = client.post(f'/c/{cid}/arrangements/{aid}/form',
+                    json={'form': form[::-1], 'base': body['rev']})
+    assert r.status_code == 200
+    # stan dla odświeżania niesie też komórki i autora zmiany
+    s = client.get(f'/c/{cid}/arrangements/{aid}/state').get_json()
+    assert s['rev'] == r.get_json()['rev'] and s['updated_by'] == 'Lider'
+    assert 'cells' in s and 'roles' in s
+
+
 def test_roles_numbering_and_instrument_suggestions(app, client):
     cid, sid = setup(client, app)
     client.post(f'/c/{cid}/profile', data={

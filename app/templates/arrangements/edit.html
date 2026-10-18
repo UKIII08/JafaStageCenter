@@ -60,6 +60,8 @@
     </div>
 </div>
 
+<div class="arr-notice" id="arr-notice" role="status" hidden></div>
+
 {# ── FORMA ── #}
 <section class="panel arr-panel">
     <div class="arr-panel-head">
@@ -212,6 +214,8 @@ window.ARR = {
     cells: {{ cells|tojson }},
     markers: {{ (arr.markers or {})|tojson }},
     myRole: {{ my_role|tojson }},
+    rev: {{ rev|tojson }},
+    me: {{ me_name|tojson }},
     dynamics: {{ dynamics|tojson }},
     L: {
         saving: {{ _('saving…')|tojson }}, saved: {{ _('saved')|tojson }},
@@ -226,7 +230,10 @@ window.ARR = {
         by: {{ _('Recorded by')|tojson }}, rerec: {{ _('Record again (replaces)')|tojson }},
         delMemo: {{ _('Delete this recording?')|tojson }},
         removeRole: {{ _('Remove the part? Its notes stay in the history of cells and come back if you add it again.')|tojson }},
-        noDyn: {{ _('Dynamics')|tojson }},
+        noDyn: {{ _('Dynamics')|tojson }}, noDynNone: {{ _('No dynamics')|tojson }},
+        conflict: {{ _('Someone else changed the form in the meantime — you now see their version. Make your change again.')|tojson }},
+        updatedBy: {{ _('Updated — latest change by')|tojson }},
+        replaceOther: {{ _('This idea was recorded by %(name)s. Record over it?')|tojson }},
         dyn: {
             soft: {{ _('Soft')|tojson }}, build: {{ _('Build')|tojson }}, full: {{ _('Full')|tojson }},
             down: {{ _('Break down')|tojson }}, band: {{ _('Band only')|tojson }}

@@ -894,6 +894,14 @@ PL.update({
     'No rehearsal recording for this version yet — tap a part to jump to it.':
         'Ta wersja nie ma jeszcze nagrania z próby — kliknij część, żeby do niej przejść.',
     'Space': 'Spacja', 'play': 'start/stop', 'loop': 'pętla',
+    # praca kilku osób naraz, wybór z listy
+    'No dynamics': 'Bez dynamiki',
+    'Someone else changed the form in the meantime — you now see their version. Make your change again.':
+        'Ktoś inny zmienił w międzyczasie formę — widzisz teraz jego wersję. Wprowadź swoją zmianę jeszcze raz.',
+    'Updated — latest change by': 'Zaktualizowano — ostatnia zmiana:',
+    'This idea was recorded by %(name)s. Record over it?': 'Ten pomysł nagrał(a) %(name)s. Nagrać na nim swój?',
+    'choose your part': 'wybierz partię', 'in the recording': 'jest w nagraniu',
+    'with recording': 'z nagraniem',
 })
 
 

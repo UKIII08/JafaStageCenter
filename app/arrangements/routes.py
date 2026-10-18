@@ -113,7 +113,8 @@ def edit(church_id, arr_id, membership):
         cells=cells_payload(arr), rec=recordings_payload(arr),
         dynamics=svc.DYNAMICS, history=history,
         updated_by=names.get(arr.updated_by, ''),
-        my_role=svc.my_role(arr, profile),
+        my_role=svc.my_role(arr, profile), rev=rev(arr),
+        me_name=_names(church_id, [current_user().id]).get(current_user().id, ''),
         church=db.session.get(Church, church_id),
         membership=membership, user=current_user())
 
@@ -165,16 +166,39 @@ def delete(church_id, arr_id, membership):
 
 
 # ── edycja (AJAX) ───────────────────────────────────────────────────────
+def rev(arr):
+    """Znacznik wersji formy/obsady — zmienia się przy każdym zapisie."""
+    return arr.updated_at.isoformat() if arr.updated_at else ''
+
+
+def state_payload(arr):
+    names = _names(arr.church_id, [arr.updated_by])
+    return {'rev': rev(arr), 'form': arr.form or [], 'roles': arr.roles or [],
+            'markers': arr.markers or {}, 'cells': cells_payload(arr),
+            'updated_by': names.get(arr.updated_by, '')}
+
+
+@arr_bp.get('/c/<church_id>/arrangements/<arr_id>/state')
+@require_membership('muzyk')
+def state(church_id, arr_id, membership):
+    """Aktualny stan dla edytora otwartego u kilku osób naraz (odświeżanie)."""
+    return jsonify(state_payload(_arr(church_id, arr_id)))
+
+
 @arr_bp.post('/c/<church_id>/arrangements/<arr_id>/form')
 @require_membership('muzyk')
 def save_form(church_id, arr_id, membership):
     arr = _arr(church_id, arr_id)
+    data = request.json or {}
+    # Ktoś zapisał formę po tym, jak ta osoba ją wczytała — nie nadpisujemy
+    # po cichu, tylko oddajemy aktualny stan do pokazania.
+    if data.get('base') and data['base'] != rev(arr):
+        return jsonify(dict(state_payload(arr), status='conflict')), 409
     song = _song(church_id, arr.song_id)
-    form = svc.clean_form((request.json or {}).get('form'),
-                          len(svc.song_sections(song)))
+    form = svc.clean_form(data.get('form'), len(svc.song_sections(song)))
     svc.set_form(arr, form, current_user().id)
     db.session.commit()
-    return jsonify({'status': 'ok', 'form': arr.form})
+    return jsonify({'status': 'ok', 'form': arr.form, 'rev': rev(arr)})
 
 
 @arr_bp.post('/c/<church_id>/arrangements/<arr_id>/roles')
@@ -198,7 +222,7 @@ def save_roles(church_id, arr_id, membership):
     if roles != (arr.roles or []):
         svc.set_roles(arr, roles, current_user().id)
         db.session.commit()
-    return jsonify({'status': 'ok', 'roles': arr.roles or []})
+    return jsonify({'status': 'ok', 'roles': arr.roles or [], 'rev': rev(arr)})
 
 
 def _cell(arr, tile, role, create=False):
