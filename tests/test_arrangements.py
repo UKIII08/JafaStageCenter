@@ -297,13 +297,33 @@ def test_commit_and_upload_overwrites(app, client):
     # ćwiczenie pokazuje odtwarzacz z trybami Nauka / Gram sam
     client.post(f'/c/{cid}/arrangements/{aid}/my-role', json={'role': 'Gitara'})
     page = client.get(f'/c/{cid}/songs/{sid}/practice').get_data(as_text=True)
-    assert 'id="player"' in page and 'data-start="30' in page
+    assert 'id="tp-play"' in page and 'data-start="30' in page
+    assert 'Learn' in page and 'Play along' in page
     # ponowne wysłanie nadpisuje
     client.post('/api/studio/commit', headers=h, json={
         'song_id': sid, 'markers': markers, 'tracks': ['Gitara']})
     assert ArrangementRecording.query.count() == 0
     up('mix', '', MP3)
     assert ArrangementRecording.query.count() == 1
+
+
+def test_form_from_markers_resets_repeats(app, client):
+    cid, sid = setup(client, app)
+    aid = main_arr(client, cid, sid)
+    form = db.session.get(Arrangement, aid).form
+    client.post(f'/c/{cid}/arrangements/{aid}/form',
+                json={'form': [dict(form[0], repeat=2, dyn='soft'), form[2]]})
+    h = token(client, cid)
+    client.post('/api/studio/commit', headers=h, json={
+        'song_id': sid, 'markers': [
+            {'name': 'Intro', 'start': 0, 'end': 5},
+            {'name': 'Z1', 'start': 5, 'end': 15},
+            {'name': 'Refren', 'start': 15, 'end': 25}]})
+    db.session.expire_all()
+    arr = db.session.get(Arrangement, aid)
+    assert [(t['label'], t['repeat']) for t in arr.form] == \
+        [('Intro', 1), ('Z1', 1), ('Refren', 1)]
+    assert arr.form[0]['id'] == form[0]['id'] and arr.form[0]['dyn'] == 'soft'
 
 
 def test_commit_creates_named_version(app, client):

@@ -392,7 +392,10 @@ def form_from_markers(song, markers, old_form=None):
                 tile = dict(reuse.pop(j))
                 break
         if tile is None:
-            tile = {'id': new_tile_id(), 'repeat': 1, 'dyn': ''}
+            tile = {'id': new_tile_id(), 'dyn': ''}
+        # Każde powtórzenie to w Reaperze osobny marker — stare „×2"
+        # odziedziczone po kafelku zawyżałoby formę.
+        tile['repeat'] = 1
         tile['label'] = str(mk['name']).strip()[:LABEL_MAX_LEN] or tile.get('label', '?')
         tile['sec'] = sec_by_key.get(k, sec_by_key.get((k[0], '')))
         form.append(tile)
