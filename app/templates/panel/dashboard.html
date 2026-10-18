@@ -1,12 +1,67 @@
 {% extends 'base.html' %}
 {% block title %}{{ church.name }} — Jonathan App{% endblock %}
 {% block content %}
+<style>
+    .dash-hello h1 { font-size: 44px; }
+    .dash-lede { margin: 14px 0 0; color: var(--text-secondary); font-size: 15px; max-width: 560px; }
+    .dash-lede a { white-space: nowrap; }
+    .dash-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 72px; margin-top: 64px; }
+    .big-date { font-size: 60px; font-weight: 700; letter-spacing: -.045em; line-height: 1; margin-top: 14px; }
+    .big-date small { display: block; font-size: 15px; font-weight: 500; letter-spacing: 0; color: var(--text-secondary); margin-top: 14px; line-height: 1.5; }
+    .sl { margin-top: 32px; }
+    .sl-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 56px 118px; gap: 16px; align-items: center;
+        padding: 14px 0; border-top: 1px solid var(--border-default); font-size: 15px; color: var(--text-primary); }
+    .sl-row:last-child { border-bottom: 1px solid var(--border-default); }
+    a.sl-row:hover { color: var(--text-accent); }
+    .sl-n { font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); }
+    .sl-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sl-k { font-family: var(--font-mono); font-size: 13px; color: var(--text-primary); }
+    .sl-s { font-size: 13px; color: var(--text-tertiary); text-align: right; }
+    .sl-s.ok { color: var(--text-accent); }
+    .dash-actions { margin-top: 28px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .kv { display: flex; flex-direction: column; gap: 32px; }
+    .kv .v { font-size: 28px; font-weight: 600; letter-spacing: -.02em; margin-top: 6px; line-height: 1.2; }
+    .kv .v small { font-size: 14px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0; margin-left: 6px; }
+    .kv .v.live { color: var(--text-accent); }
+    .kv .eyebrow { margin: 0; }
+    .kv-bar { height: 3px; background: var(--border-strong); border-radius: 2px; margin-top: 12px; overflow: hidden; }
+    .kv-bar i { display: block; height: 100%; background: var(--accent); }
+    .kv-people { font-size: 14px; color: var(--text-secondary); margin-top: 10px; line-height: 1.9; }
+    .kv-people b { color: var(--text-primary); font-weight: 500; }
+    .kv-people b.me { color: var(--text-accent); }
+    .kv-link { display: block; margin-top: 8px; font-size: 14px; color: var(--text-primary); }
+    .kv-link:hover { color: var(--text-accent); }
+    .kv-link span { color: var(--text-tertiary); }
+    .live-strip { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+        padding: 14px 18px; margin-bottom: 40px; border: 1px solid var(--accent-line); border-radius: var(--r-lg);
+        background: var(--accent-subtle); }
+    .live-strip[hidden] { display: none; }
+    .live-strip b { color: var(--text-accent); font-weight: 600; }
+    .live-strip div { display: flex; gap: 8px; }
+    /* Pierwsze kroki (admin) */
+    .onb { margin-top: 56px; padding-top: 32px; border-top: 1px solid var(--border-default); }
+    .onb-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+    .onb-head h2 { font-size: 18px; }
+    .onb-head button { height: auto; padding: 0; background: none; border: 0; color: var(--text-tertiary); font-size: 13px; font-weight: 500; }
+    .onb-head button:hover { background: none; color: var(--text-primary); }
+    .onb-sub { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
+    .onb-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 32px; margin-top: 20px; }
+    .onb-step { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-default);
+        color: var(--text-primary); font-size: 14.5px; }
+    .onb-step:hover { color: var(--text-accent); }
+    .onb-step .ck { flex: 0 0 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--border-strong);
+        display: flex; align-items: center; justify-content: center; }
+    .onb-step .ck svg { width: 12px; height: 12px; stroke: #fff; fill: none; stroke-width: 3; }
+    .onb-step.done { color: var(--text-tertiary); }
+    .onb-step.done .ck { background: var(--accent); border-color: var(--accent); }
+    @media (max-width: 900px) {
+        .dash-grid { grid-template-columns: 1fr; gap: 48px; margin-top: 40px; }
+        .big-date { font-size: 44px; }
+        .sl-row { grid-template-columns: 24px minmax(0, 1fr) 40px auto; gap: 10px; }
+    }
+</style>
 
-{# ── Ekran powitalny: logo + nazwa wspólnoty, tylko RAZ po zalogowaniu ──
-   Flaga `show_welcome` jest ustawiana przy logowaniu i zdejmowana w widoku, więc
-   nakładka renderuje się wyłącznie na pierwszym wejściu po logowaniu — klik w
-   logo Jonathan App ani odświeżenie już jej nie pokażą. Znika sama i wtapia się
-   w panel. #}
+{# ── Ekran powitalny: logo + nazwa wspólnoty, tylko RAZ po zalogowaniu ── #}
 {% if show_welcome %}
 <div id="welcome-splash">
     <div class="ws-card">
@@ -16,25 +71,17 @@
     </div>
 </div>
 <style>
-/* Auto-znikanie robi CSS — nawet bez JS nakładka sama zejdzie i odsłoni panel;
-   JS tylko dodaje wcześniejsze zamknięcie kliknięciem. */
-#welcome-splash { position: fixed; inset: 0; z-index: 1000; display: flex;
-    align-items: center; justify-content: center; background: var(--bg-app);
-    opacity: 1; animation: ws-fade .6s ease 1.6s forwards; }
-#welcome-splash.ws-hide { animation: none; opacity: 0; visibility: hidden;
-    pointer-events: none; transition: opacity .5s ease; }
-.ws-card { text-align: center; padding: var(--s5); transform: translateY(8px);
-    opacity: 0; animation: ws-in .6s cubic-bezier(.2,.7,.2,1) forwards; }
-.ws-logo { height: 88px; max-width: 240px; object-fit: contain;
-    margin-bottom: var(--s4); }
-.ws-name { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800;
-    letter-spacing: -.02em; }
+#welcome-splash { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
+    background: var(--bg-app); opacity: 1; animation: ws-fade .6s ease 1.6s forwards; }
+#welcome-splash.ws-hide { animation: none; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .5s ease; }
+.ws-card { text-align: center; padding: var(--s5); transform: translateY(8px); opacity: 0;
+    animation: ws-in .6s cubic-bezier(.2,.7,.2,1) forwards; }
+.ws-logo { height: 88px; max-width: 240px; object-fit: contain; margin-bottom: var(--s4); }
+.ws-name { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 700; letter-spacing: -.03em; }
 .ws-sub { color: var(--text-secondary); margin-top: var(--s2); font-size: 1rem; }
 @keyframes ws-in { to { transform: none; opacity: 1; } }
 @keyframes ws-fade { to { opacity: 0; visibility: hidden; } }
-@media (prefers-reduced-motion: reduce) {
-    #welcome-splash { animation-delay: .8s; }
-    .ws-card { animation: none; opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { #welcome-splash { animation-delay: .8s; } .ws-card { animation: none; opacity: 1; transform: none; } }
 </style>
 <script>
 (function () {
@@ -48,222 +95,147 @@
 </script>
 {% endif %}
 
-{# ── Baner: trwa sesja LIVE (bez zmian logiki) ── #}
-<div id="live-banner" class="panel" style="display:none; border-color:var(--border-strong); margin-bottom:var(--s5);">
-    <div class="panel-header" style="margin-bottom:0;">
-        <div>
-            <span class="badge badge-live">{{ _('Live now') }}</span>
-            <b style="margin-left:var(--s2);">{{ _('A live session is running') }}</b>
-        </div>
-        <div>
-            <a class="btn btn-live" href="{{ url_for('live.band', church_id=church.id) }}">{{ _('Join as a musician') }}</a>
-            {% if membership.role != 'muzyk' %}
-            <a class="btn-ghost btn" href="{{ url_for('live.leader', church_id=church.id) }}">{{ _('Leader panel') }}</a>
-            {% endif %}
-        </div>
+{# ── Trwa LIVE ── #}
+<div id="live-banner" class="live-strip" hidden>
+    <span><b>{{ _('Live now') }}</b> — {{ _('A live session is running') }}</span>
+    <div>
+        <a class="btn btn-sm" href="{{ url_for('live.band', church_id=church.id) }}">{{ _('Join as a musician') }}</a>
+        {% if membership.role != 'muzyk' %}
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('live.leader', church_id=church.id) }}">{{ _('Leader panel') }}</a>
+        {% endif %}
     </div>
 </div>
 
-<div class="dash-hi">
-    <h1>{{ _('Good to see you, %(name)s') % {'name': user.display_name} }}</h1>
-    <p>{{ church.name }} — {{ _('here is what matters today.') }}
-        <a href="{{ url_for('panel.guide', church_id=church.id) }}" style="margin-left:6px; white-space:nowrap;">{{ _('Discover what you can do →') }}</a></p>
+<div class="dash-hello">
+    <h1>{{ _('Hello, %(name)s.') % {'name': user.display_name} }}</h1>
+    <p class="dash-lede">
+        {% if next_event and my_parts %}
+            {{ _('On %(day)s you play %(parts)s.') % {'day': next_event.date|nice_date('weekday')|capitalize, 'parts': my_parts|join(', ')} }}
+            {% if practice_total %}
+                {% set left = practice_total - practice_done %}
+                {% if left > 0 %}{{ _('%(n)s of %(t)s songs still to practise.') % {'n': left, 't': practice_total} }}{% else %}{{ _('Every song is practised — nice.') }}{% endif %}
+            {% endif %}
+        {% elif next_event %}
+            {{ _('Next up: %(name)s, %(day)s.') % {'name': next_event.name, 'day': next_event.date|nice_date} }}
+        {% else %}
+            {{ church.name }} · <a href="{{ url_for('panel.guide', church_id=church.id) }}">{{ _('Discover what you can do') }} →</a>
+        {% endif %}
+    </p>
 </div>
 
-{# ── Onboarding „Pierwsze kroki" — tylko admin, znika po ukończeniu ── #}
+<div class="dash-grid">
+    <div>
+        <div class="eyebrow accent">{{ _('Next service') }}</div>
+        {% if next_event %}
+        <div class="big-date">{{ (next_event.date|nice_date('weekday'))|capitalize }} {{ next_event.date.strftime('%d.%m') }}
+            <small>{{ next_event.name }}{% if next_event.time %} · {{ next_event.time }}{% endif %}{% if my_parts %} · {{ my_parts|join(', ') }}{% endif %}</small></div>
+        {% if next_event_songs %}
+        <div class="sl">
+            {% for s in next_event_songs %}
+            {% if s.song_id %}<a class="sl-row" href="{{ url_for('songs.practice', church_id=church.id, song_id=s.song_id) }}">{% else %}<div class="sl-row">{% endif %}
+                <span class="sl-n">{{ '%02d' % loop.index }}</span>
+                <span class="sl-t">{{ s.title }}</span>
+                <span class="sl-k">{{ s.key or '' }}</span>
+                <span class="sl-s {{ 'ok' if s.done }}">{{ _('practised') if s.done else _('to practise') }}</span>
+            {% if s.song_id %}</a>{% else %}</div>{% endif %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="hint" style="margin-top:24px;">{{ _('No setlist attached yet.') }}</p>
+        {% endif %}
+        <div class="dash-actions">
+            <a class="btn" href="{{ url_for('events.event_detail', church_id=church.id, eid=next_event.id) }}">{{ _('Prepare') }}</a>
+            <a class="btn btn-ghost" href="{{ url_for('events.events_list', church_id=church.id) }}">{{ _('All services') }}</a>
+        </div>
+        {% else %}
+        <div class="big-date" style="font-size:40px;">{{ _('Nothing planned') }}
+            <small>{{ _('When a service is scheduled, it shows up here with everything you need to prepare.') }}</small></div>
+        <div class="dash-actions">
+            <a class="btn" href="{{ url_for('events.events_list', church_id=church.id) }}">{% if membership.role != 'muzyk' %}{{ _('Plan a service') }}{% else %}{{ _('See services') }}{% endif %}</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="kv">
+        <div>
+            <div class="eyebrow">{{ _('Live') }}</div>
+            <div class="v" id="live-status">{{ _('Not running') }}<small>{{ _('nothing is playing') }}</small></div>
+        </div>
+        {% if practice_total %}
+        <div>
+            <div class="eyebrow">{{ _('Preparation') }}</div>
+            <div class="v">{{ practice_done }} / {{ practice_total }}<small>{{ _('songs') }}</small></div>
+            <div class="kv-bar"><i style="width: {{ (practice_done / practice_total * 100)|round }}%;"></i></div>
+        </div>
+        {% endif %}
+        {% if lineup %}
+        <div>
+            <div class="eyebrow">{{ _('Line-up') }}</div>
+            <div class="kv-people">
+                {% for p in lineup %}<b class="{{ 'me' if p.me }}">{{ p.name }}</b> {{ instrument_label(p.instrument)|lower }}{% if not loop.last %} · {% endif %}{% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        <div>
+            <div class="eyebrow">{{ _('Practising') }}</div>
+            <a class="kv-link" href="{{ url_for('songs.songs_list', church_id=church.id) }}">
+                {% if last_practiced %}{{ last_practiced }} <span>· {{ _('recently practised') }}</span>{% else %}{{ _('Open the song library') }} →{% endif %}
+            </a>
+        </div>
+        {% if membership.role in ('prowadzacy', 'admin') %}
+        <div>
+            <div class="eyebrow">{{ _('Studio') }}</div>
+            <a class="kv-link" href="{{ url_for('studio.control', church_id=church.id) }}">
+                {% if last_setlist %}{{ _('Last setlist:') }} {{ last_setlist }}{% else %}{{ _('Build the setlist and run the whole service live.') }}{% endif %}
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# ── Pierwsze kroki — tylko admin, znika po ukończeniu ── #}
 {% if onboarding and not onboarding.complete %}
 {% macro onb_step(done, label, href) %}
-<a class="onb-step {{ 'is-done' if done }}" href="{{ href }}">
-    <span class="onb-check">{{ '✓' if done else '' }}</span>
-    <span class="onb-label">{{ label }}</span>
-    {% if not done %}<span class="onb-go" aria-hidden="true">→</span>{% endif %}
+<a class="onb-step {{ 'done' if done }}" href="{{ href }}">
+    <span class="ck">{% if done %}<svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>{% endif %}</span>
+    <span>{{ label }}</span>
 </a>
 {% endmacro %}
-<style>
-    .onb-card { background: var(--bg-panel); border: 1px solid var(--border-default);
-        border-radius: var(--r-lg); padding: var(--s5); margin-bottom: var(--s5); }
-    .onb-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s3); }
-    .onb-title { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; }
-    .onb-sub { color: var(--text-tertiary); font-size: var(--font-xs); margin-top: 2px; }
-    .onb-hide { background: none; border: 0; color: var(--text-tertiary); font: inherit;
-        font-size: var(--font-xs); cursor: pointer; padding: 4px 6px; flex: 0 0 auto; }
-    .onb-hide:hover { color: var(--text-secondary); }
-    .onb-bar { height: 6px; background: var(--bg-inset); border-radius: 999px; overflow: hidden;
-        margin: var(--s3) 0 var(--s4); }
-    .onb-bar-fill { height: 100%; background: var(--accent); border-radius: 999px;
-        transition: width .4s ease; }
-    .onb-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--s2); }
-    .onb-step { display: flex; align-items: center; gap: var(--s3); padding: var(--s3);
-        border: 1px solid var(--border-default); border-radius: var(--r-md);
-        text-decoration: none; color: var(--text-primary); transition: border-color .15s, background .15s; }
-    .onb-step:hover { border-color: var(--accent); background: var(--bg-surface); }
-    .onb-step .onb-check { flex: 0 0 20px; width: 20px; height: 20px; border-radius: 50%;
-        border: 1.5px solid var(--border-strong); display: flex; align-items: center; justify-content: center;
-        font-size: 12px; color: var(--accent); }
-    .onb-step.is-done { color: var(--text-tertiary); }
-    .onb-step.is-done .onb-check { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .onb-step.is-done .onb-label { text-decoration: line-through; }
-    .onb-label { flex: 1; font-size: var(--font-sm); }
-    .onb-go { color: var(--text-tertiary); }
-</style>
-<div class="onb-card" id="onboarding-card">
+<section class="onb" id="onboarding-card">
     <div class="onb-head">
-        <div>
-            <div class="onb-title">{{ _('Get your church set up') }}</div>
-            <div class="onb-sub">{{ _('%(done)s of %(total)s done — you can do these in any order') % {'done': onboarding.done, 'total': onboarding.total} }}</div>
-        </div>
-        <button type="button" class="onb-hide" onclick="dismissOnboarding()">{{ _('Hide') }}</button>
+        <h2>{{ _('Get your church set up') }}</h2>
+        <button type="button" onclick="dismissOnboarding()">{{ _('Hide') }}</button>
     </div>
-    <div class="onb-bar"><div class="onb-bar-fill" style="width:{{ (onboarding.done / onboarding.total * 100)|round }}%;"></div></div>
+    <div class="onb-sub">{{ _('%(done)s of %(total)s done — you can do these in any order') % {'done': onboarding.done, 'total': onboarding.total} }}</div>
     <div class="onb-steps">
         {{ onb_step(onboarding.songs, _('Add your first songs'), url_for('songs.songs_list', church_id=church.id)) }}
         {{ onb_step(onboarding.members, _('Invite your team'), url_for('panel.team', church_id=church.id)) }}
-        {{ onb_step(onboarding.logo, _('Add your church logo'), url_for('panel.church_settings', church_id=church.id)) }}
+        {{ onb_step(onboarding.logo, _('Add your church logo'), url_for('panel.branding', church_id=church.id)) }}
         {{ onb_step(onboarding.screen, _('Connect a screen'), url_for('live.screens', church_id=church.id)) }}
         {{ onb_step(onboarding.event, _('Plan your first service'), url_for('events.events_list', church_id=church.id)) }}
     </div>
-</div>
+</section>
 <script>
 (function () {
     try {
         var key = 'jonathan-onb-hide-{{ church.id }}';
-        if (localStorage.getItem(key)) {
-            var c = document.getElementById('onboarding-card');
-            if (c) c.style.display = 'none';
-        }
-        window.dismissOnboarding = function () {
-            try { localStorage.setItem('jonathan-onb-hide-{{ church.id }}', '1'); } catch (e) {}
-            var c = document.getElementById('onboarding-card');
-            if (c) c.style.display = 'none';
-        };
+        if (localStorage.getItem(key)) document.getElementById('onboarding-card').hidden = true;
     } catch (e) {}
+    window.dismissOnboarding = function () {
+        try { localStorage.setItem('jonathan-onb-hide-{{ church.id }}', '1'); } catch (e) {}
+        document.getElementById('onboarding-card').hidden = true;
+    };
 })();
 </script>
 {% endif %}
 
-<div class="dash-bento">
-
-    {# 1. Najbliższa służba — kafel duży (4×2) z podglądem setlisty ── #}
-    {% if next_event %}
-    <a class="db-card db-hero" href="{{ url_for('events.event_detail', church_id=church.id, eid=next_event.id) }}">
-        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:var(--s4);">
-            <div>
-                <div style="display:flex; align-items:center; gap:var(--s3); margin-bottom:var(--s2);">
-                    <span class="db-eyebrow">{{ _('Next service') }}</span>
-                    {% if my_event %}<span class="db-pill">{{ _("You're on the team") }}</span>{% endif %}
-                </div>
-                <div class="db-title" style="font-size:var(--font-xl);">{{ next_event.name }}</div>
-                <div class="db-sub" style="font-size:var(--font-base); margin-top:4px;">{{ next_event.date.strftime('%A, %B %-d') }}{% if next_event.time %} · {{ next_event.time }}{% endif %}</div>
-            </div>
-            <div class="db-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-        </div>
-
-        {% if next_event_songs %}
-        <div style="margin-top:var(--s5); flex:1;">
-            <div class="db-eyebrow" style="margin-bottom:4px;">{{ _('Setlist') }}</div>
-            {% for s in next_event_songs[:4] %}
-            <div class="sl-row"><span class="sl-n">{{ loop.index }}</span><span class="sl-t">{{ s.title }}</span>{% if s.key %}<span class="sl-key">{{ s.key }}</span>{% endif %}</div>
-            {% endfor %}
-            {% if next_event_songs|length > 4 %}
-            <div class="sl-row"><span class="sl-n">{{ '5' }}</span><span class="sl-t muted">+ {{ next_event_songs|length - 4 }} {{ _('more songs') }}</span></div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        <span class="btn btn-primary" style="align-self:flex-start; margin-top:var(--s5);">{{ _('Prepare') }}</span>
-    </a>
-    {% else %}
-    <a class="db-card db-hero" href="{{ url_for('events.events_list', church_id=church.id) }}">
-        <div class="db-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-        <div class="db-title" style="margin-top:var(--s4);">{{ _('No upcoming service') }}</div>
-        <div class="db-sub">{{ _('When a service is scheduled, it shows up here with everything you need to prepare.') }}</div>
-        <span class="btn btn-primary" style="align-self:flex-start; margin-top:var(--s5);">{% if membership.role != 'muzyk' %}{{ _('Plan a service') }}{% else %}{{ _('See services') }}{% endif %}</span>
-    </a>
-    {% endif %}
-
-    {# 2. Widok na żywo — kafel 2, status ── #}
-    <a class="db-card db-span-2" href="{{ url_for('live.band', church_id=church.id) }}">
-        <div style="display:flex; align-items:center; justify-content:space-between;">
-            <div class="db-icon" style="width:38px;height:38px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg></div>
-            <span id="live-status" class="db-status"><i></i>{{ _('Offline') }}</span>
-        </div>
-        <div class="db-title" style="margin-top:var(--s3);">{{ _('Live view') }}</div>
-        <div class="db-sub">{{ _('Follow lyrics and chords sent live during the service.') }}</div>
-    </a>
-
-    {# 3. Mój profil — kafel 2 ── #}
-    <a class="db-card db-span-2" href="{{ url_for('panel.my_profile', church_id=church.id) }}">
-        <div style="display:flex; align-items:center; gap:var(--s3);">
-            <span class="av me" style="width:40px;height:40px;">{{ user.display_name[:2]|upper }}</span>
-            <div>
-                <div class="db-title" style="font-size:var(--font-base);">{{ user.display_name }}</div>
-                <div class="db-sub">{{ _(membership.role) }}</div>
-            </div>
-        </div>
-        <div class="db-sub" style="margin-top:var(--s3); color:var(--text-tertiary);">{{ _('Set your instrument and playing preferences.') }}</div>
-    </a>
-
-    {# 4. Studio — kafel 3 (prowadzący/admin) ── #}
-    {% if membership.role in ('prowadzacy', 'admin') %}
-    <a class="db-card db-span-3 db-accent" href="{{ url_for('studio.control', church_id=church.id) }}">
-        <div style="display:flex; align-items:center; justify-content:space-between;">
-            <div class="db-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></div>
-            <span class="db-tag">{{ _('leader') }}</span>
-        </div>
-        <div style="margin-top:var(--s3);">
-            <div class="db-title">{{ _('Studio') }}</div>
-            <div class="db-sub" style="margin-top:4px;">{{ _('Build the setlist and run the whole service live.') }}</div>
-        </div>
-        {% if last_setlist %}<div class="db-foot">{{ _('Last setlist:') }} <b>{{ last_setlist }}</b></div>{% endif %}
-    </a>
-    {% endif %}
-
-    {# 5. Wróć do ćwiczenia — kafel 3, postęp ── #}
-    <a class="db-card db-span-3" href="{{ url_for('songs.songs_list', church_id=church.id) }}">
-        <div class="db-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-        <div style="margin-top:var(--s3);">
-            <div class="db-title">{{ _('Back to practice') }}</div>
-            <div class="db-sub" style="margin-top:4px;">{% if last_practiced %}{{ _('Recently practiced:') }} {{ last_practiced }}{% else %}{{ _('Open the song library and rehearse with chords and diagrams.') }}{% endif %}</div>
-        </div>
-        {% if practice_total %}
-        <div style="margin-top:auto;">
-            <div class="db-bar"><i style="width: {{ (practice_done / practice_total * 100)|round }}%;"></i></div>
-            <div class="db-sub" style="margin-top:7px; color:var(--text-tertiary);">{{ _('Practiced %(d)s of %(t)s songs from the setlist') % {'d': practice_done, 't': practice_total} }}</div>
-        </div>
-        {% endif %}
-    </a>
-
-    {# 6. Zespół — kafel pełnej szerokości z awatarami ── #}
-    <a class="db-card db-span-6" href="{{ url_for('panel.team', church_id=church.id) }}">
-        <div style="display:flex; align-items:center; gap:var(--s4);">
-            <div class="db-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-            <div>
-                <div class="db-title">{{ _('Team') }}</div>
-                <div class="db-sub" style="margin-top:3px;">{{ _('See who plays and invite new members.') }}</div>
-            </div>
-        </div>
-        {% if team_members %}
-        <div style="display:flex; align-items:center; gap:var(--s3);">
-            <div class="av-stack">
-                {% for m in team_members[:5] %}
-                <span class="av {{ 'me' if m.user_id == user.id }}">{{ m.display_name[:2]|upper }}</span>
-                {% endfor %}
-                {% if team_members|length > 5 %}<span class="av">+{{ team_members|length - 5 }}</span>{% endif %}
-            </div>
-            <span class="db-sub" style="white-space:nowrap; color:var(--text-tertiary); font-weight:600;">{{ team_members|length }} {{ _('people') }}</span>
-        </div>
-        {% endif %}
-    </a>
-
-</div>
-
 <script>
-fetch('/api/live/current/{{ church.id }}').then(r => r.json()).then(d => {
-    if (d.active) {
-        document.getElementById('live-banner').style.display = '';
-        var st = document.getElementById('live-status');
-        if (st) { st.classList.add('online'); st.lastChild.textContent = '{{ _('Live now') }}'; }
-    }
+fetch('/api/live/current/{{ church.id }}').then(function (r) { return r.json(); }).then(function (d) {
+    if (!d.active) return;
+    document.getElementById('live-banner').hidden = false;
+    var st = document.getElementById('live-status');
+    st.classList.add('live');
+    st.innerHTML = {{ _('Running')|tojson }} + '<small>' + {{ _('a session is running')|tojson }} + '</small>';
 });
 </script>
 {% endblock %}

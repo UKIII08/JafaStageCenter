@@ -66,7 +66,8 @@ def create_app(config_object='app.config.Config'):
 
     # i18n panelu (gettext, EN domyślny) — dostępne w każdym szablonie jako _()
     from app.i18n import (translate, get_lang, set_lang, LANGUAGES,
-                          instrument_label, role_label)
+                          instrument_label, role_label, nice_date)
+    app.jinja_env.filters['nice_date'] = nice_date
     app.jinja_env.globals['_'] = translate
     app.jinja_env.globals['current_lang'] = get_lang
     app.jinja_env.globals['languages'] = LANGUAGES
