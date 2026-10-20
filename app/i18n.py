@@ -1052,3 +1052,44 @@ PL.update({
     'Tracks without “J:” (room mics, click) are skipped. Short names work too: V = Verse, C/R = Chorus, B = Bridge. Before sending the script shows what matched — a missing version or part is created, and if the markers differ from the tiles the form follows the recording (the old one stays in the history).':
         'Ślady bez „J:” (ambient, klik) są pomijane. Działają też skróty: Z = Zwrotka, R = Refren, B = Bridge. Przed wysłaniem skrypt pokazuje, co się dopasowało — brakująca wersja lub partia zostanie utworzona, a jeśli markery różnią się od kafelków, forma pójdzie za nagraniem (stara zostaje w historii).',
 })
+
+# ── Edytor piosenki: walidacja z numerami linii, podgląd, notacja ─────────
+PL.update({
+    'The song was not saved:': 'Piosenka nie została zapisana:',
+    'Line %(line)s: bracket “[” is never closed — add “]” after the chord.':
+        'Linia %(line)s: nawias „[” nie jest zamknięty — dopisz „]” po akordzie.',
+    'The key “%(key)s” is not a chord — use e.g. G, Em, F#, Bb.':
+        'Tonacja „%(key)s” to nie akord — wpisz np. G, Em, F#, Bb.',
+    'Chords written above the lyrics were moved into the text — check the result.':
+        'Akordy zapisane nad tekstem zostały przeniesione do tekstu — sprawdź wynik.',
+    'Section names in brackets, like [Chorus], are now plain labels.':
+        'Nazwy części w nawiasach, np. [Refren], zamieniono na zwykłe nazwy.',
+    'auto': 'auto', 'Chords are written in': 'Akordy zapisane w notacji',
+    'International (B = H, Bb)': 'Międzynarodowej (B = H, Bb)',
+    'Polish (H, B, Fis)': 'Polskiej (H, B, Fis)',
+    'Switch to Polish': 'Przełącz na polską', 'Convert now': 'Przenieś teraz',
+    'Preview': 'Podgląd', 'How to write a song': 'Jak zapisać piosenkę',
+    'Start typing — here you see the song exactly as the band will see it.':
+        'Zacznij pisać — tutaj widzisz piosenkę dokładnie tak, jak zobaczy ją zespół.',
+    'Copied a song with chords above the lyrics? Paste it as is — it gets converted when you save.':
+        'Kopiujesz piosenkę z akordami nad tekstem? Wklej ją tak, jak jest — przy zapisie sama się przerobi.',
+    'all chords recognized': 'wszystkie akordy rozpoznane',
+    'Line': 'Linia',
+    'bracket “[” is never closed — add “]” after the chord':
+        'nawias „[” nie jest zamknięty — dopisz „]” po akordzie',
+    'a “]” without “[” — it will show as text': 'samo „]” bez „[” — pokaże się jako tekst',
+    'double brackets [[ ]] — fixed when you save': 'podwójny nawias [[ ]] — poprawi się przy zapisie',
+    'section name in brackets — becomes a plain label when you save':
+        'nazwa części w nawiasie — przy zapisie stanie się zwykłą nazwą',
+    'not a chord we know': 'nierozpoznany akord',
+    'detected key': 'wykryta tonacja',
+    'These chords look like Polish notation (%(ex)s).':
+        'Te akordy wyglądają na polską notację (%(ex)s).',
+    'Careful: in Polish “B” means B♭, internationally it means H.':
+        'Uwaga: po polsku „B” to B♭, a w notacji międzynarodowej to H.',
+    'Lines %(lines)s have chords above the lyrics — they will be moved into the text when you save (the preview already shows it).':
+        'Linie %(lines)s mają akordy nad tekstem — przy zapisie trafią do tekstu (podgląd już to pokazuje).',
+    'Is this a section name? If it is a lyric, add a section name above it (e.g. Verse).':
+        'To nazwa części? Jeśli to tekst piosenki, dopisz nad nim nazwę części (np. Zwrotka).',
+    'no name': 'bez nazwy',
+})

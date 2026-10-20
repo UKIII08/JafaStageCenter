@@ -56,16 +56,43 @@ def _clean_link(raw):
     return ''
 
 
+ISSUE_TEXT = {
+    'unclosed': 'Line %(line)s: bracket “[” is never closed — add “]” after the chord.',
+    'bad_key': 'The key “%(key)s” is not a chord — use e.g. G, Em, F#, Bb.',
+}
+
+
 def _save_song_fields(song, form):
+    """Wypełnia piosenkę z formularza. Zwraca (błędy, uwagi): przy błędach
+    nic nie jest zapisywane, a formularz wraca z treścią użytkownika."""
+    errors, notes = [], []
     song.title = (form.get('title') or '').strip()[:200]
     song.link = _clean_link(form.get('link'))
     input_notation = form.get('input_notation', 'international')
     if input_notation not in NOTATIONS:
         input_notation = 'international'
     content = (form.get('content') or '').replace('\r', '')
+    # Błędy liczymy na tekście DOKŁADNIE takim, jak w edytorze — numery linii
+    # muszą się zgadzać z tym, co widzi użytkownik (przeróbki niżej je zmieniają).
+    report = mc.analyze_song(content, input_notation)
+    for issue in report['issues']:
+        if issue['kind'] == 'unclosed':
+            errors.append(_(ISSUE_TEXT['unclosed']) % {'line': issue['line']})
+    # Akordy wklejone „nad tekstem" (Ultimate Guitar itp.) — w tej formie
+    # rozjeżdżają się na każdym ekranie, więc przerabiamy je na [akord]tekst.
+    if report['above_lyrics']:
+        content, converted = mc.convert_chords_over_lyrics(content)
+        if converted:
+            notes.append(_('Chords written above the lyrics were moved into the text — check the result.'))
+    tidied, changes = mc.tidy_song_text(content)
+    if 'labels' in changes:
+        notes.append(_('Section names in brackets, like [Chorus], are now plain labels.'))
     song.content = mc.normalize_song_chords_to_international(
-        content, input_notation=input_notation)
-    key = (form.get('key') or '').strip()
+        tidied, input_notation=input_notation)
+    key = mc.canon_chord(form.get('key') or '')
+    if key and not mc.is_valid_chord(key):
+        errors.append(_(ISSUE_TEXT['bad_key']) % {'key': key})
+        key = ''
     if key:
         key = mc.normalize_chord_to_international(key,
                                                   input_notation=input_notation)
@@ -78,6 +105,16 @@ def _save_song_fields(song, form):
         song.bpm = max(0, min(300, int(form.get('bpm') or 0)))
     except ValueError:
         song.bpm = 0
+    return errors, notes
+
+
+def _form_again(song, is_new, church_id, membership, errors):
+    """Formularz z powrotem — z tym, co użytkownik wpisał, i listą błędów."""
+    return render_template('songs/form.html', song=song, is_new=is_new,
+                           errors=errors,
+                           draft=request.form,
+                           church=db.session.get(Church, church_id),
+                           membership=membership, user=current_user())
 
 
 # ── Biblioteka ──
@@ -100,15 +137,16 @@ def songs_list(church_id, membership):
 def song_new(church_id, membership):
     if request.method == 'POST':
         song = Song(church_id=church_id, created_by=current_user().id)
-        _save_song_fields(song, request.form)
+        errors, notes = _save_song_fields(song, request.form)
         if not song.title or not song.content.strip():
-            flash(_('Title and content are required.'))
-            return render_template('songs/form.html', song=song, is_new=True,
-                                   church=db.session.get(Church, church_id),
-                                   membership=membership, user=current_user())
+            errors.insert(0, _('Title and content are required.'))
+        if errors:
+            return _form_again(song, True, church_id, membership, errors)
         db.session.add(song)
         db.session.commit()
         flash(_('Added:') + ' ' + song.title)
+        for n in notes:
+            flash(n)
         return redirect(url_for('songs.song_view', church_id=church_id,
                                 song_id=song.id))
     return render_template('songs/form.html', song=None, is_new=True,
@@ -141,9 +179,17 @@ def song_view(church_id, song_id, membership):
 def song_edit(church_id, song_id, membership):
     song = _get_song(church_id, song_id)
     if request.method == 'POST':
-        _save_song_fields(song, request.form)
+        errors, notes = _save_song_fields(song, request.form)
+        if not song.title or not song.content.strip():
+            errors.insert(0, _('Title and content are required.'))
+        if errors:
+            page = _form_again(song, False, church_id, membership, errors)
+            db.session.rollback()          # nic z błędnego formularza nie trafia do bazy
+            return page
         db.session.commit()
         flash(_('Saved changes.'))
+        for n in notes:
+            flash(n)
         return redirect(url_for('songs.song_view', church_id=church_id,
                                 song_id=song.id))
     return render_template('songs/form.html', song=song, is_new=False,
@@ -178,7 +224,7 @@ def songs_import(church_id, membership):
                                 deleted=False).first():
             skipped.append(title)   # nie nadpisujemy po cichu
             return
-        body = mc.normalize_song_chords_to_international(body)
+        body = mc.prepare_song_content(body)
         if not key:
             key = mc.detect_key_algorithm(body)
         if key in ('N/A', '-'):
@@ -261,15 +307,29 @@ def api_convert_format():
 @songs_bp.post('/api/songs/analyze')
 @login_required
 def api_analyze():
-    """Walidacja akordów + sugestia tonacji dla edytora (debounce w JS)."""
-    text = (request.json or {}).get('text', '')
-    tokens = re.findall(r'\[([^\[\]]{1,15})\]', text)
-    bad = sorted({t for t in tokens if not mc.is_valid_chord(t)
-                  and not re.match(r'^(x\d+|\d+x)$', t.strip(), re.I)})
-    key = mc.detect_key_algorithm(text) if tokens else ''
-    if key in ('N/A', '-'):
-        key = ''
-    return jsonify({'total': len(tokens), 'invalid': bad, 'key': key})
+    """Edytor piosenki (debounce w JS): problemy z numerami linii, akordy
+    nierozpoznane, podpowiedź notacji i podgląd dokładnie takiej piosenki,
+    jaka zostanie zapisana i pokazana zespołowi."""
+    data = request.json or {}
+    text = (data.get('text') or '')[:SONG_MAX_CHARS * 2]
+    notation = data.get('notation') if data.get('notation') in NOTATIONS else 'international'
+    report = mc.analyze_song(text, notation)
+    # Podgląd = ta sama ścieżka co zapis (konwersja „nad tekstem" + porządki)
+    preview_src = text
+    if report['above_lyrics']:
+        preview_src, _c = mc.convert_chords_over_lyrics(preview_src)
+    tidied, changes = mc.tidy_song_text(preview_src)
+    stored = mc.normalize_song_chords_to_international(tidied, input_notation=notation)
+    sections = []
+    for sec in mc.parse_song_sections(stored):
+        _p, band, _x = mc.process_song(sec['content'])
+        auto = sec['label'].startswith('SLAJD ')
+        sections.append({'label': sec['label'], 'html': band, 'auto': auto,
+                         'known': auto or mc.is_section_label(sec['label'])})
+    report.update({'sections': sections, 'fixes': changes,
+                   # zgodność wstecz (stary edytor oczekiwał listy nazw)
+                   'invalid_names': [i['chord'] for i in report['invalid']]})
+    return jsonify(report)
 
 
 # ── Setlisty ──

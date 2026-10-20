@@ -510,6 +510,8 @@
         #next-slide-container .chord.capo { color: var(--green); opacity: 0.6; }
 
         .chord-only-line { display: block; }
+        .chord-line .chord-syl:empty, .chord-only-line .chord-syl:empty { display: none; }
+        .chord-only-line + br { display: none; }
         .chord-only-line .chord-pair .chord { font-size: 0.85em; }
 
         #current-slide .chord.hard-chord {
@@ -1628,10 +1630,17 @@
             return NOTES[((p % 12) + 12) % 12];
         }
 
+        // Podział akord/bas — ale C6/9 to jeden akord (cyfry po „/” to nie bas).
+        function splitBass(ch) {
+            const i = ch.indexOf('/');
+            if (i < 0) return null;
+            const tail = ch.slice(i + 1);
+            return (tail && !/^\d+$/.test(tail)) ? [ch.slice(0, i), tail] : null;
+        }
         function transposeChord(chord, semi) {
-            if (chord.includes('/')) {
-                const parts = chord.split('/');
-                return transposeChord(parts[0], semi) + '/' + transposeChord(parts.slice(1).join('/'), semi);
+            const parts = splitBass(chord);
+            if (parts) {
+                return transposeChord(parts[0], semi) + '/' + transposeChord(parts[1], semi);
             }
             const p = parseRoot(chord);
             if (!p) return chord;
@@ -1641,7 +1650,8 @@
         }
 
         function simplifyChord(chord) {
-            if (chord.includes('/')) chord = chord.split('/')[0];
+            const bs = splitBass(chord);
+            if (bs) chord = bs[0];
             const p = parseRoot(chord);
             if (!p) return chord;
             const isMinor = /^m(?!aj)/i.test(p.suffix);
@@ -1649,9 +1659,9 @@
         }
 
         function toNashville(chord, keyRoot) {
-            if (chord.includes('/')) {
-                const parts = chord.split('/');
-                return toNashville(parts[0], keyRoot) + '/' + toNashville(parts.slice(1).join('/'), keyRoot);
+            const parts = splitBass(chord);
+            if (parts) {
+                return toNashville(parts[0], keyRoot) + '/' + toNashville(parts[1], keyRoot);
             }
             const p = parseRoot(chord);
             if (!p) return chord;
@@ -1677,9 +1687,9 @@
         }
 
         function convertNotation(chord) {
-            if (chord.includes('/')) {
-                const parts = chord.split('/');
-                return convertNotation(parts[0]) + '/' + convertNotation(parts.slice(1).join('/'));
+            const parts = splitBass(chord);
+            if (parts) {
+                return convertNotation(parts[0]) + '/' + convertNotation(parts[1]);
             }
             const p = parseRoot(chord);
             if (!p) return chord;
@@ -1735,9 +1745,9 @@
         }
 
         function applyLowercaseMinorNashville(nashStr) {
-            if (nashStr.includes('/')) {
-                const parts = nashStr.split('/');
-                return applyLowercaseMinorNashville(parts[0]) + '/' + applyLowercaseMinorNashville(parts.slice(1).join('/'));
+            const parts = splitBass(nashStr);
+            if (parts) {
+                return applyLowercaseMinorNashville(parts[0]) + '/' + applyLowercaseMinorNashville(parts[1]);
             }
             const m = nashStr.match(/^([♭#]*\d+)(m)(.*)$/);
             if (m) return m[1].toLowerCase() + m[3];
@@ -1858,18 +1868,18 @@
                     el.setAttribute('onclick', 'showChordPopup(event, this.dataset.chord, this.dataset.chordDisplay)');
                 }
 
-                if (display.includes('/') && !isNashville) {
+                const bassParts = isNashville ? null : splitBass(display);
+                if (bassParts) {
                     // Buduj DOM-em, nie innerHTML — treść akordu pochodzi z pieśni
                     // (textContent ODKODOWUJE encje serwera), sklejanie stringów w
                     // innerHTML otwierało z powrotem drogę do wstrzyknięcia HTML.
-                    const parts = display.split('/');
                     el.textContent = '';
-                    el.appendChild(document.createTextNode(parts[0]));
+                    el.appendChild(document.createTextNode(bassParts[0]));
                     const slash = document.createElement('span');
                     slash.className = 'bass-slash'; slash.textContent = '/';
                     el.appendChild(slash);
                     const bass = document.createElement('span');
-                    bass.className = 'bass-note'; bass.textContent = parts.slice(1).join('/');
+                    bass.className = 'bass-note'; bass.textContent = bassParts[1];
                     el.appendChild(bass);
                 } else {
                     el.textContent = display;

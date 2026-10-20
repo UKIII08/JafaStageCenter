@@ -19,7 +19,9 @@ PITCH_CLASS_MAP = {
 }
 PITCH_CLASS_POLISH = {
     'CIS': 1, 'DIS': 3, 'FIS': 6, 'GIS': 8, 'AIS': 10,
-    'ES': 3, 'AS': 8, 'HIS': 0
+    'ES': 3, 'AS': 8, 'HIS': 0,
+    # polskie bemole pisane pełną nazwą (Des = Db, Ges = Gb, Ces = Cb, Fes = Fb)
+    'DES': 1, 'GES': 6, 'CES': 11, 'FES': 4,
 }
 TRANSPOSE_LOOKUP = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 TRANSPOSE_LOOKUP_PL = ['C', 'Cis', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H']
@@ -44,15 +46,48 @@ def _accidental_flavor(root_str, notation='international'):
     if notation == 'polish' and r.upper() == 'B':
         return 'flat'  # polskie B = Bb
     return None
-CHORD_ROOT_RE = re.compile(r'^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$')
+CHORD_ROOT_RE = re.compile(
+    r'^([AaEe][Ss](?![uU])|[CDFGcdfg][Ee][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$')
 VALID_CHORD_SUFFIX_RE = re.compile(r'^[majindugsMINDUGSAJ0-9#b()+\-/]*$')
+# „Bez akordu" — zespół milknie / gra tylko wokal. Ważny znacznik, nie transponuje się.
+NO_CHORD = {'N.C.', 'N.C', 'NC', 'n.c.', 'nc'}
+# Akord, w którym ukośnik NIE oznacza basu: C6/9, C69 itp. (cyfry po „/").
+_SLASH_DIGITS_RE = re.compile(r'^\d+$')
+
+# Symbole kopiowane ze stron i PDF-ów -> zapis, który rozumie silnik.
+_CHORD_SYMBOLS = (('♯', '#'), ('♭', 'b'), ('△', 'maj'), ('Δ', 'maj'), ('∆', 'maj'),
+                  ('°', 'dim'), ('º', 'dim'), ('ø', 'm7b5'), ('Ø', 'm7b5'),
+                  ('–', '-'), ('—', '-'), ('＃', '#'))
+
+
+def canon_chord(chord_str):
+    """Ujednolica zapis akordu: symbole unicode (F♯m, B♭, C△7, B°, Bø) na
+    zwykłe znaki i bez spacji wewnątrz nawiasu. Nie zmienia znaczenia."""
+    s = (chord_str or '').strip()
+    for a, b in _CHORD_SYMBOLS:
+        s = s.replace(a, b)
+    return re.sub(r'\s+', '', s)
+
+
+def bass_split(chord_str):
+    """(akord, bas) — bas tylko, gdy po „/" stoi nuta (D/F#), a nie cyfry (C6/9)."""
+    if '/' in chord_str:
+        head, tail = chord_str.split('/', 1)
+        if tail and not _SLASH_DIGITS_RE.match(tail):
+            return head, tail
+    return chord_str, None
+
 
 def is_valid_chord(chord_str):
     if not chord_str or not chord_str.strip():
         return False
     chord_str = chord_str.strip().rstrip('-').rstrip()
+    if chord_str in NO_CHORD:
+        return True
     if '/' in chord_str:
         parts = chord_str.split('/', 1)
+        if _SLASH_DIGITS_RE.match(parts[1]):      # C6/9 — ukośnik w nazwie, nie bas
+            return is_valid_chord(parts[0])
         return is_valid_chord(parts[0]) and (is_valid_chord(parts[1]) or parts[1].strip() == '')
     m = CHORD_ROOT_RE.match(chord_str)
     if not m:
@@ -252,6 +287,11 @@ def normalize_song_chords_to_international(content, input_notation='internationa
     def replace_chord(m):
         inner = m.group(1).strip()
         cleaned = clean_chord(inner)
+        # F♯m / B♭ / C△7 / „ Am7 " -> F#m / Bb / Cmaj7 / Am7 — tylko gdy po
+        # ujednoliceniu to akord (etykiet typu [x2] nie ruszamy).
+        canon = clean_chord(canon_chord(cleaned))
+        if canon != cleaned and is_valid_chord(canon):
+            cleaned = canon
         if '/' in cleaned:
             parts = cleaned.split('/', 1)
             if is_valid_chord(parts[0]):
@@ -388,9 +428,12 @@ def transpose_chord(match, shift, notation='international'):
             return f"{new_root.lower() if is_lower else new_root}{suffix}"
         return part
 
-    if '/' in full_chord:
-        parts = full_chord.split('/')
-        return f"[{trans_part(parts[0])}/{trans_part(parts[1])}]" if len(parts)>=2 else f"[{trans_part(full_chord)}]"
+    head, bass = bass_split(full_chord)
+    if bass is not None:
+        return f"[{trans_part(head)}/{trans_part(bass)}]"
+    if '/' in full_chord:                      # C6/9 — transponuj tylko rdzeń
+        root_part, rest = full_chord.split('/', 1)
+        return f"[{trans_part(root_part)}/{rest}]"
     return f"[{trans_part(full_chord)}]"
 
 def apply_transpose_to_single_chord(chord_str, shift, notation='international'):
@@ -435,6 +478,10 @@ def _format_chord_for_display(chord_str, notation='international', minor_display
         suffix = suffix[1:]
     return normalized + suffix
 
+_PAIR_RE = re.compile(r'<span class="chord-pair"><span class="chord">(?:(?!chord-syl).)*?</span>'
+                      r'<span class="chord-syl"></span></span>|&#8288;')
+
+
 def process_song(text, transpose_amount=0, notation='international', minor_display='uppercase'):
     if not text: return "", "", ""
     text = text.strip()
@@ -454,19 +501,21 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
     tokens = re.split(r'(\[.*?\])', text)
 
     def esc(s):
-        return (html.escape(s, quote=False)
-                .replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;')
-                .replace('  ', '&nbsp;&nbsp;'))
+        # Wielokrotne spacje i taby zachowują szerokość (&nbsp;), ale ostatnia
+        # spacja w serii zostaje zwykła — linia samych akordów („[G]  [D]  [Em]")
+        # może się wtedy zawinąć na wąskim ekranie zamiast wyjechać poza niego.
+        s = html.escape(s, quote=False).replace('\t', '    ')
+        return re.sub(r' {2,}', lambda m: '&nbsp;' * (len(m.group(0)) - 1) + ' ', s)
 
     def chord_inner_html(name):
-        c = html.escape(name, quote=False)  # escapuj nazwę akordu
-        if '/' in c:
-            parts = c.split('/')
-            c = (f"{parts[0]}<span class='bass-slash'>/</span>"
-                 f"<span class='bass-note'>{'/'.join(parts[1:])}</span>")
-        return c
+        head, bass = bass_split(name)
+        if bass is None:
+            return html.escape(name, quote=False)   # escapuj nazwę akordu
+        return (f"{html.escape(head, quote=False)}<span class='bass-slash'>/</span>"
+                f"<span class='bass-note'>{html.escape(bass, quote=False)}</span>")
 
     parts_out = []
+    prev_raw = ''      # surowy tekst przed parą (do decyzji o WORD JOINER)
     i = 0
     while i < len(tokens):
         token = tokens[i]
@@ -485,20 +534,29 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
                     syl = m.group(0)
                     tokens[i + 1] = tokens[i + 1][len(syl):]
             # Akord w środku słowa (Ła[G/B]ska): WORD JOINER przed parą
-            # zabrania złamania linii wewnątrz słowa.
-            if parts_out and not parts_out[-1].endswith('>') and parts_out[-1][-1:] and not parts_out[-1][-1:].isspace():
+            # zabrania złamania linii wewnątrz słowa. Decyduje SUROWY tekst
+            # przed akordem (po escapowaniu spacje są już encjami &nbsp;).
+            if prev_raw and not prev_raw[-1].isspace():
                 parts_out.append('&#8288;')
             parts_out.append(
                 f'<span class="chord-pair"><span class="chord">{chord_inner_html(name)}</span>'
                 f'<span class="chord-syl">{esc(syl)}</span></span>')
+            prev_raw = syl
         else:
             # escapuj tekst pieśni PRZED zamianą tab/spacji na &nbsp; (żeby nie
             # podwójnie escapować wstawianych encji)
             parts_out.append(esc(token))
+            prev_raw = token
         i += 1
 
     text_smart = ''.join(parts_out)
-    text_band = text_smart.replace('\n', '<br>')
+    # Linia samych akordów (intro, przejście): bez pustego wiersza sylab pod
+    # akordami — CSS .chord-line chowa puste .chord-syl.
+    def mark_chord_line(line):
+        if 'chord-pair' in line and not _PAIR_RE.sub('', line).replace('&nbsp;', '').strip():
+            return f'<span class="chord-line">{line}</span>'
+        return line
+    text_band = '<br>'.join(mark_chord_line(ln) for ln in text_smart.split('\n'))
     blocks = re.split(r'\n\s*\n', text_smart)
     html_blocks = []
     
@@ -663,6 +721,140 @@ def parse_chordpro(text):
         if parsed['content'] or parsed['title']:
             songs.append(parsed)
     return songs
+
+
+# ── Porządki przy zapisie i analiza dla edytora ──────────────────────────
+# Nazwy części, które ludzie wpisują jako etykiety (PL/EN, z numerem, „:" , „x2").
+_SECTION_WORD_RE = re.compile(
+    r'^\(?\s*(intro|wst[eę]p|zwrotka|zw|verse|strofa|refren|ref|chorus|pre[- ]?chorus|'
+    r'przedrefren|przed[- ]refren|bridge|mostek|most|tag|coda|outro|zako[nń]czenie|'
+    r'koniec|ending|interlude|interludium|przerywnik|solo|instrumental|vamp|break|'
+    r'modlitwa|recytacja|outro|ko[nń]c[oó]wka)\b[\s\d.:x×\-]*\)?:?$', re.I)
+_BRACKET_LABEL_RE = re.compile(r'^\[([^\[\]]{1,40})\]$')
+_PAREN_LABEL_RE = re.compile(r'^\(([^()]{1,40})\)$')
+
+
+def is_section_label(line):
+    """Czy linia to typowa nazwa części (Zwrotka 1, Refren:, Bridge x2…)?"""
+    return bool(_SECTION_WORD_RE.match((line or '').strip()))
+
+
+def tidy_song_text(text):
+    """Bezpieczne poprawki zapisu (nie zmieniają akordów ani tekstu):
+    - samodzielna linia „[Refren]" / „(Refren)" → etykieta „Refren"
+      (gdy w środku nie ma akordu — [Am] zostaje akordem),
+    - „[[G]]" → „[G]", puste „[]" znikają,
+    - spacje na końcu linii i nadmiar pustych linii.
+    Zwraca (tekst, lista_zmian)."""
+    if not text:
+        return text, []
+    changes = set()
+    out = []
+    for line in text.replace('\r', '').split('\n'):
+        s = line.strip()
+        m = _BRACKET_LABEL_RE.match(s) or (
+            _PAREN_LABEL_RE.match(s) if is_section_label(s) else None)
+        if m and not is_valid_chord(canon_chord(m.group(1))):
+            line = m.group(1).strip()
+            changes.add('labels')
+        if '[[' in line or ']]' in line:
+            fixed = re.sub(r'\[\[+([^\[\]]*)\]+\]', r'[\1]', line)
+            if fixed != line:
+                line = fixed
+                changes.add('double_brackets')
+        if '[]' in line:
+            line = re.sub(r'\[\s*\]', '', line)
+            changes.add('empty_brackets')
+        out.append(line.rstrip())
+    result = re.sub(r'\n{3,}', '\n\n', '\n'.join(out)).strip('\n')
+    return result, sorted(changes)
+
+
+def prepare_song_content(content, input_notation='international'):
+    """Wspólna ścieżka zapisu piosenki (panel, Studio, import): bezpieczne
+    porządki + ujednolicenie akordów do notacji międzynarodowej."""
+    tidied, _changes = tidy_song_text(content or '')
+    return normalize_song_chords_to_international(tidied, input_notation=input_notation)
+
+
+def _polish_markers(chords):
+    """Akordy, które w notacji międzynarodowej nie występują (H, Fis, Des, małe
+    litery = moll) — znak, że piosenkę zapisano po polsku."""
+    hits = []
+    for c in chords:
+        head = bass_split(c)[0]
+        m = CHORD_ROOT_RE.match(head)
+        if not m:
+            continue
+        root = m.group(1)
+        low = root.lower()
+        if (low == 'h' or low.endswith('is')
+                or low in ('es', 'as', 'des', 'ges', 'ces', 'fes')
+                or (len(root) == 1 and root.islower())):
+            hits.append(c)
+    return hits
+
+
+def analyze_song(text, input_notation='international'):
+    """Analiza dla edytora piosenki — to, co zobaczy użytkownik, zanim zapisze:
+    problemy z numerami linii, akordy nierozpoznane, wykryte „akordy nad
+    tekstem", podpowiedź notacji i podział na części (jak u zespołu)."""
+    text = (text or '').replace('\r', '')
+    lines = text.split('\n')
+    issues, invalid, tokens = [], {}, []
+    above = []
+    for n, line in enumerate(lines, start=1):
+        # „[[G]]" naprawiają porządki przy zapisie — sprawdzamy już po nich
+        scan = re.sub(r'\[\[+([^\[\]]*)\]+\]', r'[\1]', line)
+        if scan != line:
+            issues.append({'line': n, 'kind': 'double_brackets', 'text': line.strip()[:60]})
+        opened_at = -1
+        for i, ch in enumerate(scan):
+            if ch == '[':
+                if opened_at >= 0:      # nowy „[" zanim zamknięto poprzedni
+                    issues.append({'line': n, 'kind': 'unclosed',
+                                   'text': scan[opened_at:i].strip()[:30]})
+                opened_at = i
+            elif ch == ']':
+                if opened_at < 0:
+                    issues.append({'line': n, 'kind': 'stray_close', 'text': scan.strip()[:60]})
+                opened_at = -1
+        if opened_at >= 0:
+            issues.append({'line': n, 'kind': 'unclosed', 'text': scan[opened_at:opened_at + 30].strip()})
+        line = scan
+        for tok in re.findall(r'\[([^\[\]]*)\]', line):
+            t = canon_chord(tok)
+            if not t:
+                continue
+            if _BRACKET_LABEL_RE.match(line.strip()) and not is_valid_chord(t):
+                issues.append({'line': n, 'kind': 'label_brackets', 'text': tok})
+                continue
+            if re.match(r'^(x\s?\d+|\d+\s?x|×\d+)$', t, re.I):
+                continue                                  # [x2] — powtórzenie
+            tokens.append(t)
+            if not is_valid_chord(t):
+                invalid.setdefault(tok.strip(), []).append(n)
+        s = line.strip()
+        if s and '[' not in s and _is_chords_over_lyrics_line(s):
+            above.append(n)
+    hard = [i for i in issues if i['kind'] == 'unclosed']
+    hint = None
+    if input_notation != 'polish':
+        pl = _polish_markers(tokens)
+        if pl:
+            hint = {'notation': 'polish', 'examples': sorted(set(pl))[:4],
+                    'has_b': any(CHORD_ROOT_RE.match(t) and CHORD_ROOT_RE.match(t).group(1) in ('B', 'b')
+                                 for t in tokens)}
+    key = detect_key_algorithm(text) if tokens else ''
+    return {
+        'total': len(tokens),
+        'invalid': [{'chord': c, 'lines': ls} for c, ls in invalid.items()],
+        'issues': issues,
+        'hard': bool(hard),
+        'above_lyrics': above,
+        'notation_hint': hint,
+        'key': '' if key in ('N/A', '-') else key,
+    }
 
 
 def parse_song_sections(content):

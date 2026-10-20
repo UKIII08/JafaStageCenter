@@ -8,5 +8,7 @@
 }
 .song-render .chord-pair .chord-syl { display: block; white-space: nowrap; }
 .song-render .chord-pair .chord-syl:empty::before { content: "\200B"; }
+/* Linia samych akordów: bez pustego wiersza tekstu pod nimi. */
+.song-render .chord-line .chord-syl:empty { display: none; }
 .song-render .bass-slash { color: var(--text-tertiary, #888); opacity: .8; }
 .song-render .bass-note { color: #2dce89; font-weight: 800; font-size: .95em; }
