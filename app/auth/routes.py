@@ -17,6 +17,40 @@ from app.i18n import translate as _
 auth_bp = Blueprint('auth', __name__)
 
 
+def start_session(user):
+    """Logowanie: sesja wiąże się z bieżącym hasłem (odcisk „pwk")."""
+    session['user_id'] = user.id
+    session['pwk'] = _pw_key(user)
+
+
+def valid_session_uid():
+    """user_id z sesji, ale tylko gdy hasło od zalogowania się nie zmieniło.
+    Po zmianie/resecie hasła wszystkie inne urządzenia tracą sesję."""
+    uid = session.get('user_id')
+    if not uid:
+        return None
+    user = db.session.get(User, uid)
+    if not user:
+        return None
+    pwk = session.get('pwk')
+    if pwk is not None and pwk != _pw_key(user):
+        return None
+    return uid
+
+
+@auth_bp.before_app_request
+def _check_session():
+    uid = session.get('user_id')
+    if not uid:
+        return
+    if valid_session_uid() is None:
+        session.clear()
+        g._user = None
+    elif 'pwk' not in session:
+        # Sesje sprzed tej zmiany — przypinamy do obecnego hasła.
+        session['pwk'] = _pw_key(db.session.get(User, uid))
+
+
 def current_user():
     uid = session.get('user_id')
     if not uid:
@@ -85,8 +119,11 @@ def register():
                     password_hash=generate_password_hash(password))
         db.session.add(user)
         db.session.commit()
-        session['user_id'] = user.id
-        _send_verification(user)
+        start_session(user)
+        try:
+            _send_verification(user)
+        except Exception:
+            current_app.logger.exception('verification e-mail failed')
         return redirect(_safe_next(request.args.get('next')))
     return render_template('auth/register.html')
 
@@ -111,7 +148,7 @@ def login():
                                     next=request.args.get('next') or ''))
         user.last_login_at = datetime.utcnow()
         db.session.commit()
-        session['user_id'] = user.id
+        start_session(user)
         session['show_welcome'] = True   # ekran powitalny raz, po zalogowaniu
         return redirect(_safe_next(request.args.get('next')))
     return render_template('auth/login.html')
@@ -129,7 +166,7 @@ def login_2fa():
         code = (request.form.get('code') or '').strip()
         if user and pyotp.TOTP(user.totp_secret).verify(code, valid_window=1):
             session.pop('pending_2fa', None)
-            session['user_id'] = user.id
+            start_session(user)
             session['show_welcome'] = True   # ekran powitalny raz, po zalogowaniu
             user.last_login_at = datetime.utcnow()
             db.session.commit()
@@ -278,7 +315,10 @@ def _send_verification(user):
 def verify_send():
     user = current_user()
     if not user.email_verified_at:
-        _send_verification(user)
+        try:
+            _send_verification(user)
+        except Exception:
+            current_app.logger.exception('verification e-mail failed')
         flash(_('We\'ve sent a verification link to your e-mail address.'))
     return redirect(url_for('auth.account'))
 

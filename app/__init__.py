@@ -38,6 +38,8 @@ def create_app(config_object='app.config.Config'):
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     db.init_app(app)
     limiter.init_app(app)
+    from app.security import init_security
+    init_security(app)
     socketio.init_app(app, cors_allowed_origins=[],
                       message_queue=os.environ.get('REDIS_URL')
                       if not app.config.get('TESTING') else None,
@@ -148,12 +150,13 @@ def _register_socket_handlers(app):
     from flask_socketio import emit
     from app.live import state as live_state
     from app.models import Membership, ScreenToken
+    from app.auth.routes import valid_session_uid
 
     def _authorized(data):
         church_id = (data or {}).get('church_id')
         if not church_id:
             return None
-        uid = session.get('user_id')
+        uid = valid_session_uid()
         if uid and Membership.query.filter_by(
                 user_id=uid, church_id=church_id, status='active').first():
             return church_id
@@ -166,7 +169,7 @@ def _register_socket_handlers(app):
     def _leader(data):
         """Zapis stanu tylko dla prowadzącego/admina zalogowanego w panelu."""
         church_id = (data or {}).get('church_id')
-        uid = session.get('user_id')
+        uid = valid_session_uid()
         if not (church_id and uid):
             return None
         m = Membership.query.filter_by(user_id=uid, church_id=church_id,
