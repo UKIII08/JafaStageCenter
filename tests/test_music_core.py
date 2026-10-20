@@ -157,3 +157,11 @@ def test_analyze_song_notation_and_above_lyrics():
     assert mc.analyze_song('[H]a [Fis]b', 'polish')['notation_hint'] is None
     r = mc.analyze_song('Zwrotka\nG       D\nAla ma kota')
     assert r['above_lyrics'] == [2]
+
+
+def test_chord_only_line_is_marked():
+    band = mc.process_song('[G] [D/F#]  [Em]\n[Em]Ty [G]\nAla')[1]
+    lines = band.split('<br>')
+    assert lines[0].startswith('<span class="chord-line">')
+    assert 'chord-line' not in lines[1]     # tekst z akordem na końcu to nie linia akordów
+    assert 'chord-line' not in lines[2]

@@ -478,6 +478,10 @@ def _format_chord_for_display(chord_str, notation='international', minor_display
         suffix = suffix[1:]
     return normalized + suffix
 
+_PAIR_RE = re.compile(r'<span class="chord-pair"><span class="chord">(?:(?!chord-syl).)*?</span>'
+                      r'<span class="chord-syl"></span></span>|&#8288;')
+
+
 def process_song(text, transpose_amount=0, notation='international', minor_display='uppercase'):
     if not text: return "", "", ""
     text = text.strip()
@@ -546,7 +550,13 @@ def process_song(text, transpose_amount=0, notation='international', minor_displ
         i += 1
 
     text_smart = ''.join(parts_out)
-    text_band = text_smart.replace('\n', '<br>')
+    # Linia samych akordów (intro, przejście): bez pustego wiersza sylab pod
+    # akordami — CSS .chord-line chowa puste .chord-syl.
+    def mark_chord_line(line):
+        if 'chord-pair' in line and not _PAIR_RE.sub('', line).replace('&nbsp;', '').strip():
+            return f'<span class="chord-line">{line}</span>'
+        return line
+    text_band = '<br>'.join(mark_chord_line(ln) for ln in text_smart.split('\n'))
     blocks = re.split(r'\n\s*\n', text_smart)
     html_blocks = []
     

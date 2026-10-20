@@ -213,6 +213,7 @@
         .chord-pair .chord-syl { display: block; white-space: nowrap; }
         /* pusta sylaba (kolejny akord obok / koniec linii) trzyma wysokość wiersza */
         .chord-pair .chord-syl:empty::before { content: "\200B"; }
+        .chord-line .chord-syl:empty { display: none; }
         /* Dodatek dla basistów */
         .bass-slash {
             color: var(--text-muted);
@@ -481,10 +482,18 @@
             return null;
         }
 
+        // Podział akord/bas — ale C6/9 to jeden akord (cyfry po „/” to nie bas).
+        function splitBass(ch) {
+            const i = ch.indexOf('/');
+            if (i < 0) return null;
+            const tail = ch.slice(i + 1);
+            return (tail && !/^\d+$/.test(tail)) ? [ch.slice(0, i), tail] : null;
+        }
+
         function stageConvertChord(chord) {
-            if (chord.includes('/')) {
-                const parts = chord.split('/');
-                return stageConvertChord(parts[0]) + '/' + stageConvertChord(parts.slice(1).join('/'));
+            const parts = splitBass(chord);
+            if (parts) {
+                return stageConvertChord(parts[0]) + '/' + stageConvertChord(parts[1]);
             }
             const m = chord.match(STAGE_CHORD_RE);
             if (!m) return chord;
@@ -507,9 +516,9 @@
         }
 
         function stageToNashville(chord, keyRoot) {
-            if (chord.includes('/')) {
-                const parts = chord.split('/');
-                return stageToNashville(parts[0], keyRoot) + '/' + stageToNashville(parts.slice(1).join('/'), keyRoot);
+            const parts = splitBass(chord);
+            if (parts) {
+                return stageToNashville(parts[0], keyRoot) + '/' + stageToNashville(parts[1], keyRoot);
             }
             const p = stageParseRoot(chord);
             if (!p) return chord;
@@ -526,9 +535,9 @@
         }
 
         function applyLowercaseMinorNashville(nashStr) {
-            if (nashStr.includes('/')) {
-                const parts = nashStr.split('/');
-                return applyLowercaseMinorNashville(parts[0]) + '/' + applyLowercaseMinorNashville(parts.slice(1).join('/'));
+            const parts = splitBass(nashStr);
+            if (parts) {
+                return applyLowercaseMinorNashville(parts[0]) + '/' + applyLowercaseMinorNashville(parts[1]);
             }
             const m = nashStr.match(/^([♭#]*\d+)(m)(.*)$/);
             if (m) return m[1].toLowerCase() + m[3];
@@ -552,18 +561,18 @@
                 } else {
                     converted = stageConvertChord(raw);
                 }
-                if (converted.includes('/')) {
+                const bassParts = splitBass(converted);
+                if (bassParts) {
                     // Buduj DOM-em, nie innerHTML — treść akordu pochodzi z pieśni
                     // (textContent ODKODOWUJE encje serwera), więc sklejanie stringów
                     // w innerHTML otwierało z powrotem drogę do wstrzyknięcia HTML.
-                    const parts = converted.split('/');
                     el.textContent = '';
-                    el.appendChild(document.createTextNode(parts[0]));
+                    el.appendChild(document.createTextNode(bassParts[0]));
                     const slash = document.createElement('span');
                     slash.className = 'bass-slash'; slash.textContent = '/';
                     el.appendChild(slash);
                     const bass = document.createElement('span');
-                    bass.className = 'bass-note'; bass.textContent = parts.slice(1).join('/');
+                    bass.className = 'bass-note'; bass.textContent = bassParts[1];
                     el.appendChild(bass);
                 } else {
                     el.textContent = converted;
