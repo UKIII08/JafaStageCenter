@@ -132,3 +132,46 @@ def test_open_redirect_blocked(app, client):
     assert r.status_code == 302 and 'evil.com' not in r.headers['Location']
     r2 = client.get('/lang/en?next=https://evil.com')
     assert r2.status_code == 302 and 'evil.com' not in r2.headers['Location']
+
+
+def test_password_reset_logs_out_other_devices(app):
+    phone, laptop = app.test_client(), app.test_client()
+    register(phone, 'd@d.pl')
+    login(laptop, 'd@d.pl')
+    assert laptop.get('/account').status_code == 200
+    with app.app_context():
+        from app.auth.routes import _reset_serializer, _pw_key
+        u = User.query.filter_by(email='d@d.pl').first()
+        token = _reset_serializer().dumps({'uid': u.id, 'k': _pw_key(u)})
+    anon = app.test_client()
+    anon.post(f'/reset/{token}', data={'password': 'noweHaslo123'})
+    # stare sesje (telefon, laptop) przestają działać
+    assert phone.get('/account').status_code == 302
+    assert laptop.get('/account').status_code == 302
+    # nowe logowanie nowym hasłem działa
+    laptop.post('/login', data={'email': 'd@d.pl', 'password': 'noweHaslo123'})
+    assert laptop.get('/account').status_code == 200
+
+
+def test_cross_site_post_blocked(app, client):
+    register(client, 'c@c.pl')
+    r = client.post('/church/create', data={'name': 'Zly'},
+                    headers={'Origin': 'https://evil.example'})
+    assert r.status_code == 403
+    r = client.post('/church/create', data={'name': 'Zly'},
+                    headers={'Referer': 'https://evil.example/x'})
+    assert r.status_code == 403
+    with app.app_context():
+        assert Church.query.filter_by(name='Zly').count() == 0
+    # ta sama strona i klienci bez nagłówków (desktop) — przechodzą
+    r = client.post('/church/create', data={'name': 'Dobry'},
+                    headers={'Origin': 'http://localhost'})
+    assert r.status_code in (200, 302)
+    with app.app_context():
+        assert Church.query.filter_by(name='Dobry').count() == 1
+
+
+def test_security_headers(client):
+    r = client.get('/login')
+    assert r.headers['X-Content-Type-Options'] == 'nosniff'
+    assert r.headers['X-Frame-Options'] == 'SAMEORIGIN'
