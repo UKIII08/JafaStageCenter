@@ -1,76 +1,172 @@
 {% extends 'base.html' %}
+{% block title %}{{ _('Add song') if is_new else _('Edit:') + ' ' + song.title }}{% endblock %}
 {% block content %}
-<div class="panel" style="max-width:1060px;">
-    <h2>{{ _('Add song') if is_new else _('Edit:') + ' ' + song.title }}</h2>
+{% set d = draft if draft is defined and draft else {} %}
+{% set notation = d.get('input_notation') or 'international' %}
+<style>
+    .se-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr); gap: 40px; align-items: start; }
+    .se-fields { display: grid; grid-template-columns: minmax(0, 3fr) minmax(90px, 1fr) minmax(90px, 1fr); gap: 12px; }
+    .se-fields label, .se-row label { margin-top: 0; }
+    .se-row { margin-top: 18px; }
+    .se-notation { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+    .se-notation .lbl { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+    .se-editor { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr); margin-top: 18px;
+        border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--bg-input); overflow: hidden; }
+    .se-editor:focus-within { border-color: var(--accent); }
+    /* Ta sama wysokość wiersza w px co w polu tekstu — numery nie mogą „odjeżdżać". */
+    .se-gutter { padding: 10px 8px 10px 0; text-align: right; font-family: var(--font-mono); font-size: 12px; line-height: 23px;
+        color: var(--text-tertiary); user-select: none; overflow: hidden; border-right: 1px solid var(--border-default); white-space: pre; }
+    .se-gutter b { color: #F06A6A; font-weight: 700; }
+    #song-content { border: 0; border-radius: 0; background: transparent; min-height: 420px; resize: vertical;
+        font-family: var(--font-mono); font-size: 13.5px; line-height: 23px; padding: 10px 12px; white-space: pre; overflow-x: auto; }
+    #song-content:focus { outline: none; }
+    .se-status { margin-top: 10px; font-size: 13.5px; color: var(--text-secondary); min-height: 1.4em; }
+    .se-status.ok { color: var(--text-secondary); }
+    .se-status b { color: var(--text-primary); font-weight: 600; }
+    .se-issues { list-style: none; margin: 10px 0 0; padding: 0; }
+    .se-issues li { display: flex; gap: 10px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--border-default);
+        font-size: 13.5px; cursor: pointer; }
+    .se-issues li:hover .t { color: var(--text-primary); }
+    .se-issues .ln { flex: 0 0 64px; font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); }
+    .se-issues .t { color: var(--text-secondary); }
+    .se-issues li.err .ln, .se-issues li.err .t b { color: #F06A6A; }
+    .se-issues li.fix .ln { color: var(--text-accent); }
+    .se-note { margin-top: 12px; padding: 12px 14px; border-radius: var(--r-md); border: 1px solid var(--accent-line);
+        background: var(--accent-subtle); font-size: 13.5px; color: var(--text-primary); display: flex; gap: 12px;
+        align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    .se-note[hidden] { display: none; }
+    .se-errors { margin-bottom: 28px; padding: 14px 16px; border: 1px solid rgba(240,106,106,.5); border-radius: var(--r-md);
+        background: rgba(240,106,106,.08); font-size: 14px; }
+    .se-errors li { margin: 2px 0; }
+    .se-actions { margin-top: 24px; display: flex; gap: 8px; }
 
-    <div class="song-editor-grid">
-        <form method="POST" class="song-editor-form">
-            <div class="form-row">
-                <input name="title" placeholder="{{ _('Title') }}" required style="flex:3; min-width:220px;" value="{{ song.title if song else '' }}">
-                <input name="key" id="song-key" placeholder="{{ _('Key') }}" style="flex:1; min-width:90px;" value="{{ song.key if song else '' }}">
-                <input name="bpm" type="number" min="0" max="300" placeholder="{{ _('BPM') }}" style="flex:1; min-width:90px;" value="{{ song.bpm if song and song.bpm else '' }}">
-            </div>
-            <label>{{ _('Recording link (optional)') }}</label>
-            <input name="link" type="url" inputmode="url"
+    .se-side { position: sticky; top: 24px; }
+    .se-tabs { margin-bottom: 18px; }
+    .se-preview { max-height: calc(100vh - 140px); overflow-y: auto; padding-right: 6px; }
+    .pv-sec { padding: 16px 0; border-top: 1px solid var(--border-default); }
+    .pv-sec:first-child { border-top: 0; padding-top: 0; }
+    .pv-label { display: flex; align-items: baseline; gap: 10px; font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+    .pv-label .auto { font-weight: 400; color: var(--text-tertiary); font-size: 12.5px; }
+    .pv-warn { font-size: 12.5px; color: var(--text-accent); font-weight: 400; }
+    .pv-empty { color: var(--text-tertiary); font-size: 14px; }
+    .se-preview .song-render { font-size: 17px; }
+    @media (max-width: 1000px) {
+        .se-grid { grid-template-columns: 1fr; }
+        .se-side { position: static; }
+        .se-preview { max-height: none; }
+    }
+    @media (max-width: 600px) { .se-fields { grid-template-columns: 1fr 1fr; } .se-fields > :first-child { grid-column: 1 / -1; } }
+</style>
+
+<div class="page-head"><h1>{{ _('Add song') if is_new else _('Edit:') + ' ' + song.title }}</h1></div>
+
+{% if errors %}
+<div class="se-errors" role="alert">
+    <b>{{ _('The song was not saved:') }}</b>
+    <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<form method="POST" id="song-form">
+<div class="se-grid">
+    <div>
+        <div class="se-fields">
+            <div><label for="f-title">{{ _('Title') }}</label>
+                <input id="f-title" name="title" required value="{{ d.get('title', song.title if song else '') }}"></div>
+            <div><label for="song-key">{{ _('Key') }}</label>
+                <input name="key" id="song-key" placeholder="{{ _('auto') }}" value="{{ d.get('key', song.key if song else '') }}"></div>
+            <div><label for="f-bpm">{{ _('BPM') }}</label>
+                <input id="f-bpm" name="bpm" type="number" min="0" max="300" value="{{ d.get('bpm', song.bpm if song and song.bpm else '') }}"></div>
+        </div>
+        <div class="se-row">
+            <label for="f-link">{{ _('Recording link (optional)') }}</label>
+            <input id="f-link" name="link" type="url" inputmode="url"
                    placeholder="{{ _('YouTube, Spotify, Google Drive… — anything to practice with') }}"
-                   value="{{ song.link if song and song.link else '' }}">
-            <div class="form-row" style="align-items:center; margin-top:var(--s3);">
-                <div style="flex:1; min-width:200px;">
-                    <label style="margin-top:0;">{{ _('Input notation') }}</label>
-                    <select name="input_notation">
-                        <option value="international">{{ _('International (Bb, B)') }}</option>
-                        <option value="polish">{{ _('Polish (B, H, Cis, Fis)') }}</option>
-                    </select>
-                </div>
-                <button type="button" class="btn-ghost btn" id="convert-format-btn" style="flex:0 0 auto; align-self:flex-end;">{{ _('Convert chords-above-lyrics') }}</button>
+                   value="{{ d.get('link', song.link if song and song.link else '') }}">
+        </div>
+
+        <div class="se-notation">
+            <span class="lbl">{{ _('Chords are written in') }}</span>
+            <input type="hidden" name="input_notation" id="f-notation" value="{{ notation }}">
+            <div class="seg" id="notation-seg">
+                <button type="button" data-v="international" class="{{ 'active' if notation == 'international' }}">{{ _('International (B = H, Bb)') }}</button>
+                <button type="button" data-v="polish" class="{{ 'active' if notation == 'polish' }}">{{ _('Polish (H, B, Fis)') }}</button>
             </div>
+        </div>
 
-            <label>{{ _('Song') }}</label>
-            <textarea name="content" id="song-content" rows="16" spellcheck="false"
-                style="font-family:'JetBrains Mono',ui-monospace,monospace; line-height:1.7;"
-                placeholder="Intro&#10;[G] [D] [Em] [C]&#10;&#10;Verse 1&#10;[C]Song lyrics [Am]with chords&#10;&#10;Chorus&#10;[F]Chorus lyrics [C]more">{{ song.content if song else '' }}</textarea>
-            <div id="chord-status" class="song-status" style="min-height:1.4em; margin-top:var(--s2);"></div>
+        <div class="se-editor">
+            <div class="se-gutter" id="gutter" aria-hidden="true">1</div>
+            <textarea name="content" id="song-content" spellcheck="false" wrap="off"
+                placeholder="Intro&#10;[G] [D] [Em] [C]&#10;&#10;Zwrotka 1&#10;[G]Tu jest tekst [C]z akordami&#10;&#10;Refren&#10;[C]Refren [G]dalej">{{ d.get('content', song.content if song else '') }}</textarea>
+        </div>
+        <div class="se-status" id="chord-status"></div>
+        <div class="se-note" id="hint-notation" hidden>
+            <span id="hint-notation-text"></span>
+            <button type="button" class="btn btn-sm" id="hint-notation-btn">{{ _('Switch to Polish') }}</button>
+        </div>
+        <div class="se-note" id="hint-above" hidden>
+            <span id="hint-above-text"></span>
+            <button type="button" class="btn btn-sm" id="convert-format-btn">{{ _('Convert now') }}</button>
+        </div>
+        <ul class="se-issues" id="issues"></ul>
 
-            <div style="margin-top:var(--s4); display:flex; gap:var(--s2);">
-                <button type="submit">{{ _('Save to library') if is_new else _('Save changes') }}</button>
-                <a class="btn-ghost btn" href="{{ url_for('songs.songs_list', church_id=church.id) }}">{{ _('Cancel') }}</a>
-            </div>
-        </form>
+        <div class="se-actions">
+            <button type="submit">{{ _('Save to library') if is_new else _('Save changes') }}</button>
+            <a class="btn btn-ghost" href="{{ url_for('songs.songs_list', church_id=church.id) if is_new else url_for('songs.song_view', church_id=church.id, song_id=song.id) }}">{{ _('Cancel') }}</a>
+        </div>
+    </div>
 
-        <aside class="song-help">
-            <div class="card-header" style="margin-bottom:var(--s3);">{{ _('How to format a song') }}</div>
+    <aside class="se-side">
+        <div class="seg se-tabs" id="side-tabs">
+            <button type="button" data-tab="preview" class="active">{{ _('Preview') }}</button>
+            <button type="button" data-tab="help">{{ _('How to write a song') }}</button>
+        </div>
+        <div class="se-preview" id="tab-preview">
+            <div class="pv-empty" id="preview">{{ _('Start typing — here you see the song exactly as the band will see it.') }}</div>
+        </div>
+        <div id="tab-help" hidden>
             <ul class="song-help-rules">
                 <li>{{ _('Put chords in square brackets, right before the word:') }} <code>[Am]word [G]next</code></li>
                 <li>{{ _('Start each section with a label on its own line — Intro, Verse, Chorus, Bridge… (any language).') }}</li>
                 <li>{{ _('Separate sections with one blank line.') }}</li>
                 <li>{{ _('A section can be chords only, with no lyrics — perfect for an intro or instrumental. Just write a line of chords.') }}</li>
+                <li>{{ _('Copied a song with chords above the lyrics? Paste it as is — it gets converted when you save.') }}</li>
             </ul>
             <div class="song-help-eg-label">{{ _('Example') }}</div>
 <pre class="song-help-eg"><span class="hl-sec">Intro</span>
 <span class="hl-ch">[G] [D] [Em] [C]</span>
 
-<span class="hl-sec">Verse 1</span>
+<span class="hl-sec">Zwrotka 1</span>
 <span class="hl-ch">[G]</span>Here's a line <span class="hl-ch">[C]</span>with some <span class="hl-ch">[G]</span>chords
 <span class="hl-ch">[Em]</span>and the next <span class="hl-ch">[C]</span>line be<span class="hl-ch">[D]</span>low
 
-<span class="hl-sec">Chorus</span>
+<span class="hl-sec">Refren</span>
 <span class="hl-ch">[G]</span>Sections split <span class="hl-ch">[C]</span>with a blank <span class="hl-ch">[D]</span>line</pre>
-            <p class="hint" style="margin:var(--s3) 0 0;">{{ _('The Intro above has chords only — no lyrics. Any section can be like that.') }}</p>
-        </aside>
-    </div>
+        </div>
+    </aside>
 </div>
+</form>
 
+<script src="{{ url_for('static', filename='js/chords-client.js') }}"></script>
 <script>
   window.SONG_EDITOR_I18N = {
-    chords: {{ _('chords')|tojson }},
-    sections: {{ _('sections')|tojson }},
-    allValid: {{ _('all recognized')|tojson }},
-    notRecognized: {{ _('not recognized')|tojson }},
-    unclosed: {{ _('Unclosed bracket “[” — every chord needs a closing “]”.')|tojson }},
+    chords: {{ _('chords')|tojson }}, sections: {{ _('parts')|tojson }},
+    allValid: {{ _('all chords recognized')|tojson }},
     noChords: {{ _('No chords yet — put them in [brackets], e.g. [Am].')|tojson }},
+    line: {{ _('Line')|tojson }},
+    unclosed: {{ _('bracket “[” is never closed — add “]” after the chord')|tojson }},
+    stray: {{ _('a “]” without “[” — it will show as text')|tojson }},
+    dbl: {{ _('double brackets [[ ]] — fixed when you save')|tojson }},
+    labelBr: {{ _('section name in brackets — becomes a plain label when you save')|tojson }},
+    invalid: {{ _('not a chord we know')|tojson }},
+    keyLabel: {{ _('detected key')|tojson }},
+    notationPl: {{ _('These chords look like Polish notation (%(ex)s).')|tojson }},
+    notationB: {{ _('Careful: in Polish “B” means B♭, internationally it means H.')|tojson }},
+    above: {{ _('Lines %(lines)s have chords above the lyrics — they will be moved into the text when you save (the preview already shows it).')|tojson }},
     converted: {{ _('Converted — check the result')|tojson }},
-    convertNone: {{ _('No chords-above-lyrics detected')|tojson }},
-    convertBtn: {{ _('Convert chords-above-lyrics')|tojson }}
+    labelQ: {{ _('Is this a section name? If it is a lyric, add a section name above it (e.g. Verse).')|tojson }},
+    auto: {{ _('no name')|tojson }},
+    empty: {{ _('Start typing — here you see the song exactly as the band will see it.')|tojson }}
   };
 </script>
 <script src="{{ url_for('static', filename='js/song-editor.js') }}"></script>

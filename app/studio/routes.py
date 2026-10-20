@@ -30,6 +30,7 @@ from music_core.chords import (apply_transpose_to_single_chord,
                                get_first_chord_of_song,
                                normalize_chord_to_international,
                                normalize_song_chords_to_international,
+                               prepare_song_content,
                                process_song, transpose_chord)
 from music_core import TRANSITION_ENGINES
 
@@ -257,8 +258,7 @@ def add_song(church_id):
     bpm = request.form.get('bpm')
     input_notation = request.form.get('input_notation', 'international')
     if content:
-        content = normalize_song_chords_to_international(
-            content, input_notation=input_notation)
+        content = prepare_song_content(content, input_notation=input_notation)
     if key:
         key = normalize_chord_to_international(key,
                                                input_notation=input_notation)
@@ -296,8 +296,7 @@ def edit_song(church_id, sid):
     content = request.form.get('content')
     input_notation = request.form.get('input_notation', 'international')
     if content:
-        content = normalize_song_chords_to_international(
-            content, input_notation=input_notation)
+        content = prepare_song_content(content, input_notation=input_notation)
     song.content = content
     key = request.form.get('key')
     if key:
@@ -345,8 +344,7 @@ def import_songs(church_id):
     input_notation = request.form.get('input_notation', 'international')
 
     def save_or_update(song_title, song_content, song_key='', song_bpm=0):
-        song_content = normalize_song_chords_to_international(
-            song_content, input_notation=input_notation)
+        song_content = prepare_song_content(song_content, input_notation=input_notation)
         if song_key:
             song_key = normalize_chord_to_international(
                 song_key, input_notation=input_notation)

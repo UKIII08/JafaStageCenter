@@ -1,129 +1,173 @@
-// Edytor piosenki: walidacja formatu + akordów + sugestia tonacji na żywo
-// (debounce) i jawny przycisk konwersji formatu "akordy nad tekstem".
-// Teksty statusu przez window.SONG_EDITOR_I18N (patrz songs/form.html).
+// Edytor piosenki: numery linii, problemy z numerem linii (klik = zaznacz
+// linię), podpowiedź notacji, wykrycie „akordów nad tekstem" i podgląd na
+// żywo — dokładnie ta sama ścieżka co zapis (POST /api/songs/analyze).
+// Teksty przez window.SONG_EDITOR_I18N (patrz songs/form.html).
 (function () {
+    'use strict';
     var ta = document.getElementById('song-content');
     if (!ta) return;
-    var status = document.getElementById('chord-status');
-    var keyInput = document.getElementById('song-key');
-    var timer = null;
-    var I18N = window.SONG_EDITOR_I18N || {};
+    var L = window.SONG_EDITOR_I18N || {};
+    var $ = function (id) { return document.getElementById(id); };
+    var gutter = $('gutter'), status = $('chord-status'), issuesEl = $('issues');
+    var notationInput = $('f-notation'), keyInput = $('song-key');
+    var timer = null, seq = 0, errLines = {};
 
-    function t(key, fallback) {
-        return (I18N[key] != null) ? I18N[key] : fallback;
+    function esc(s) {
+        return String(s).replace(/[&<>"]/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+    }
+    function fill(tpl, vars) {
+        return String(tpl).replace(/%\((\w+)\)s/g, function (_, k) { return vars[k] != null ? vars[k] : ''; });
     }
 
-    // Ile "sekcji" (linia-etykieta bez akordów w nawiasach) — czysto po stronie
-    // klienta, żeby dać natychmiastowy sygnał zanim odpowie serwer.
-    function countSections(text) {
-        var lines = text.split('\n');
-        var n = 0;
-        for (var i = 0; i < lines.length; i++) {
-            var ln = lines[i].trim();
-            if (!ln) continue;
-            // Etykieta sekcji = linia bez [akordów], krótka, nie wygląda jak tekst.
-            if (ln.indexOf('[') === -1 && ln.length <= 40
-                && !/[.!?,;:]/.test(ln)) {
-                var prev = i > 0 ? lines[i - 1].trim() : '';
-                if (prev === '' || i === 0) n++;
-            }
-        }
-        return n;
+    // ── Numery linii ──
+    function paintGutter() {
+        var n = ta.value.split('\n').length, out = [];
+        for (var i = 1; i <= n; i++) out.push(errLines[i] ? '<b>' + i + '</b>' : String(i));
+        gutter.innerHTML = out.join('\n');
+        gutter.scrollTop = ta.scrollTop;
+    }
+    ta.addEventListener('scroll', function () { gutter.scrollTop = ta.scrollTop; });
+
+    function selectLine(n) {
+        var lines = ta.value.split('\n'), start = 0;
+        for (var i = 0; i < n - 1 && i < lines.length; i++) start += lines[i].length + 1;
+        var end = start + (lines[n - 1] || '').length;
+        ta.focus();
+        ta.setSelectionRange(start, end);
+        var lh = parseFloat(getComputedStyle(ta).lineHeight) || 22;
+        ta.scrollTop = Math.max(0, (n - 4) * lh);
     }
 
-    function hasUnclosedBracket(text) {
-        // Nawias otwierający bez zamykającego przed następnym '[' lub końcem linii.
-        var lines = text.split('\n');
-        for (var i = 0; i < lines.length; i++) {
-            var opens = 0;
-            var s = lines[i];
-            for (var j = 0; j < s.length; j++) {
-                if (s[j] === '[') opens++;
-                else if (s[j] === ']') opens--;
-                if (opens < 0) opens = 0;
-            }
-            if (opens > 0) return true;
-        }
-        return false;
+    // ── Notacja (przełącznik) ──
+    function setNotation(v) {
+        notationInput.value = v;
+        document.querySelectorAll('#notation-seg button').forEach(function (b) {
+            b.classList.toggle('active', b.dataset.v === v);
+        });
+        analyze();
     }
+    document.querySelectorAll('#notation-seg button').forEach(function (b) {
+        b.addEventListener('click', function () { setNotation(b.dataset.v); });
+    });
+    $('hint-notation-btn').addEventListener('click', function () { setNotation('polish'); });
 
-    function localChordCount(text) {
-        var m = text.match(/\[[^\]\n]+\]/g);
-        return m ? m.length : 0;
-    }
+    // ── Zakładki: podgląd / jak pisać ──
+    document.querySelectorAll('#side-tabs button').forEach(function (b) {
+        b.addEventListener('click', function () {
+            document.querySelectorAll('#side-tabs button').forEach(function (x) { x.classList.toggle('active', x === b); });
+            $('tab-preview').hidden = b.dataset.tab !== 'preview';
+            $('tab-help').hidden = b.dataset.tab !== 'help';
+        });
+    });
 
+    // ── Wynik analizy ──
     function render(d) {
-        if (!status) return;
+        errLines = {};
         var text = ta.value;
-        if (!text.trim()) { status.textContent = ''; status.className = 'song-status'; return; }
-
-        // 1) Błąd twardy: niezamknięty nawias.
-        if (hasUnclosedBracket(text)) {
-            status.className = 'song-status is-warn';
-            status.textContent = t('unclosed', 'Unclosed bracket.');
+        if (!text.trim()) {
+            status.textContent = ''; issuesEl.innerHTML = '';
+            $('hint-notation').hidden = true; $('hint-above').hidden = true;
+            $('preview').className = 'pv-empty'; $('preview').textContent = L.empty;
+            paintGutter();
             return;
         }
-
-        // Liczba akordów: serwer, a jeśli nie odpowiedział — licz lokalnie,
-        // żeby nigdy nie twierdzić "brak akordów", gdy nawiasy są w tekście.
-        var total = d ? d.total : localChordCount(text);
-        var invalid = (d && d.invalid) ? d.invalid : [];
-        var sections = countSections(text);
-
-        // 2) Brak akordów w ogóle.
-        if (!total) {
-            status.className = 'song-status is-hint';
-            status.textContent = t('noChords', 'No chords yet.');
-            return;
-        }
-
-        // 3) Podsumowanie: liczba akordów + sekcji + status rozpoznania.
+        // 1) Podsumowanie
         var parts = [];
-        parts.push(total + ' ' + t('chords', 'chords'));
-        if (sections) parts.push(sections + ' ' + t('sections', 'sections'));
-        if (invalid.length) {
-            status.className = 'song-status is-warn';
-            parts.push(t('notRecognized', 'not recognized') + ': ' + invalid.join(', '));
-        } else {
-            status.className = 'song-status is-ok';
-            parts.push(t('allValid', 'all recognized'));
+        if (!d.total) parts.push(L.noChords);
+        else {
+            parts.push('<b>' + d.total + '</b> ' + esc(L.chords));
+            parts.push('<b>' + d.sections.length + '</b> ' + esc(L.sections));
+            if (!d.invalid.length) parts.push(esc(L.allValid));
+            if (d.key) parts.push(esc(L.keyLabel) + ': <b>' + esc(d.key) + '</b>');
         }
-        status.textContent = parts.join(' · ');
-        if (d && keyInput && !keyInput.value && d.key) keyInput.placeholder = d.key;
+        status.innerHTML = parts.join(' · ');
+        if (keyInput && !keyInput.value) keyInput.placeholder = d.key || '';
+
+        // 2) Problemy z numerami linii
+        var rows = [];
+        d.issues.forEach(function (i) {
+            var kind = { unclosed: ['err', L.unclosed], stray_close: ['', L.stray],
+                         double_brackets: ['fix', L.dbl], label_brackets: ['fix', L.labelBr] }[i.kind];
+            if (!kind) return;
+            if (kind[0] === 'err') errLines[i.line] = true;
+            rows.push({ line: i.line, cls: kind[0], html: '<b>' + esc(i.text) + '</b> — ' + esc(kind[1]) });
+        });
+        d.invalid.forEach(function (inv) {
+            inv.lines.forEach(function (n) { errLines[n] = true; });
+            rows.push({ line: inv.lines[0], cls: 'err', html: '<b>[' + esc(inv.chord) + ']</b> — ' + esc(L.invalid) +
+                        (inv.lines.length > 1 ? ' (×' + inv.lines.length + ')' : '') });
+        });
+        rows.sort(function (a, b) { return a.line - b.line; });
+        issuesEl.innerHTML = rows.map(function (r) {
+            return '<li class="' + r.cls + '" data-line="' + r.line + '"><span class="ln">' + esc(L.line) + ' ' + r.line +
+                   '</span><span class="t">' + r.html + '</span></li>';
+        }).join('');
+
+        // 3) Podpowiedź notacji
+        var h = d.notation_hint;
+        $('hint-notation').hidden = !h;
+        if (h) {
+            $('hint-notation-text').textContent = fill(L.notationPl, { ex: h.examples.join(', ') }) +
+                (h.has_b ? ' ' + L.notationB : '');
+        }
+        // 4) Akordy nad tekstem
+        $('hint-above').hidden = !d.above_lyrics.length;
+        if (d.above_lyrics.length) {
+            $('hint-above-text').textContent = fill(L.above, { lines: d.above_lyrics.slice(0, 6).join(', ') });
+        }
+        // 5) Podgląd (te same pary akord+sylaba co u zespołu)
+        var pv = $('preview');
+        if (!d.sections.length) { pv.className = 'pv-empty'; pv.textContent = L.empty; }
+        else {
+            pv.className = '';
+            pv.innerHTML = d.sections.map(function (s) {
+                var label = s.auto ? '<span class="auto">' + esc(L.auto) + '</span>' : esc(s.label);
+                var warn = (!s.known && !s.auto) ? '<span class="pv-warn">' + esc(L.labelQ) + '</span>' : '';
+                return '<div class="pv-sec"><div class="pv-label">' + label + warn + '</div>' +
+                       '<div class="song-render">' + s.html + '</div></div>';
+            }).join('');
+            if (window.applyChordPrefs) {
+                pv.querySelectorAll('.song-render').forEach(function (el) {
+                    window.applyChordPrefs(el, { notation: notationInput.value });
+                });
+            }
+        }
+        paintGutter();
     }
 
     function analyze() {
-        // Natychmiastowy render lokalny (nawias/brak akordów), potem serwer.
-        render(null);
+        paintGutter();
+        var my = ++seq;
         fetch('/api/songs/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: ta.value })
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: ta.value, notation: notationInput.value })
         }).then(function (r) { return r.json(); })
-          .then(function (d) { render(d); })
+          .then(function (d) { if (my === seq) render(d); })
           .catch(function () {});
     }
 
-    ta.addEventListener('input', function () {
-        clearTimeout(timer);
-        timer = setTimeout(analyze, 400);
+    issuesEl.addEventListener('click', function (e) {
+        var li = e.target.closest('li[data-line]');
+        if (li) selectLine(+li.dataset.line);
     });
-    if (ta.value.trim()) analyze();
+    ta.addEventListener('input', function () {
+        paintGutter();
+        clearTimeout(timer);
+        timer = setTimeout(analyze, 350);
+    });
 
-    var btn = document.getElementById('convert-format-btn');
-    if (btn) btn.addEventListener('click', function () {
+    $('convert-format-btn').addEventListener('click', function () {
+        var btn = this;
         fetch('/api/songs/convert-format', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: ta.value })
         }).then(function (r) { return r.json(); }).then(function (d) {
-            if (d.changed) { ta.value = d.text; analyze(); }
-            btn.textContent = d.changed
-                ? t('converted', 'Converted — check the result')
-                : t('convertNone', 'No chords-above-lyrics detected');
-            setTimeout(function () {
-                btn.textContent = t('convertBtn', 'Convert chords-above-lyrics');
-            }, 2500);
+            if (d.changed) { ta.value = d.text; analyze(); btn.textContent = L.converted; }
         });
     });
+
+    paintGutter();
+    if (ta.value.trim()) analyze();
 })();

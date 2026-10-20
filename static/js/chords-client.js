@@ -8,11 +8,25 @@
     var MAP = {'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'Fb':4,'E#':5,
         'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,
         'B':11,'Cb':11,'H':11,'B#':0,
-        'Cis':1,'Dis':3,'Es':3,'Fis':6,'Gis':8,'As':8,'Ais':10,'His':0};
+        'Cis':1,'Dis':3,'Es':3,'Fis':6,'Gis':8,'As':8,'Ais':10,'His':0,
+        'Des':1,'Ges':6,'Ces':11,'Fes':4};
     var INT_TO_PL = {'C#':'Cis','Db':'Des','D#':'Dis','Eb':'Es','F#':'Fis',
         'Gb':'Ges','G#':'Gis','Ab':'As','A#':'Ais','Bb':'B','B':'H',
-        'Cb':'H','E#':'F','Fb':'E','B#':'C'};
-    var RE = /^([AaEe][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$/;
+        'Cb':'H','E#':'F','Fb':'E','B#':'C',
+        // gdy treść ma już polską pisownię (Fis, Des…) — zostaw ją
+        'Cis':'Cis','Dis':'Dis','Fis':'Fis','Gis':'Gis','Ais':'Ais','Es':'Es','As':'As',
+        'Des':'Des','Ges':'Ges','Ces':'H','Fes':'E'};
+    // Polska pisownia -> międzynarodowa (gdy wybrana notacja międzynarodowa)
+    var PL_TO_INT = {'Cis':'C#','Dis':'D#','Fis':'F#','Gis':'G#','Ais':'A#','His':'C',
+        'Es':'Eb','As':'Ab','Des':'Db','Ges':'Gb','Ces':'B','Fes':'E','H':'B'};
+    var RE = /^([AaEe][Ss](?![uU])|[CDFGcdfg][Ee][Ss](?![uU])|[A-Ha-h][#b]?(?:is|IS|Is)?)(.*)$/;
+    // Bas tylko, gdy po „/" stoi nuta (D/F#), a nie cyfry (C6/9).
+    function bassSplit(chord) {
+        var i = chord.indexOf('/');
+        if (i < 0) return null;
+        var tail = chord.slice(i + 1);
+        return (tail && !/^\d+$/.test(tail)) ? [chord.slice(0, i), tail] : null;
+    }
 
     function parse(str) {
         var m = str.match(RE);
@@ -47,6 +61,7 @@
         var p2 = parse(chord); if (!p2) return chord;
         var root = p2.root.charAt(0).toUpperCase() + p2.root.slice(1);
         if (notation === 'polish') root = INT_TO_PL[root] || root;
+        else root = PL_TO_INT[root] || root;
         var suffix = p2.suffix;
         if (lowercaseMinor && /^m(?!aj)/i.test(suffix)) {
             root = root.charAt(0).toLowerCase() + root.slice(1);
@@ -55,18 +70,16 @@
         return root + suffix;
     }
     function simplify(chord) {
-        if (chord.indexOf('/') >= 0) chord = chord.split('/')[0];
+        var bs = bassSplit(chord);
+        if (bs) chord = bs[0];
         var p = parse(chord); if (!p) return chord;
         return p.root + (/^m(?!aj)/i.test(p.suffix) ? 'm' : '');
     }
     // Numery nashville — niezależne od tonacji zapisu, liczone względem klucza.
     var NASH = ['1','♭2','2','♭3','3','4','♭5','5','♭6','6','♭7','7'];
     function toNashville(chord, keyRoot) {
-        if (chord.indexOf('/') >= 0) {
-            var pp = chord.split('/');
-            return toNashville(pp[0], keyRoot) + '/'
-                 + toNashville(pp.slice(1).join('/'), keyRoot);
-        }
+        var pp = bassSplit(chord);
+        if (pp) return toNashville(pp[0], keyRoot) + '/' + toNashville(pp[1], keyRoot);
         var p = parse(chord); if (!p) return chord;
         var pc = pitch(p.root), kp = pitch(keyRoot);
         if (pc === null || kp === null) return chord;
@@ -100,8 +113,8 @@
             } else {
                 out = convertNotation(out, notation, !!prefs.lowercase_minor);
             }
-            if (out.indexOf('/') >= 0) {
-                var parts = out.split('/');
+            var parts = bassSplit(out);
+            if (parts) {
                 el.textContent = '';
                 el.appendChild(document.createTextNode(parts[0]));
                 var sl = document.createElement('span');
@@ -109,7 +122,7 @@
                 el.appendChild(sl);
                 var bn = document.createElement('span');
                 bn.className = 'bass-note';
-                bn.textContent = parts.slice(1).join('/');
+                bn.textContent = parts[1];
                 el.appendChild(bn);
             } else {
                 el.textContent = out;

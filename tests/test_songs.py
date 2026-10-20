@@ -208,3 +208,46 @@ def test_setlist_flow(app, client):
     client.post(f'/c/{cid}/setlists/{slid}/duplicate')
     with app.app_context():
         assert Setlist.query.count() == 2
+
+
+def test_save_blocks_unclosed_bracket_with_editor_line(app, client):
+    cid = setup_church(client, app)
+    # linia 2 to akordy nad tekstem (zostaną przeniesione) — numer błędu
+    # musi być liczony z tego, co widać w edytorze, czyli 4, nie 3.
+    content = 'Zwrotka\nG       D\nAla ma kota\n[C psa'
+    r = client.post(f'/c/{cid}/songs/new', data={'title': 'Zła', 'content': content})
+    body = r.get_data(as_text=True)
+    assert r.status_code == 200
+    assert 'Linia 4' in body or 'Line 4' in body
+    with app.app_context():
+        assert Song.query.count() == 0
+
+
+def test_save_converts_and_tidies(app, client):
+    cid = setup_church(client, app)
+    content = '[Refren]\nG       D\nAla ma kota\n[[Em]]psa'
+    client.post(f'/c/{cid}/songs/new', data={'title': 'Ok', 'content': content,
+                                             'input_notation': 'international'})
+    with app.app_context():
+        s = Song.query.first()
+        assert s.content.startswith('Refren\n')
+        assert '[G]Ala' in s.content and '[D]' in s.content
+        assert '[Em]psa' in s.content and '[[' not in s.content
+
+
+def test_save_rejects_bad_key(app, client):
+    cid = setup_church(client, app)
+    r = client.post(f'/c/{cid}/songs/new', data={'title': 'K', 'content': '[C]x', 'key': 'Zz'})
+    assert r.status_code == 200
+    with app.app_context():
+        assert Song.query.count() == 0
+
+
+def test_analyze_api_returns_sections(app, client):
+    setup_church(client, app)
+    r = client.post('/api/songs/analyze', json={'text': 'Zwrotka\n[H]Ala\n\nRefren\n[e]ma',
+                                                'notation': 'polish'})
+    d = r.get_json()
+    assert [s['label'] for s in d['sections']] == ['Zwrotka', 'Refren']
+    assert 'chord-pair' in d['sections'][0]['html']
+    assert d['total'] == 2 and not d['invalid']

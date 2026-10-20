@@ -12,6 +12,8 @@ from music_core.chords import (
     detect_key_algorithm,
     get_first_chord_of_song, get_first_chord_from_chorus,
     process_song, parse_song_sections,
+    canon_chord, tidy_song_text, analyze_song, is_section_label,
+    prepare_song_content,
 )
 from music_core.engine_v2 import WorshipHybridEngineV2
 from music_core.engine_v3 import WorshipPivotEngineV3
