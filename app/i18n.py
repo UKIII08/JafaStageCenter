@@ -1190,7 +1190,7 @@ PL.update({
     'Split into %(parts)s slides': 'Podziel na %(parts)s slajdy',
     'Undo': 'Cofnij',
     'Repeated lines are kept once with (x2).': 'Powtórzone linie zostawiono raz z dopiskiem (x2).',
-    'Long parts were split into slides of up to 4 lines.': 'Długie części podzielono na slajdy po maks. 4 linie.',
-    '%(n)s lines — too much for one slide, split it (max 4)':
-        '%(n)s linii — za dużo na jeden slajd, podziel (maks. 4)',
+    'Long parts were split into slides of up to 8 lines.': 'Długie części podzielono na slajdy po maks. 8 linii.',
+    '%(n)s lines — too much for one slide, split it (max 8)':
+        '%(n)s linii — za dużo na jeden slajd, podziel (maks. 8)',
 })
