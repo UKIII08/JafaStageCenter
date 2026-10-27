@@ -251,3 +251,14 @@ def test_analyze_api_returns_sections(app, client):
     assert [s['label'] for s in d['sections']] == ['Zwrotka', 'Refren']
     assert 'chord-pair' in d['sections'][0]['html']
     assert d['total'] == 2 and not d['invalid']
+
+
+def test_analyze_api_returns_converted_text_in_user_notation(app, client):
+    # Edytor kafelkowy wstawia po wklejeniu „converted": format przerobiony,
+    # ale akordy wciąż w notacji użytkownika (zapis zrobi resztę).
+    setup_church(client, app)
+    d = client.post('/api/songs/analyze', json={
+        'text': 'Zwrotka\nH       Fis\nIdę przez pola', 'notation': 'polish'}).get_json()
+    assert d['converted'] == 'Zwrotka\n[H]Idę [Fis]przez pola'
+    assert 'above_lyrics' in d['fixes']
+    assert '[B]' in d['sections'][0]['html'] or '>B<' in d['sections'][0]['html']

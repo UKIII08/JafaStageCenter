@@ -50,6 +50,74 @@
     .pv-warn { font-size: 12.5px; color: var(--text-accent); font-weight: 400; }
     .pv-empty { color: var(--text-tertiary); font-size: 14px; }
     .se-preview .song-render { font-size: 17px; }
+    /* ── Kafelki ── */
+    .se-mode { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 18px; }
+    .se-mode .hint { margin: 0; font-size: 14px; }
+    .tiles { margin-top: 14px; }
+    .tiles[hidden], .se-editor[hidden] { display: none; }
+    .tl-card { border: 1px solid var(--border-strong); border-radius: var(--r-md); margin-bottom: 12px; background: var(--bg-input); }
+    .tl-head { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border-bottom: 1px solid var(--border-default); }
+    .tl-name { flex: 1; border: 0; background: transparent; padding: 6px 4px; font-weight: 600; font-size: 15px; min-height: 0; }
+    .tl-name:focus { outline: none; box-shadow: inset 0 -2px 0 var(--accent); }
+    .tl-name.empty::placeholder { color: var(--danger, #F06A6A); }
+    .tl-tools { display: flex; gap: 2px; }
+    .tl-ic { width: 34px; height: 34px; min-height: 0; padding: 0; background: transparent; border: 0; color: var(--text-secondary); font-size: 15px; border-radius: 8px; }
+    .tl-ic:hover { background: var(--bg-surface); color: var(--text-primary); border: 0; }
+    .tl-ic:disabled { opacity: .3; cursor: default; background: transparent; }
+    .tl-ic.danger:hover { color: var(--danger, #F06A6A); }
+    .tl-lines { padding: 14px 16px 6px; font-size: 17px; line-height: 1.5; }
+    .tl-line { position: relative; white-space: pre-wrap; word-break: normal; margin-bottom: 6px; padding-top: 1.25em; }
+    .tl-line .c { cursor: pointer; border-radius: 3px; }
+    .tl-line .c:hover { background: var(--accent-subtle); box-shadow: 0 -1.3em 0 0 var(--accent-subtle); }
+    .tl-pair { display: inline-flex; flex-direction: column; vertical-align: bottom; margin-top: -1.25em; }
+    .tl-ch { height: auto; min-height: 0; padding: 0 .35em 0 0; background: transparent; border: 0; border-radius: 4px;
+        color: var(--chord-color, var(--text-accent)); font-weight: 700; font-size: .78em; line-height: 1.6; text-align: left; justify-content: flex-start; }
+    .tl-ch:hover { background: var(--accent-subtle); color: var(--chord-color, var(--text-accent)); border: 0; }
+    .tl-syl { white-space: pre; }
+    .tl-plus { height: 22px; min-height: 0; width: 22px; padding: 0; margin-left: 6px; border-radius: 6px; background: transparent;
+        border: 1px dashed var(--border-strong); color: var(--text-tertiary); font-size: 14px; vertical-align: 2px; opacity: 0; }
+    .tl-line:hover .tl-plus, .tl-line.only .tl-plus, .tl-plus:focus { opacity: 1; }
+    .tl-plus:hover { background: var(--accent-subtle); color: var(--text-accent); border-color: var(--accent); }
+    .tl-text { border: 0; border-radius: 0; background: transparent; font-family: var(--font-mono); font-size: 14px; line-height: 1.7; padding: 12px 16px; resize: vertical; }
+    .tl-text:focus { outline: none; }
+    .tl-foot { display: flex; align-items: center; gap: 12px; padding: 4px 12px 12px; flex-wrap: wrap; }
+    .tl-tip { color: var(--text-tertiary); font-size: 13.5px; }
+    .tl-add { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+    .tl-add-lbl { color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-right: 4px; }
+    .tl-start { border: 1px dashed var(--border-strong); border-radius: var(--r-md); padding: 20px; }
+    .tl-start-t { font-weight: 600; font-size: 16px; }
+    .tl-start .hint { margin: 6px 0 14px; }
+    .tl-start textarea { font-family: var(--font-mono); font-size: 14px; line-height: 1.6; min-height: 200px; }
+    .tl-start-or { display: flex; align-items: center; gap: 12px; margin-top: 14px; color: var(--text-tertiary); font-size: 14px; flex-wrap: wrap; }
+    .tl-note { margin-bottom: 12px; padding: 10px 14px; border-radius: var(--r-md); border: 1px solid var(--accent-line);
+        background: var(--accent-subtle); font-size: 14px; }
+    /* paleta akordów */
+    .tl-picker { position: fixed; z-index: 200; width: 320px; max-width: calc(100vw - 24px); background: var(--bg-elevated);
+        border: 1px solid var(--border-strong); border-radius: var(--r-lg); box-shadow: var(--shadow-lg); padding: 12px; }
+    .tl-picker.sheet { left: 0; right: 0; bottom: 0; top: auto; width: auto; max-width: none; border-radius: 16px 16px 0 0;
+        padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+    .tl-pk-head { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
+    .tl-pk-head b { color: var(--text-primary); }
+    .tl-pk-head .tl-ic { margin-left: auto; }
+    .tl-pk-lbl { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-tertiary); margin: 10px 0 6px; }
+    .tl-pk-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tl-pk-c { height: 38px; min-width: 48px; padding: 0 10px; background: var(--bg-surface); border: 1px solid var(--border-strong);
+        color: var(--text-primary); font-weight: 700; font-size: 15px; }
+    .tl-pk-c:hover, .tl-pk-c.on { background: var(--accent-subtle); border-color: var(--accent); color: var(--text-accent); }
+    .tl-pk-form { display: flex; gap: 6px; margin-top: 12px; }
+    .tl-pk-form input { flex: 1; min-width: 0; }
+    .tl-pk-err { color: var(--danger, #F06A6A); font-size: 13.5px; margin-top: 6px; }
+    .tl-pk-err[hidden] { display: none; }
+    .tl-pk-foot { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+    .tl-pk-foot [hidden] { display: none; }
+    .tl-pk-move { color: var(--text-tertiary); font-size: 13px; }
+    .tl-pk-foot .btn-danger { margin-left: auto; }
+    @media (max-width: 700px) {
+        .tl-lines { font-size: 18px; }
+        .tl-plus { opacity: 1; width: 30px; height: 30px; }
+        .tl-pk-c { height: 46px; min-width: 56px; font-size: 16px; }
+    }
+
     @media (max-width: 1000px) {
         .se-grid { grid-template-columns: 1fr; }
         .se-side { position: static; }
@@ -94,6 +162,17 @@
             </div>
         </div>
 
+        <div class="se-mode">
+            <div class="seg" id="mode-seg" role="tablist">
+                <button type="button" data-mode="tiles" class="active">{{ _('Tiles') }}</button>
+                <button type="button" data-mode="text">{{ _('Text') }}</button>
+            </div>
+            <span class="hint">{{ _('Two views of the same song — switch any time.') }}</span>
+        </div>
+        <div id="tiles" class="tiles"></div>
+        <datalist id="tl-names">
+            {% for n in ['Intro', _('Verse') + ' 1', _('Verse') + ' 2', _('Verse') + ' 3', _('Pre-chorus'), _('Chorus'), 'Bridge', _('Interlude'), _('Ending'), 'Outro'] %}<option value="{{ n }}">{% endfor %}
+        </datalist>
         <div class="se-editor">
             <div class="se-gutter" id="gutter" aria-hidden="true">1</div>
             <textarea name="content" id="song-content" spellcheck="false" wrap="off"
@@ -181,8 +260,43 @@
     converted: {{ _('Converted — check the result')|tojson }},
     labelQ: {{ _('Is this a section name? If it is a lyric, add a section name above it (e.g. Verse).')|tojson }},
     auto: {{ _('no name')|tojson }},
-    empty: {{ _('Start typing — here you see the song exactly as the band will see it.')|tojson }}
+    empty: {{ _('Start typing — here you see the song exactly as the band will see it.')|tojson }},
+    tiles: {
+      names: { intro: 'Intro', verse: {{ _('Verse')|tojson }}, chorus: {{ _('Chorus')|tojson }}, bridge: 'Bridge', outro: 'Outro' },
+      addPart: {{ _('Add a part:')|tojson }},
+      startTitle: {{ _('Paste a song from anywhere')|tojson }},
+      startHint: {{ _('Chords above the lyrics, ChordPro from SongSelect or plain lyrics — it splits into parts by itself and the chords land on the right syllables.')|tojson }},
+      pastePh: {{ _('Paste here (Ctrl+V)…')|tojson }},
+      or: {{ _('or')|tojson }},
+      startEmpty: {{ _('Start from an empty verse')|tojson }},
+      namePh: {{ _('Part name, e.g. Verse 1')|tojson }},
+      textPh: {{ _('Type or paste the lyrics of this part — you add chords afterwards by clicking above the words.')|tojson }},
+      done: {{ _('Done — add chords')|tojson }},
+      editText: {{ _('Edit lyrics')|tojson }},
+      clickTip: {{ _('Click above a letter to add a chord, click a chord to change it.')|tojson }},
+      up: {{ _('Move up')|tojson }}, down: {{ _('Move down')|tojson }},
+      dup: {{ _('Duplicate (e.g. the chorus again)')|tojson }}, del: {{ _('Delete part')|tojson }},
+      delConfirm: {{ _('Delete the part “%(name)s”?')|tojson }},
+      addEnd: {{ _('Add a chord at the end of the line')|tojson }},
+      addChord: {{ _('Chord above')|tojson }}, changeChord: {{ _('Change chord')|tojson }},
+      close: {{ _('Close')|tojson }},
+      inKey: {{ _('In the key of %(key)s')|tojson }}, common: {{ _('Common chords')|tojson }},
+      inSong: {{ _('Already in this song')|tojson }},
+      otherPh: {{ _('Other chord, e.g. Cadd9, D/F#')|tojson }},
+      insert: {{ _('Insert')|tojson }}, change: {{ _('Change')|tojson }}, remove: {{ _('Remove')|tojson }},
+      badChord: {{ _('That doesn’t look like a chord — e.g. Am, F#m7, D/F#.')|tojson }},
+      move: {{ _('move by one letter')|tojson }},
+      moveLeft: {{ _('One letter left')|tojson }}, moveRight: {{ _('One letter right')|tojson }},
+      fix: {
+        chordpro: {{ _('Recognised ChordPro — converted.')|tojson }},
+        above_lyrics: {{ _('Chords were above the lyrics — moved onto the syllables.')|tojson }},
+        labels: {{ _('Part names in brackets became plain names.')|tojson }},
+        label_gap: {{ _('Part names separated by a blank line were joined to their lyrics.')|tojson }},
+        invisible: {{ _('Invisible characters from the web page were removed.')|tojson }}
+      }
+    }
   };
 </script>
 <script src="{{ url_for('static', filename='js/song-editor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/song-tiles.js') }}"></script>
 {% endblock %}
