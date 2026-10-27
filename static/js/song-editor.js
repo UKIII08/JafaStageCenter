@@ -132,6 +132,7 @@
             pv.innerHTML = d.sections.map(function (s) {
                 var label = s.auto ? '<span class="auto">' + esc(L.auto) + '</span>' : esc(s.label);
                 var warn = (!s.known && !s.auto) ? '<span class="pv-warn">' + esc(L.labelQ) + '</span>' : '';
+                if (s.lines > 4) warn += '<span class="pv-warn">' + esc(fill(L.tooLong, { n: s.lines })) + '</span>';
                 return '<div class="pv-sec"><div class="pv-label">' + label + warn + '</div>' +
                        '<div class="song-render">' + s.html + '</div></div>';
             }).join('');

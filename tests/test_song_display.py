@@ -77,3 +77,10 @@ def test_sections_match_studio_rule():
     # samodzielna nazwa części na końcu = osobna część z tą nazwą (jak w Studiu)
     secs = mc.parse_song_sections(mc.prepare_song(SONGS['single_line_sections'][0])['content'])
     assert secs[-1] == {'label': 'Outro', 'content': ''}
+
+
+def test_continuation_label_is_a_section_name():
+    # „Refren (cd.)" powstaje przy dzieleniu długiej części na slajdy
+    for label in ('Refren (cd.)', 'Zwrotka 2 (cd.)', 'Chorus (cont.)'):
+        assert mc.is_section_label(label)
+    assert not mc.is_section_label('Ala (cd.)')

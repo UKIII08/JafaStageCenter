@@ -262,3 +262,10 @@ def test_analyze_api_returns_converted_text_in_user_notation(app, client):
     assert d['converted'] == 'Zwrotka\n[H]Idę [Fis]przez pola'
     assert 'above_lyrics' in d['fixes']
     assert '[B]' in d['sections'][0]['html'] or '>B<' in d['sections'][0]['html']
+
+
+def test_analyze_api_counts_lyric_lines_per_slide(app, client):
+    setup_church(client, app)
+    text = 'Zwrotka\n[G] [D]\n' + '\n'.join(f'[G]linia {i}' for i in range(6))
+    d = client.post('/api/songs/analyze', json={'text': text}).get_json()
+    assert d['sections'][0]['lines'] == 6      # linia samych akordów się nie liczy

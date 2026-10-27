@@ -89,6 +89,10 @@
     .tl-start .hint { margin: 6px 0 14px; }
     .tl-start textarea { font-family: var(--font-mono); font-size: 14px; line-height: 1.6; min-height: 200px; }
     .tl-start-or { display: flex; align-items: center; gap: 12px; margin-top: 14px; color: var(--text-tertiary); font-size: 14px; flex-wrap: wrap; }
+    .tl-warn { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+        margin: 12px 16px 0; padding: 8px 10px 8px 12px; border-radius: 8px; border: 1px solid var(--accent-line);
+        background: var(--accent-subtle); font-size: 14px; }
+    .tl-note { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .tl-note { margin-bottom: 12px; padding: 10px 14px; border-radius: var(--r-md); border: 1px solid var(--accent-line);
         background: var(--accent-subtle); font-size: 14px; }
     /* paleta akordów */
@@ -259,6 +263,7 @@
     above: {{ _('Lines %(lines)s have chords above the lyrics — they will be moved into the text when you save (the preview already shows it).')|tojson }},
     converted: {{ _('Converted — check the result')|tojson }},
     labelQ: {{ _('Is this a section name? If it is a lyric, add a section name above it (e.g. Verse).')|tojson }},
+    tooLong: {{ _('%(n)s lines — too much for one slide, split it (max 4)')|tojson }},
     auto: {{ _('no name')|tojson }},
     empty: {{ _('Start typing — here you see the song exactly as the band will see it.')|tojson }},
     tiles: {
@@ -287,7 +292,16 @@
       badChord: {{ _('That doesn’t look like a chord — e.g. Am, F#m7, D/F#.')|tojson }},
       move: {{ _('move by one letter')|tojson }},
       moveLeft: {{ _('One letter left')|tojson }}, moveRight: {{ _('One letter right')|tojson }},
+      cont: {{ _('(cont.)')|tojson }},
+      repeatMsg: {{ _('Lines %(from)s–%(to)s: the same %(n)s lines %(times)s times in a row.')|tojson }},
+      repeatMsg1: {{ _('Lines %(from)s–%(to)s: the same line %(times)s times in a row.')|tojson }},
+      repeatBtn: {{ _('Keep once (x%(times)s)')|tojson }},
+      longMsg: {{ _('%(n)s lines on one slide — on the projector the text gets small.')|tojson }},
+      splitBtn: {{ _('Split into %(parts)s slides')|tojson }},
+      undo: {{ _('Undo')|tojson }},
       fix: {
+        repeats: {{ _('Repeated lines are kept once with (x2).')|tojson }},
+        split: {{ _('Long parts were split into slides of up to 4 lines.')|tojson }},
         chordpro: {{ _('Recognised ChordPro — converted.')|tojson }},
         above_lyrics: {{ _('Chords were above the lyrics — moved onto the syllables.')|tojson }},
         labels: {{ _('Part names in brackets became plain names.')|tojson }},

@@ -65,6 +65,94 @@
         return out + p.text.slice(i);
     }
 
+    // ── Powtórzenia i długość slajdu ─────────────────────────────────────
+    // Na rzutniku jedna część = jeden slajd; ponad 4 linie tekstu robi się
+    // ciasno (mała czcionka). Powtórzone linie lepiej mieć raz z „(x2)".
+    var MAX_LINES = 4;
+    var REPEAT_RE = /\s*\((x|×)\s*\d+\)\s*$/i;
+    function lyricKey(line) {
+        return parseLine(line).text.replace(REPEAT_RE, '').toLowerCase()
+            .replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    }
+    function isLyric(line) { return /\p{L}/u.test(parseLine(line).text); }
+    function lyricCount(lines) { return lines.filter(isLyric).length; }
+    // Bloki 1–4 linii powtórzone zaraz po sobie: [{start, len, times, exact}]
+    function findRepeats(lines) {
+        var out = [], i = 0, n = lines.length;
+        while (i < n) {
+            var hit = null;
+            for (var k = Math.min(4, Math.floor((n - i) / 2)); k >= 1 && !hit; k--) {
+                var times = 1, exact = true;
+                while (i + (times + 1) * k <= n) {
+                    var same = true;
+                    for (var j = 0; j < k; j++) {
+                        var a = lines[i + j], b = lines[i + times * k + j];
+                        if (!isLyric(a) || lyricKey(a) !== lyricKey(b)) { same = false; break; }
+                        if (a.replace(REPEAT_RE, '') !== b.replace(REPEAT_RE, '')) exact = false;
+                    }
+                    if (!same) break;
+                    times++;
+                }
+                if (times > 1) hit = { start: i, len: k, times: times, exact: exact };
+            }
+            if (hit) { out.push(hit); i += hit.len * hit.times; } else i++;
+        }
+        return out;
+    }
+    function collapseRepeats(lines, onlyExact) {
+        var reps = findRepeats(lines).filter(function (r) { return !onlyExact || r.exact; });
+        if (!reps.length) return null;
+        var out = [], i = 0;
+        reps.forEach(function (r) {
+            while (i < r.start) out.push(lines[i++]);
+            for (var j = 0; j < r.len; j++) {
+                var l = lines[r.start + j];
+                if (j === r.len - 1) l = l.replace(REPEAT_RE, '').replace(/\s+$/, '') + ' (x' + r.times + ')';
+                out.push(l);
+            }
+            i = r.start + r.len * r.times;
+        });
+        while (i < lines.length) out.push(lines[i++]);
+        return out;
+    }
+    // Część dłuższa niż 4 linie → kilka slajdów o podobnej długości.
+    // Linie samych akordów idą z linią tekstu za nimi.
+    function splitLong(sec) {
+        var n = lyricCount(sec.lines);
+        if (n <= MAX_LINES) return [sec];
+        var parts = Math.ceil(n / MAX_LINES), per = Math.ceil(n / parts);
+        // jednostka = linia tekstu + linie samych akordów tuż przed nią
+        var units = [], pending = [];
+        sec.lines.forEach(function (l) {
+            pending.push(l);
+            if (isLyric(l)) { units.push(pending); pending = []; }
+        });
+        if (pending.length) {
+            if (units.length) units[units.length - 1] = units[units.length - 1].concat(pending);
+            else units.push(pending);
+        }
+        var out = [];
+        for (var u = 0; u < units.length; u += per) {
+            out.push([].concat.apply([], units.slice(u, u + per)));
+        }
+        return out.map(function (lines, i) {
+            return { label: i ? (sec.label ? sec.label + ' ' + L.cont : '') : sec.label, lines: lines };
+        });
+    }
+    // Na wklejkę: dokładne powtórzenia raz z (x2), długie części podzielone
+    function tidySections(secs) {
+        var changed = { repeats: 0, split: 0 };
+        var out = [];
+        secs.forEach(function (s) {
+            var c = collapseRepeats(s.lines, true);
+            if (c) { s = { label: s.label, lines: c }; changed.repeats++; }
+            var parts = splitLong(s);
+            if (parts.length > 1) changed.split++;
+            out = out.concat(parts);
+        });
+        return { sections: out, changed: changed };
+    }
+
     // Zapis z kafelków do pola tekstowego → podgląd i analiza (song-editor.js)
     function commit() {
         ta.value = serialize(sections);
@@ -155,7 +243,21 @@
                 '" spellcheck="false" placeholder="' + esc(L.textPh) + '">' + esc(s.lines.join('\n')) + '</textarea>' +
                 '<div class="tl-foot"><button type="button" class="btn btn-sm" data-done="' + si + '">' + esc(L.done) + '</button></div>';
         } else {
-            body = '<div class="tl-lines">' + s.lines.map(function (l, li) { return renderLine(si, li, l); }).join('') + '</div>' +
+            var warn = '';
+            findRepeats(s.lines).forEach(function (r) {
+                warn += '<div class="tl-warn"><span>' + esc((r.len === 1 ? L.repeatMsg1 : L.repeatMsg)
+                    .replace('%(from)s', r.start + 1).replace('%(to)s', r.start + r.len * r.times)
+                    .replace('%(n)s', r.len).replace('%(times)s', r.times)) + '</span>' +
+                    '<button type="button" class="btn btn-sm btn-ghost" data-collapse="' + si + '">' +
+                    esc(L.repeatBtn.replace('%(times)s', r.times)) + '</button></div>';
+            });
+            var lc = lyricCount(s.lines);
+            if (lc > MAX_LINES) {
+                warn += '<div class="tl-warn"><span>' + esc(L.longMsg.replace('%(n)s', lc)) + '</span>' +
+                    '<button type="button" class="btn btn-sm btn-ghost" data-split="' + si + '">' +
+                    esc(L.splitBtn.replace('%(parts)s', Math.ceil(lc / MAX_LINES))) + '</button></div>';
+            }
+            body = warn + '<div class="tl-lines">' + s.lines.map(function (l, li) { return renderLine(si, li, l); }).join('') + '</div>' +
                 '<div class="tl-foot"><button type="button" class="btn btn-ghost btn-sm" data-edit="' + si + '">' + esc(L.editText) + '</button>' +
                 '<span class="tl-tip">' + esc(L.clickTip) + '</span></div>';
         }
@@ -335,20 +437,38 @@
             if (meta.title && t && !t.value) t.value = meta.title;
             if (meta.key && keyInput && !keyInput.value) keyInput.value = meta.key;
             if (meta.bpm && b && !b.value) b.value = meta.bpm;
-            ta.value = d.converted || text;
+            var converted = d.converted || text;
+            // powtórzenia raz z (x2), długie części na kilka slajdów
+            var t2 = tidySections(parseSong(converted));
+            ta.value = serialize(t2.sections);
             ta.dispatchEvent(new Event('input'));
             load();
             var notes = [];
             (d.fixes || []).forEach(function (f) { if (L.fix[f]) notes.push(L.fix[f]); });
-            if (notes.length) flashNote(notes.join(' '));
+            if (t2.changed.repeats) notes.push(L.fix.repeats);
+            if (t2.changed.split) notes.push(L.fix.split);
+            if (notes.length) flashNote(notes.join(' '), (t2.changed.repeats || t2.changed.split) ? converted : null);
         });
     }
-    function flashNote(msg) {
+    // Notka po wklejeniu; „Cofnij" przywraca tekst bez łączenia/dzielenia
+    function flashNote(msg, undoText) {
         var n = document.createElement('div');
         n.className = 'tl-note';
-        n.textContent = msg;
+        n.appendChild(document.createTextNode(msg + ' '));
+        if (undoText != null) {
+            var u = document.createElement('button');
+            u.type = 'button';
+            u.className = 'btn btn-ghost btn-sm';
+            u.textContent = L.undo;
+            u.addEventListener('click', function () {
+                ta.value = undoText;
+                ta.dispatchEvent(new Event('input'));
+                load();
+            });
+            n.appendChild(u);
+        }
         root.insertBefore(n, root.firstChild);
-        setTimeout(function () { n.remove(); }, 9000);
+        setTimeout(function () { if (n.parentNode) n.remove(); }, 15000);
     }
 
     // ── Akcje ────────────────────────────────────────────────────────────
@@ -383,6 +503,19 @@
             var has = sections[si].lines.some(function (l) { return l.trim(); });
             if (has && !window.confirm(L.delConfirm.replace('%(name)s', sections[si].label || '…'))) return;
             sections.splice(si, 1);
+            editing = {};
+            commit(); render(); return;
+        }
+        if (d.collapse != null) {
+            si = +d.collapse;
+            var c = collapseRepeats(sections[si].lines, false);
+            if (c) { sections[si].lines = c; commit(); render(); }
+            return;
+        }
+        if (d.split != null) {
+            si = +d.split;
+            var parts = splitLong(sections[si]);
+            Array.prototype.splice.apply(sections, [si, 1].concat(parts));
             editing = {};
             commit(); render(); return;
         }
@@ -476,5 +609,6 @@
     try { saved = localStorage.getItem('jonathan-song-editor') || 'tiles'; } catch (e) {}
     setMode(saved === 'text' ? 'text' : 'tiles');
 
-    window.SongTiles = { parseSong: parseSong, serialize: serialize, parseLine: parseLine, buildLine: buildLine };
+    window.SongTiles = { parseSong: parseSong, serialize: serialize, parseLine: parseLine, buildLine: buildLine,
+                         findRepeats: findRepeats, collapseRepeats: collapseRepeats, splitLong: splitLong, tidySections: tidySections };
 })();
