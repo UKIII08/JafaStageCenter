@@ -66,9 +66,9 @@
     }
 
     // ── Powtórzenia i długość slajdu ─────────────────────────────────────
-    // Na rzutniku jedna część = jeden slajd; ponad 4 linie tekstu robi się
+    // Na rzutniku jedna część = jeden slajd; ponad 8 linii tekstu robi się
     // ciasno (mała czcionka). Powtórzone linie lepiej mieć raz z „(x2)".
-    var MAX_LINES = 4;
+    var MAX_LINES = 8;
     var REPEAT_RE = /\s*\((x|×)\s*\d+\)\s*$/i;
     function lyricKey(line) {
         return parseLine(line).text.replace(REPEAT_RE, '').toLowerCase()

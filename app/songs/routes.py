@@ -325,7 +325,7 @@ def api_analyze():
     for sec in mc.parse_song_sections(stored):
         _p, band, _x = mc.process_song(sec['content'])
         auto = sec['label'].startswith('SLAJD ')
-        # linie z tekstem (bez linii samych akordów) — slajd ma mieć max 4
+        # linie z tekstem (bez linii samych akordów) — slajd ma mieć max 8
         n_lines = sum(1 for l in sec['content'].split('\n')
                       if re.search(r'[^\W\d_]', re.sub(r'\[[^\]]*\]', '', l)))
         sections.append({'label': sec['label'], 'html': band, 'auto': auto, 'lines': n_lines,
