@@ -8,13 +8,19 @@
     .lib { margin-top: 24px; }
     .lib-row { display: grid; grid-template-columns: minmax(0, 1fr) 64px 64px auto; gap: 16px; align-items: center;
         padding: 14px 0; border-bottom: 1px solid var(--border-default); }
-    .lib-head { padding: 0 0 10px; font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-tertiary); }
+    .lib-head { padding: 0 0 10px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
     .lib-row .t { color: var(--text-primary); font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .lib-row .t:hover { color: var(--text-accent); }
     .lib-row .k, .lib-row .b { font-family: var(--font-mono); font-size: 13px; color: var(--text-secondary); }
     .lib-row .go { display: flex; gap: 6px; opacity: .55; transition: opacity .15s ease; }
     .lib-row:hover .go { opacity: 1; }
-    @media (max-width: 700px) { .lib-row { grid-template-columns: minmax(0, 1fr) 40px auto; } .lib-row .b { display: none; } }
+    /* Telefon: tytuł i tonacja w pierwszej linii, przyciski pod spodem. */
+    @media (max-width: 700px) {
+        .lib-row { grid-template-columns: minmax(0, 1fr) 48px; row-gap: 10px; }
+        .lib-row .b, .lib-head > :nth-child(3), .lib-head > :nth-child(4) { display: none; }
+        .lib-row .k { text-align: right; }
+        .lib-row .go { grid-column: 1 / -1; opacity: 1; flex-wrap: wrap; }
+    }
 </style>
 <div class="panel">
     <div class="panel-header">

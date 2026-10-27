@@ -25,7 +25,7 @@
 
     --text-primary: #EDEBE6;
     --text-secondary: #A3A19A;
-    --text-tertiary: #6C6B66;
+    --text-tertiary: #8C8B85;   /* 5.7:1 na tle (było 3.6:1) */
     --text-inverse: #FFFFFF;
     --text-accent: #6F96FF;
 
@@ -34,6 +34,9 @@
     --accent-subtle: rgba(79, 127, 255, 0.14);
     --accent-line: rgba(79, 127, 255, 0.45);
     --accent-glow: transparent;
+    --btn-bg: #3563F0;          /* biały napis 5.0:1 (na #4F7FFF było 3.6:1) */
+    --btn-bg-hover: #2A55DB;
+    --danger: #F06A6A;          /* 6.1:1 na ciemnym tle */
 
     --chord-color: #4F7FFF;
     --chord-glow: transparent;
@@ -77,7 +80,7 @@
 
     --text-primary: #16171A;
     --text-secondary: #5A5F68;
-    --text-tertiary: #8D9199;
+    --text-tertiary: #6B7079;   /* 4.8:1 na tle (było 3.0:1) */
     --text-inverse: #FFFFFF;
     --text-accent: #2563EB;
 
@@ -85,6 +88,9 @@
     --accent-hover: #1D4ED8;
     --accent-subtle: rgba(37, 99, 235, 0.09);
     --accent-line: rgba(37, 99, 235, 0.4);
+    --btn-bg: #2563EB;
+    --btn-bg-hover: #1D4ED8;
+    --danger: #C42B2B;          /* 5.4:1 na jasnym tle (#F06A6A było 2.9:1) */
 
     --chord-color: #2563EB;
     --shadow-lg: 0 24px 64px rgba(15, 18, 22, 0.14);
@@ -122,11 +128,11 @@ body.has-side { display: grid; grid-template-columns: var(--side-w) minmax(0, 1f
 .brand span { color: var(--accent); }
 .brand:hover { color: var(--text-primary); }
 .side-toggle { display: none; }
-.church-name { padding: 0 10px; margin-top: -14px; color: var(--text-secondary); font-size: 13px; }
+.church-name { padding: 0 10px; margin-top: -14px; color: var(--text-secondary); font-size: 14px; }
 .church-pick { position: relative; margin-top: -14px; }
 .church-pick > summary {
     list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
-    gap: 8px; padding: 5px 10px; border-radius: var(--r-sm); color: var(--text-secondary); font-size: 13px;
+    gap: 8px; padding: 5px 10px; border-radius: var(--r-sm); color: var(--text-secondary); font-size: 14px;
 }
 .church-pick > summary::-webkit-details-marker { display: none; }
 .church-pick > summary:hover { background: var(--bg-surface); color: var(--text-primary); }
@@ -138,7 +144,7 @@ body.has-side { display: grid; grid-template-columns: var(--side-w) minmax(0, 1f
 }
 .church-menu a {
     display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: var(--r-sm);
-    color: var(--text-primary); font-size: 13px;
+    color: var(--text-primary); font-size: 14px;
 }
 .church-menu a:hover { background: var(--bg-surface-hover); color: var(--text-primary); }
 .church-menu a.on { color: var(--text-accent); }
@@ -146,7 +152,7 @@ body.has-side { display: grid; grid-template-columns: var(--side-w) minmax(0, 1f
 .nav { display: flex; flex-direction: column; gap: 2px; }
 .nav a {
     display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 8px;
-    color: var(--text-secondary); font-weight: 500; font-size: 14px; text-decoration: none;
+    color: var(--text-secondary); font-weight: 500; font-size: 15px; text-decoration: none;
     transition: background .15s ease, color .15s ease;
 }
 .nav a:hover { background: var(--bg-surface); color: var(--text-primary); }
@@ -154,15 +160,15 @@ body.has-side { display: grid; grid-template-columns: var(--side-w) minmax(0, 1f
 .nav svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.6;
     stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
 .nav-group {
-    padding: 18px 10px 6px; font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+    padding: 18px 10px 6px; font-size: 12px; font-weight: 600; letter-spacing: .06em;
     text-transform: uppercase; color: var(--text-tertiary);
 }
 .side-foot { margin-top: auto; display: flex; align-items: center; gap: 6px; padding-top: 14px; border-top: 1px solid var(--border-default); }
 .side-foot .me { flex: 1; min-width: 0; padding: 6px 10px; border-radius: 8px; text-decoration: none; }
 .side-foot .me:hover, .side-foot .me.on { background: var(--bg-surface); }
-.side-foot .me b { display: block; font-size: 13.5px; font-weight: 600; color: var(--text-primary);
+.side-foot .me b { display: block; font-size: 14.5px; font-weight: 600; color: var(--text-primary);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.side-foot .me span { display: block; font-size: 12px; color: var(--text-tertiary); }
+.side-foot .me span { display: block; font-size: 13px; color: var(--text-tertiary); }
 .side-foot .out { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); }
 .side-foot .out:hover { background: var(--bg-surface); color: var(--text-primary); }
 .side-foot .out svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -183,12 +189,12 @@ h3 { font-size: 16px; letter-spacing: -.01em; font-weight: 600; margin: 0 0 var(
 .page-head h1 { font-size: 44px; letter-spacing: -.035em; font-weight: 700; }
 .page-head .page-sub { margin: 14px 0 0; color: var(--text-secondary); font-size: 15px; line-height: 1.6; max-width: 620px; }
 .eyebrow, .section-title, .card-header, .settings-section h4 {
-    font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: .08em;
-    text-transform: uppercase; color: var(--text-tertiary); margin: 0 0 var(--s3);
+    font-size: 12px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--text-secondary); margin: 0 0 var(--s3);
 }
 .eyebrow.accent { color: var(--text-accent); }
-.muted { color: var(--text-tertiary); font-size: .92em; }
-.hint { color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
+.muted { color: var(--text-tertiary); font-size: .95em; }
+.hint { color: var(--text-secondary); font-size: 15px; line-height: 1.6; }
 .mono, .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
 /* ── Sekcje (dawne „karty") — płaskie, oddzielone linią ── */
@@ -213,12 +219,12 @@ h3 { font-size: 16px; letter-spacing: -.01em; font-weight: 600; margin: 0 0 var(
 .card { background: transparent; border: 1px solid var(--border-default); border-radius: var(--r-lg); box-shadow: none; }
 
 /* ── Formularze ── */
-label { display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin: 18px 0 6px; }
+label { display: block; font-size: 14px; font-weight: 500; color: var(--text-secondary); margin: 18px 0 6px; }
 input, select, textarea {
     background: var(--bg-input); color: var(--text-primary);
     border: 1px solid var(--border-strong); border-radius: var(--r-md);
     padding: 9px 12px; width: 100%; box-sizing: border-box;
-    font: inherit; font-size: 14.5px; box-shadow: none;
+    font: inherit; font-size: 15px; box-shadow: none;
     transition: border-color .15s ease;
 }
 input:hover, select:hover, textarea:hover { border-color: var(--text-tertiary); }
@@ -231,29 +237,29 @@ select { cursor: pointer; }
 button, .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     height: 38px; padding: 0 16px; box-sizing: border-box;
-    background: var(--accent); color: #fff; border: 1px solid var(--accent);
-    border-radius: var(--r-md); font: inherit; font-size: 14px; font-weight: 600; line-height: 1;
+    background: var(--btn-bg); color: #fff; border: 1px solid var(--btn-bg);
+    border-radius: var(--r-md); font: inherit; font-size: 14.5px; font-weight: 600; line-height: 1;
     cursor: pointer; text-decoration: none; white-space: nowrap; box-shadow: none;
     transition: background .15s ease, border-color .15s ease, color .15s ease;
 }
-button:hover, .btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
-.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; border-radius: var(--r-md); box-shadow: none; }
+button:hover, .btn:hover { background: var(--btn-bg-hover); border-color: var(--btn-bg-hover); color: #fff; }
+.btn-primary { background: var(--btn-bg); border-color: var(--btn-bg); color: #fff; border-radius: var(--r-md); box-shadow: none; }
 .btn-ghost, .btn-secondary {
     background: transparent; color: var(--text-primary); border: 1px solid var(--border-strong);
 }
 .btn-ghost:hover, .btn-secondary:hover { background: var(--bg-surface); border-color: var(--text-tertiary); color: var(--text-primary); }
-.btn-danger { background: transparent; color: #F06A6A; border: 1px solid var(--border-strong); }
-.btn-danger:hover { background: rgba(240, 106, 106, 0.08); border-color: rgba(240, 106, 106, 0.5); color: #F06A6A; }
-.btn-live { background: var(--accent); border-color: var(--accent); }
-.btn-sm { height: 30px; padding: 0 12px; font-size: 13px; border-radius: 8px; }
+.btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--border-strong); }
+.btn-danger:hover { background: rgba(240, 106, 106, 0.08); border-color: rgba(240, 106, 106, 0.5); color: var(--danger); }
+.btn-live { background: var(--btn-bg); border-color: var(--btn-bg); }
+.btn-sm { height: 32px; padding: 0 12px; font-size: 13.5px; border-radius: 8px; }
 .btn-lg { height: 46px; padding: 0 22px; font-size: 15px; }
-.song-toolbar .btn { height: 38px; padding: 0 16px; font-size: 14px; }
+.song-toolbar .btn { height: 38px; padding: 0 16px; font-size: 14.5px; }
 
 /* Segment (przełącznik) */
 .seg, .segmented-control { display: inline-flex; gap: 2px; padding: 3px; background: transparent; border: 1px solid var(--border-strong); border-radius: var(--r-md); }
 .seg a, .seg button, .segmented-control button {
     height: 30px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent;
-    color: var(--text-secondary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--text-secondary); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
 }
 .seg a:hover, .seg button:hover, .segmented-control button:hover { background: var(--bg-surface); color: var(--text-primary); }
 .seg a.active, .seg button.active, .segmented-control button.active { background: var(--accent-subtle); color: var(--text-accent); }
@@ -294,10 +300,10 @@ button:hover, .btn:hover { background: var(--accent-hover); border-color: var(--
 table { width: 100%; border-collapse: collapse; }
 th {
     text-align: left; padding: 0 12px 10px 0; border-bottom: 1px solid var(--border-default);
-    font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: .08em;
-    text-transform: uppercase; color: var(--text-tertiary); background: none;
+    font-size: 12px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--text-secondary); background: none;
 }
-td { padding: 14px 12px 14px 0; border-bottom: 1px solid var(--border-default); vertical-align: middle; font-size: 14.5px; }
+td { padding: 14px 12px 14px 0; border-bottom: 1px solid var(--border-default); vertical-align: middle; font-size: 15px; }
 tr:hover td { background: transparent; }
 td a.row-link { color: var(--text-primary); font-weight: 600; }
 td a.row-link:hover { color: var(--text-accent); }
@@ -305,11 +311,11 @@ td a.row-link:hover { color: var(--text-accent); }
 /* ── Komunikaty, odznaki ── */
 .flash {
     background: var(--bg-elevated); border: 1px solid var(--border-strong); color: var(--text-primary);
-    border-radius: var(--r-md); padding: 12px 16px; margin-bottom: 32px; font-size: 14px;
+    border-radius: var(--r-md); padding: 12px 16px; margin-bottom: 32px; font-size: 15px;
 }
 .badge {
     display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 6px;
-    font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: .06em;
+    font-size: 12px; font-weight: 600; letter-spacing: .04em;
     text-transform: uppercase; background: var(--bg-surface); color: var(--text-secondary); border: 0;
 }
 .badge-live, .badge-accent { background: var(--accent-subtle); color: var(--text-accent); }
@@ -318,7 +324,7 @@ td a.row-link:hover { color: var(--text-accent); }
 .empty-state { text-align: left; padding: 40px 0; color: var(--text-tertiary); }
 .empty-state .es-icon { display: none; }
 .empty-state .es-title { color: var(--text-primary); font-weight: 600; font-size: 16px; margin-bottom: 4px; }
-.empty-state .es-sub { font-size: 14px; line-height: 1.6; max-width: 520px; margin: 0; color: var(--text-secondary); }
+.empty-state .es-sub { font-size: 15px; line-height: 1.6; max-width: 520px; margin: 0; color: var(--text-secondary); }
 
 /* Kod zaproszenia */
 .invite-code { font-family: var(--font-mono); font-size: 28px; letter-spacing: .2em; background: none; border: 0; padding: 0; color: var(--text-primary); }
@@ -326,7 +332,7 @@ td a.row-link:hover { color: var(--text-accent); }
 
 /* Ustawienia: wiersz z kontrolką po prawej */
 .set-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); padding: 14px 0; margin: 0; border-bottom: 1px solid var(--border-default); }
-.set-row > span { color: var(--text-primary); font-size: 14.5px; font-weight: 500; }
+.set-row > span { color: var(--text-primary); font-size: 15px; font-weight: 500; }
 
 /* Okna (modal) — jedyne miejsce z cieniem */
 .modal-content { background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--r-xl); box-shadow: var(--shadow-lg); }
@@ -357,6 +363,14 @@ td a.row-link:hover { color: var(--text-accent); }
     h1, .h1, .page-head h1 { font-size: 34px; }
     .page-head { margin-bottom: 32px; }
     .panel { padding: 28px 0; }
+
+    button, .btn, .btn-sm, .song-toolbar .btn, .pick-btn { height: auto; min-height: 44px; }
+    .btn-sm { padding: 0 14px; font-size: 14px; }
+    .seg a, .seg button, .segmented-control button { height: auto; min-height: 40px; }
+    input, select, textarea { min-height: 44px; font-size: 16px; }
+    input[type="checkbox"], input[type="radio"] { min-height: 0; width: 20px; height: 20px; }
+    .nav a { padding: 11px 10px; }
+    .check label, label:has(> input[type="checkbox"]) { min-height: 32px; display: flex; align-items: center; }
 }
 
 /* Strefa usuwania — na dole strony edycji, z dala od codziennych akcji. */

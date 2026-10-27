@@ -16,7 +16,7 @@
     /* Ta sama wysokość wiersza w px co w polu tekstu — numery nie mogą „odjeżdżać". */
     .se-gutter { padding: 10px 8px 10px 0; text-align: right; font-family: var(--font-mono); font-size: 12px; line-height: 23px;
         color: var(--text-tertiary); user-select: none; overflow: hidden; border-right: 1px solid var(--border-default); white-space: pre; }
-    .se-gutter b { color: #F06A6A; font-weight: 700; }
+    .se-gutter b { color: var(--danger, #F06A6A); font-weight: 700; }
     #song-content { border: 0; border-radius: 0; background: transparent; min-height: 420px; resize: vertical;
         font-family: var(--font-mono); font-size: 13.5px; line-height: 23px; padding: 10px 12px; white-space: pre; overflow-x: auto; }
     #song-content:focus { outline: none; }
@@ -29,7 +29,7 @@
     .se-issues li:hover .t { color: var(--text-primary); }
     .se-issues .ln { flex: 0 0 64px; font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); }
     .se-issues .t { color: var(--text-secondary); }
-    .se-issues li.err .ln, .se-issues li.err .t b { color: #F06A6A; }
+    .se-issues li.err .ln, .se-issues li.err .t b { color: var(--danger, #F06A6A); }
     .se-issues li.fix .ln { color: var(--text-accent); }
     .se-note { margin-top: 12px; padding: 12px 14px; border-radius: var(--r-md); border: 1px solid var(--accent-line);
         background: var(--accent-subtle); font-size: 13.5px; color: var(--text-primary); display: flex; gap: 12px;
