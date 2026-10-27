@@ -1175,3 +1175,22 @@ PL.update({
     'Part names separated by a blank line were joined to their lyrics.': 'Nazwy części oddzielone pustą linią połączono z ich tekstem.',
     'Invisible characters from the web page were removed.': 'Usunięto niewidoczne znaki skopiowane ze strony.',
 })
+
+
+# ── Kafelki: powtórzenia i długość slajdu ─────────────────────────────────
+PL.update({
+    '(cont.)': '(cd.)',
+    'Lines %(from)s–%(to)s: the same %(n)s lines %(times)s times in a row.':
+        'Linie %(from)s–%(to)s: te same %(n)s linie %(times)s razy z rzędu.',
+    'Lines %(from)s–%(to)s: the same line %(times)s times in a row.':
+        'Linie %(from)s–%(to)s: ta sama linia %(times)s razy z rzędu.',
+    'Keep once (x%(times)s)': 'Zostaw raz (x%(times)s)',
+    '%(n)s lines on one slide — on the projector the text gets small.':
+        '%(n)s linii na jednym slajdzie — na rzutniku tekst będzie mały.',
+    'Split into %(parts)s slides': 'Podziel na %(parts)s slajdy',
+    'Undo': 'Cofnij',
+    'Repeated lines are kept once with (x2).': 'Powtórzone linie zostawiono raz z dopiskiem (x2).',
+    'Long parts were split into slides of up to 4 lines.': 'Długie części podzielono na slajdy po maks. 4 linie.',
+    '%(n)s lines — too much for one slide, split it (max 4)':
+        '%(n)s linii — za dużo na jeden slajd, podziel (maks. 4)',
+})

@@ -729,7 +729,8 @@ _SECTION_WORD_RE = re.compile(
     r'^\(?\s*(intro|wst[eę]p|zwrotka|zw|verse|strofa|refren|ref|chorus|pre[- ]?chorus|'
     r'przedrefren|przed[- ]refren|bridge|mostek|most|tag|coda|outro|zako[nń]czenie|'
     r'koniec|ending|interlude|interludium|przerywnik|solo|instrumental|vamp|break|'
-    r'modlitwa|recytacja|outro|ko[nń]c[oó]wka)\b[\s\d.:x×\-]*\)?:?$', re.I)
+    r'modlitwa|recytacja|outro|ko[nń]c[oó]wka)\b[\s\d.:x×\-]*\)?:?'
+    r'(\s*\((cd\.?|cont\.?)\))?$', re.I)   # „Refren (cd.)" — slajd po podziale części
 _BRACKET_LABEL_RE = re.compile(r'^\[([^\[\]]{1,40})\]$')
 _PAREN_LABEL_RE = re.compile(r'^\(([^()]{1,40})\)$')
 # Niewidoczne znaki z wklejek ze stron (BOM, zero-width, miękki dywiz) —
