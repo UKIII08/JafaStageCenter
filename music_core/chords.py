@@ -732,6 +732,12 @@ _SECTION_WORD_RE = re.compile(
     r'modlitwa|recytacja|outro|ko[nń]c[oó]wka)\b[\s\d.:x×\-]*\)?:?$', re.I)
 _BRACKET_LABEL_RE = re.compile(r'^\[([^\[\]]{1,40})\]$')
 _PAREN_LABEL_RE = re.compile(r'^\(([^()]{1,40})\)$')
+# Niewidoczne znaki z wklejek ze stron (BOM, zero-width, miękki dywiz) —
+# sklejają słowa i psują dopasowanie akordów. \u200d zostaje (emoji).
+_INVISIBLE_RE = re.compile('[\u200b\u200c\u2060\ufeff\u00ad]')
+# „Capo 2" nad piosenką: kapodaster ustawia każdy muzyk u siebie, a ta
+# linia trafiłaby na rzutnik jako tekst albo zostałaby nazwą części.
+_CAPO_RE = re.compile(r'^\s*(capo|kapo|kapodaster)\b\s*:?\s*\d{1,2}\s*(fret|pr[oó]g)?\s*$', re.I)
 
 
 def is_section_label(line):
@@ -751,6 +757,10 @@ def tidy_song_text(text):
     changes = set()
     out = []
     for line in text.replace('\r', '').split('\n'):
+        clean = _INVISIBLE_RE.sub('', line).replace('\u00a0', ' ')
+        if clean != line:
+            line = clean
+            changes.add('invisible')
         s = line.strip()
         m = _BRACKET_LABEL_RE.match(s) or (
             _PAREN_LABEL_RE.match(s) if is_section_label(s) else None)
@@ -766,15 +776,55 @@ def tidy_song_text(text):
             line = re.sub(r'\[\s*\]', '', line)
             changes.add('empty_brackets')
         out.append(line.rstrip())
-    result = re.sub(r'\n{3,}', '\n\n', '\n'.join(out)).strip('\n')
+    # „Zwrotka" + pusta linia + tekst → bez pustej linii (inaczej nazwa
+    # staje się osobnym, pustym slajdem, a zwrotka traci nazwę)
+    merged, i = [], 0
+    while i < len(out):
+        merged.append(out[i])
+        if is_section_label(out[i]) and (i == 0 or not out[i - 1].strip()):
+            j = i + 1
+            while j < len(out) and not out[j].strip():
+                j += 1
+            if j > i + 1 and j < len(out) and not is_section_label(out[j]):
+                changes.add('label_gap')
+                i = j
+                continue
+        i += 1
+    result = re.sub(r'\n{3,}', '\n\n', '\n'.join(merged)).strip('\n')
     return result, sorted(changes)
 
 
+def prepare_song(content, input_notation='international'):
+    """Wspólna ścieżka zapisu piosenki (panel, Studio, import) — każda droga
+    wpisania daje ten sam wynik:
+    - wklejony ChordPro (SongSelect) → nasz format + meta (tytuł, tonacja…),
+    - akordy zapisane nad tekstem → [akord]tekst,
+    - bezpieczne porządki (tidy_song_text),
+    - akordy do notacji międzynarodowej.
+    Zwraca {'content', 'changes', 'meta'}."""
+    text = (content or '').replace('\r', '')
+    changes, meta = set(), {}
+    if is_chordpro(text):
+        parsed = parse_chordpro(text)
+        if parsed:
+            meta = {k: v for k, v in parsed[0].items() if k != 'content' and v}
+            text = parsed[0]['content']
+            changes.add('chordpro')
+    if any(l.strip() and '[' not in l and _is_chords_over_lyrics_line(l.strip())
+           for l in text.split('\n')):
+        text, converted = convert_chords_over_lyrics(text)
+        if converted:
+            changes.add('above_lyrics')
+    tidied, tidy_changes = tidy_song_text(text)
+    changes.update(tidy_changes)
+    return {'content': normalize_song_chords_to_international(
+                tidied, input_notation=input_notation),
+            'changes': sorted(changes), 'meta': meta}
+
+
 def prepare_song_content(content, input_notation='international'):
-    """Wspólna ścieżka zapisu piosenki (panel, Studio, import): bezpieczne
-    porządki + ujednolicenie akordów do notacji międzynarodowej."""
-    tidied, _changes = tidy_song_text(content or '')
-    return normalize_song_chords_to_international(tidied, input_notation=input_notation)
+    """Jak prepare_song, ale zwraca samą treść (Studio, import)."""
+    return prepare_song(content, input_notation)['content']
 
 
 def _polish_markers(chords):
@@ -835,7 +885,9 @@ def analyze_song(text, input_notation='international'):
             if not is_valid_chord(t):
                 invalid.setdefault(tok.strip(), []).append(n)
         s = line.strip()
-        if s and '[' not in s and _is_chords_over_lyrics_line(s):
+        if _CAPO_RE.match(s):
+            issues.append({'line': n, 'kind': 'capo_line', 'text': s})
+        elif s and '[' not in s and _is_chords_over_lyrics_line(s):
             above.append(n)
     hard = [i for i in issues if i['kind'] == 'unclosed']
     hint = None
@@ -871,8 +923,9 @@ def parse_song_sections(content):
         lines = block.strip().split('\n')
         label = f'SLAJD {i + 1}'
         body = block.strip()
-        if lines and '[' not in lines[0] and len(lines[0].strip()) < 30 \
-                and len(lines) > 1:
+        # Ta sama reguła co Studio (control_logic.js parseSongSections), żeby
+        # panel, ćwiczenie i slajdy na żywo dzieliły piosenkę identycznie.
+        if lines and '[' not in lines[0] and len(lines[0].strip()) < 30:
             label = lines[0].strip()
             body = '\n'.join(lines[1:]).strip()
         sections.append({'label': label, 'content': body})

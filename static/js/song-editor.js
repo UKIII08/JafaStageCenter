@@ -84,12 +84,19 @@
         }
         status.innerHTML = parts.join(' · ');
         if (keyInput && !keyInput.value) keyInput.placeholder = d.key || '';
+        // Wklejony ChordPro niesie tytuł, tonację i tempo — wpisz je w puste pola
+        var meta = d.meta || {};
+        var titleInput = $('f-title'), bpmInput = $('f-bpm');
+        if (meta.title && titleInput && !titleInput.value) titleInput.value = meta.title;
+        if (meta.key && keyInput && !keyInput.value) keyInput.value = meta.key;
+        if (meta.bpm && bpmInput && !bpmInput.value) bpmInput.value = meta.bpm;
 
         // 2) Problemy z numerami linii
         var rows = [];
         d.issues.forEach(function (i) {
             var kind = { unclosed: ['err', L.unclosed], stray_close: ['', L.stray],
-                         double_brackets: ['fix', L.dbl], label_brackets: ['fix', L.labelBr] }[i.kind];
+                         double_brackets: ['fix', L.dbl], label_brackets: ['fix', L.labelBr],
+                         capo_line: ['', L.capo] }[i.kind];
             if (!kind) return;
             if (kind[0] === 'err') errLines[i.line] = true;
             rows.push({ line: i.line, cls: kind[0], html: '<b>' + esc(i.text) + '</b> — ' + esc(kind[1]) });
