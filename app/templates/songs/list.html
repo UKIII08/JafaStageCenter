@@ -22,9 +22,6 @@
         <div class="song-toolbar">
             <a class="btn" href="{{ url_for('songs.song_new', church_id=church.id) }}">{{ _('Add song') }}</a>
             <button type="button" class="btn btn-ghost" onclick="document.getElementById('import-input').click()">{{ _('Import songs') }}</button>
-            {% if membership.role != 'muzyk' %}
-            <a class="btn btn-ghost" href="{{ url_for('studio.control', church_id=church.id) }}">{{ _('Manage in Studio') }}</a>
-            {% endif %}
         </div>
     </div>
     {# ukryty formularz importu — przycisk „Import songs" klika to pole #}
@@ -48,6 +45,9 @@
             <span class="go">
                 <a class="btn btn-ghost btn-sm" href="{{ url_for('songs.practice', church_id=church.id, song_id=s.id) }}">{{ _('Practice') }}</a>
                 <a class="btn btn-ghost btn-sm" href="{{ url_for('arr.song_main', church_id=church.id, song_id=s.id) }}">{{ _('Form & parts') }}</a>
+                {% if membership.role != 'muzyk' %}
+                <a class="btn btn-ghost btn-sm" href="{{ url_for('songs.song_edit', church_id=church.id, song_id=s.id) }}">{{ _('Edit') }}</a>
+                {% endif %}
             </span>
         </div>
         {% else %}

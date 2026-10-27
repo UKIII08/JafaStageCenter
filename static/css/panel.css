@@ -358,3 +358,9 @@ td a.row-link:hover { color: var(--text-accent); }
     .page-head { margin-bottom: 32px; }
     .panel { padding: 28px 0; }
 }
+
+/* Strefa usuwania — na dole strony edycji, z dala od codziennych akcji. */
+.danger-zone { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--border-default);
+    display: flex; gap: 24px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.danger-zone b { font-weight: 600; }
+.danger-zone .hint { margin: 4px 0 0; }
