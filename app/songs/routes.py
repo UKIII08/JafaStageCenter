@@ -328,6 +328,7 @@ def api_analyze():
         sections.append({'label': sec['label'], 'html': band, 'auto': auto,
                          'known': auto or mc.is_section_label(sec['label'])})
     report.update({'sections': sections, 'fixes': changes, 'meta': prep['meta'],
+                   'converted': prep['converted'],
                    # zgodność wstecz (stary edytor oczekiwał listy nazw)
                    'invalid_names': [i['chord'] for i in report['invalid']]})
     return jsonify(report)

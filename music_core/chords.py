@@ -819,6 +819,9 @@ def prepare_song(content, input_notation='international'):
     changes.update(tidy_changes)
     return {'content': normalize_song_chords_to_international(
                 tidied, input_notation=input_notation),
+            # ten sam tekst, ale akordy jeszcze w notacji użytkownika —
+            # edytor wstawia go po wklejeniu (zapis i tak zrobi resztę)
+            'converted': tidied,
             'changes': sorted(changes), 'meta': meta}
 
 
