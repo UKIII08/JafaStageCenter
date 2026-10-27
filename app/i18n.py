@@ -1120,3 +1120,12 @@ PL.update({
     'The team’s availability and lineup for this service are removed too.': 'Usunięte zostaną też odpowiedzi zespołu i skład na to granie.',
     'Settings for the whole community. Your own theme, language and tips are in': 'Ustawienia dla całej wspólnoty. Twój motyw, język i podpowiedzi są w zakładce',
 })
+
+
+# ── Wpisywanie piosenek: ChordPro, kapodaster ─────────────────────────────
+PL.update({
+    'Pasted ChordPro was converted — check the result.':
+        'Wklejony ChordPro został przerobiony — sprawdź wynik.',
+    'capo is set by each musician in their own view — this line would show as lyrics, delete it':
+        'kapodaster ustawia każdy muzyk u siebie — ta linia pokazałaby się jako tekst, usuń ją',
+})

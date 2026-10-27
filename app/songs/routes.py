@@ -78,18 +78,22 @@ def _save_song_fields(song, form):
     for issue in report['issues']:
         if issue['kind'] == 'unclosed':
             errors.append(_(ISSUE_TEXT['unclosed']) % {'line': issue['line']})
-    # Akordy wklejone „nad tekstem" (Ultimate Guitar itp.) — w tej formie
-    # rozjeżdżają się na każdym ekranie, więc przerabiamy je na [akord]tekst.
-    if report['above_lyrics']:
-        content, converted = mc.convert_chords_over_lyrics(content)
-        if converted:
-            notes.append(_('Chords written above the lyrics were moved into the text — check the result.'))
-    tidied, changes = mc.tidy_song_text(content)
+    # Ta sama ścieżka co Studio i import: ChordPro, akordy nad tekstem,
+    # porządki, notacja międzynarodowa.
+    prep = mc.prepare_song(content, input_notation)
+    changes, meta = prep['changes'], prep['meta']
+    if 'chordpro' in changes:
+        notes.append(_('Pasted ChordPro was converted — check the result.'))
+    if 'above_lyrics' in changes:
+        notes.append(_('Chords written above the lyrics were moved into the text — check the result.'))
     if 'labels' in changes:
         notes.append(_('Section names in brackets, like [Chorus], are now plain labels.'))
-    song.content = mc.normalize_song_chords_to_international(
-        tidied, input_notation=input_notation)
-    key = mc.canon_chord(form.get('key') or '')
+    song.content = prep['content']
+    # ChordPro niesie tytuł/tonację/tempo — uzupełniamy tylko puste pola
+    if not song.title and meta.get('title'):
+        song.title = meta['title'][:200]
+    form_key = form.get('key') or meta.get('key') or ''
+    key = mc.canon_chord(form_key)
     if key and not mc.is_valid_chord(key):
         errors.append(_(ISSUE_TEXT['bad_key']) % {'key': key})
         key = ''
@@ -102,7 +106,7 @@ def _save_song_fields(song, form):
         key = ''
     song.key = key[:10]
     try:
-        song.bpm = max(0, min(300, int(form.get('bpm') or 0)))
+        song.bpm = max(0, min(300, int(form.get('bpm') or meta.get('bpm') or 0)))
     except ValueError:
         song.bpm = 0
     return errors, notes
@@ -314,19 +318,16 @@ def api_analyze():
     text = (data.get('text') or '')[:SONG_MAX_CHARS * 2]
     notation = data.get('notation') if data.get('notation') in NOTATIONS else 'international'
     report = mc.analyze_song(text, notation)
-    # Podgląd = ta sama ścieżka co zapis (konwersja „nad tekstem" + porządki)
-    preview_src = text
-    if report['above_lyrics']:
-        preview_src, _c = mc.convert_chords_over_lyrics(preview_src)
-    tidied, changes = mc.tidy_song_text(preview_src)
-    stored = mc.normalize_song_chords_to_international(tidied, input_notation=notation)
+    # Podgląd = dokładnie ta sama ścieżka co zapis
+    prep = mc.prepare_song(text, notation)
+    stored, changes = prep['content'], prep['changes']
     sections = []
     for sec in mc.parse_song_sections(stored):
         _p, band, _x = mc.process_song(sec['content'])
         auto = sec['label'].startswith('SLAJD ')
         sections.append({'label': sec['label'], 'html': band, 'auto': auto,
                          'known': auto or mc.is_section_label(sec['label'])})
-    report.update({'sections': sections, 'fixes': changes,
+    report.update({'sections': sections, 'fixes': changes, 'meta': prep['meta'],
                    # zgodność wstecz (stary edytor oczekiwał listy nazw)
                    'invalid_names': [i['chord'] for i in report['invalid']]})
     return jsonify(report)
