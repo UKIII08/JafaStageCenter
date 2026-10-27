@@ -89,7 +89,6 @@
     <div style="display:flex; gap:6px; align-items:center; white-space:nowrap;">
       <a href="#three" style="text-decoration:none; color:#9A9992; font-size:0.86rem; font-weight:500; padding:9px 15px; letter-spacing:0.01em; transition:color .3s ease;" data-hv="1">Jak to działa</a>
       <a href="#smart" style="text-decoration:none; color:#9A9992; font-size:0.86rem; font-weight:500; padding:9px 15px; letter-spacing:0.01em; transition:color .3s ease;" data-hv="2">Inteligentne narzędzia</a>
-      <a href="#pricing" style="text-decoration:none; color:#9A9992; font-size:0.86rem; font-weight:500; padding:9px 15px; letter-spacing:0.01em; transition:color .3s ease;" data-hv="3">Cennik</a>
       <a href="{{ url_for('auth.login') }}" style="text-decoration:none; color:#ECEBE7; font-size:0.86rem; font-weight:500; padding:9px 16px; margin-left:8px; transition:color .3s ease;" data-hv="4">Zaloguj się</a>
       <a href="{{ url_for('auth.register') }}" style="text-decoration:none; color:#0C0C0E; background:#ECEBE7; font-size:0.86rem; font-weight:600; padding:10px 20px; border-radius:11px; transition:transform .5s cubic-bezier(0.16,1,0.3,1), background .3s ease;" data-hv="5">Zacznij za darmo</a>
     </div>
@@ -113,7 +112,7 @@
           Ułóż setlistę i prowadź na żywo — dla sali i dla zespołu — z inteligentnymi narzędziami, które naprawdę pomagają muzykom grać najlepiej, jak potrafią. <span class="ser" style="color:#ECEBE7;">Jedno</span> miejsce zamiast trzech aplikacji i czatu grupowego.
         </p>
         <div style="display:flex; gap:22px; align-items:center; flex-wrap:wrap;">
-          <a href="{{ url_for('auth.register') }}" style="text-decoration:none; color:#0C0C0E; background:#ECEBE7; font-weight:600; font-size:1rem; padding:16px 30px; border-radius:13px; transition:transform .5s cubic-bezier(0.16,1,0.3,1), box-shadow .5s cubic-bezier(0.16,1,0.3,1); box-shadow:0 2px 4px rgba(0,0,0,0.3), 0 14px 34px -14px rgba(0,0,0,0.6);" data-hv="6">Zacznij za darmo — bez karty</a>
+          <a href="{{ url_for('auth.register') }}" style="text-decoration:none; color:#0C0C0E; background:#ECEBE7; font-weight:600; font-size:1rem; padding:16px 30px; border-radius:13px; transition:transform .5s cubic-bezier(0.16,1,0.3,1), box-shadow .5s cubic-bezier(0.16,1,0.3,1); box-shadow:0 2px 4px rgba(0,0,0,0.3), 0 14px 34px -14px rgba(0,0,0,0.6);" data-hv="6">Zacznij za darmo</a>
           <a href="#three" style="text-decoration:none; color:#ECEBE7; font-weight:500; font-size:1rem; display:inline-flex; align-items:center; gap:10px; padding:6px 2px; border-bottom:1px solid rgba(255,255,255,0.25); transition:gap .4s cubic-bezier(0.16,1,0.3,1), border-color .3s;" data-hv="7">Zobacz, jak to działa
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
           </a>
@@ -341,47 +340,6 @@
       <div style="padding:34px 0 34px 34px;">
         <h3 class="syne" style="margin:0 0 12px; font-size:1.08rem; font-weight:700;">Twoja wspólnota, Twoja kontrola</h3>
         <p style="margin:0; color:#8E8D86; font-size:0.93rem; line-height:1.65;">Role prowadzącego i muzyka, własne logo i tło, szyfrowane połączenia i usunięcie konta jednym kliknięciem. Podłączasz ekrany przez QR, odłączasz równie łatwo.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- 06 · PRICING (editorial, asymmetric) -->
-  <section id="pricing" style="position:relative; z-index:1; max-width:1240px; margin:0 auto; padding:170px 40px 0;">
-    <div style="display:flex; align-items:baseline; gap:20px; margin-bottom:44px;">
-      <span class="syne" style="font-size:0.8rem; font-weight:700; color:#4F7FFF; font-family:'JetBrains Mono',monospace;">§06</span>
-      <span style="font-size:0.72rem; font-weight:600; letter-spacing:0.26em; text-transform:uppercase; font-family:'JetBrains Mono',monospace; color:#63625C;">Pricing</span>
-      <span style="flex:1; height:1px; background:rgba(255,255,255,0.09);"></span>
-    </div>
-    <div style="border-radius:24px; overflow:hidden; border:1px solid rgba(255,255,255,0.1); background:#0F1015; box-shadow:0 2px 6px rgba(0,0,0,0.3), 0 40px 80px -40px rgba(0,0,0,0.6);">
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0;">
-        <!-- left: price -->
-        <div style="padding:48px 44px; border-right:1px solid rgba(255,255,255,0.08);">
-          <div style="font-size:0.72rem; font-weight:600; letter-spacing:0.2em; text-transform:uppercase; font-family:'JetBrains Mono',monospace; color:#7EB0FF; margin-bottom:22px;">Cena założycielska</div>
-          <div style="display:flex; align-items:flex-end; gap:12px; margin-bottom:6px;">
-            <span class="syne" style="font-size:4.4rem; font-weight:800; letter-spacing:-0.04em; line-height:0.85;">$4.99</span>
-            <span style="color:#7C7B74; font-size:1rem; padding-bottom:8px;">/ miesiąc</span>
-          </div>
-          <div style="color:#7C7B74; font-size:0.95rem; text-decoration:line-through; text-decoration-color:rgba(150,148,140,0.5); margin-bottom:30px;">$9.99 / miesiąc po becie</div>
-          <div style="display:inline-flex; font-size:0.72rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; font-family:'JetBrains Mono',monospace; color:#C9C7C0; border:1px solid rgba(255,255,255,0.16); padding:9px 15px; border-radius:10px; margin-bottom:30px;">1 tydzień za darmo · bez karty</div>
-          <div style="display:flex; gap:14px; align-items:flex-start; border-top:1px solid rgba(255,255,255,0.08); padding-top:24px;">
-            <span style="flex-shrink:0; color:#7EB0FF; margin-top:2px;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-            <p style="margin:0; color:#96958E; font-size:0.92rem; line-height:1.6;">Wykup w becie, a cena jest zablokowana na <span style="color:#C9C7C0; font-weight:600;">$4.99/mies. przez cały rok</span>. Po becie robi się $9.99/mies. — kościoły założycielskie zachowują swoją stawkę.</p>
-          </div>
-        </div>
-        <!-- right: perks + cta -->
-        <div style="padding:48px 44px; display:flex; flex-direction:column;">
-          <div style="font-size:0.72rem; font-weight:600; letter-spacing:0.2em; text-transform:uppercase; font-family:'JetBrains Mono',monospace; color:#63625C; margin-bottom:22px;">Wszystko w cenie</div>
-          <div style="display:flex; flex-direction:column; gap:0; margin-bottom:32px;">
-            <div style="display:flex; align-items:center; gap:13px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.06); color:#C9C7C0; font-size:0.98rem;"><span style="color:#7EB0FF;">✓</span>Pieśni i setlisty bez limitu</div>
-            <div style="display:flex; align-items:center; gap:13px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.06); color:#C9C7C0; font-size:0.98rem;"><span style="color:#7EB0FF;">✓</span>Pełny tryb live w przeglądarce</div>
-            <div style="display:flex; align-items:center; gap:13px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.06); color:#C9C7C0; font-size:0.98rem;"><span style="color:#7EB0FF;">✓</span>Ekrany: prowadzący, muzyk i rzutnik</div>
-            <div style="display:flex; align-items:center; gap:13px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.06); color:#C9C7C0; font-size:0.98rem;"><span style="color:#7EB0FF;">✓</span>Tonacje, kapo i notatki per muzyk</div>
-            <div style="display:flex; align-items:center; gap:13px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.06); color:#C9C7C0; font-size:0.98rem;"><span style="color:#7EB0FF;">✓</span>Planowanie służby i dostępność</div>
-            <div style="display:flex; align-items:center; gap:13px; padding:11px 0; color:#C9C7C0; font-size:0.98rem;"><span style="color:#7EB0FF;">✓</span>Automatyczny raport CCLI</div>
-          </div>
-          <a href="{{ url_for('auth.register') }}" style="margin-top:auto; display:block; text-align:center; text-decoration:none; color:#0C0C0E; background:#ECEBE7; font-weight:600; font-size:1.02rem; padding:17px; border-radius:13px; transition:transform .5s cubic-bezier(0.16,1,0.3,1), box-shadow .5s; box-shadow:0 2px 4px rgba(0,0,0,0.3);" data-hv="21">Zacznij darmowy tydzień</a>
-          <div style="text-align:center; color:#63625C; font-size:0.83rem; margin-top:14px;">Ustawisz wspólnotę w jakieś piętnaście minut.</div>
-        </div>
       </div>
     </div>
   </section>
