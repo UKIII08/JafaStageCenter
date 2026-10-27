@@ -56,9 +56,17 @@ def _event_view(church_id, ev, me):
         setlist = StudioSetlist.query.filter_by(
             id=ev.setlist_id, church_id=church_id).first()
         if setlist:
-            existing = {s.id for s in Song.query.filter_by(
-                church_id=church_id, deleted=False).all()}
+            lib = Song.query.filter_by(church_id=church_id,
+                                       deleted=False).all()
+            existing = {s.id for s in lib}
+            # Starsze setlisty (i import) mają same tytuły bez id — wtedy
+            # szukamy piosenki po tytule, żeby „Ćwicz" działało.
+            by_title = {(s.title or '').strip().lower(): s.id for s in lib}
             for item in json.loads(setlist.songs or '[]'):
+                if item.get('id') not in existing:
+                    found = by_title.get((item.get('title') or '').strip().lower())
+                    if found:
+                        item['id'] = found
                 t = int(item.get('transpose', 0) or 0)
                 key = item.get('key') or ''
                 shown = key

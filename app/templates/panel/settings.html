@@ -1,38 +1,9 @@
 {% extends 'base.html' %}
 {% block title %}{{ _('Settings') }} — {{ church.name }}{% endblock %}
 {% block content %}
-<div class="page-head"><h1>{{ _('Settings') }}</h1></div>
-
-{# ── Wygląd i język — przełączniki przeniesione tu z górnego paska ── #}
-<div class="panel" style="max-width:560px;">
-    <div class="section-title">{{ _('Appearance & language') }}</div>
-
-    <div class="set-row">
-        <span>{{ _('Theme') }}</span>
-        <div class="seg" id="theme-seg">
-            <button type="button" data-theme-val="light" onclick="setTheme('light')">{{ _('Light') }}</button>
-            <button type="button" data-theme-val="dark" onclick="setTheme('dark')">{{ _('Dark') }}</button>
-        </div>
-    </div>
-
-    <div class="set-row">
-        <span>{{ _('Language') }}</span>
-        <select id="lang-select" style="min-width:160px;" onchange="if(this.value)location.href=this.value;">
-            {% for code, label in languages %}
-            <option value="{{ url_for('switch_lang', code=code) }}" {{ 'selected' if current_lang() == code }}>{{ label }}</option>
-            {% endfor %}
-        </select>
-    </div>
-
-    <div class="set-row">
-        <span>{{ _('Hover tips') }}</span>
-        <div class="seg" id="hints-seg">
-            <button type="button" data-hints-val="on" onclick="setHints('on')">{{ _('On') }}</button>
-            <button type="button" data-hints-val="off" onclick="setHints('off')">{{ _('Off') }}</button>
-        </div>
-    </div>
-    <p class="hint" style="margin:calc(-1 * var(--s2)) 0 0;" id="hints-note">{{ _('Little tips appear when you hover over buttons. They show automatically the first few times you open the app, then switch off — turn them back on here anytime.') }}</p>
-</div>
+<div class="page-head"><h1>{{ _('Settings') }}</h1>
+    <p class="muted" style="margin:6px 0 0;">{{ _('Settings for the whole community. Your own theme, language and tips are in') }}
+        <a href="{{ url_for('panel.my_profile', church_id=church.id) }}">{{ _('My profile') }}</a>.</p></div>
 
 {# ── Ustawienia wspólnoty (jak dotychczas) ── #}
 <div class="panel" style="max-width:560px;">
@@ -89,32 +60,4 @@
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-tertiary);"><polyline points="9 18 15 12 9 6"/></svg>
 </a>
 
-<script>
-function setTheme(t) {
-    document.documentElement.setAttribute('data-theme', t);
-    try { localStorage.setItem('jonathan-theme', t); } catch (e) {}
-    document.querySelectorAll('#theme-seg button').forEach(function (b) {
-        b.classList.toggle('active', b.getAttribute('data-theme-val') === t);
-    });
-}
-// oznacz aktywny motyw przy wejściu
-setTheme(document.documentElement.getAttribute('data-theme') || 'dark');
-
-// ── Podpowiedzi na hover ──
-function markHints() {
-    var H = window.JonathanHints;
-    if (!H) return;
-    var on = H.isActive();
-    document.querySelectorAll('#hints-seg button').forEach(function (b) {
-        b.classList.toggle('active', (b.getAttribute('data-hints-val') === 'on') === on);
-    });
-}
-function setHints(v) {
-    var H = window.JonathanHints;
-    if (!H) return;
-    H.setMode(v);   // 'on' włącza na stałe, 'off' wyłącza
-    markHints();
-}
-markHints();
-</script>
 {% endblock %}

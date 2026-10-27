@@ -1,5 +1,5 @@
-{# Wspólny panel: wygląd (motyw, per-urządzenie) + język (per-sesja).
-   Dostępny dla każdego zalogowanego (ustawienia = admin, profil = każdy). #}
+{# Osobiste: motyw (per urządzenie), język (per sesja), podpowiedzi.
+   Tylko w „Mój profil” — Ustawienia są dla całej wspólnoty. #}
 <div class="panel" style="max-width:560px;">
     <div class="section-title">{{ _('Appearance & language') }}</div>
 
@@ -19,6 +19,15 @@
             {% endfor %}
         </select>
     </div>
+
+    <div class="set-row">
+        <span>{{ _('Hover tips') }}</span>
+        <div class="seg" id="hints-seg">
+            <button type="button" data-hints-val="on" onclick="setHints('on')">{{ _('On') }}</button>
+            <button type="button" data-hints-val="off" onclick="setHints('off')">{{ _('Off') }}</button>
+        </div>
+    </div>
+    <p class="hint" style="margin:calc(-1 * var(--s2)) 0 0;">{{ _('Little tips appear when you hover over buttons. They show automatically the first few times you open the app, then switch off — turn them back on here anytime.') }}</p>
 </div>
 
 <script>
@@ -31,4 +40,22 @@ function setTheme(t) {
 }
 // oznacz aktywny motyw przy wejściu
 setTheme(document.documentElement.getAttribute('data-theme') || 'dark');
+
+// ── Podpowiedzi na hover (per urządzenie) ──
+function markHints() {
+    var H = window.JonathanHints;
+    if (!H) return;
+    var on = H.isActive();
+    document.querySelectorAll('#hints-seg button').forEach(function (b) {
+        b.classList.toggle('active', (b.getAttribute('data-hints-val') === 'on') === on);
+    });
+}
+function setHints(v) {
+    var H = window.JonathanHints;
+    if (!H) return;
+    H.setMode(v);   // 'on' włącza na stałe, 'off' wyłącza
+    markHints();
+}
+// hints.js ładuje się po treści strony — oznacz dopiero po jego wczytaniu
+document.addEventListener('DOMContentLoaded', markHints);
 </script>

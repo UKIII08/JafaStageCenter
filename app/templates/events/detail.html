@@ -1,16 +1,20 @@
 {% extends 'base.html' %}
 {% block title %}{{ ev.name }} — {{ church.name }}{% endblock %}
 {% block content %}
+<style>
+    .ev-more { margin-top: 18px; }
+    .ev-more > summary { cursor: pointer; color: var(--text-secondary); font-size: 14px; font-weight: 500; }
+    .ev-more > summary:hover { color: var(--text-primary); }
+    .ev-more[open] > summary { margin-bottom: 14px; }
+    .ev-edit { display: grid; grid-template-columns: minmax(0, 2fr) minmax(130px, 1fr) minmax(100px, .7fr) minmax(130px, 1fr); gap: 12px; }
+    .ev-edit label { margin-top: 0; }
+    @media (max-width: 700px) { .ev-edit { grid-template-columns: 1fr 1fr; } .ev-edit > :first-child { grid-column: 1 / -1; } }
+</style>
 <div class="panel">
     <div class="panel-header">
         <h2>{{ ev.name }}
             <span class="muted" style="font-size:.65em; font-weight:400;">{{ ev.date.strftime('%d.%m.%Y') }}{{ ' · ' + ev.time if ev.time }}</span>
         </h2>
-        {% if membership.role != 'muzyk' %}
-        <form method="POST" action="{{ url_for('events.event_delete', church_id=church.id, eid=ev.id) }}" onsubmit="return confirm('{{ _('Delete this service?') }}')">
-            <button class="btn btn-danger btn-sm">{{ _('Delete service') }}</button>
-        </form>
-        {% endif %}
     </div>
     {% if ev.signup_deadline %}
     <p class="hint" style="margin:0;">{{ _('Signup deadline:') }} {{ ev.signup_deadline.strftime('%d.%m.%Y') }}
@@ -38,11 +42,14 @@
     {% endif %}
 </div>
 
-{% if songs or setlist %}
 <div class="panel">
     <div class="panel-header">
-        <div class="section-title" style="margin:0;">{{ _('Setlist') }}{{ ' — ' + setlist.name if setlist and setlist.name }}</div>
+        <div class="section-title" style="margin:0;">{{ _('Songs') }}{{ ' — ' + setlist.name if setlist and setlist.name }}</div>
+        {% if membership.role != 'muzyk' %}
+        <a class="btn{{ ' btn-ghost' if songs }}" href="{{ url_for('studio.control', church_id=church.id, granie=ev.id) }}">{{ _('Edit the setlist in Studio') if ev.setlist_id else _('Arrange the setlist in Studio') }}</a>
+        {% endif %}
     </div>
+    {% if songs %}
     <table>
         <tr><th>#</th><th>{{ _('Song') }}</th><th>{{ _('Key') }}</th><th>{{ _('BPM') }}</th><th></th></tr>
         {% for s in songs %}
@@ -60,27 +67,26 @@
         {% endfor %}
     </table>
     <p class="hint" style="margin-bottom:0;">{{ _('"Practice" opens the song in the setlist key — with a metronome, auto-scroll and your private note.') }}</p>
+    {% else %}
+    <p class="muted" style="margin:0;">{% if membership.role != 'muzyk' %}{{ _('No songs yet. Arrange them in Studio — after “Save setlist” they appear here.') }}{% else %}{{ _('The leader hasn’t added songs yet.') }}{% endif %}</p>
+    {% endif %}
+    {% if membership.role != 'muzyk' and setlists %}
+    <details class="ev-more">
+        <summary>{{ _('Use a setlist saved earlier') }}</summary>
+        <form method="POST" action="{{ url_for('events.event_setlist', church_id=church.id, eid=ev.id) }}" class="form-row">
+            <select name="setlist_id" style="flex:1;" aria-label="{{ _('Saved setlist') }}">
+                <option value="">{{ _('— none / detach —') }}</option>
+                {% for sl in setlists %}
+                <option value="{{ sl.id }}" {{ 'selected' if ev.setlist_id == sl.id }}>{{ sl.name or _('Setlist') }} ({{ sl.date or _('no date') }})</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn-ghost btn" style="flex:0 0 auto;">{{ _('Attach selected') }}</button>
+        </form>
+    </details>
+    {% endif %}
 </div>
-{% endif %}
 
 {% if membership.role != 'muzyk' %}
-<div class="panel">
-    <div class="panel-header">
-        <div class="section-title" style="margin:0;">{{ _('Setlist from Studio') }}</div>
-        <a class="btn" href="{{ url_for('studio.control', church_id=church.id, granie=ev.id) }}">{{ _('Edit the setlist in Studio') if ev.setlist_id else _('Arrange the setlist in Studio') }}</a>
-    </div>
-    <p class="hint">{{ _('The button opens Studio in this service\'s mode: arrange songs, order and keys, hit “Save setlist” — and the setlist attaches here by itself. You can also attach one you saved earlier:') }}</p>
-    <form method="POST" action="{{ url_for('events.event_setlist', church_id=church.id, eid=ev.id) }}" class="form-row">
-        <select name="setlist_id" style="flex:1;">
-            <option value="">{{ _('— none / detach —') }}</option>
-            {% for sl in setlists %}
-            <option value="{{ sl.id }}" {{ 'selected' if ev.setlist_id == sl.id }}>{{ sl.name or _('Setlist') }} ({{ sl.date or _('no date') }})</option>
-            {% endfor %}
-        </select>
-        <button type="submit" class="btn-ghost btn" style="flex:0 0 auto;">{{ _('Attach selected') }}</button>
-    </form>
-</div>
-
 <div class="panel">
     <div class="panel-header">
         <div class="section-title" style="margin:0;">{{ _('Welcome screen') }}</div>
@@ -92,9 +98,9 @@
         {% endif %}
     </div>
     {% if ev.setlist_id %}
-    <p class="hint" style="margin-bottom:0;">{{ _('Countdown to this service plus rotating announcements, shown on the projector before the first song. They belong to this service\'s setlist, so they also play when you load it from History in Studio. Launch it live with “Play announcements”.') }}</p>
+    <p class="hint" style="margin-bottom:0;">{{ _('Countdown and announcements on the projector before the first song.') }}</p>
     {% else %}
-    <p class="hint" style="margin-bottom:0;">{{ _('Announcements belong to a setlist. Arrange or attach a setlist above first, then you can add the countdown and announcements here.') }}</p>
+    <p class="hint" style="margin-bottom:0;">{{ _('Add songs to the service first — then you can set up the countdown and announcements.') }}</p>
     {% endif %}
 </div>
 {% endif %}
@@ -157,18 +163,28 @@
 
 {% if membership.role != 'muzyk' %}
 <div class="panel">
-    <div class="section-title">{{ _('Edit service') }}</div>
-    <form method="POST" action="{{ url_for('events.event_edit', church_id=church.id, eid=ev.id) }}">
-        <div class="form-row">
-            <input name="name" value="{{ ev.name }}" style="flex:2; min-width:160px;">
-            <input name="date" type="date" value="{{ ev.date.isoformat() }}" style="flex:1;">
-            <input name="time" type="time" value="{{ ev.time }}" style="flex:0 0 110px;">
-            <input name="signup_deadline" type="date" value="{{ ev.signup_deadline.isoformat() if ev.signup_deadline else '' }}" style="flex:1;">
-        </div>
-        <label>{{ _('Note for the team (e.g. rehearsal at 8:30)') }}</label>
-        <textarea name="notes" rows="2">{{ ev.notes }}</textarea>
-        <div style="margin-top:var(--s3);"><button type="submit">{{ _('Save changes') }}</button></div>
-    </form>
+    <details class="ev-more">
+        <summary>{{ _('Edit service details') }}</summary>
+        <form method="POST" action="{{ url_for('events.event_edit', church_id=church.id, eid=ev.id) }}">
+            <div class="ev-edit">
+                <div><label for="ed-name">{{ _('Name') }}</label><input id="ed-name" name="name" value="{{ ev.name }}"></div>
+                <div><label for="ed-date">{{ _('Date') }}</label><input id="ed-date" name="date" type="date" value="{{ ev.date.isoformat() }}"></div>
+                <div><label for="ed-time">{{ _('Time') }}</label><input id="ed-time" name="time" type="time" value="{{ ev.time }}"></div>
+                <div><label for="ed-dl">{{ _('Reply by') }}</label><input id="ed-dl" name="signup_deadline" type="date" value="{{ ev.signup_deadline.isoformat() if ev.signup_deadline else '' }}"></div>
+            </div>
+            <label for="ed-notes">{{ _('Note for the team (e.g. rehearsal at 8:30)') }}</label>
+            <textarea id="ed-notes" name="notes" rows="2">{{ ev.notes }}</textarea>
+            <div style="margin-top:var(--s3);"><button type="submit">{{ _('Save changes') }}</button></div>
+        </form>
+    </details>
+    <div class="danger-zone">
+        <div><b>{{ _('Delete service') }}</b>
+            <p class="hint">{{ _('The team’s availability and lineup for this service are removed too.') }}</p></div>
+        <form method="POST" action="{{ url_for('events.event_delete', church_id=church.id, eid=ev.id) }}"
+              onsubmit="return confirm({{ _('Delete this service?')|tojson|forceescape }})">
+            <button class="btn btn-danger">{{ _('Delete service') }}</button>
+        </form>
+    </div>
 </div>
 {% endif %}
 {% endblock %}

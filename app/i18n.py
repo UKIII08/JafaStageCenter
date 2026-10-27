@@ -314,25 +314,25 @@ PL = {
     'Musicians add songs and set their keys; leaders run the service and manage the team.': 'Muzycy dodają piosenki i ustawiają tonacje; prowadzący prowadzą granie i zarządzają zespołem.',
 
     "You're on the team": "Grasz w obsadzie",
-    "Your next service:": "Twoja najbliższa służba:",
+    "Your next service:": "Twoje najbliższe granie:",
     "Prepare! →": "Przygotuj się! →",
-    "No upcoming service": "Brak nadchodzącej służby",
+    "No upcoming service": "Brak nadchodzącego grania",
     "When a service is scheduled, it shows up here with everything you need to "
     "prepare.":
-        "Gdy zaplanujecie służbę, pojawi się tu razem ze wszystkim, czego "
+        "Gdy zaplanujecie granie, pojawi się tu razem ze wszystkim, czego "
         "potrzebujesz do przygotowania.",
-    "Plan a service →": "Zaplanuj służbę →",
-    "See services →": "Zobacz służby →",
+    "Plan a service →": "Zaplanuj granie →",
+    "See services →": "Zobacz grania →",
     "Back to practice": "Wróć do ćwiczenia",
     "Open the song library and rehearse with chords and diagrams.":
         "Otwórz bibliotekę piosenek i ćwicz z akordami i diagramami.",
     "Practice now →": "Ćwicz teraz →",
     "Build the setlist and run the whole service live.":
-        "Ułóż setlistę i poprowadź całą służbę na żywo.",
+        "Ułóż setlistę i poprowadź całe granie na żywo.",
     "Open Studio →": "Otwórz Studio →",
     "Live view": "Widok na żywo",
     "Follow lyrics and chords sent live during the service.":
-        "Śledź tekst i akordy wysyłane na żywo podczas służby.",
+        "Śledź tekst i akordy wysyłane na żywo podczas grania.",
     "Go live →": "Wejdź na żywo →",
     "See who plays and invite new members.":
         "Zobacz, kto gra, i zaproś nowe osoby.",
@@ -342,10 +342,10 @@ PL = {
         "Ustaw swój instrument i preferencje grania.",
     "Edit profile →": "Edytuj profil →",
     # Dashboard „Precision" (bento) — nowe etykiety
-    "Next service": "Najbliższa służba",
+    "Next service": "Najbliższe granie",
     "more songs": "więcej pieśni", "Prepare": "Przygotuj się",
     "Offline": "Offline",
-    "Plan a service": "Zaplanuj służbę", "See services": "Zobacz służby",
+    "Plan a service": "Zaplanuj granie", "See services": "Zobacz grania",
     "Last setlist:": "Ostatnia setlista:",
     "Recently practiced:": "Ostatnio ćwiczone:",
     "Practiced %(d)s of %(t)s songs from the setlist":
@@ -753,7 +753,7 @@ PL.update({
         'Nie należysz jeszcze do żadnej wspólnoty. Załóż własny zespół albo dołącz do tego, do którego masz zaproszenie.',
     'Create a community': 'Załóż wspólnotę',
     "A space for your team — songs, setlists, service planning and musician profiles. You'll be its admin.":
-        'Przestrzeń dla Twojego zespołu — pieśni, setlisty, planowanie służby i profile muzyków. Będziesz jej administratorem.',
+        'Przestrzeń dla Twojego zespołu — pieśni, setlisty, planowanie grań i profile muzyków. Będziesz jej administratorem.',
     'Create community': 'Utwórz wspólnotę',
     'Join an existing team': 'Dołącz do istniejącego zespołu',
     'Ask your worship leader for the invite code (they find it in the Team tab), then enter it here.':
@@ -1092,4 +1092,31 @@ PL.update({
     'Is this a section name? If it is a lyric, add a section name above it (e.g. Verse).':
         'To nazwa części? Jeśli to tekst piosenki, dopisz nad nim nazwę części (np. Zwrotka).',
     'no name': 'bez nazwy',
+})
+
+# ── UX etap 1: piosenka, nabożeństwa, ustawienia ─────────────────────────
+PL.update({
+    'Half a step down': 'Pół tonu niżej',
+    'Half a step up': 'Pół tonu wyżej',
+    'original': 'oryginał',
+    'Back to original': 'Wróć do oryginału',
+    'Delete song': 'Usuń piosenkę',
+    'The song disappears from the library for the whole team.': 'Piosenka zniknie z biblioteki dla całego zespołu.',
+    'e.g. Sunday morning': 'np. Niedziela rano',
+    'Time': 'Godzina',
+    '(optional)': '(opcjonalnie)',
+    'Reply by': 'Odpowiedź do',
+    'Until when the team should mark availability': 'Do kiedy zespół ma zaznaczyć, czy może grać',
+    'Create service': 'Utwórz granie',
+    'Upcoming': 'Najbliższe',
+    'Fill in the form above — the team gets a place to mark availability.': 'Wypełnij formularz powyżej — zespół dostanie miejsce, żeby zaznaczyć, czy może grać.',
+    'No songs yet. Arrange them in Studio — after “Save setlist” they appear here.': 'Nie ma jeszcze piosenek. Ułóż je w Studiu — po „Zapisz setlistę” pojawią się tutaj.',
+    'The leader hasn’t added songs yet.': 'Prowadzący nie dodał jeszcze piosenek.',
+    'Use a setlist saved earlier': 'Użyj setlisty zapisanej wcześniej',
+    'Saved setlist': 'Zapisana setlista',
+    'Countdown and announcements on the projector before the first song.': 'Odliczanie i ogłoszenia na rzutniku przed pierwszą piosenką.',
+    'Add songs to the service first — then you can set up the countdown and announcements.': 'Najpierw dodaj piosenki do grania — potem ustawisz odliczanie i ogłoszenia.',
+    'Edit service details': 'Edytuj szczegóły grania',
+    'The team’s availability and lineup for this service are removed too.': 'Usunięte zostaną też odpowiedzi zespołu i skład na to granie.',
+    'Settings for the whole community. Your own theme, language and tips are in': 'Ustawienia dla całej wspólnoty. Twój motyw, język i podpowiedzi są w zakładce',
 })

@@ -1,27 +1,42 @@
 {% extends 'base.html' %}
 {% block title %}{{ song.title }} — Jonathan App{% endblock %}
 {% block content %}
+<style>
+    .sv-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .sv-key { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 28px; font-size: 14px; }
+    .sv-key .lbl { color: var(--text-secondary); font-weight: 500; }
+    .sv-key b { min-width: 34px; text-align: center; font-size: 16px; }
+    .sv-key .btn-sm { min-width: 34px; justify-content: center; }
+    .sv-reset { color: var(--text-accent); font-size: 13.5px; }
+</style>
 <div class="panel">
     <div class="panel-header">
         <h2>{{ song.title }}
-            <span class="muted" style="font-size:.7em; font-weight:400;">{{ shown_key or '' }}{% if song.bpm %} · {{ song.bpm }} BPM{% endif %}</span>
+            <span class="muted" style="font-size:.7em; font-weight:400;">{% if song.bpm %}{{ song.bpm }} BPM{% endif %}</span>
         </h2>
-        <div style="display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap;">
+        <div class="sv-actions">
             <a class="btn" href="{{ url_for('songs.practice', church_id=church.id, song_id=song.id) }}">{{ _('Practice') }}</a>
             <a class="btn btn-ghost" href="{{ url_for('arr.song_main', church_id=church.id, song_id=song.id) }}">{{ _('Form & parts') }}</a>
             {% if song.link %}
             <a class="btn btn-ghost" href="{{ song.link }}" target="_blank" rel="noopener noreferrer" title="{{ song.link }}">▶ {{ _('Recording') }}</a>
             {% endif %}
-            <a class="btn-ghost btn btn-sm" href="{{ url_for('songs.song_view', church_id=church.id, song_id=song.id, t=transpose-1) }}">−1</a>
-            <b style="min-width:30px; text-align:center;">{{ '+' + transpose|string if transpose > 0 else transpose }}</b>
-            <a class="btn-ghost btn btn-sm" href="{{ url_for('songs.song_view', church_id=church.id, song_id=song.id, t=transpose+1) }}">+1</a>
             {% if membership.role != 'muzyk' %}
-            <a class="btn-ghost btn" href="{{ url_for('studio.control', church_id=church.id) }}">{{ _('Edit in Studio') }}</a>
-            <form method="POST" action="{{ url_for('songs.song_delete', church_id=church.id, song_id=song.id) }}" style="display:inline;" onsubmit="return confirm('{{ _('Delete this song?') }}')">
-                <button class="btn-danger btn">{{ _('Delete') }}</button>
-            </form>
+            <a class="btn btn-ghost" href="{{ url_for('songs.song_edit', church_id=church.id, song_id=song.id) }}">{{ _('Edit') }}</a>
             {% endif %}
         </div>
+    </div>
+    {# Tonacja: jedna, podpisana kontrolka zamiast luźnych „−1 0 +1" #}
+    <div class="sv-key" role="group" aria-label="{{ _('Key') }}">
+        <span class="lbl">{{ _('Key') }}</span>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('songs.song_view', church_id=church.id, song_id=song.id, t=transpose-1) }}"
+           title="{{ _('Half a step down') }}" aria-label="{{ _('Half a step down') }}">−</a>
+        <b>{{ shown_key or '—' }}</b>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('songs.song_view', church_id=church.id, song_id=song.id, t=transpose+1) }}"
+           title="{{ _('Half a step up') }}" aria-label="{{ _('Half a step up') }}">+</a>
+        {% if transpose %}
+        <span class="muted">{{ _('original') }}: {{ song.key or '—' }} ({{ '+' if transpose > 0 }}{{ transpose }})</span>
+        <a class="sv-reset" href="{{ url_for('songs.song_view', church_id=church.id, song_id=song.id) }}">{{ _('Back to original') }}</a>
+        {% endif %}
     </div>
     <div class="song-render">{{ band_html|safe }}</div>
 </div>

@@ -147,6 +147,20 @@
 </div>
 </form>
 
+{% if not is_new %}
+{# Usuwanie tylko tu — w edycji, z dala od codziennych przycisków. #}
+<div class="danger-zone">
+    <div>
+        <b>{{ _('Delete song') }}</b>
+        <p class="hint">{{ _('The song disappears from the library for the whole team.') }}</p>
+    </div>
+    <form method="POST" action="{{ url_for('songs.song_delete', church_id=church.id, song_id=song.id) }}"
+          onsubmit="return confirm({{ _('Delete this song?')|tojson|forceescape }})">
+        <button class="btn btn-danger">{{ _('Delete song') }}</button>
+    </form>
+</div>
+{% endif %}
+
 <script src="{{ url_for('static', filename='js/chords-client.js') }}"></script>
 <script>
   window.SONG_EDITOR_I18N = {
