@@ -10,15 +10,15 @@
     .pr-meta { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 18px; color: var(--text-secondary); font-size: 14px; align-items: center; }
     .pr-meta b { font-family: var(--font-mono); font-weight: 500; color: var(--text-primary); font-size: 13px; margin-left: 6px; }
     .pr-picks { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
-    .pr-picks .pick-opt small, .pick-opt small { font-size: 11.5px; font-weight: 400; color: var(--text-tertiary); margin-left: 8px; }
+    .pr-picks .pick-opt small, .pick-opt small { font-size: 12px; font-weight: 400; color: var(--text-tertiary); margin-left: 8px; }
     .pr-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .tgroup { display: inline-flex; align-items: center; border: 1px solid var(--border-strong); border-radius: var(--r-md); height: 38px; overflow: hidden; }
     .tgroup button { height: 36px; width: 36px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--text-secondary); font-size: 16px; }
     .tgroup button:hover { background: var(--bg-surface); color: var(--text-primary); border: 0; }
     .tgroup .tv { min-width: 46px; text-align: center; font-family: var(--font-mono); font-size: 13px; color: var(--text-primary);
         border-left: 1px solid var(--border-default); border-right: 1px solid var(--border-default); line-height: 36px; }
-    .tgroup .tv small { color: var(--text-tertiary); margin-left: 3px; font-size: 11px; }
-    #save-status { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-tertiary); }
+    .tgroup .tv small { color: var(--text-tertiary); margin-left: 3px; font-size: 12px; }
+    #save-status { font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); }
 
     .t-intro { --c: #7A7973; } .t-verse { --c: #5B8CFF; } .t-prechorus { --c: #2BB3A3; } .t-chorus { --c: #E0A84A; }
     .t-bridge { --c: #A88BF0; } .t-other { --c: #3FB67A; }
@@ -45,7 +45,7 @@
     .tp-tile.past .tp-fill { width: 100%; background: var(--bg-surface); }
     .tp-tile.now { color: var(--text-primary); border-top-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent-line); }
     .tp-l { position: relative; font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 18px; }
-    .tp-t { position: relative; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-tertiary); }
+    .tp-t { position: relative; font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); }
     .tp-loop { position: absolute; right: 4px; top: 5px; width: 22px; height: 22px; border-radius: 5px;
         display: none; align-items: center; justify-content: center; color: var(--text-secondary); }
     .tp-loop svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -56,7 +56,7 @@
     .tp-hint { display: flex; justify-content: space-between; gap: 8px 20px; flex-wrap: wrap; margin-top: 10px;
         font-size: 12.5px; color: var(--text-secondary); }
     .tp-hint .keys { color: var(--text-tertiary); }
-    .tp-hint kbd { font-family: var(--font-mono); font-size: 10.5px; border: 1px solid var(--border-strong); border-radius: 4px; padding: 0 4px; margin: 0 2px; }
+    .tp-hint kbd { font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--border-strong); border-radius: 4px; padding: 0 4px; margin: 0 2px; }
     .tp-hint .warn { color: var(--text-accent); }
 
     /* ── Treść: sekcje + diagramy ── */
@@ -64,18 +64,18 @@
     .sec { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 36px; padding: 34px 0; border-top: 1px solid var(--border-default); scroll-margin-top: calc(var(--tp-h, 0px) + 24px); }
     .sec-name { font-weight: 600; font-size: 15px; color: var(--text-primary); transition: color .15s ease; }
     .sec.now .sec-name { color: var(--text-accent); }
-    .sec-sub { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-tertiary); margin-top: 4px; line-height: 1.7; }
+    .sec-sub { font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); margin-top: 4px; line-height: 1.7; }
     .sec-sub em { font-style: normal; color: var(--text-secondary); }
     .sec .song-render { font-size: 19px; }
     .part { margin: 0 0 22px; padding: 2px 0 2px 18px; border-left: 2px solid var(--accent); }
-    .part .who { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-accent); }
+    .part .who { font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-accent); }
     .part p { margin: 6px 0 0; color: var(--text-primary); font-size: 15px; white-space: pre-wrap; }
     .part audio, .others audio { display: block; width: 100%; max-width: 420px; height: 34px; margin-top: 10px; }
     .others { margin-top: 18px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.7; }
     .others div + div { margin-top: 6px; }
     .others b { color: var(--text-primary); font-weight: 600; }
     .others .n { display: block; white-space: pre-wrap; }
-    .others .memo-play { height: 24px; padding: 0 8px; margin-left: 6px; font-size: 11.5px; vertical-align: 1px; }
+    .others .memo-play { height: 24px; padding: 0 8px; margin-left: 6px; font-size: 12px; vertical-align: 1px; }
     .memo-play.on { border-color: var(--accent-line); color: var(--text-accent); background: var(--accent-subtle); }
     .tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 20px; }
     .tool { height: 30px; padding: 0 12px; border-radius: 7px; border: 1px solid var(--border-default); background: transparent;
@@ -121,9 +121,9 @@
         .sec { grid-template-columns: 1fr; gap: 14px; padding: 26px 0; }
         .sec .song-render { font-size: 17px; }
         .tp-tile { height: 44px; padding: 0 6px; }
-        .tp-l { font-size: 11px; padding-right: 0; }
+        .tp-l { font-size: 12px; padding-right: 0; }
         .tp-t, .tp-hint .keys { display: none; }
-        .tp-ctrl { margin-left: 0; width: 100%; justify-content: space-between; }
+        .tp-ctrl { margin-left: 0; width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 8px; min-width: 0; }
     }
 </style>
 

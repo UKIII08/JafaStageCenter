@@ -114,7 +114,7 @@
 .ftile[data-type="chorus"] { --c: var(--sec-chorus); }
 .ftile[data-type="bridge"] { --c: var(--sec-bridge); }
 .ftile-top { display: flex; align-items: center; gap: 6px; }
-.ftile-n { font-family: var(--font-mono); font-size: 10px; color: var(--text-tertiary); }
+.ftile-n { font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); }
 .ftile-label {
     flex: 1; min-width: 0; font-weight: 700; font-size: var(--font-sm); color: var(--text-primary);
     border: 0; background: transparent; padding: 0; outline: none; cursor: text;
@@ -135,21 +135,21 @@
 .rep button { border: 0; background: transparent; color: var(--text-tertiary); width: 20px; height: 22px;
     padding: 0; cursor: pointer; font: inherit; font-size: 13px; line-height: 1; }
 .rep button:hover { color: var(--text-primary); background: var(--bg-surface-hover); }
-.rep b { font-family: var(--font-mono); font-size: 11px; min-width: 20px; text-align: center; color: var(--text-secondary); }
+.rep b { font-family: var(--font-mono); font-size: 12px; min-width: 20px; text-align: center; color: var(--text-secondary); }
 .rep.multi b { color: var(--c); }
 .dyn {
-    height: 22px; padding: 0 6px; border-radius: var(--r-full); font-size: 11px; font-weight: 600;
+    height: 22px; padding: 0 6px; border-radius: var(--r-full); font-size: 12px; font-weight: 600;
     border: 1px solid var(--border-default); background: transparent; color: var(--text-tertiary);
     width: auto; max-width: 96px; cursor: pointer;
 }
 .dyn.set { color: var(--c); border-color: var(--c); }
-.dyn-pick .pick-btn { height: 22px; font-size: 11px; color: var(--text-tertiary); border-color: var(--border-default); }
+.dyn-pick .pick-btn { height: 22px; font-size: 12px; color: var(--text-tertiary); border-color: var(--border-default); }
 .dyn-pick .pick-val { font-weight: 600; color: var(--text-tertiary); }
 .dyn-pick.set .pick-btn { border-color: var(--c); }
 .dyn-pick.set .pick-val { color: var(--c); }
 .dyn-pick .pick-menu { min-width: 150px; }
 .dyn-pick.empty .pick-val { color: var(--text-tertiary); }
-.ftile-time { font-family: var(--font-mono); font-size: 10px; color: var(--text-tertiary); }
+.ftile-time { font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); }
 .tile-add { margin-top: var(--s3); }
 .tile-palette { width: min(360px, calc(100vw - 32px)); }
 .palette-list { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -170,7 +170,7 @@
     font-weight: 600; font-size: var(--font-sm); cursor: grab;
 }
 .role-chip.mine { border-color: var(--accent); background: var(--accent-subtle); color: var(--accent); }
-.role-chip .me-tag { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+.role-chip .me-tag { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
 .role-chip button {
     width: 20px; height: 20px; border-radius: 50%; border: 0; padding: 0;
     background: transparent; color: var(--text-tertiary); cursor: pointer; font-size: 12px;
@@ -192,7 +192,7 @@
 .pgrid { border-collapse: separate; border-spacing: 6px; min-width: 100%; }
 .pgrid th, .pgrid td { border: 0; padding: 0; background: none; text-transform: none; letter-spacing: 0; font-family: inherit; }
 .pgrid thead th {
-    font-size: 11px; font-weight: 700; color: var(--text-secondary); text-align: left;
+    font-size: 12px; font-weight: 700; color: var(--text-secondary); text-align: left;
     padding: 0 4px 2px; white-space: nowrap;
 }
 .pgrid thead th i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; background: var(--c, var(--sec-other)); vertical-align: 0; }
@@ -212,10 +212,10 @@
 .pcell:hover { border-color: var(--border-strong); background: var(--bg-surface); }
 .pcell.filled { background: var(--bg-surface); border-color: var(--border-default); color: var(--text-primary); }
 .pcell .pnote { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; word-break: break-word; }
-.pcell .pnote.mono { font-family: var(--font-mono); font-size: 11px; }
+.pcell .pnote.mono { font-family: var(--font-mono); font-size: 12px; }
 .pcell .plus { color: var(--text-tertiary); opacity: 0; font-size: 18px; line-height: 1; align-self: center; margin: auto; }
 .pcell:hover .plus { opacity: 1; }
-.pcell .pmemo { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--text-accent); }
+.pcell .pmemo { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--text-accent); }
 .pcell .pmemo svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
 .pgrid .empty-row td { color: var(--text-tertiary); font-size: var(--font-sm); padding: var(--s3) 0; }
 
@@ -250,7 +250,7 @@
 }
 .cell-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s3); margin-bottom: var(--s3); }
 .cell-card-head h3 { margin: 2px 0 0; font-size: 1.15rem; letter-spacing: -0.01em; }
-.cell-eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.cell-eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
 #cell-note { width: 100%; box-sizing: border-box; resize: vertical; min-height: 110px; }
 #cell-note.mono { font-family: var(--font-mono); font-size: 13px; }
 .cell-tools { display: flex; justify-content: space-between; align-items: center; margin: var(--s2) 0 var(--s4); }
