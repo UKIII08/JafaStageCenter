@@ -447,3 +447,36 @@ def church_for_token(token):
         if stored and secrets.compare_digest(stored, h):
             return church
     return None
+
+
+# ── riff (tabulatura) w komórce ─────────────────────────────────────────
+RIFF_STRINGS = {'guitar': 6, 'bass': 4}
+RIFF_MAX_COLS = 128
+# próg z techniką: 3, 12, 5h7, 7p5, 5/7, 7\5, 7b (podciągnięcie), 7~, x (stłumiony)
+_RIFF_CELL = re.compile(r'^(x|\d{1,2}(?:[hp/\\]\d{1,2}|b\d{0,2}|~)?)$')
+
+
+def clean_riff(raw):
+    """Walidacja riffu z przeglądarki. Zwraca dict albo None (pusty riff)."""
+    if not isinstance(raw, dict):
+        return None
+    inst = raw.get('inst') if raw.get('inst') in RIFF_STRINGS else 'guitar'
+    n = RIFF_STRINGS[inst]
+    cols = []
+    for col in (raw.get('cols') or [])[:RIFF_MAX_COLS]:
+        if not isinstance(col, list):
+            col = []
+        col = list(col)[:n]
+        col += [''] * (n - len(col))
+        out = []
+        for v in col:
+            v = str(v or '').strip()[:6]
+            out.append(v if _RIFF_CELL.match(v) else '')
+        cols.append(out)
+    while cols and not any(cols[-1]):
+        cols.pop()
+    if not cols:
+        return None
+    # pełne takty (16 szesnastek) — tak riff się wyświetla i gra
+    cols += [[''] * n for _ in range((-len(cols)) % 16)]
+    return {'inst': inst, 'cols': cols}

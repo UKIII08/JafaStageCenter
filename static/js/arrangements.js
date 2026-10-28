@@ -209,50 +209,109 @@
     function cellKey(t, r) { return t + '|' + r; }
     function monoPref() { try { return localStorage.getItem('jonathan-tab-font') === '1'; } catch (e) { return false; } }
 
+    // Kolor toru wg rodzaju instrumentu (jak w DAW: każdy instrument swój)
+    var FAMILY = [
+        ['vocal', /wokal|vocal|voice|spiew|chor|choir|lead|sopran|alt|tenor/],
+        ['guitar', /gitar|guitar|elektr|akust|electric|acoustic|ukulele/],
+        ['bass', /bas|bass/],
+        ['keys', /klaw|keys|keyboard|piano|pianin|organ|organy|synth|pad/],
+        ['drums', /perk|drum|bebn|cajon|percus|kongi|conga/],
+        ['strings', /skrzyp|violin|wiolonc|cello|altowk|smycz|string/],
+        ['winds', /flet|flute|sax|trab|trumpet|klarnet|clarinet|puzon/]
+    ];
+    function family(role) {
+        var f = fold(role);
+        for (var i = 0; i < FAMILY.length; i++) if (FAMILY[i][1].test(f)) return FAMILY[i][0];
+        return 'other';
+    }
+    function secColor(label) {
+        return 'var(--sec-' + ({ intro: 'intro', outro: 'intro', tag: 'intro', verse: 'verse',
+            prechorus: 'pre', chorus: 'chorus', bridge: 'bridge' }[secType(label)] || 'other') + ')';
+    }
+    var narrow = window.matchMedia('(max-width: 760px)');
+
+    // OŚ CZASU: klipy części u góry, tor na każdą rolę; w kratce notatka,
+    // riff (mini-tabulatura) i nagranie pomysłu. Na telefonie: część po
+    // części, pod nią wpisy wszystkich instrumentów.
     function renderGrid() {
         var wrap = $('grid-wrap');
         wrap.innerHTML = '';
-        var table = el('table', 'pgrid');
-        var thead = el('thead'), hr = el('tr');
-        hr.appendChild(el('th'));
-        A.form.forEach(function (t) {
-            var th = el('th');
-            th.style.setProperty('--c', 'var(--sec-' + ({ intro: 'intro', outro: 'intro', tag: 'intro', verse: 'verse',
-                prechorus: 'pre', chorus: 'chorus', bridge: 'bridge' }[secType(t.label)] || 'other') + ')');
-            th.appendChild(el('i'));
-            th.appendChild(document.createTextNode(t.label + (t.repeat > 1 ? ' ×' + t.repeat : '')));
-            hr.appendChild(th);
-        });
-        thead.appendChild(hr); table.appendChild(thead);
-        var tbody = el('tbody');
         if (!A.roles.length || !A.form.length) {
-            var tr0 = el('tr', 'empty-row'), td0 = el('td', '', A.form.length ? L.noRoles : L.noTiles);
-            td0.colSpan = A.form.length + 1; tr0.appendChild(td0); tbody.appendChild(tr0);
+            wrap.appendChild(el('div', 'tl-empty', A.form.length ? L.noRoles : L.noTiles));
+            return;
         }
-        A.roles.forEach(function (r) {
-            if (!A.form.length) return;
-            var tr = el('tr');
-            tr.appendChild(el('th', r === A.myRole ? 'mine' : '', r));
-            A.form.forEach(function (t) {
-                var td = el('td'), c = A.cells[cellKey(t.id, r)] || {};
-                var b = el('button', 'pcell' + ((c.note || c.memo) ? ' filled' : ''));
-                b.type = 'button';
-                if (c.note) { b.appendChild(el('span', 'pnote' + (monoPref() ? ' mono' : ''), c.note)); }
-                if (c.memo) {
-                    var m = el('span', 'pmemo');
-                    m.innerHTML = '<svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/></svg>';
-                    m.appendChild(document.createTextNode(c.memo_by || '♪'));
-                    b.appendChild(m);
-                }
-                if (!c.note && !c.memo) b.appendChild(el('span', 'plus', '+'));
-                b.onclick = function () { openCell(t, r); };
-                td.appendChild(b); tr.appendChild(td);
-            });
-            tbody.appendChild(tr);
+        if (narrow.matches) { renderStack(wrap); return; }
+        var daw = el('div', 'daw');
+        daw.style.setProperty('--n', A.form.length);
+        // linijka: klipy części (szerokość wg powtórzeń)
+        var cols = A.form.map(function (t) { return 'minmax(' + (150 + 40 * Math.min(t.repeat - 1, 3)) + 'px, ' + t.repeat + 'fr)'; });
+        daw.style.gridTemplateColumns = '150px ' + cols.join(' ');
+        daw.appendChild(el('div', 'daw-corner'));
+        A.form.forEach(function (t) {
+            var clip = el('div', 'daw-sec');
+            clip.style.setProperty('--c', secColor(t.label));
+            clip.appendChild(el('b', '', t.label));
+            if (t.repeat > 1) clip.appendChild(el('span', 'daw-rep', '×' + t.repeat));
+            if (t.dyn) clip.appendChild(el('span', 'daw-dyn', L.dyn[t.dyn]));
+            daw.appendChild(clip);
         });
-        table.appendChild(tbody);
-        wrap.appendChild(table);
+        A.roles.forEach(function (r) {
+            var head = el('div', 'daw-lane fam-' + family(r) + (r === A.myRole ? ' mine' : ''));
+            head.appendChild(el('i'));
+            head.appendChild(el('span', '', r));
+            if (r === A.myRole) head.appendChild(el('em', '', L.me));
+            daw.appendChild(head);
+            A.form.forEach(function (t) { daw.appendChild(cellButton(t, r)); });
+        });
+        wrap.appendChild(daw);
     }
+    function renderStack(wrap) {
+        A.form.forEach(function (t) {
+            var sec = el('section', 'stk');
+            var h = el('div', 'stk-head');
+            h.style.setProperty('--c', secColor(t.label));
+            h.appendChild(el('b', '', t.label + (t.repeat > 1 ? ' ×' + t.repeat : '')));
+            if (t.dyn) h.appendChild(el('span', 'daw-dyn', L.dyn[t.dyn]));
+            sec.appendChild(h);
+            A.roles.forEach(function (r) {
+                var row = el('div', 'stk-row fam-' + family(r));
+                var lab = el('div', 'stk-role' + (r === A.myRole ? ' mine' : ''));
+                lab.appendChild(el('i')); lab.appendChild(el('span', '', r));
+                row.appendChild(lab);
+                row.appendChild(cellButton(t, r));
+                sec.appendChild(row);
+            });
+            wrap.appendChild(sec);
+        });
+    }
+    function cellButton(t, r) {
+        var c = A.cells[cellKey(t.id, r)] || {};
+        var riff = c.riff && window.JRiff && JRiff.hasNotes(c.riff);
+        var filled = c.note || c.memo || riff;
+        var b = el('button', 'daw-cell fam-' + family(r) + (filled ? ' filled' : ''));
+        b.type = 'button';
+        b.setAttribute('aria-label', r + ' · ' + t.label);
+        if (c.note) b.appendChild(el('span', 'pnote' + (monoPref() ? ' mono' : ''), c.note));
+        if (riff) {
+            var pre = el('pre', 'daw-tab', JRiff.ascii(c.riff, 16));
+            b.appendChild(pre);
+        }
+        if (c.memo || riff) {
+            var chips = el('span', 'daw-chips');
+            if (riff) chips.appendChild(el('span', 'chip riff', '🎸 ' + L.riff));
+            if (c.memo) {
+                var m = el('span', 'chip memo');
+                m.innerHTML = '<svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/></svg>';
+                m.appendChild(document.createTextNode(c.memo_by || '♪'));
+                chips.appendChild(m);
+            }
+            b.appendChild(chips);
+        }
+        if (!filled) b.appendChild(el('span', 'plus', '+'));
+        b.onclick = function () { openCell(t, r); };
+        return b;
+    }
+    narrow.addEventListener ? narrow.addEventListener('change', function () { renderGrid(); }) : narrow.addListener(renderGrid);
 
     // ── MODAL KOMÓRKI + nagrywanie ──
     var cur = null, noteTimer = null;
@@ -267,12 +326,41 @@
         status('cell-status', '');
         showMemo(c);
         resetRec();
+        openRiff(c.riff);
         $('cell-modal').hidden = false;
         setTimeout(function () { if (!('ontouchstart' in window)) $('cell-note').focus(); }, 30);
+    }
+    // ── Riff (tabulatura) w komórce ──
+    var riffEd = null, riffTimer = null;
+    function openRiff(riff) {
+        var has = !!(riff && window.JRiff && JRiff.hasNotes(riff));
+        $('riff-box').open = has;
+        if (riffEd) riffEd.destroy();
+        riffEd = window.JRiff ? JRiff.mount($('riff-editor'), riff, {
+            bpm: A.bpm, L: L.rf, onChange: function (r) {
+                status('cell-status', 'saving');
+                clearTimeout(riffTimer);
+                riffTimer = setTimeout(function () { riffTimer = null; saveRiff(r); }, 700);
+            }
+        }) : null;
+    }
+    function saveRiff(r) {
+        if (!cur) return;
+        var key = cellKey(cur.tile, cur.role);
+        post(BASE + '/cell', { tile: cur.tile, role: cur.role, riff: r }).then(function (d) {
+            A.cells[key] = Object.assign({}, A.cells[key] || {}, { riff: d.riff });
+            status('cell-status', 'saved');
+        }).catch(function () { status('cell-status', 'error'); });
+    }
+    function flushRiff() {
+        if (!riffTimer || !riffEd) return;
+        clearTimeout(riffTimer); riffTimer = null; saveRiff(riffEd.get());
     }
     function closeCell() {
         if (rec && rec.state === 'recording') return;     // najpierw stop
         flushNote();
+        flushRiff();
+        if (window.JRiff) JRiff.stop();
         $('cell-modal').hidden = true;
         var a = $('memo-audio'); a.pause();
         cur = null;

@@ -243,6 +243,9 @@ class ArrangementCell(db.Model):
     memo = db.Column(db.String(80), default='')       # nazwa pliku audio
     memo_mime = db.Column(db.String(40), default='')
     memo_by = db.Column(db.String(36), db.ForeignKey('users.id'))
+    # Riff jako tabulatura: {"inst": "guitar"|"bass", "cols": [[str, …], …]}
+    # — kolumna = szesnastka, w niej próg dla każdej struny (od najwyższej).
+    riff = db.Column(db.JSON, nullable=True)
     updated_by = db.Column(db.String(36), db.ForeignKey('users.id'))
     updated_at = db.Column(db.DateTime, default=datetime.utcnow,
                            onupdate=datetime.utcnow)

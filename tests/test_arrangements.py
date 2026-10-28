@@ -390,3 +390,34 @@ def test_section_aliases():
     assert svc.section_key('Refren') == ('chorus', '')
     assert svc.section_key('Zakończenie') == ('outro', '')
     assert svc.fold('Głos 2') == 'glos 2'
+
+
+def test_riff_validation():
+    bs = chr(92)                                  # „\" — zjazd w dół
+    r = svc.clean_riff({'inst': 'guitar', 'cols': [
+        ['', '', '', '', '', '3'], ['12', '7b', '5/7', '7' + bs + '5', '7~', 'x'],
+        ['<b>', '99x', '5h', '', '', '']]})
+    assert r['inst'] == 'guitar' and len(r['cols']) == 16       # pełny takt
+    assert r['cols'][1] == ['12', '7b', '5/7', '7' + bs + '5', '7~', 'x']
+    assert r['cols'][2] == [''] * 6                              # śmieci odrzucone
+    assert svc.clean_riff({'inst': 'bass', 'cols': [['', '', '', '']]}) is None
+    assert len(svc.clean_riff({'inst': 'bass', 'cols': [['3']]})['cols'][0]) == 4
+
+
+def test_cell_riff_saved_separately_from_note(app, client):
+    cid, sid = setup(client, app)
+    aid = main_arr(client, cid, sid)
+    tile = db.session.get(Arrangement, aid).form[1]['id']
+    client.post(f'/c/{cid}/arrangements/{aid}/roles', json={'add': 'Gitara'})
+    url = f'/c/{cid}/arrangements/{aid}/cell'
+    client.post(url, json={'tile': tile, 'role': 'Gitara', 'note': 'kostka'})
+    r = client.post(url, json={'tile': tile, 'role': 'Gitara',
+                               'riff': {'inst': 'guitar', 'cols': [['', '', '', '', '', '3']]}})
+    assert r.get_json()['riff']['cols'][0][5] == '3'
+    cell = ArrangementCell.query.filter_by(role='Gitara').first()
+    assert cell.note == 'kostka' and cell.riff['inst'] == 'guitar'
+    state = client.get(f'/c/{cid}/arrangements/{aid}/state').get_json()
+    assert state['cells'][f'{tile}|Gitara']['riff']['cols'][0][5] == '3'
+    # pusty riff + pusta notatka = komórka znika
+    client.post(url, json={'tile': tile, 'role': 'Gitara', 'note': '', 'riff': None})
+    assert ArrangementCell.query.filter_by(role='Gitara').count() == 0
