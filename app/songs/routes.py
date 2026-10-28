@@ -216,7 +216,7 @@ def song_delete(church_id, song_id, membership):
 @require_membership('muzyk')   # dodawanie piosenek (import) dostępne dla muzyków
 def songs_import(church_id, membership):
     files = request.files.getlist('files')
-    added, skipped, too_big = [], [], []
+    added, skipped, too_big, key_fixed = [], [], [], []
     header_re = re.compile(r'^(.*?)(?:\s*\(([^)]+)\))?(?:-\((\d+)\))?$')
 
     def _add(title, body, key, bpm, author='', copyright='', ccli=''):
@@ -228,11 +228,12 @@ def songs_import(church_id, membership):
                                 deleted=False).first():
             skipped.append(title)   # nie nadpisujemy po cichu
             return
-        body = mc.prepare_song_content(body)
-        if not key:
-            key = mc.detect_key_algorithm(body)
-        if key in ('N/A', '-'):
-            key = ''
+        # notacja zgadywana dla każdej piosenki osobno (w jednym pliku bywają
+        # obie), tonacja z nagłówka sprawdzana z akordami
+        imp = mc.import_song(body, key)
+        body, key = imp['content'], imp['key']
+        if imp['key_fixed']:
+            key_fixed.append(title)
         db.session.add(Song(church_id=church_id, title=title,
                             content=body, key=(key or '')[:10], bpm=bpm or 0,
                             author=(author or '')[:300],
@@ -295,6 +296,8 @@ def songs_import(church_id, membership):
         msg += ' ' + _('Skipped (title already exists):') + f' {len(skipped)}.'
     if too_big:
         msg += ' ' + _('Skipped (file too large, max 512 KB):') + f' {len(too_big)}.'
+    if key_fixed:
+        msg += ' ' + _('Key in the title did not match the chords — detected instead:') + ' ' + ', '.join(key_fixed[:5]) + '.'
     flash(msg)
     return redirect(url_for('songs.songs_list', church_id=church_id))
 

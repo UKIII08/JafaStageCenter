@@ -30,7 +30,7 @@ from music_core.chords import (apply_transpose_to_single_chord,
                                get_first_chord_of_song,
                                normalize_chord_to_international,
                                normalize_song_chords_to_international,
-                               prepare_song_content,
+                               prepare_song_content, import_song,
                                process_song, transpose_chord)
 from music_core import TRANSITION_ENGINES
 
@@ -344,12 +344,9 @@ def import_songs(church_id):
     input_notation = request.form.get('input_notation', 'international')
 
     def save_or_update(song_title, song_content, song_key='', song_bpm=0):
-        song_content = prepare_song_content(song_content, input_notation=input_notation)
-        if song_key:
-            song_key = normalize_chord_to_international(
-                song_key, input_notation=input_notation)
-        if not song_key:
-            song_key = detect_key_algorithm(song_content)
+        # notacja: wybrana polska albo zgadnięta dla każdej piosenki osobno
+        imp = import_song(song_content, song_key, input_notation)
+        song_content, song_key = imp['content'], imp['key']
         existing = Song.query.filter_by(church_id=church_id,
                                         title=song_title,
                                         deleted=False).first()

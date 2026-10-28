@@ -96,7 +96,7 @@
         d.issues.forEach(function (i) {
             var kind = { unclosed: ['err', L.unclosed], stray_close: ['', L.stray],
                          double_brackets: ['fix', L.dbl], label_brackets: ['fix', L.labelBr],
-                         capo_line: ['', L.capo] }[i.kind];
+                         capo_line: ['', L.capo], empty_part: ['', L.emptyPart] }[i.kind];
             if (!kind) return;
             if (kind[0] === 'err') errLines[i.line] = true;
             rows.push({ line: i.line, cls: kind[0], html: '<b>' + esc(i.text) + '</b> — ' + esc(kind[1]) });

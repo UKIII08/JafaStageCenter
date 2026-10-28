@@ -94,6 +94,21 @@
     <iframe id="transition-html" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; border:none; background:#000; z-index:60;"></iframe>
 
     <script>
+    // Dłuższy slajd (do 8 linii, długie wersy) nie może wyjść poza ekran —
+    // zmniejszamy czcionkę od 5vw, aż tekst się zmieści (min. 2.4vw).
+    function fitSlide() {
+        var el = document.getElementById('slide-content');
+        if (!el) return;
+        var size = 5;
+        el.style.fontSize = size + 'vw';
+        var maxH = window.innerHeight * 0.94, maxW = window.innerWidth;
+        while (size > 2.4 && (el.getBoundingClientRect().height > maxH || el.scrollWidth > maxW)) {
+            size -= 0.2;
+            el.style.fontSize = size + 'vw';
+        }
+    }
+    window.addEventListener('resize', fitSlide);
+
         var socket = io();
         const slide = document.getElementById('slide-content');
         const logo = document.getElementById('logo-image');
@@ -280,6 +295,7 @@
                 } else {
                     slide.style.display = 'block';
                     slide.innerHTML = data.people;
+                    fitSlide();
                 }
             }
             else if (data.mode === 'canva') {
@@ -295,6 +311,7 @@
                 if (!data.is_blackout) {
                     slide.style.display = 'block';
                     slide.innerHTML = data.html || '';
+                    fitSlide();
                 }
             }
         });

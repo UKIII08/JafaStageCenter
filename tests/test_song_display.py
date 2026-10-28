@@ -84,3 +84,56 @@ def test_continuation_label_is_a_section_name():
     for label in ('Refren (cd.)', 'Zwrotka 2 (cd.)', 'Chorus (cont.)'):
         assert mc.is_section_label(label)
     assert not mc.is_section_label('Ala (cd.)')
+
+
+# ── Przypadki z prawdziwej bazy zespołu (teksty wymyślone) ────────────────
+def test_doubled_line_endings_from_paste_are_joined():
+    # „\r\r\n" w przeglądarce = pusta linia po każdej linii
+    pasted = 'Zwrotka 1\n\n[G]Raz dwa\n\n[D]trzy cztery\n\n\n\nRefren\n\n[C]Pięć sześć\n\n[G]siedem'
+    text, changes = mc.tidy_song_text(pasted)
+    assert 'double_spaced' in changes
+    assert [s['label'] for s in mc.parse_song_sections(text)] == ['Zwrotka 1', 'Refren']
+
+
+def test_polish_bass_note_is_not_minor():
+    assert mc.normalize_song_chords_to_international('[E/gis]a [A/Cis]b', 'polish') == '[E/G#]a [A/C#]b'
+
+
+def test_section_word_in_brackets_mid_line_is_dropped_chords_kept():
+    text, _ = mc.tidy_song_text('Zwrotka\nAla [A]ma\n[Przejście: ][D/Fis] [G]')
+    assert text.endswith('\n[D/Fis] [G]')
+
+
+def test_slash_repeat_marks_become_x_notation():
+    text, changes = mc.tidy_song_text('Refren\n[G]Ala ma kota /2x\n[D]i psa / x4')
+    assert text == 'Refren\n[G]Ala ma kota (x2)\n[D]i psa (x4)' and 'repeat_marks' in changes
+
+
+def test_unnamed_block_after_part_gets_cont_label():
+    text, _ = mc.tidy_song_text('Bridge\n[G]Raz\n\n[D]Dwa')
+    assert [s['label'] for s in mc.parse_song_sections(text)] == ['Bridge', 'Bridge (cd.)']
+
+
+def test_empty_part_is_flagged():
+    kinds = [i['kind'] for i in mc.analyze_song('Zwrotka 1\n[G]Ala\n\nZwrotka 2')['issues']]
+    assert 'empty_part' in kinds
+
+
+def test_notation_guessed_per_song():
+    # „B g d F" w F-dur → polska (B = B♭); „A H B" w cis-moll → międzynarodowa
+    assert mc.guess_notation('[B]a [g]b [d]c [F/A]d [B]e') == 'polish'
+    assert mc.guess_notation('[C#m]a [E]b [A]c [H]d [B]e [F#m]f') == 'international'
+    assert mc.guess_notation('[G]a [D]b [Em]c') == 'international'
+    imp = mc.import_song('[B]a [g]b [d]c [F/A]d', 'F')
+    assert '[Bb]' in imp['content'] and imp['notation'] == 'polish'
+
+
+def test_import_fixes_header_key_that_does_not_fit_chords():
+    imp = mc.import_song('[A]a [H]b [cis7]c [gis7]d [A]e [H]f [cis7]g', 'Gm')
+    assert imp['key_fixed'] and imp['key'] in ('E', 'C#m')
+    assert mc.import_song('[G]a [D]b [Em]c [C]d', 'G')['key'] == 'G'
+
+
+def test_detected_key_spelled_like_song():
+    assert mc.spell_key_like_song('Abm', '[G#m7]a [C#m]b') == 'G#m'
+    assert mc.spell_key_like_song('Eb', '[Bb]a [Eb]b') == 'Eb'

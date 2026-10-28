@@ -14,6 +14,7 @@ from music_core.chords import (
     process_song, parse_song_sections,
     canon_chord, tidy_song_text, analyze_song, is_section_label,
     prepare_song_content, prepare_song,
+    guess_notation, key_fit, spell_key_like_song, import_song,
 )
 from music_core.engine_v2 import WorshipHybridEngineV2
 from music_core.engine_v3 import WorshipPivotEngineV3
