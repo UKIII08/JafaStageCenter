@@ -525,3 +525,11 @@ def branding(church_id, membership):
 def landing_pl():
     """Polska wersja landinga (domyślny '/' jest po angielsku — rynek USA)."""
     return render_template('landing_pl.html')
+
+
+@panel_bp.get('/favicon.ico')
+def favicon():
+    """Przeglądarki i czytniki RSS pytają o /favicon.ico same z siebie."""
+    from flask import current_app, send_from_directory
+    return send_from_directory(current_app.static_folder, 'favicon-32.png',
+                               mimetype='image/png', max_age=86400)
