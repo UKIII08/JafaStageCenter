@@ -301,7 +301,11 @@
             if (k === 'escape' && sel != null) { e.stopPropagation(); sel = null; draw(); }
         });
         ui();
-        return { get: function () { return hasNotes(d) ? d : null; }, destroy: function () { stop(); el.innerHTML = ''; } };
+        // większe / mniejsze okno → pięciolinia na nową szerokość
+        var onResize = function () { draw(); };
+        global.addEventListener('resize', onResize);
+        return { get: function () { return hasNotes(d) ? d : null; },
+                 destroy: function () { stop(); global.removeEventListener('resize', onResize); el.innerHTML = ''; } };
     }
 
     global.JStaff = { mount: mount, render: render, play: play, stop: stop, hasNotes: hasNotes };

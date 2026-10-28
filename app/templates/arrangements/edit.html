@@ -179,11 +179,15 @@
             </div>
             <button type="button" class="arr-icon-btn" id="cell-close" aria-label="{{ _('Close') }}">✕</button>
         </div>
+        <div class="cell-body">
+        <div class="cell-note-col">
         <textarea id="cell-note" rows="5" maxlength="2000" placeholder="{{ _('e.g. third above the melody from the 2nd chorus · riff e|--3--5--7--|') }}"></textarea>
         <div class="cell-tools">
             <label class="cell-mono"><input type="checkbox" id="cell-mono"> {{ _('Tab font') }}</label>
             <span class="arr-save" id="cell-status"></span>
         </div>
+        </div>
+        <div class="cell-music-col">
         <details class="riff-box" id="riff-box">
             <summary>🎼 {{ _('Riff or melody') }}</summary>
             <div class="music-kind">
@@ -194,6 +198,8 @@
             </div>
             <div class="riff-editor" id="riff-editor"></div>
         </details>
+        </div>
+        <div class="cell-memo-col">
         <div class="memo">
             <div class="section-title" style="margin-bottom:var(--s2);">{{ _('Idea recording') }}</div>
             <div id="memo-existing" hidden>
@@ -209,6 +215,8 @@
                 </div>
                 <span class="rec-time" id="rec-time"></span>
             </div>
+        </div>
+        </div>
         </div>
     </div>
 </div>

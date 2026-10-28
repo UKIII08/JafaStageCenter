@@ -333,8 +333,9 @@
         status('cell-status', '');
         showMemo(c);
         resetRec();
-        openRiff(c.riff);
+        // najpierw pokaż okno — edytor nut mierzy dostępną szerokość
         $('cell-modal').hidden = false;
+        openRiff(c.riff);
         setTimeout(function () { if (!('ontouchstart' in window)) $('cell-note').focus(); }, 30);
     }
     // ── Riff (tabulatura) w komórce ──
@@ -346,7 +347,8 @@
         var staff = riff && riff.kind === 'staff';
         var has = staff ? JStaff.hasNotes(riff) : !!(riff && JRiff.hasNotes(riff));
         musicKind = has ? (staff ? 'staff' : 'tab') : defaultKind(cur.role);
-        $('riff-box').open = has;
+        // na dużym ekranie edytor jest zawsze rozwinięty (jest na niego miejsce)
+        $('riff-box').open = has || window.matchMedia('(min-width: 1001px)').matches;
         mountMusic(has ? riff : null);
     }
     function mountMusic(data) {
