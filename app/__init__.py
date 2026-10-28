@@ -129,6 +129,9 @@ def _ensure_columns():
         'profiles': [
             ('instruments', 'JSON'),
         ],
+        'arrangement_cells': [
+            ('riff', 'JSON'),
+        ],
     }
     for table, cols in wanted.items():
         if table not in insp.get_table_names():

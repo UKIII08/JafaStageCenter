@@ -64,6 +64,7 @@ def cells_payload(arr):
     names = _names(arr.church_id, [c.memo_by for c in cells.values()] +
                    [c.updated_by for c in cells.values()])
     return {f'{t}|{r}': {'note': c.note or '',
+                         'riff': c.riff or None,
                          'memo': audio_url(arr, c.memo) if c.memo else '',
                          'memo_by': names.get(c.memo_by, ''),
                          'by': names.get(c.updated_by, '')}
@@ -243,12 +244,16 @@ def save_cell(church_id, arr_id, membership):
     arr = _arr(church_id, arr_id)
     data = request.json or {}
     c = _cell(arr, str(data.get('tile')), str(data.get('role')), create=True)
-    c.note = str(data.get('note') or '')[:2000]
+    # notatka i riff zapisują się osobno — brak pola = bez zmian
+    if 'note' in data:
+        c.note = str(data.get('note') or '')[:2000]
+    if 'riff' in data:
+        c.riff = svc.clean_riff(data.get('riff'))
     c.updated_by = current_user().id
-    if not c.note.strip() and not c.memo:
+    if not (c.note or '').strip() and not c.memo and not c.riff:
         db.session.delete(c)
     db.session.commit()
-    return jsonify({'status': 'ok'})
+    return jsonify({'status': 'ok', 'riff': c.riff if c in db.session else None})
 
 
 @arr_bp.post('/c/<church_id>/arrangements/<arr_id>/memo')
@@ -285,7 +290,7 @@ def delete_memo(church_id, arr_id, membership):
     if c and c.memo:
         svc._unlink(arr, c.memo)
         c.memo = ''
-        if not (c.note or '').strip():
+        if not (c.note or '').strip() and not c.riff:
             db.session.delete(c)
         db.session.commit()
     return jsonify({'status': 'ok'})

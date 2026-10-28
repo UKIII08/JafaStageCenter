@@ -112,8 +112,8 @@
 <section class="panel arr-panel">
     <div class="arr-panel-head">
         <div>
-            <div class="section-title">{{ _('Parts') }}</div>
-            <p class="hint">{{ _('Tap a cell to write what this part does there or record the idea on your phone — the whole team sees and hears it.') }}</p>
+            <div class="section-title">{{ _('Timeline') }}</div>
+            <p class="hint">{{ _('The whole song at a glance — every instrument has its own lane. Tap a cell to add a note, a riff (tab) or record an idea; the whole team sees and hears it.') }}</p>
         </div>
     </div>
     <div class="grid-wrap" id="grid-wrap"></div>
@@ -183,6 +183,10 @@
             <label class="cell-mono"><input type="checkbox" id="cell-mono"> {{ _('Tab font') }}</label>
             <span class="arr-save" id="cell-status"></span>
         </div>
+        <details class="riff-box" id="riff-box">
+            <summary>🎸 {{ _('Riff (tab)') }}</summary>
+            <div class="riff-editor" id="riff-editor"></div>
+        </details>
         <div class="memo">
             <div class="section-title" style="margin-bottom:var(--s2);">{{ _('Idea recording') }}</div>
             <div id="memo-existing" hidden>
@@ -217,6 +221,7 @@ window.ARR = {
     rev: {{ rev|tojson }},
     me: {{ me_name|tojson }},
     dynamics: {{ dynamics|tojson }},
+    bpm: {{ (song.bpm or 90)|tojson }},
     L: {
         saving: {{ _('saving…')|tojson }}, saved: {{ _('saved')|tojson }},
         error: {{ _('could not save')|tojson }},
@@ -234,6 +239,17 @@ window.ARR = {
         conflict: {{ _('Someone else changed the form in the meantime — you now see their version. Make your change again.')|tojson }},
         updatedBy: {{ _('Updated — latest change by')|tojson }},
         replaceOther: {{ _('This idea was recorded by %(name)s. Record over it?')|tojson }},
+        riff: {{ _('riff')|tojson }},
+        rf: {
+            guitar: {{ _('Guitar')|tojson }}, bass: {{ _('Bass')|tojson }},
+            play: {{ _('Play')|tojson }}, stop: {{ _('Stop')|tojson }},
+            bar: {{ _('bar')|tojson }}, clear: {{ _('Clear')|tojson }},
+            clearQ: {{ _('Clear the whole riff?')|tojson }}, delBar: {{ _('Delete the last bar with its notes?')|tojson }},
+            del: {{ _('Delete a character')|tojson }},
+            help: {{ _('Click a box, then type the fret (or use the buttons). h = hammer-on, p = pull-off, / = slide, b = bend, ~ = vibrato, x = muted. Arrows move, Space plays.')|tojson }},
+            tech: { h: {{ _('hammer-on (5h7)')|tojson }}, p: {{ _('pull-off (7p5)')|tojson }}, '/': {{ _('slide (5/7)')|tojson }},
+                    b: {{ _('bend (7b)')|tojson }}, '~': {{ _('vibrato')|tojson }}, x: {{ _('muted')|tojson }} }
+        },
         dyn: {
             soft: {{ _('Soft')|tojson }}, build: {{ _('Build')|tojson }}, full: {{ _('Full')|tojson }},
             down: {{ _('Break down')|tojson }}, band: {{ _('Band only')|tojson }}
@@ -241,5 +257,6 @@ window.ARR = {
     }
 };
 </script>
+<script src="{{ url_for('static', filename='js/arr-riff.js') }}"></script>
 <script src="{{ url_for('static', filename='js/arrangements.js') }}"></script>
 {% endblock %}

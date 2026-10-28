@@ -285,3 +285,89 @@
     .cell-modal { align-items: flex-end; padding: 0; }
     .cell-card { max-width: none; border-radius: var(--r-xl) var(--r-xl) 0 0; max-height: 92vh; padding-bottom: calc(var(--s5) + env(safe-area-inset-bottom)); }
 }
+
+
+/* ── Oś czasu (widok jak w DAW) ───────────────────────────────────────── */
+:root { --fam-vocal: #A374F0; --fam-guitar: #E58A3A; --fam-bass: #3FB67A; --fam-keys: #4F7FFF;
+        --fam-drums: #E0605A; --fam-strings: #E36FA8; --fam-winds: #2BB3A3; --fam-other: #8C8A83; }
+[data-theme="light"] { --fam-vocal: #7C4DD8; --fam-guitar: #B85F12; --fam-bass: #198754; --fam-keys: #2563EB;
+        --fam-drums: #C0392B; --fam-strings: #B83E7C; --fam-winds: #0F8F80; --fam-other: #6B6A64; }
+.fam-vocal { --fam: var(--fam-vocal); } .fam-guitar { --fam: var(--fam-guitar); } .fam-bass { --fam: var(--fam-bass); }
+.fam-keys { --fam: var(--fam-keys); } .fam-drums { --fam: var(--fam-drums); } .fam-strings { --fam: var(--fam-strings); }
+.fam-winds { --fam: var(--fam-winds); } .fam-other { --fam: var(--fam-other); }
+.tl-empty { color: var(--text-tertiary); font-size: 15px; padding: 12px 0; }
+.daw { display: grid; gap: 4px; min-width: max-content; }
+.daw-corner { position: sticky; left: 0; z-index: 2; background: var(--bg-app); }
+.daw-sec { position: relative; display: flex; align-items: baseline; gap: 8px; padding: 9px 12px 8px;
+    border-radius: 8px 8px 0 0; background: color-mix(in srgb, var(--c) 18%, transparent);
+    border-top: 3px solid var(--c); font-size: 14px; white-space: nowrap; overflow: hidden; }
+.daw-sec b { font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; }
+.daw-rep { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); }
+.daw-dyn { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.daw-lane { position: sticky; left: 0; z-index: 2; display: flex; align-items: center; gap: 8px; padding: 0 10px;
+    background: var(--bg-app); border-left: 3px solid var(--fam); font-size: 14px; font-weight: 600; min-height: 64px; }
+.daw-lane i, .stk-role i { width: 9px; height: 9px; border-radius: 3px; background: var(--fam); flex: 0 0 auto; }
+.daw-lane span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.daw-lane em { font-style: normal; font-size: 12px; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--text-accent); }
+.daw-lane.mine { background: color-mix(in srgb, var(--accent) 7%, var(--bg-app)); }
+.daw-cell { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 6px;
+    height: auto; min-height: 64px; padding: 8px 10px; text-align: left; white-space: normal; line-height: 1.4;
+    background: transparent; border: 1px dashed var(--border-strong); border-radius: 8px; color: var(--text-secondary);
+    font-weight: 500; font-size: 13.5px; overflow: hidden; }
+.daw-cell:hover { background: var(--bg-surface); border-color: var(--fam); color: var(--text-primary); }
+.daw-cell.filled { border: 1px solid color-mix(in srgb, var(--fam) 45%, transparent);
+    background: color-mix(in srgb, var(--fam) 12%, transparent); color: var(--text-primary); border-left: 3px solid var(--fam); }
+.daw-cell .pnote { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    white-space: pre-wrap; word-break: break-word; }
+.daw-cell .pnote.mono { font-family: var(--font-mono); font-size: 12px; }
+.daw-cell .plus { margin: auto; color: var(--text-tertiary); font-size: 18px; opacity: 0; }
+.daw-cell:hover .plus { opacity: 1; }
+.daw-tab { margin: 0; font-family: var(--font-mono); font-size: 12px; line-height: 1.25; color: var(--text-primary);
+    white-space: pre; overflow: hidden; max-height: 7.6em; }
+.daw-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.daw-chips .chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 6px;
+    font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--fam) 20%, transparent); color: var(--text-primary); }
+.daw-chips .chip svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+/* telefon: część po części */
+.stk { margin-bottom: 18px; }
+.stk-head { display: flex; align-items: baseline; gap: 8px; padding: 9px 12px; border-radius: 8px;
+    background: color-mix(in srgb, var(--c) 18%, transparent); border-left: 4px solid var(--c); font-size: 15px; }
+.stk-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px; margin-top: 6px; align-items: stretch; }
+.stk-role { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; flex-wrap: wrap; }
+.stk-role.mine { color: var(--text-accent); }
+.stk-row .daw-cell { min-height: 48px; }
+
+/* ── Edytor riffu (tabulatura) ── */
+.riff-box { margin: var(--s3) 0; border: 1px solid var(--border-default); border-radius: var(--r-md); }
+.riff-box > summary { cursor: pointer; padding: 10px 12px; font-weight: 600; font-size: 14px; }
+.riff-box[open] > summary { border-bottom: 1px solid var(--border-default); }
+.riff-editor { padding: 10px 12px 12px; outline: none; }
+.riff-editor:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-line); border-radius: var(--r-md); }
+.rf-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.rf-gap { flex: 1; }
+.rf-bpm { font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); }
+.rf-scroll { overflow-x: auto; padding-bottom: 4px; }
+.rf-grid { border-collapse: collapse; font-family: var(--font-mono); }
+.rf-grid th { position: sticky; left: 0; background: var(--bg-elevated, var(--bg-app)); padding: 0 8px 0 0;
+    font-size: 13px; color: var(--text-secondary); border: 0; text-transform: none; letter-spacing: 0; }
+.rf-grid td { width: 30px; min-width: 30px; height: 26px; padding: 0; text-align: center; font-size: 13px; font-weight: 700;
+    cursor: pointer; border: 0; border-bottom: 1px solid var(--border-strong); color: var(--text-primary); }
+.rf-grid td.beat { border-left: 1px solid var(--border-default); }
+.rf-grid td.bar { border-left: 2px solid var(--text-tertiary); }
+.rf-grid td.on { background: color-mix(in srgb, var(--fam-guitar) 18%, transparent); }
+.rf-grid td.sel { box-shadow: inset 0 0 0 2px var(--accent); border-radius: 4px; }
+.rf-grid td.now { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+.rf-grid td:hover { background: var(--bg-surface-hover); }
+.rf-pad { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+.rf-pad button { height: 34px; min-width: 38px; padding: 0 8px; background: var(--bg-surface); border: 1px solid var(--border-strong);
+    color: var(--text-primary); font-family: var(--font-mono); font-weight: 700; font-size: 14px; }
+.rf-pad button.tech { color: var(--text-accent); }
+.rf-pad button:hover { background: var(--accent-subtle); border-color: var(--accent); color: var(--text-accent); }
+.rf-help { margin-top: 8px; color: var(--text-tertiary); font-size: 13px; line-height: 1.5; }
+@media (max-width: 760px) {
+    .rf-grid td { width: 34px; min-width: 34px; height: 34px; }
+    .rf-pad button { height: 44px; min-width: 44px; }
+}
+/* przypięta kolumna instrumentów: bez marginesu, spod którego wystawałyby kratki */
+.grid-wrap:has(.daw) { margin-left: 0; padding-left: 0; }

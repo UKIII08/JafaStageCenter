@@ -1208,3 +1208,22 @@ PL.update({
         'Bloki bez nazwy po części dostały jej nazwę z „(cd.)”.',
     'Repeat marks like “/2x” were written as “(x2)”.': 'Oznaczenia powtórzeń typu „/2x” zapisano jako „(x2)”.',
 })
+
+
+# ── Forma i partie: oś czasu i riffy ─────────────────────────────────────
+PL.update({
+    'Timeline': 'Oś czasu',
+    'The whole song at a glance — every instrument has its own lane. Tap a cell to add a note, a riff (tab) or record an idea; the whole team sees and hears it.':
+        'Cała piosenka w jednym widoku — każdy instrument ma swój tor. Kliknij kratkę, żeby dodać notatkę, riff (tabulaturę) albo nagrać pomysł; cały zespół to zobaczy i usłyszy.',
+    'Riff (tab)': 'Riff (tabulatura)',
+    'riff': 'riff',
+    'Guitar': 'Gitara', 'Bass': 'Bas', 'Play': 'Odtwórz', 'Stop': 'Stop',
+    'bar': 'takt', 'Clear': 'Wyczyść',
+    'Clear the whole riff?': 'Wyczyścić cały riff?',
+    'Delete the last bar with its notes?': 'Usunąć ostatni takt razem z nutami?',
+    'Delete a character': 'Usuń znak',
+    'Click a box, then type the fret (or use the buttons). h = hammer-on, p = pull-off, / = slide, b = bend, ~ = vibrato, x = muted. Arrows move, Space plays.':
+        'Kliknij kratkę i wpisz próg (albo użyj przycisków). h = hammer-on, p = pull-off, / = slajd, b = podciągnięcie, ~ = wibrato, x = stłumiona. Strzałki przesuwają, spacja odtwarza.',
+    'hammer-on (5h7)': 'hammer-on (5h7)', 'pull-off (7p5)': 'pull-off (7p5)', 'slide (5/7)': 'slajd (5/7)',
+    'bend (7b)': 'podciągnięcie (7b)', 'vibrato': 'wibrato', 'muted': 'stłumiona',
+})
