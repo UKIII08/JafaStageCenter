@@ -243,7 +243,8 @@
 }
 .cell-modal[hidden] { display: none; }
 .cell-card {
-    width: 100%; max-width: 520px; max-height: calc(100vh - 32px); overflow: auto;
+    /* pełny ekran: na riff, nuty i notatkę nie ma co oszczędzać miejsca */
+    width: 100%; max-width: 1440px; height: calc(100vh - 32px); max-height: calc(100vh - 32px); overflow: auto;
     background: var(--bg-panel); background-image: var(--panel-grad);
     border: 1px solid var(--border-strong); border-radius: var(--r-xl);
     box-shadow: var(--shadow-lg); padding: var(--s5);
@@ -348,7 +349,7 @@
 .rf-gap { flex: 1; }
 .rf-bpm { font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); }
 .rf-scroll { overflow-x: auto; padding-bottom: 4px; }
-.rf-grid { border-collapse: collapse; font-family: var(--font-mono); }
+.rf-grid { width: auto; border-collapse: collapse; font-family: var(--font-mono); }
 .rf-grid th { position: sticky; left: 0; background: var(--bg-elevated, var(--bg-app)); padding: 0 8px 0 0;
     font-size: 13px; color: var(--text-secondary); border: 0; text-transform: none; letter-spacing: 0; }
 .rf-grid td { width: 30px; min-width: 30px; height: 26px; padding: 0; text-align: center; font-size: 13px; font-weight: 700;
@@ -395,4 +396,30 @@
 @media (max-width: 760px) {
     .pk { height: 120px; }
     .stf-dur button { min-width: 44px; }
+}
+
+/* Okno kratki: komputer — notatka i nagranie po lewej, duży edytor riffu
+   albo melodii po prawej; telefon — jedna kolumna na cały ekran. */
+.cell-body { display: grid; gap: var(--s4) var(--s5); grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    grid-template-areas: "note music" "memo music"; align-items: start; }
+.cell-note-col { grid-area: note; min-width: 0; }
+.cell-music-col { grid-area: music; min-width: 0; }
+.cell-memo-col { grid-area: memo; min-width: 0; }
+.cell-music-col .riff-box { margin-top: 0; }
+.cell-body #cell-note { min-height: 160px; }
+@media (min-width: 1001px) {
+    .cell-music-col .riff-box > summary { pointer-events: none; list-style: none; }
+    .cell-music-col .riff-box > summary::-webkit-details-marker { display: none; }
+    .rf-grid td { width: 46px; min-width: 46px; height: 40px; font-size: 16px; }
+    .rf-grid th { font-size: 15px; padding-right: 12px; }
+    .rf-pad button { height: 42px; min-width: 46px; font-size: 15px; }
+    .stf-view { min-height: 160px; }
+    .pk { height: 130px; }
+}
+@media (max-width: 1000px) {
+    .cell-body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "note" "music" "memo"; }
+}
+@media (max-width: 760px) {
+    .cell-modal { padding: 0; }
+    .cell-card { height: 100vh; height: 100dvh; max-height: none; border-radius: 0; border: 0; }
 }
