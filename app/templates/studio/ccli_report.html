@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Raport CCLI — {{ church.name }}{% endblock %}
+{% block title %}Raport CCLI · {{ church.name }}{% endblock %}
 {% block content %}
 <div class="panel">
     <div class="panel-header">
@@ -10,7 +10,7 @@
     automatycznie (raz na piosenkę na dzień). W okresie raportowym CCLI
     wyeksportuj CSV i przepisz liczby do formularza na ccli.com.
     {% if not settings.ccli_license %}<br><b>Wskazówka:</b> uzupełnij numer
-    licencji CCLI wspólnoty w Ustawieniach — pojawi się w notce copyright
+    licencji CCLI wspólnoty w Ustawieniach. Pojawi się w notce copyright
     na rzutniku.{% endif %}</p>
     <form method="GET" class="form-row" style="margin-bottom:var(--s4);">
         <input type="date" name="from" value="{{ d_from.isoformat() }}" style="flex:1;">
@@ -22,12 +22,12 @@
         {% for it in items %}
         <tr>
             <td style="font-weight:700;">{{ it.song.title }}</td>
-            <td class="muted">{{ it.song.ccli_number or '—' }}</td>
-            <td class="muted">{{ it.song.author or '—' }}</td>
+            <td class="muted">{{ it.song.ccli_number or '–' }}</td>
+            <td class="muted">{{ it.song.author or '–' }}</td>
             <td><b>{{ it.count }}</b></td>
         </tr>
         {% else %}
-        <tr><td colspan="4" class="muted">Brak zalogowanych użyć w tym okresie —
+        <tr><td colspan="4" class="muted">Brak zalogowanych użyć w tym okresie.
             licznik rośnie, gdy wyświetlasz piosenki na żywo w Studiu.</td></tr>
         {% endfor %}
     </table>

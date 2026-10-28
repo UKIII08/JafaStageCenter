@@ -26,7 +26,7 @@ PAD_KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
 @live_bp.get('/pads/<key>.mp3')
 def global_pad(key):
-    """Wspólne pady (jeden zestaw, który wgrywa deweloper na serwer) —
+    """Wspólne pady (jeden zestaw, który wgrywa deweloper na serwer).
     nie per-wspólnota, żeby dysk się nie zapełniał uploadami. Trzymane na
     trwałym wolumenie uploads (instance/uploads/_shared/pads/), a jeśli tam
     nic nie ma, fallback do wersji dołączonej do repo (static/pads/)."""
@@ -68,7 +68,7 @@ def _legacy_is_live(church_id):
     """Stary przepływ REST (przycisk 'Rozpocznij LIVE' → LiveSession). Uznajemy
     za 'na żywo' TYLKO gdy istnieje niezakończona sesja I na ekranie jest realny
     slajd (nie idle/logo/blackout). Samo istnienie wiersza LiveSession nie
-    wystarcza — inaczej kliknięcie 'Rozpocznij LIVE' zostawia dashboard 'na
+    wystarcza · inaczej kliknięcie 'Rozpocznij LIVE' zostawia dashboard 'na
     żywo' na zawsze, nawet gdy nic się nie dzieje."""
     if not _active_session(church_id):
         return False
@@ -163,7 +163,7 @@ def _render_slide(church_id, rows, song_idx, section_idx):
 @require_membership('prowadzacy')
 def live_start(church_id, setlist_id, membership):
     if _active_session(church_id):
-        flash(_('A live session is already running — joined it.'))
+        flash(_('A live session is already running. Joined it.'))
         return redirect(url_for('live.leader', church_id=church_id))
     sl = Setlist.query.filter_by(id=setlist_id, church_id=church_id,
                                  deleted=False).first()

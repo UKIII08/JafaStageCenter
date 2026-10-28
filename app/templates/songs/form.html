@@ -153,7 +153,7 @@
         <div class="se-row">
             <label for="f-link">{{ _('Recording link (optional)') }}</label>
             <input id="f-link" name="link" type="url" inputmode="url"
-                   placeholder="{{ _('YouTube, Spotify, Google Drive… — anything to practice with') }}"
+                   placeholder="{{ _('YouTube, Spotify, Google Drive… anything to practice with') }}"
                    value="{{ d.get('link', song.link if song and song.link else '') }}">
         </div>
 
@@ -171,7 +171,7 @@
                 <button type="button" data-mode="tiles" class="active">{{ _('Tiles') }}</button>
                 <button type="button" data-mode="text">{{ _('Text') }}</button>
             </div>
-            <span class="hint">{{ _('Two views of the same song — switch any time.') }}</span>
+            <span class="hint">{{ _('Two views of the same song. Switch any time.') }}</span>
         </div>
         <div id="tiles" class="tiles"></div>
         <datalist id="tl-names">
@@ -205,15 +205,15 @@
             <button type="button" data-tab="help">{{ _('How to write a song') }}</button>
         </div>
         <div class="se-preview" id="tab-preview">
-            <div class="pv-empty" id="preview">{{ _('Start typing — here you see the song exactly as the band will see it.') }}</div>
+            <div class="pv-empty" id="preview">{{ _('Start typing. Here you see the song exactly as the band will see it.') }}</div>
         </div>
         <div id="tab-help" hidden>
             <ul class="song-help-rules">
                 <li>{{ _('Put chords in square brackets, right before the word:') }} <code>[Am]word [G]next</code></li>
-                <li>{{ _('Start each section with a label on its own line — Intro, Verse, Chorus, Bridge… (any language).') }}</li>
+                <li>{{ _('Start each section with a label on its own line. Intro, Verse, Chorus, Bridge… (any language).') }}</li>
                 <li>{{ _('Separate sections with one blank line.') }}</li>
-                <li>{{ _('A section can be chords only, with no lyrics — perfect for an intro or instrumental. Just write a line of chords.') }}</li>
-                <li>{{ _('Copied a song with chords above the lyrics? Paste it as is — it gets converted when you save.') }}</li>
+                <li>{{ _('A section can be chords only, with no lyrics. Perfect for an intro or instrumental. Just write a line of chords.') }}</li>
+                <li>{{ _('Copied a song with chords above the lyrics? Paste it as is. It gets converted when you save.') }}</li>
             </ul>
             <div class="song-help-eg-label">{{ _('Example') }}</div>
 <pre class="song-help-eg"><span class="hl-sec">Intro</span>
@@ -249,35 +249,35 @@
   window.SONG_EDITOR_I18N = {
     chords: {{ _('chords')|tojson }}, sections: {{ _('parts')|tojson }},
     allValid: {{ _('all chords recognized')|tojson }},
-    noChords: {{ _('No chords yet — put them in [brackets], e.g. [Am].')|tojson }},
+    noChords: {{ _('No chords yet. Put them in [brackets], e.g. [Am].')|tojson }},
     line: {{ _('Line')|tojson }},
-    unclosed: {{ _('bracket “[” is never closed — add “]” after the chord')|tojson }},
-    stray: {{ _('a “]” without “[” — it will show as text')|tojson }},
-    dbl: {{ _('double brackets [[ ]] — fixed when you save')|tojson }},
-    labelBr: {{ _('section name in brackets — becomes a plain label when you save')|tojson }},
-    capo: {{ _('capo is set by each musician in their own view — this line would show as lyrics, delete it')|tojson }},
-    emptyPart: {{ _('a part with only a name — it would be an empty slide; add its lyrics or delete the name')|tojson }},
+    unclosed: {{ _('bracket “[” is never closed. Add “]” after the chord')|tojson }},
+    stray: {{ _('a “]” without “[”. It will show as text')|tojson }},
+    dbl: {{ _('double brackets [[ ]]. Fixed when you save')|tojson }},
+    labelBr: {{ _('section name in brackets. Becomes a plain label when you save')|tojson }},
+    capo: {{ _('capo is set by each musician in their own view. This line would show as lyrics, delete it')|tojson }},
+    emptyPart: {{ _('a part with only a name. It would be an empty slide; add its lyrics or delete the name')|tojson }},
     invalid: {{ _('not a chord we know')|tojson }},
     keyLabel: {{ _('detected key')|tojson }},
     notationPl: {{ _('These chords look like Polish notation (%(ex)s).')|tojson }},
     notationB: {{ _('Careful: in Polish “B” means B♭, internationally it means H.')|tojson }},
-    above: {{ _('Lines %(lines)s have chords above the lyrics — they will be moved into the text when you save (the preview already shows it).')|tojson }},
-    converted: {{ _('Converted — check the result')|tojson }},
+    above: {{ _('Lines %(lines)s have chords above the lyrics. They will be moved into the text when you save (the preview already shows it).')|tojson }},
+    converted: {{ _('Converted · check the result')|tojson }},
     labelQ: {{ _('Is this a section name? If it is a lyric, add a section name above it (e.g. Verse).')|tojson }},
-    tooLong: {{ _('%(n)s lines — too much for one slide, split it (max 8)')|tojson }},
+    tooLong: {{ _('%(n)s lines. Too much for one slide, split it (max 8)')|tojson }},
     auto: {{ _('no name')|tojson }},
-    empty: {{ _('Start typing — here you see the song exactly as the band will see it.')|tojson }},
+    empty: {{ _('Start typing. Here you see the song exactly as the band will see it.')|tojson }},
     tiles: {
       names: { intro: 'Intro', verse: {{ _('Verse')|tojson }}, chorus: {{ _('Chorus')|tojson }}, bridge: 'Bridge', outro: 'Outro' },
       addPart: {{ _('Add a part:')|tojson }},
       startTitle: {{ _('Paste a song from anywhere')|tojson }},
-      startHint: {{ _('Chords above the lyrics, ChordPro from SongSelect or plain lyrics — it splits into parts by itself and the chords land on the right syllables.')|tojson }},
+      startHint: {{ _('Chords above the lyrics, ChordPro from SongSelect or plain lyrics. It splits into parts by itself and the chords land on the right syllables.')|tojson }},
       pastePh: {{ _('Paste here (Ctrl+V)…')|tojson }},
       or: {{ _('or')|tojson }},
       startEmpty: {{ _('Start from an empty verse')|tojson }},
       namePh: {{ _('Part name, e.g. Verse 1')|tojson }},
-      textPh: {{ _('Type or paste the lyrics of this part — you add chords afterwards by clicking above the words.')|tojson }},
-      done: {{ _('Done — add chords')|tojson }},
+      textPh: {{ _('Type or paste the lyrics of this part. You add chords afterwards by clicking above the words.')|tojson }},
+      done: {{ _('Done · add chords')|tojson }},
       editText: {{ _('Edit lyrics')|tojson }},
       clickTip: {{ _('Click above a letter to add a chord, click a chord to change it.')|tojson }},
       up: {{ _('Move up')|tojson }}, down: {{ _('Move down')|tojson }},
@@ -290,25 +290,25 @@
       inSong: {{ _('Already in this song')|tojson }},
       otherPh: {{ _('Other chord, e.g. Cadd9, D/F#')|tojson }},
       insert: {{ _('Insert')|tojson }}, change: {{ _('Change')|tojson }}, remove: {{ _('Remove')|tojson }},
-      badChord: {{ _('That doesn’t look like a chord — e.g. Am, F#m7, D/F#.')|tojson }},
+      badChord: {{ _('That doesn’t look like a chord. E.g. Am, F#m7, D/F#.')|tojson }},
       move: {{ _('move by one letter')|tojson }},
       moveLeft: {{ _('One letter left')|tojson }}, moveRight: {{ _('One letter right')|tojson }},
       cont: {{ _('(cont.)')|tojson }},
       repeatMsg: {{ _('Lines %(from)s–%(to)s: the same %(n)s lines %(times)s times in a row.')|tojson }},
       repeatMsg1: {{ _('Lines %(from)s–%(to)s: the same line %(times)s times in a row.')|tojson }},
       repeatBtn: {{ _('Keep once (x%(times)s)')|tojson }},
-      longMsg: {{ _('%(n)s lines on one slide — on the projector the text gets small.')|tojson }},
+      longMsg: {{ _('%(n)s lines on one slide. On the projector the text gets small.')|tojson }},
       splitBtn: {{ _('Split into %(parts)s slides')|tojson }},
       undo: {{ _('Undo')|tojson }},
       fix: {
         repeats: {{ _('Repeated lines are kept once with (x2).')|tojson }},
         split: {{ _('Long parts were split into slides of up to 8 lines.')|tojson }},
-        chordpro: {{ _('Recognised ChordPro — converted.')|tojson }},
-        above_lyrics: {{ _('Chords were above the lyrics — moved onto the syllables.')|tojson }},
+        chordpro: {{ _('Recognised ChordPro. Converted.')|tojson }},
+        above_lyrics: {{ _('Chords were above the lyrics. Moved onto the syllables.')|tojson }},
         labels: {{ _('Part names in brackets became plain names.')|tojson }},
         label_gap: {{ _('Part names separated by a blank line were joined to their lyrics.')|tojson }},
         invisible: {{ _('Invisible characters from the web page were removed.')|tojson }},
-        double_spaced: {{ _('Lines were separated by blank lines (copied text) — joined back into parts.')|tojson }},
+        double_spaced: {{ _('Lines were separated by blank lines (copied text). Joined back into parts.')|tojson }},
         cont_labels: {{ _('Unnamed blocks after a part got its name with “(cont.)”.')|tojson }},
         repeat_marks: {{ _('Repeat marks like “/2x” were written as “(x2)”.')|tojson }}
       }

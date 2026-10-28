@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}LIVE — {{ church.name }}{% endblock %}
+{% block title %}LIVE · {{ church.name }}{% endblock %}
 {% block content %}
 <div class="panel">
     <div class="panel-header">
@@ -64,7 +64,7 @@ document.querySelectorAll('.tile-transition').forEach(el => el.addEventListener(
 document.getElementById('btn-blackout').addEventListener('click', () =>
     post(`/c/${CHURCH}/live/blackout`).then(d =>
         document.getElementById('live-status').textContent =
-            d.blackout ? 'BLACKOUT — ekrany wygaszone.' : 'Ekrany aktywne.'));
+            d.blackout ? 'BLACKOUT. Ekrany wygaszone.' : 'Ekrany aktywne.'));
 document.getElementById('btn-logo').addEventListener('click', () =>
     post(`/c/${CHURCH}/live/logo`).then(d =>
         document.getElementById('live-status').textContent =

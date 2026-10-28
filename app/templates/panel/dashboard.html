@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ church.name }} — Jonathan App{% endblock %}
+{% block title %}{{ church.name }} · Jonathan App{% endblock %}
 {% block content %}
 <style>
     .dash-hello h1 { font-size: 44px; }
@@ -67,7 +67,7 @@
     <div class="ws-card">
         <img class="ws-logo" src="{{ url_for('studio.media', church_id=church.id, filename='logo.png') }}" alt="">
         <div class="ws-name">{{ church.name }}</div>
-        <div class="ws-sub">{{ _('Welcome back — your worship buddy is ready.') }}</div>
+        <div class="ws-sub">{{ _('Welcome back. Your worship buddy is ready.') }}</div>
     </div>
 </div>
 <style>
@@ -97,7 +97,7 @@
 
 {# ── Trwa LIVE ── #}
 <div id="live-banner" class="live-strip" hidden>
-    <span><b>{{ _('Live now') }}</b> — {{ _('A live session is running') }}</span>
+    <span><b>{{ _('Live now') }}</b> · {{ _('A live session is running') }}</span>
     <div>
         <a class="btn btn-sm" href="{{ url_for('live.band', church_id=church.id) }}">{{ _('Join as a musician') }}</a>
         {% if membership.role != 'muzyk' %}
@@ -113,7 +113,7 @@
             {{ _('On %(day)s you play %(parts)s.') % {'day': next_event.date|nice_date('weekday')|capitalize, 'parts': my_parts|join(', ')} }}
             {% if practice_total %}
                 {% set left = practice_total - practice_done %}
-                {% if left > 0 %}{{ _('%(n)s of %(t)s songs still to practise.') % {'n': left, 't': practice_total} }}{% else %}{{ _('Every song is practised — nice.') }}{% endif %}
+                {% if left > 0 %}{{ _('%(n)s of %(t)s songs still to practise.') % {'n': left, 't': practice_total} }}{% else %}{{ _('Every song is practised. Nice.') }}{% endif %}
             {% endif %}
         {% elif next_event %}
             {{ _('Next up: %(name)s, %(day)s.') % {'name': next_event.name, 'day': next_event.date|nice_date} }}
@@ -206,7 +206,7 @@
         <h2>{{ _('Get your church set up') }}</h2>
         <button type="button" onclick="dismissOnboarding()">{{ _('Hide') }}</button>
     </div>
-    <div class="onb-sub">{{ _('%(done)s of %(total)s done — you can do these in any order') % {'done': onboarding.done, 'total': onboarding.total} }}</div>
+    <div class="onb-sub">{{ _('%(done)s of %(total)s done. You can do these in any order') % {'done': onboarding.done, 'total': onboarding.total} }}</div>
     <div class="onb-steps">
         {{ onb_step(onboarding.songs, _('Add your first songs'), url_for('songs.songs_list', church_id=church.id)) }}
         {{ onb_step(onboarding.members, _('Invite your team'), url_for('panel.team', church_id=church.id)) }}

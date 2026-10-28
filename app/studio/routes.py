@@ -63,9 +63,9 @@ def _screen_ok(church_id):
 def studio_auth(min_role='prowadzacy', allow_screen=False, allow_member=False):
     """Autoryzacja endpointów Studia:
     - min_role (prowadzący/admin) zawsze przechodzi;
-    - allow_member: pozwala też zwykłemu muzykowi (członkowi wspólnoty) — do
+    - allow_member: pozwala też zwykłemu muzykowi (członkowi wspólnoty). Do
       obsługi własnego profilu w widoku muzyka (zapisy) i odczytów;
-    - allow_screen: pozwala anonimowemu tokenowi ekranu (rzutnik/TV) — TYLKO do
+    - allow_screen: pozwala anonimowemu tokenowi ekranu (rzutnik/TV). TYLKO do
       ODCZYTU. Token ekranu jest półpubliczny (QR/wydruk), więc nigdy nie może
       modyfikować danych."""
     def deco(fn):
@@ -146,7 +146,7 @@ TRANSITION_NAMES = ('transition.mp4', 'transition.webm', 'transition.html')
 def _read_transition(f):
     """Wczytuje plik przejścia z limitem rozmiaru i weryfikacją typu.
     Akceptuje MP4/WebM (wideo) oraz HTML (np. eksport z narzędzia
-    projektowego — „JSX" bundluje się do HTML). Zwraca (bytes, ext, kind)
+    projektowego · „JSX" bundluje się do HTML). Zwraca (bytes, ext, kind)
     albo None."""
     data = f.read(TRANSITION_MAX_BYTES + 1)
     if len(data) > TRANSITION_MAX_BYTES:
@@ -238,7 +238,7 @@ def _back(church_id):
 
 
 def _redirect_back(church_id):
-    """Jak _back, ale honoruje bezpieczne (lokalne) pole `next` — dzięki temu
+    """Jak _back, ale honoruje bezpieczne (lokalne) pole `next` · dzięki temu
     ten sam endpoint (logo/kolory/tło) obsługuje zarówno Studio, jak i stronę
     Ustawień wspólnoty, wracając tam, skąd przyszedł."""
     from urllib.parse import urlparse
@@ -420,7 +420,7 @@ def export_songs(church_id):
 @studio_bp.get('/studio/api/songs')
 @studio_auth('prowadzacy', allow_member=True)
 def api_songs(church_id):
-    """Pełny zrzut biblioteki pieśni jako JSON — używany przez synchronizację
+    """Pełny zrzut biblioteki pieśni jako JSON. Używany przez synchronizację
     aplikacji offline (niesie też link/CCLI/autora, których eksport .txt gubił)."""
     songs = Song.query.filter_by(church_id=church_id, deleted=False) \
         .order_by(Song.title).all()
@@ -1163,7 +1163,7 @@ def print_lyrics(church_id):
 
 # ── kody QR (adresy publiczne zamiast IP z sieci lokalnej) ───────────────
 def _default_screen_url(church_id, screen_type):
-    """Stały token 'domyślnego' ekranu danego typu — tworzony przy pierwszym
+    """Stały token 'domyślnego' ekranu danego typu · tworzony przy pierwszym
     użyciu QR, wielokrotnego użytku, odwoływalny w zakładce Ekrany."""
     import secrets
     t = ScreenToken.query.filter_by(church_id=church_id, type=screen_type,
@@ -1233,7 +1233,7 @@ def screen_url(church_id, subpath):
 @studio_bp.get('/studio/presenter')
 @studio_auth('prowadzacy')
 def presenter(church_id):
-    """Widok mówcy (Presenter View) — port presenter.html z desktopu."""
+    """Widok mówcy (Presenter View). Port presenter.html z desktopu."""
     church = db.session.get(Church, church_id)
     return render_template('studio/presenter.html',
                            base=f'/c/{church_id}/studio',
@@ -1251,7 +1251,7 @@ def presenter(church_id):
 @studio_bp.get('/studio/api/song/<sid>/team-prefs')
 @studio_auth('prowadzacy')
 def song_team_prefs(church_id, sid):
-    """Preferowane tonacje zespołu dla piosenki — do układania setlisty
+    """Preferowane tonacje zespołu dla piosenki. Do układania setlisty
     ("Wiktoria (wokal) woli Dm" -> ustawiasz transpozycję pod wokal)."""
     song = Song.query.filter_by(id=sid, church_id=church_id,
                                 deleted=False).first()

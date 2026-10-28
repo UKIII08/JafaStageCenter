@@ -41,19 +41,19 @@ PL = {
     "None": "Brak", "Comment": "Komentarz",
 
     # ── Auth: logowanie ──
-    "Log in — Jonathan App": "Logowanie — Jonathan App",
+    "Log in · Jonathan App": "Logowanie · Jonathan App",
     "Log in": "Zaloguj się", "Come back to your team.": "Wróć do swojego zespołu.",
     "E-mail": "E-mail", "Password": "Hasło", "Create account": "Załóż konto",
     "Forgot password": "Nie pamiętam hasła",
     "One place for the whole Sunday.": "Jedno miejsce na całą niedzielę.",
     "We build it because we needed it ourselves. Preparing, leading for the "
-    "room and for the band, and sorting out who plays — without three "
+    "room and for the band, and sorting out who plays. Without three "
     "different apps and a group chat.":
         "Robimy to, bo sami tego potrzebowaliśmy. Przygotowanie, prowadzenie "
-        "dla ludzi i dla zespołu, i ogarnięcie kto gra — bez trzech różnych "
+        "dla ludzi i dla zespołu, i ogarnięcie kto gra. Bez trzech różnych "
         "apek i grupy na WhatsAppie.",
-    "The leader, the musician on stage and the projector — connected live.":
-        "Prowadzący, muzyk na scenie i rzutnik — połączeni na żywo.",
+    "The leader, the musician on stage and the projector. Connected live.":
+        "Prowadzący, muzyk na scenie i rzutnik. Połączeni na żywo.",
     "Chords in every musician's key, even if they're just starting out.":
         "Akordy w tonacji każdego muzyka, nawet jeśli dopiero zaczyna.",
     "The tech fades into the background. Worship stays.":
@@ -62,7 +62,7 @@ PL = {
         "Szyfrowane połączenie · dane w Europie",
 
     # ── Auth: rejestracja ──
-    "Sign up — Jonathan App": "Rejestracja — Jonathan App",
+    "Sign up · Jonathan App": "Rejestracja · Jonathan App",
     "Free for churches. No card.": "Bezpłatnie dla wspólnot. Bez karty.",
     "First name": "Imię", "Visible to your team.": "Widoczne dla Twojego zespołu.",
     "At least 8 characters.": "Minimum 8 znaków.",
@@ -71,27 +71,27 @@ PL = {
     "Already have an account?": "Masz już konto?",
     "Start leading calmer.": "Zacznij prowadzić spokojniej.",
     "Create an account, set up your church and paste your first songs. The "
-    "team joins with a single code, screens connect by QR. Fifteen minutes — "
+    "team joins with a single code, screens connect by QR. Fifteen minutes, "
     "and you're ready for Sunday.":
         "Załóż konto, stwórz wspólnotę i wklej pierwsze pieśni. Zespół dołącza "
-        "jednym kodem, ekrany podłączasz przez QR. Kwadrans — i jesteś gotowy "
+        "jednym kodem, ekrany podłączasz przez QR. Kwadrans, i jesteś gotowy "
         "na niedzielę.",
 
     # ── Auth: reset / 2FA ──
-    "Reset password — Jonathan App": "Reset hasła — Jonathan App",
+    "Reset password · Jonathan App": "Reset hasła · Jonathan App",
     "Reset password": "Reset hasła",
     "We'll send a link to your e-mail.": "Wyślemy link na Twój adres e-mail.",
     "Account e-mail": "E-mail konta", "Send reset link": "Wyślij link resetujący",
     "Back to login": "Wróć do logowania", "It happens to everyone.": "Zdarza się każdemu.",
     "Enter your account e-mail and we'll send a link to set a new password.":
         "Podaj adres konta, a wyślemy link do ustawienia nowego hasła.",
-    "New password — Jonathan App": "Nowe hasło — Jonathan App",
+    "New password · Jonathan App": "Nowe hasło · Jonathan App",
     "New password": "Nowe hasło",
     "Enter a new password for your account.": "Wpisz nowe hasło do swojego konta.",
     "Save new password": "Zapisz nowe hasło", "Almost done.": "Prawie gotowe.",
     "Set a new password and get back to your team.":
         "Ustaw nowe hasło i wracaj do zespołu.",
-    "Two-factor authentication — Jonathan App": "Weryfikacja dwuetapowa — Jonathan App",
+    "Two-factor authentication · Jonathan App": "Weryfikacja dwuetapowa · Jonathan App",
     "Two-factor authentication": "Weryfikacja dwuetapowa",
     "Enter the 6-digit code from your authenticator app.":
         "Wpisz 6-cyfrowy kod z aplikacji uwierzytelniającej.",
@@ -102,25 +102,25 @@ PL = {
         "uwierzytelniającej.",
 
     # ── Konto ──
-    "My account — Jonathan App": "Moje konto — Jonathan App", "My account": "Moje konto",
+    "My account · Jonathan App": "Moje konto · Jonathan App", "My account": "Moje konto",
     "e-mail verified": "e-mail potwierdzony", "e-mail not verified": "e-mail niepotwierdzony",
     "Send verification link": "Wyślij link weryfikacyjny",
-    "Enabled — login requires a code from your app.":
-        "Włączona — logowanie wymaga kodu z aplikacji.",
+    "Enabled. Login requires a code from your app.":
+        "Włączona. Logowanie wymaga kodu z aplikacji.",
     "Confirm with your password to disable": "Potwierdź hasłem, aby wyłączyć",
     "Disable 2FA": "Wyłącz 2FA",
-    "An extra layer of account protection — recommended especially for admins. "
+    "An extra layer of account protection. Recommended especially for admins. "
     "Requires a free app (Google Authenticator, Microsoft Authenticator, Aegis).":
-        "Dodatkowa warstwa ochrony konta — zalecana zwłaszcza dla "
+        "Dodatkowa warstwa ochrony konta. Zalecana zwłaszcza dla "
         "administratorów. Potrzebna darmowa aplikacja (Google Authenticator, "
         "Microsoft Authenticator, Aegis).",
     "Enable 2FA": "Włącz 2FA", "Danger zone": "Strefa niebezpieczna",
-    "Deleting your account erases all your personal data (GDPR — the right to "
+    "Deleting your account erases all your personal data (GDPR, the right to "
     "be forgotten).":
-        "Usunięcie konta kasuje wszystkie Twoje dane osobiste (RODO — prawo "
+        "Usunięcie konta kasuje wszystkie Twoje dane osobiste (RODO, prawo "
         "do bycia zapomnianym).",
     "Delete account…": "Usuń konto…",
-    "Delete account — Jonathan App": "Usunięcie konta — Jonathan App",
+    "Delete account · Jonathan App": "Usunięcie konta · Jonathan App",
     "Delete account": "Usunięcie konta",
     "Deleting your account is permanent. We'll erase your profile, preferred "
     "keys and notes, availability, service assignments and church memberships.":
@@ -142,8 +142,8 @@ PL = {
 
     # ── Panel: wspólnota ──
     "Create your church": "Załóż wspólnotę",
-    "You'll create a space for your team — songs, setlists and musician profiles.":
-        "Utworzysz przestrzeń dla swojego zespołu — piosenki, setlisty i "
+    "You'll create a space for your team. Songs, setlists and musician profiles.":
+        "Utworzysz przestrzeń dla swojego zespołu. Piosenki, setlisty i "
         "profile muzyków.",
     "Church / community name": "Nazwa wspólnoty / zboru",
     "e.g. Grace Community Church": "np. Zbór Betania Warszawa",
@@ -160,7 +160,7 @@ PL = {
     # ── Dashboard (kafelki na wejście) ──
     "Good to see you, %(name)s": "Dobrze Cię widzieć, %(name)s",
     "here is what matters today.": "oto co dziś najważniejsze.",
-    "Welcome back — your worship buddy is ready.": "Witaj z powrotem — Twój kumpel od uwielbienia jest gotowy.",
+    "Welcome back. Your worship buddy is ready.": "Witaj z powrotem. Twój kumpel od uwielbienia jest gotowy.",
     "How to pick voicings": "Jak dobierać chwyty",
     "Easy": "Łatwe",
     "Smooth": "Płynne",
@@ -177,8 +177,8 @@ PL = {
     "First pick a song from the setlist": "Najpierw wybierz piosenkę z setlisty",
     "Projector (lyrics for the congregation) and the stage screen (chords for the band).":
         "Rzutnik (tekst dla zboru) i ekran sceny (akordy dla zespołu).",
-    "Open the link on the device once — it is remembered and joins every LIVE session by itself.":
-        "Otwórz link na urządzeniu raz — zapamięta się i sam podejmie każdą sesję LIVE.",
+    "Open the link on the device once. It is remembered and joins every LIVE session by itself.":
+        "Otwórz link na urządzeniu raz. Zapamięta się i sam podejmie każdą sesję LIVE.",
     "Name (e.g. Projector – main hall)": "Nazwa (np. Rzutnik sala główna)",
     "Projector (lyrics)": "Rzutnik (tekst)",
     "Stage screen (chords)": "Ekran sceny (akordy)",
@@ -190,8 +190,8 @@ PL = {
     "Disconnect this screen?": "Odłączyć ten ekran?",
     "Disconnect": "Odłącz",
     "Get your church set up": "Skonfiguruj swoją wspólnotę",
-    "%(done)s of %(total)s done — you can do these in any order":
-        "%(done)s z %(total)s zrobione — kolejność dowolna",
+    "%(done)s of %(total)s done. You can do these in any order":
+        "%(done)s z %(total)s zrobione. Kolejność dowolna",
     "Hide": "Ukryj",
     "Add your first songs": "Dodaj pierwsze piosenki",
     "Invite your team": "Zaproś zespół",
@@ -201,34 +201,34 @@ PL = {
     # ── Ekran powitalny (odliczanie + ogłoszenia) ──
     "Welcome screen": "Ekran powitalny",
     "Edit announcements": "Edytuj ogłoszenia",
-    "A countdown to this service plus rotating announcements — shown on the projector before the first song. Photos are shared across your services.":
-        "Odliczanie do tego grania i przewijające się ogłoszenia — pokazywane na rzutniku przed pierwszą pieśnią. Zdjęcia są wspólne dla wszystkich grań.",
+    "A countdown to this service plus rotating announcements. Shown on the projector before the first song. Photos are shared across your services.":
+        "Odliczanie do tego grania i przewijające się ogłoszenia. Pokazywane na rzutniku przed pierwszą pieśnią. Zdjęcia są wspólne dla wszystkich grań.",
     "Countdown to this service plus rotating announcements, shown on the projector before the first song. Launch it live from Studio with “Play announcements”.":
         "Odliczanie do tego grania i przewijające się ogłoszenia na rzutniku przed pierwszą pieśnią. Odpal na żywo ze Studia przyciskiem „Ogłoszenia”.",
     "Countdown to this service plus rotating announcements, shown on the projector before the first song. They belong to this service's setlist, so they also play when you load it from History in Studio. Launch it live with “Play announcements”.":
         "Odliczanie do tego grania i przewijające się ogłoszenia na rzutniku przed pierwszą pieśnią. Należą do setlisty tego grania, więc odtworzą się także, gdy wczytasz ją z Historii w Studiu. Odpal na żywo przyciskiem „Ogłoszenia”.",
     "Announcements belong to a setlist. Arrange or attach a setlist above first, then you can add the countdown and announcements here.":
         "Ogłoszenia należą do setlisty. Najpierw ułóż lub podepnij setlistę powyżej, a potem dodasz tu odliczanie i ogłoszenia.",
-    "A countdown to your service start plus rotating announcements — shown on the projector before the first song. These belong to this setlist, so they follow it into Studio and the offline app. Photos are shared across your services.":
-        "Odliczanie do startu nabożeństwa i przewijające się ogłoszenia — pokazywane na rzutniku przed pierwszą pieśnią. Należą do tej setlisty, więc podążają za nią do Studia i aplikacji offline. Zdjęcia są wspólne dla wszystkich grań.",
+    "A countdown to your service start plus rotating announcements. Shown on the projector before the first song. These belong to this setlist, so they follow it into Studio and the offline app. Photos are shared across your services.":
+        "Odliczanie do startu nabożeństwa i przewijające się ogłoszenia. Pokazywane na rzutniku przed pierwszą pieśnią. Należą do tej setlisty, więc podążają za nią do Studia i aplikacji offline. Zdjęcia są wspólne dla wszystkich grań.",
     "Service start time": "Godzina rozpoczęcia",
     "Open on projector ↗": "Otwórz na rzutniku ↗",
     "Open on projector": "Otwórz na rzutniku",
-    "A countdown to your next service plus rotating announcements — shown on the projector before the first song. Set it once; it reuses your photos across services.":
-        "Odliczanie do najbliższego grania i przewijające się ogłoszenia — pokazywane na rzutniku przed pierwszą pieśnią. Ustawiasz raz; zdjęcia używane są wielokrotnie.",
+    "A countdown to your next service plus rotating announcements. Shown on the projector before the first song. Set it once; it reuses your photos across services.":
+        "Odliczanie do najbliższego grania i przewijające się ogłoszenia. Pokazywane na rzutniku przed pierwszą pieśnią. Ustawiasz raz; zdjęcia używane są wielokrotnie.",
     "Photo library": "Biblioteka zdjęć",
     "Up to 10 photos, reused across announcements.": "Do 10 zdjęć, wielokrotnego użytku w ogłoszeniach.",
     "Announcements": "Ogłoszenia",
     "+ Add announcement": "+ Dodaj ogłoszenie",
     "Seconds per announcement": "Sekundy na ogłoszenie",
     "Photo": "Zdjęcie",
-    "— no photo —": "— bez zdjęcia —",
+    "no photo": "bez zdjęcia",
     "Announcement title": "Tytuł ogłoszenia",
     "Short description": "Krótki opis",
     "Badge (optional)": "Etykieta (opcjonalnie)",
     "Background icons (watermark)": "Ikony w tle (znak wodny)",
-    "Your church symbols, shown faintly behind the announcements — a dark shape on a light or white background works best. Leave empty to use the built-in ones.":
-        "Symbole Twojej wspólnoty, pokazywane subtelnie w tle ogłoszeń — najlepiej ciemny kształt na jasnym lub białym tle. Zostaw puste, aby użyć wbudowanych.",
+    "Your church symbols, shown faintly behind the announcements, a dark shape on a light or white background works best. Leave empty to use the built-in ones.":
+        "Symbole Twojej wspólnoty, pokazywane subtelnie w tle ogłoszeń. Najlepiej ciemny kształt na jasnym lub białym tle. Zostaw puste, aby użyć wbudowanych.",
     "Icon limit reached.": "Osiągnięto limit ikon.",
     "Delete this photo?": "Usunąć to zdjęcie?",
     "Saved.": "Zapisano.",
@@ -243,57 +243,57 @@ PL = {
     "Hover tips": "Podpowiedzi",
     "On": "Wł.",
     "Off": "Wył.",
-    "Little tips appear when you hover over buttons. They show automatically the first few times you open the app, then switch off — turn them back on here anytime.":
-        "Krótkie podpowiedzi pojawiają się, gdy najedziesz myszką na przycisk. Przez pierwsze kilka uruchomień apki pokazują się same, potem się wyłączają — tutaj możesz je włączyć z powrotem w każdej chwili.",
-    "Run the service live — pick slides and everyone’s screens follow the same second.":
-        "Prowadź granie na żywo — wybierasz slajdy, a ekrany wszystkich zmieniają się w tej samej sekundzie.",
-    "Plan a service — the team marks availability, you assign parts and attach the setlist.":
-        "Zaplanuj granie — zespół zaznacza dostępność, Ty przydzielasz role i podpinasz setlistę.",
-    "Your song library — import from ChordPro/.txt, set keys and edit chords.":
-        "Twoja biblioteka pieśni — importuj z ChordPro/.txt, ustawiaj tonacje i edytuj akordy.",
-    "The musician view on your phone — chords in your key, tuner, metronome and auto-scroll.":
-        "Widok muzyka na telefonie — akordy w Twojej tonacji, stroik, metronom i auto-przewijanie.",
-    "Invite members and set roles — musicians add songs, leaders run the service.":
-        "Zaproś członków i ustaw role — muzycy dodają pieśni, prowadzący prowadzą granie.",
-    "Language, theme, church logo, projection look and CCLI — and turn these tips on or off.":
-        "Język, motyw, logo wspólnoty, wygląd projekcji i CCLI — oraz włączanie i wyłączanie tych podpowiedzi.",
-    "Your instrument and preferred key — every chart transposes to what you actually play.":
-        "Twój instrument i preferowana tonacja — każdy zapis akordów przeniesie się na to, co realnie grasz.",
+    "Little tips appear when you hover over buttons. They show automatically the first few times you open the app, then switch off. Turn them back on here anytime.":
+        "Krótkie podpowiedzi pojawiają się, gdy najedziesz myszką na przycisk. Przez pierwsze kilka uruchomień apki pokazują się same, potem się wyłączają. Tutaj możesz je włączyć z powrotem w każdej chwili.",
+    "Run the service live. Pick slides and everyone’s screens follow the same second.":
+        "Prowadź granie na żywo. Wybierasz slajdy, a ekrany wszystkich zmieniają się w tej samej sekundzie.",
+    "Plan a service. The team marks availability, you assign parts and attach the setlist.":
+        "Zaplanuj granie. Zespół zaznacza dostępność, Ty przydzielasz role i podpinasz setlistę.",
+    "Your song library. Import from ChordPro/.txt, set keys and edit chords.":
+        "Twoja biblioteka pieśni. Importuj z ChordPro/.txt, ustawiaj tonacje i edytuj akordy.",
+    "The musician view on your phone. Chords in your key, tuner, metronome and auto-scroll.":
+        "Widok muzyka na telefonie. Akordy w Twojej tonacji, stroik, metronom i auto-przewijanie.",
+    "Invite members and set roles. Musicians add songs, leaders run the service.":
+        "Zaproś członków i ustaw role. Muzycy dodają pieśni, prowadzący prowadzą granie.",
+    "Language, theme, church logo, projection look and CCLI, and turn these tips on or off.":
+        "Język, motyw, logo wspólnoty, wygląd projekcji i CCLI, oraz włączanie i wyłączanie tych podpowiedzi.",
+    "Your instrument and preferred key. Every chart transposes to what you actually play.":
+        "Twój instrument i preferowana tonacja. Każdy zapis akordów przeniesie się na to, co realnie grasz.",
     'Discover what you can do →': 'Odkryj, co potrafi apka →',
     'What Jonathan can do': 'Co potrafi Jonathan',
-    'A quick tour of what makes Jonathan different — pick what your team needs, no need to use it all at once.': 'Szybki przegląd tego, co wyróżnia Jonathana — wybierz to, czego potrzebuje Twój zespół, nie musisz używać wszystkiego naraz.',
+    'A quick tour of what makes Jonathan different. Pick what your team needs, no need to use it all at once.': 'Szybki przegląd tego, co wyróżnia Jonathana. Wybierz to, czego potrzebuje Twój zespół, nie musisz używać wszystkiego naraz.',
     'One system, three screens': 'Jeden system, trzy ekrany',
     'Worship leader · Studio': 'Prowadzący · Studio',
-    'Click once, everyone sees it': 'Klikasz raz — widzą wszyscy',
-    'You pick a slide in Studio — the projector, the stage screen and every musician’s phone update the same second.': 'Wybierasz slajd w Studiu — rzutnik, ekran sceny i telefon każdego muzyka aktualizują się w tej samej sekundzie.',
+    'Click once, everyone sees it': 'Klikasz raz · widzą wszyscy',
+    'You pick a slide in Studio. The projector, the stage screen and every musician’s phone update the same second.': 'Wybierasz slajd w Studiu. Rzutnik, ekran sceny i telefon każdego muzyka aktualizują się w tej samej sekundzie.',
     'Smart song-to-song transitions': 'Sprytne przejścia między piosenkami',
     'A music engine suggests bridge chords from one key to the next, aware of the style and tempo of both songs.': 'Silnik muzyczny podpowiada akordy-pomost z jednej tonacji do drugiej, świadomy stylu i tempa obu piosenek.',
     'Ambient pads in the song’s key': 'Pady w tonacji piosenki',
     'Atmosphere beds that follow the current key with smooth crossfades when it changes.': 'Podkłady atmosferyczne idące za aktualną tonacją, z płynnym przejściem przy zmianie.',
     'Spontaneous moments': 'Spontaniczne momenty',
-    'One tap to put a line of text on screen for an unplanned moment — save it as a tile to reuse.': 'Jedno dotknięcie, by wrzucić tekst na ekran w nieplanowanym momencie — zapisz jako kafelek, by użyć ponownie.',
+    'One tap to put a line of text on screen for an unplanned moment. Save it as a tile to reuse.': 'Jedno dotknięcie, by wrzucić tekst na ekran w nieplanowanym momencie. Zapisz jako kafelek, by użyć ponownie.',
     'Open Studio →': 'Otwórz Studio →',
     'Made for every musician': 'Dla każdego muzyka',
     'Musician · their phone': 'Muzyk · jego telefon',
     'Chords in YOUR key': 'Akordy w TWOJEJ tonacji',
-    'Each musician saves a preferred key — everyone sees the chart transposed to what they actually play.': 'Każdy muzyk zapisuje swoją tonację — każdy widzi zapis transponowany do tego, co realnie gra.',
+    'Each musician saves a preferred key. Everyone sees the chart transposed to what they actually play.': 'Każdy muzyk zapisuje swoją tonację. Każdy widzi zapis transponowany do tego, co realnie gra.',
     'Plain or Pretty voicings': 'Zwykłe lub ładne chwyty',
-    'Switch between simple shapes and tasteful open chords (add9, sus, m7) — the algorithm picks the best for the song.': 'Przełączaj między prostymi kształtami a ładnymi otwartymi akordami (add9, sus, m7) — algorytm wybiera najlepszy do piosenki.',
+    'Switch between simple shapes and tasteful open chords (add9, sus, m7). The algorithm picks the best for the song.': 'Przełączaj między prostymi kształtami a ładnymi otwartymi akordami (add9, sus, m7). Algorytm wybiera najlepszy do piosenki.',
     'Every shape on the neck': 'Każdy chwyt na gryfie',
     'Browse all fingerings of a chord up the fretboard, with the best-for-this-song one starred.': 'Przeglądaj wszystkie przewroty akordu w górę gryfu, z gwiazdką na najlepszym do tej piosenki.',
     'Practice mode': 'Tryb ćwiczenia',
     'Metronome, auto-scroll, capo and beginner mode, and a private note on any part of the song.': 'Metronom, autoprzewijanie, kapo i tryb początkującego oraz prywatna notatka do dowolnej części piosenki.',
     'Built-in tuner': 'Wbudowany stroik',
-    'Tune straight from the phone before you play — no extra app.': 'Nastrój prosto z telefonu przed graniem — bez osobnej apki.',
+    'Tune straight from the phone before you play. No extra app.': 'Nastrój prosto z telefonu przed graniem. Bez osobnej apki.',
     'Set my instrument & key →': 'Ustaw instrument i tonację →',
     'Clean screens for the room': 'Czyste ekrany dla sali',
     'Congregation · projector': 'Zbór · rzutnik',
     'Lyrics without the clutter': 'Tekst bez bałaganu',
-    'The congregation sees clean lyrics — your church’s background and logo, no chords.': 'Zbór widzi czysty tekst — tło i logo Waszej wspólnoty, bez akordów.',
+    'The congregation sees clean lyrics. Your church’s background and logo, no chords.': 'Zbór widzi czysty tekst. Tło i logo Waszej wspólnoty, bez akordów.',
     'CCLI notice, automatic': 'Notka CCLI automatycznie',
     'The copyright line and song-usage count are handled for you, ready for your reporting period.': 'Linia copyright i licznik użyć pieśni robią się same, gotowe na Wasz okres raportowania.',
     'Connect a screen with a QR': 'Podłącz ekran przez QR',
-    'Open the link on a projector or TV once — it joins every LIVE session by itself.': 'Otwórz link na rzutniku lub TV raz — sam dołączy do każdej sesji LIVE.',
+    'Open the link on a projector or TV once. It joins every LIVE session by itself.': 'Otwórz link na rzutniku lub TV raz. Sam dołączy do każdej sesji LIVE.',
     'Connect a screen →': 'Podłącz ekran →',
     'Get the team ready': 'Przygotuj zespół',
     'Whole team': 'Cały zespół',
@@ -302,14 +302,14 @@ PL = {
     'Everyone knows their part': 'Każdy wie, co gra',
     'Each musician sees when they play and gets practice links in their own key.': 'Każdy muzyk widzi, kiedy gra, i dostaje linki do ćwiczenia w swojej tonacji.',
     'Keys that fit your vocalists': 'Tonacje pod Waszych wokalistów',
-    'Building the setlist, you see who prefers which key — and transpose in one click.': 'Układając setlistę, widzisz kto woli jaką tonację — i transponujesz jednym kliknięciem.',
+    'Building the setlist, you see who prefers which key, and transpose in one click.': 'Układając setlistę, widzisz kto woli jaką tonację, i transponujesz jednym kliknięciem.',
     'Plan a service →': 'Zaplanuj granie →',
     'Quietly in the background': 'Po cichu w tle',
     'Behind the scenes': 'Za kulisami',
     'Cloud sync with the desktop app': 'Synchronizacja z aplikacją desktop',
-    'The offline .exe pulls your songs, setlists and profiles from the cloud on startup — work anywhere, on or offline.': 'Offline’owy .exe dociąga piosenki, setlisty i profile z chmury przy starcie — pracuj gdziekolwiek, online i offline.',
+    'The offline .exe pulls your songs, setlists and profiles from the cloud on startup. Work anywhere, on or offline.': 'Offline’owy .exe dociąga piosenki, setlisty i profile z chmury przy starcie. Pracuj gdziekolwiek, online i offline.',
     'Import your existing library': 'Zaimportuj istniejącą bibliotekę',
-    'Bring songs in from ChordPro (.cho) or .txt in one step — title, key and CCLI number are read automatically.': 'Wciągnij piosenki z ChordPro (.cho) lub .txt w jednym kroku — tytuł, tonacja i numer CCLI czytają się same.',
+    'Bring songs in from ChordPro (.cho) or .txt in one step. Title, key and CCLI number are read automatically.': 'Wciągnij piosenki z ChordPro (.cho) lub .txt w jednym kroku. Tytuł, tonacja i numer CCLI czytają się same.',
     'Leader & musician roles': 'Role prowadzącego i muzyka',
     'Musicians add songs and set their keys; leaders run the service and manage the team.': 'Muzycy dodają piosenki i ustawiają tonacje; prowadzący prowadzą granie i zarządzają zespołem.',
 
@@ -379,10 +379,10 @@ PL = {
     "admins": "adminów", "leaders": "prowadzących", "musicians": "muzyków",
 
     "Prepare songs and a setlist, invite the team, and on Sunday start a LIVE "
-    "session from the chosen setlist — the team's phones and screens sync "
+    "session from the chosen setlist. The team's phones and screens sync "
     "automatically.":
         "Przygotuj piosenki i setlistę, zaproś zespół, a w niedzielę rozpocznij "
-        "sesję LIVE z wybranej setlisty — telefony zespołu i ekrany "
+        "sesję LIVE z wybranej setlisty. Telefony zespołu i ekrany "
         "zsynchronizują się same.",
 
     # ── Panel: zespół ──
@@ -394,10 +394,10 @@ PL = {
     "Change role": "Zmień rolę", "owner": "właściciel",
     "Remove from the team?": "Usunąć z zespołu?",
     "Profile without an account:": "Profil bez konta:",
-    "— from the desktop app": "— z aplikacji desktop",
+    "· from the desktop app": "· z aplikacji desktop",
     "A join link, valid until": "Link dołączenia, ważny do",
-    "— send it to your team (e.g. in a group chat):":
-        "— wyślij zespołowi (np. na grupie):",
+    "· send it to your team (e.g. in a group chat):":
+        "· wyślij zespołowi (np. na grupie):",
     "Role: musician": "Rola: muzyk", "Role: leader": "Rola: prowadzący",
     "Generate a new link": "Wygeneruj nowy link",
     # settings — pady + CCLI opis
@@ -405,21 +405,21 @@ PL = {
     "12 MP3 files named by major key:":
         "Tła dźwiękowe odtwarzane w Studiu pod tonację piosenki. Wgraj do 12 "
         "plików MP3 nazwanych tonacją durową:",
-    "(flats work too — Eb.mp3 saves as D#). Minor keys play the pad of the "
+    "(flats work too, Eb.mp3 saves as D#). Minor keys play the pad of the "
     "relative major, so 12 files are enough.":
-        "(bemole też zadziałają — Eb.mp3 zapisze się jako D#). Tonacje molowe "
+        "(bemole też zadziałają, Eb.mp3 zapisze się jako D#). Tonacje molowe "
         "grają pad równoległej durowej, więc 12 plików wystarcza.",
     "Remove pad": "Usunąć pad", "Click to remove": "Kliknij, aby usunąć",
     "No file": "Brak pliku",
     "The notice (title, writers, © and license number) is required by the "
-    "CCLI license when projecting lyrics — turn it off only if you don't use "
+    "CCLI license when projecting lyrics. Turn it off only if you don't use "
     "CCLI-covered songs. Song uses still count toward the":
         "Notka (tytuł, autorzy, © i numer licencji) to warunek licencji CCLI "
-        "przy projekcji tekstów — wyłączaj tylko, jeśli nie korzystasz z "
+        "przy projekcji tekstów. Wyłączaj tylko, jeśli nie korzystasz z "
         "utworów objętych CCLI. Użycia piosenek zliczają się niezależnie do",
 
     # ── Ustawienia wspólnoty ──
-    "Settings — %(church)s": "Ustawienia — %(church)s",
+    "Settings · %(church)s": "Ustawienia · %(church)s",
     "Community settings": "Ustawienia wspólnoty",
     "Default chord notation": "Domyślna notacja akordów",
     "International (Bb, B)": "Międzynarodowa (Bb, B)",
@@ -427,8 +427,8 @@ PL = {
     "Song-to-song transition engine": "Silnik przejść między piosenkami",
     "Contextual (recommended)": "Kontekstowy (zalecany)",
     "Pivot Pro": "Pivot Pro", "Advanced": "Advanced",
-    "CCLI license number (optional — US market)":
-        "Numer licencji CCLI (opcjonalnie — rynek USA)",
+    "CCLI license number (optional, US market)":
+        "Numer licencji CCLI (opcjonalnie, rynek USA)",
     "e.g. 123456789": "np. 123456789",
     "Show the copyright notice on the projector":
         "Pokazuj notkę copyright na rzutniku",
@@ -440,12 +440,12 @@ PL = {
     "you can select all at once": "możesz zaznaczyć wszystkie naraz",
 
     # ── Granie (events) ──
-    "Services — %(church)s": "Granie — %(church)s",
+    "Services · %(church)s": "Granie · %(church)s",
     "New service": "Nowe granie",
     "Name (e.g. Sunday morning)": "Nazwa (np. Niedziela poranna)",
-    "The third field is the signup deadline (optional) — after it the team "
+    "The third field is the signup deadline (optional). After it the team "
     "can still mark availability, but it shows as past due.":
-        "Trzecie pole to termin zgłoszeń (opcjonalny) — po nim zespół nadal "
+        "Trzecie pole to termin zgłoszeń (opcjonalny). Po nim zespół nadal "
         "może zaznaczać dostępność, ale widać, że jest po terminie.",
     "Upcoming services": "Nadchodzące grania",
     "Recent services": "Ostatnie grania",
@@ -453,9 +453,9 @@ PL = {
     "My availability": "Moja dostępność", "Playing on": "Gram na",
     "no reply": "brak odpowiedzi", "can": "mogę", "can't": "nie mogę",
     "Nothing planned yet": "Nic jeszcze nie zaplanowano",
-    "Create your first service above — the team gets a place to mark "
+    "Create your first service above. The team gets a place to mark "
     "availability.":
-        "Utwórz pierwsze granie powyżej — zespół dostanie miejsce, żeby "
+        "Utwórz pierwsze granie powyżej. Zespół dostanie miejsce, żeby "
         "zaznaczyć dostępność.",
     "When the leader schedules a service, it shows up here with your "
     "availability and a setlist to learn.":
@@ -466,53 +466,53 @@ PL = {
     "Signup deadline:": "Termin zgłoszeń:", "past due": "po terminie",
     "I can play": "Mogę grać", "I can't": "Nie mogę",
     "Comment (e.g. only until noon)": "Komentarz (np. tylko do 12:00)",
-    "The signup deadline has passed, but you can still change your answer — "
+    "The signup deadline has passed, but you can still change your answer, "
     "just let the leader know.":
-        "Termin zgłoszeń minął, ale nadal możesz zmienić odpowiedź — daj "
+        "Termin zgłoszeń minął, ale nadal możesz zmienić odpowiedź. Daj "
         "tylko znać prowadzącemu.",
     "You're playing this service:": "Grasz na tym graniu:",
     "instrument unspecified": "instrument nieokreślony",
     "Setlist": "Setlista", "orig.": "oryg.",
-    '"Practice" opens the song in the setlist key — with a metronome, '
+    '"Practice" opens the song in the setlist key. With a metronome, '
     'auto-scroll and your private note.':
-        "„Ćwicz” otwiera piosenkę w tonacji z setlisty — z metronomem, "
+        "„Ćwicz” otwiera piosenkę w tonacji z setlisty. Z metronomem, "
         "autoprzewijaniem i Twoją prywatną notatką.",
     "not in library": "brak w bibliotece", "Practice": "Ćwicz",
     "Setlist from Studio": "Setlista ze Studia",
     "Arrange the setlist in Studio": "Ułóż setlistę w Studiu",
     "Edit the setlist in Studio": "Edytuj setlistę w Studiu",
     "The button opens Studio in this service's mode: arrange songs, order and "
-    "keys, hit “Save setlist” — and the setlist attaches here by itself. You "
+    "keys, hit “Save setlist”, and the setlist attaches here by itself. You "
     "can also attach one you saved earlier:":
         "Przycisk otwiera Studio w trybie tego grania: układasz piosenki, "
-        "kolejność i tonacje, klikasz „Zapisz setlistę” — i setlista sama "
+        "kolejność i tonacje, klikasz „Zapisz setlistę”, i setlista sama "
         "podpina się tutaj. Możesz też podpiąć wcześniej zapisaną:",
-    "— none / detach —": "— brak / odepnij —", "no date": "bez daty",
+    "none / detach": "brak / odepnij", "no date": "bez daty",
     "Attach selected": "Podepnij wybraną",
     "Team responses": "Zgłoszenia zespołu", "Availability": "Dostępność",
-    "Lineup — who plays": "Obsada — kto gra",
+    "Lineup · who plays": "Obsada · kto gra",
     "The lineup isn't set yet.": "Obsada jeszcze nie ułożona.",
     "You can add the same person several times with different instruments. "
     "The list shows who signed up.":
         "Tę samą osobę możesz dodać kilka razy z różnymi instrumentami. Lista "
         "podpowiada, kto się zgłosił.",
-    "— instrument —": "— instrument —", "Add to lineup": "Dodaj do obsady",
+    "instrument": "instrument", "Add to lineup": "Dodaj do obsady",
     "(can play)": "(mogę)", "(can't play!)": "(nie może!)", "(no reply)": "(brak odp.)",
     "Edit service": "Edytuj granie",
     "Note for the team (e.g. rehearsal at 8:30)":
         "Notatka dla zespołu (np. próba o 8:30)",
 
     # ── Piosenki ──
-    "Songs — %(church)s": "Piosenki — %(church)s",
+    "Songs · %(church)s": "Piosenki · %(church)s",
     "The library is empty": "Biblioteka jest pusta",
     "Manage in Studio": "Zarządzaj w Studiu", "Edit in Studio": "Edytuj w Studiu",
     "Import .txt": "Importuj .txt",
     "Search by title or lyrics": "Szukaj po tytule lub tekście",
-    "Add your first song with the button above — or import a .txt file "
+    "Add your first song with the button above, or import a .txt file "
     "exported from the desktop app.":
-        "Dodaj pierwszą pieśń przyciskiem powyżej — albo zaimportuj plik .txt "
+        "Dodaj pierwszą pieśń przyciskiem powyżej, albo zaimportuj plik .txt "
         "z eksportu aplikacji desktop.",
-    "Setlists — %(church)s": "Setlisty — %(church)s",
+    "Setlists · %(church)s": "Setlisty · %(church)s",
     "Setlists": "Setlisty", "New setlist": "Nowa setlista",
     "Name (e.g. Sunday morning)": "Nazwa (np. Niedziela poranna)",
     "No setlists": "Brak setlist",
@@ -520,16 +520,16 @@ PL = {
         "Setlisty układasz w Studiu i podpinasz do konkretnego grania.",
     "Delete this song?": "Usunąć tę piosenkę?",
     "Delete setlist?": "Usunąć setlistę?", "# of songs": "Piosenek",
-    "The setlist is empty — add songs below.":
-        "Setlista jest pusta — dodaj piosenki poniżej.",
+    "The setlist is empty. Add songs below.":
+        "Setlista jest pusta. Dodaj piosenki poniżej.",
     "Up": "W górę", "Down": "W dół", "Add to setlist": "Dodaj do setlisty",
     "Transpose": "Transpozycja", "Songs count": "Piosenek",
-    "Practice — %(title)s": "Ćwiczenie — %(title)s", "my key": "moja tonacja",
+    "Practice · %(title)s": "Ćwiczenie · %(title)s", "my key": "moja tonacja",
     "Auto-scroll": "Autoprzewijanie", "Metronome": "Metronom", "Stop": "Stop",
     "Recording": "Nagranie",
     "Recording link (optional)": "Link do nagrania (opcjonalnie)",
-    "YouTube, Spotify, Google Drive… — anything to practice with":
-        "YouTube, Spotify, Google Drive… — cokolwiek do ćwiczenia",
+    "YouTube, Spotify, Google Drive… anything to practice with":
+        "YouTube, Spotify, Google Drive… cokolwiek do ćwiczenia",
     "saved": "zapisano", "saving…": "zapisywanie…",
     "Practice:": "Ćwiczenie:", "my key": "moja tonacja",
     "Chords": "Akordy", "Guitar": "Gitara", "Piano": "Pianino",
@@ -579,27 +579,27 @@ PL = {
     "Enter a valid e-mail address.": "Podaj poprawny adres e-mail.",
     "Password must be at least 8 characters.": "Hasło musi mieć co najmniej 8 znaków.",
     "Enter your name.": "Podaj swoje imię.",
-    "An account with this address already exists — please log in.":
-        "Konto z tym adresem już istnieje — zaloguj się.",
+    "An account with this address already exists. Please log in.":
+        "Konto z tym adresem już istnieje. Zaloguj się.",
     "Invalid e-mail or password.": "Nieprawidłowy e-mail lub hasło.",
-    "Invalid code — try again.": "Nieprawidłowy kod — spróbuj ponownie.",
+    "Invalid code. Try again.": "Nieprawidłowy kod. Spróbuj ponownie.",
     "Two-factor authentication enabled.": "Weryfikacja dwuetapowa włączona.",
-    "The code doesn't match — scan the QR again and try once more.":
-        "Kod się nie zgadza — zeskanuj QR jeszcze raz i spróbuj.",
-    "Wrong password — 2FA stays enabled.": "Błędne hasło — 2FA pozostaje włączone.",
+    "The code doesn't match. Scan the QR again and try once more.":
+        "Kod się nie zgadza. Zeskanuj QR jeszcze raz i spróbuj.",
+    "Wrong password. 2FA stays enabled.": "Błędne hasło. 2FA pozostaje włączone.",
     "Two-factor authentication disabled.": "Weryfikacja dwuetapowa wyłączona.",
     "If the account exists, we've sent a password reset link.":
         "Jeśli konto istnieje, wysłaliśmy link do resetu hasła.",
-    "The link expired or is invalid — request a new one.":
-        "Link wygasł lub jest nieprawidłowy — poproś o nowy.",
-    "Password changed — please log in.": "Hasło zmienione — zaloguj się.",
+    "The link expired or is invalid. Request a new one.":
+        "Link wygasł lub jest nieprawidłowy. Poproś o nowy.",
+    "Password changed. Please log in.": "Hasło zmienione. Zaloguj się.",
     "We've sent a verification link to your e-mail address.":
         "Wysłaliśmy link weryfikacyjny na Twój adres e-mail.",
-    "The verification link expired — send a new one from account settings.":
-        "Link weryfikacyjny wygasł — wyślij nowy z ustawień konta.",
+    "The verification link expired. Send a new one from account settings.":
+        "Link weryfikacyjny wygasł. Wyślij nowy z ustawień konta.",
     "E-mail address confirmed.": "Adres e-mail potwierdzony.",
-    "Wrong password — the account was not deleted.":
-        "Błędne hasło — konto nie zostało usunięte.",
+    "Wrong password. The account was not deleted.":
+        "Błędne hasło. Konto nie zostało usunięte.",
     "First hand the community over to another admin or remove the remaining "
     "members.":
         "Najpierw przekaż wspólnotę innemu adminowi albo usuń pozostałych "
@@ -608,13 +608,13 @@ PL = {
         "Konto i dane zostały usunięte.",
 
     # ── Maile ──
-    "Jonathan App — confirm your e-mail": "Jonathan App — potwierdź adres e-mail",
+    "Jonathan App: confirm your e-mail": "Jonathan App: potwierdź adres e-mail",
     "Hi %(name)s!": "Cześć %(name)s!",
     "Confirm your e-mail address by opening this link (valid for 3 days):":
         "Potwierdź swój adres e-mail, otwierając link (ważny 3 dni):",
     "If you didn't create this account, ignore this message.":
-        "Jeśli to nie Ty zakładałeś konto — zignoruj tę wiadomość.",
-    "Jonathan App — password reset": "Jonathan App — reset hasła",
+        "Jeśli to nie Ty zakładałeś konto. Zignoruj tę wiadomość.",
+    "Jonathan App: password reset": "Jonathan App: reset hasła",
     "To set a new password, open this link (valid for 2 hours):":
         "Aby ustawić nowe hasło, otwórz link (ważny 2 godziny):",
 
@@ -643,12 +643,12 @@ PL = {
     "Skipped (file too large, max 512 KB):": "Pominięto (plik za duży, maks. 512 KB):",
 
     # ── Flash: live / studio ──
-    "A live session is already running — joined it.":
-        "Sesja LIVE już trwa — dołączono do niej.",
+    "A live session is already running. Joined it.":
+        "Sesja LIVE już trwa. Dołączono do niej.",
     "Live session ended.": "Zakończono sesję LIVE.",
     "Pads uploaded:": "Wgrano pady:",
-    "Skipped (bad name — use e.g. C.mp3, F#.mp3, Eb.mp3):":
-        "Pominięto (zła nazwa — użyj np. C.mp3, F#.mp3, Eb.mp3):",
+    "Skipped (bad name, use e.g. C.mp3, F#.mp3, Eb.mp3):":
+        "Pominięto (zła nazwa, użyj np. C.mp3, F#.mp3, Eb.mp3):",
 }
 
 
@@ -752,8 +752,8 @@ PL.update({
     "You're not in any community yet. Start your own team, or join one you were invited to.":
         'Nie należysz jeszcze do żadnej wspólnoty. Załóż własny zespół albo dołącz do tego, do którego masz zaproszenie.',
     'Create a community': 'Załóż wspólnotę',
-    "A space for your team — songs, setlists, service planning and musician profiles. You'll be its admin.":
-        'Przestrzeń dla Twojego zespołu — pieśni, setlisty, planowanie grań i profile muzyków. Będziesz jej administratorem.',
+    "A space for your team. Songs, setlists, service planning and musician profiles. You'll be its admin.":
+        'Przestrzeń dla Twojego zespołu. Pieśni, setlisty, planowanie grań i profile muzyków. Będziesz jej administratorem.',
     'Create community': 'Utwórz wspólnotę',
     'Join an existing team': 'Dołącz do istniejącego zespołu',
     'Ask your worship leader for the invite code (they find it in the Team tab), then enter it here.':
@@ -770,28 +770,28 @@ PL.update({
     'How to format a song': 'Jak zapisać piosenkę',
     'Put chords in square brackets, right before the word:':
         'Akordy wpisuj w nawiasach kwadratowych, tuż przed słowem:',
-    'Start each section with a label on its own line — Intro, Verse, Chorus, Bridge… (any language).':
-        'Każdą sekcję zaczynaj od etykiety w osobnej linii — Intro, Zwrotka, '
+    'Start each section with a label on its own line. Intro, Verse, Chorus, Bridge… (any language).':
+        'Każdą sekcję zaczynaj od etykiety w osobnej linii. Intro, Zwrotka, '
         'Refren, Bridge… (w dowolnym języku).',
     'Separate sections with one blank line.':
         'Sekcje oddzielaj jedną pustą linią.',
-    'A section can be chords only, with no lyrics — perfect for an intro or '
+    'A section can be chords only, with no lyrics. Perfect for an intro or '
     'instrumental. Just write a line of chords.':
-        'Sekcja może zawierać same akordy, bez tekstu — idealne na intro albo '
+        'Sekcja może zawierać same akordy, bez tekstu. Idealne na intro albo '
         'przejście instrumentalne. Wpisz po prostu linię z akordami.',
     'Example': 'Przykład',
-    'The Intro above has chords only — no lyrics. Any section can be like that.':
-        'Intro powyżej ma same akordy — bez tekstu. Każda sekcja może tak wyglądać.',
+    'The Intro above has chords only. No lyrics. Any section can be like that.':
+        'Intro powyżej ma same akordy. Bez tekstu. Każda sekcja może tak wyglądać.',
     # Etykiety pól / statusy na żywo (klient czyta z SONG_EDITOR_I18N)
     'chords': 'akordów',
     'sections': 'sekcji',
     'all recognized': 'wszystkie rozpoznane',
     'not recognized': 'nierozpoznane',
-    'Unclosed bracket “[” — every chord needs a closing “]”.':
-        'Niezamknięty nawias „[” — każdy akord potrzebuje domykającego „]”.',
-    'No chords yet — put them in [brackets], e.g. [Am].':
-        'Jeszcze brak akordów — wpisuj je w [nawiasach], np. [Am].',
-    'Converted — check the result': 'Przekonwertowano — sprawdź wynik',
+    'Unclosed bracket “[”. Every chord needs a closing “]”.':
+        'Niezamknięty nawias „[”. Każdy akord potrzebuje domykającego „]”.',
+    'No chords yet. Put them in [brackets], e.g. [Am].':
+        'Jeszcze brak akordów. Wpisuj je w [nawiasach], np. [Am].',
+    'Converted · check the result': 'Przekonwertowano · sprawdź wynik',
     'No chords-above-lyrics detected': 'Nie wykryto akordów nad tekstem',
 })
 
@@ -799,14 +799,14 @@ PL.update({
 # ── Branding / szablony: jedno miejsce na zasoby wizualne ──
 PL.update({
     'Templates & branding': 'Szablony i branding',
-    'One place for everything shown on the projector — logo, background, the '
+    'One place for everything shown on the projector. Logo, background, the '
     'transition between screens, watermark icons and the welcome-screen photos.':
-        'Jedno miejsce na wszystko, co widać na rzutniku — logo, tło, przejście '
+        'Jedno miejsce na wszystko, co widać na rzutniku. Logo, tło, przejście '
         'między ekranami, ikony znaku wodnego i zdjęcia ekranu oczekiwania.',
     'Logo, projector background, the transition between screens, watermark '
-    'icons and welcome-screen photos — all in one place.':
+    'icons and welcome-screen photos. All in one place.':
         'Logo, tło rzutnika, przejście między ekranami, ikony znaku wodnego i '
-        'zdjęcia ekranu oczekiwania — wszystko w jednym miejscu.',
+        'zdjęcia ekranu oczekiwania. Wszystko w jednym miejscu.',
     'Logo': 'Logo',
     'Shows on the projector when nothing else is displayed. PNG/JPG, up to 8 MB.':
         'Pokazuje się na rzutniku, gdy nic innego nie jest wyświetlane. '
@@ -817,16 +817,16 @@ PL.update({
     'Transition between screens': 'Przejście między ekranami',
     'A short MP4/WebM video or an HTML animation that plays whenever you switch '
     'between Announcements, Worship and Conference. Up to 60 MB. Tip: for a '
-    'smooth clip, upload an MP4 — it plays full-screen with no player controls.':
+    'smooth clip, upload an MP4. It plays full-screen with no player controls.':
         'Krótki film MP4/WebM albo animacja HTML odtwarzana przy przełączaniu '
         'między Ogłoszeniami, Uwielbieniem i Konferencją. Do 60 MB. Wskazówka: '
-        'dla płynnego klipu wgraj MP4 — gra na pełnym ekranie, bez pasków '
+        'dla płynnego klipu wgraj MP4. Gra na pełnym ekranie, bez pasków '
         'odtwarzacza.',
     'Preview': 'Podgląd',
     'Background icons (watermark)': 'Ikony w tle (znak wodny)',
-    'Faint symbols behind the welcome screen. Any image works — a white '
+    'Faint symbols behind the welcome screen. Any image works, a white '
     'background disappears automatically.':
-        'Delikatne symbole za ekranem oczekiwania. Każdy obraz zadziała — białe '
+        'Delikatne symbole za ekranem oczekiwania. Każdy obraz zadziała. Białe '
         'tło znika automatycznie.',
     'Welcome-screen photos': 'Zdjęcia ekranu oczekiwania',
     'Shared photo pool for the announcements/welcome screen. Pick which one '
@@ -863,7 +863,7 @@ PL.update({
     'On %(day)s you play %(parts)s.': '%(day)s grasz: %(parts)s.',
     '%(n)s of %(t)s songs still to practise.':
         'Zostało %(n)s z %(t)s piosenek do przećwiczenia.',
-    'Every song is practised — nice.': 'Wszystkie piosenki przećwiczone — dobra robota.',
+    'Every song is practised. Nice.': 'Wszystkie piosenki przećwiczone. Dobra robota.',
     'Next up: %(name)s, %(day)s.': 'Najbliżej: %(name)s, %(day)s.',
     'Discover what you can do': 'Zobacz, co potrafi Jonathan',
     'Nothing planned': 'Nic zaplanowanego',
@@ -881,24 +881,24 @@ PL.update({
     'Not running': 'Wyłączone', 'Running': 'Trwa', 'Practising': 'Ćwiczenie',
     # pasek formy w ćwiczeniu
     'Press play or tap a part': 'Naciśnij start albo kliknij część',
-    'You hear the whole band with your part louder — to learn it.':
-        'Słyszysz cały zespół, a swoją partię głośniej — do nauki.',
-    'Your part is muted — you play it yourself with the band.':
-        'Twojej partii nie ma w nagraniu — grasz ją sam z zespołem.',
+    'You hear the whole band with your part louder. To learn it.':
+        'Słyszysz cały zespół, a swoją partię głośniej. Do nauki.',
+    'Your part is muted. You play it yourself with the band.':
+        'Twojej partii nie ma w nagraniu. Grasz ją sam z zespołem.',
     'The rehearsal recording as it sounded.': 'Nagranie z próby tak, jak brzmiało.',
     'Slower without changing the key': 'Wolniej, bez zmiany tonacji',
-    'Pick what you play above — you get the Learn and Play along modes.':
-        'Wybierz wyżej, na czym grasz — dostaniesz tryby Nauka i Gram sam.',
-    'The recording has no separate track for %(role)s — you hear the full mix.':
-        'W nagraniu nie ma osobnego śladu dla: %(role)s — słyszysz cały miks.',
-    'No rehearsal recording for this version yet — tap a part to jump to it.':
-        'Ta wersja nie ma jeszcze nagrania z próby — kliknij część, żeby do niej przejść.',
+    'Pick what you play above. You get the Learn and Play along modes.':
+        'Wybierz wyżej, na czym grasz. Dostaniesz tryby Nauka i Gram sam.',
+    'The recording has no separate track for %(role)s. You hear the full mix.':
+        'W nagraniu nie ma osobnego śladu dla: %(role)s. Słyszysz cały miks.',
+    'No rehearsal recording for this version yet. Tap a part to jump to it.':
+        'Ta wersja nie ma jeszcze nagrania z próby. Kliknij część, żeby do niej przejść.',
     'Space': 'Spacja', 'play': 'start/stop', 'loop': 'pętla',
     # praca kilku osób naraz, wybór z listy
     'No dynamics': 'Bez dynamiki',
-    'Someone else changed the form in the meantime — you now see their version. Make your change again.':
-        'Ktoś inny zmienił w międzyczasie formę — widzisz teraz jego wersję. Wprowadź swoją zmianę jeszcze raz.',
-    'Updated — latest change by': 'Zaktualizowano — ostatnia zmiana:',
+    'Someone else changed the form in the meantime. You now see their version. Make your change again.':
+        'Ktoś inny zmienił w międzyczasie formę. Widzisz teraz jego wersję. Wprowadź swoją zmianę jeszcze raz.',
+    'Updated · latest change by': 'Zaktualizowano · ostatnia zmiana:',
     'This idea was recorded by %(name)s. Record over it?': 'Ten pomysł nagrał(a) %(name)s. Nagrać na nim swój?',
     'choose your part': 'wybierz partię', 'in the recording': 'jest w nagraniu',
     'with recording': 'z nagraniem',
@@ -908,8 +908,8 @@ PL.update({
     'Add both scripts to Reaper': 'Dodaj oba skrypty do Reapera',
     'Actions → Show action list → New action → Load ReaScript… and pick each downloaded file. You get two actions: “Jonathan - send rehearsal” (sends) and “Jonathan - settings” (server address and token). Tip: give the send action a toolbar button.':
         'Actions → Show action list → New action → Load ReaScript… i wybierz po kolei oba pobrane pliki. Dostaniesz dwie akcje: „Jonathan - send rehearsal” (wysyłka) i „Jonathan - settings” (adres serwera i token). Wskazówka: akcji wysyłki daj przycisk na pasku narzędzi.',
-    'Run “Jonathan - settings”, enter the server address shown below and the token — it checks the connection right away. To change them later (new token, another server), run it again.':
-        'Uruchom „Jonathan - settings”, wpisz adres serwera podany niżej i token — od razu sprawdzi połączenie. Żeby je później zmienić (nowy token, inny serwer), uruchom go ponownie.',
+    'Run “Jonathan - settings”, enter the server address shown below and the token. It checks the connection right away. To change them later (new token, another server), run it again.':
+        'Uruchom „Jonathan - settings”, wpisz adres serwera podany niżej i token. Od razu sprawdzi połączenie. Żeby je później zmienić (nowy token, inny serwer), uruchom go ponownie.',
 })
 
 
@@ -934,37 +934,37 @@ PL.update({
         'Ustaw aranżację: forma, partie, nagrania',
     # forma
     'Form': 'Forma',
-    'Drag tiles to set the order. Anyone on the team can edit — earlier versions are in the history.':
-        'Przeciągaj kafelki, żeby ustawić kolejność. Edytować może każdy z zespołu — wcześniejsze wersje są w historii.',
+    'Drag tiles to set the order. Anyone on the team can edit. Earlier versions are in the history.':
+        'Przeciągaj kafelki, żeby ustawić kolejność. Edytować może każdy z zespołu. Wcześniejsze wersje są w historii.',
     'Add tile': 'Dodaj kafelek', 'From the song': 'Z piosenki',
     'Without lyrics': 'Bez tekstu',
     'e.g. Solo, Interlude, Tag': 'np. Solo, Przerywnik, Tag',
-    'The form is empty — add tiles.': 'Forma jest pusta — dodaj kafelki.',
+    'The form is empty. Add tiles.': 'Forma jest pusta. Dodaj kafelki.',
     'Repeats': 'Powtórzenia', 'Dynamics': 'Dynamika',
     'Soft': 'Cicho', 'Build': 'Narasta', 'Full': 'Pełno',
     'Break down': 'Wyciszenie', 'Band only': 'Sam zespół',
     # obsada
     'Cast': 'Obsada',
-    'Parts in this version — instruments, not people, so it keeps working when the line-up changes. In Reaper name tracks the same way with “J:” in front, e.g. J:Vocals 2.':
-        'Partie w tej wersji — instrumenty, nie osoby, więc wszystko działa przy zmianie składu. W Reaperze nazwij ślady tak samo z „J:” na początku, np. J:Wokal 2.',
+    'Parts in this version. Instruments, not people, so it keeps working when the line-up changes. In Reaper name tracks the same way with “J:” in front, e.g. J:Vocals 2.':
+        'Partie w tej wersji. Instrumenty, nie osoby, więc wszystko działa przy zmianie składu. W Reaperze nazwij ślady tak samo z „J:” na początku, np. J:Wokal 2.',
     'Another part, e.g. Choir, Cajon': 'Inna partia, np. Chórek, Cajon',
     'Add part': 'Dodaj partię', 'me': 'ja',
     'Remove the part? Its notes stay in the history of cells and come back if you add it again.':
         'Usunąć partię? Jej notatki zostają i wrócą, jeśli dodasz ją ponownie.',
     # partie
     'Parts': 'Partie',
-    'Tap a cell to write what this part does there or record the idea on your phone — the whole team sees and hears it.':
-        'Kliknij komórkę, żeby wpisać, co ta partia tam robi, albo nagraj pomysł telefonem — cały zespół to zobaczy i usłyszy.',
-    'Add parts in the cast above — then each part gets its row here.':
-        'Dodaj partie w obsadzie powyżej — każda dostanie tu swój wiersz.',
+    'Tap a cell to write what this part does there or record the idea on your phone. The whole team sees and hears it.':
+        'Kliknij komórkę, żeby wpisać, co ta partia tam robi, albo nagraj pomysł telefonem. Cały zespół to zobaczy i usłyszy.',
+    'Add parts in the cast above. Then each part gets its row here.':
+        'Dodaj partie w obsadzie powyżej. Każda dostanie tu swój wiersz.',
     'e.g. third above the melody from the 2nd chorus · riff e|--3--5--7--|':
         'np. tercja nad melodią od 2. refrenu · riff e|--3--5--7--|',
     'Tab font': 'Czcionka do tabów', 'could not save': 'nie zapisano',
     'Idea recording': 'Nagranie pomysłu', 'Record': 'Nagraj',
     'Record an idea': 'Nagraj pomysł',
     'Record again (replaces)': 'Nagraj ponownie (zastępuje)',
-    'Sing the harmony, play the riff — up to a few minutes.':
-        'Zaśpiewaj głos, zagraj riff — do kilku minut.',
+    'Sing the harmony, play the riff. Up to a few minutes.':
+        'Zaśpiewaj głos, zagraj riff. Do kilku minut.',
     'Stop and save': 'Zatrzymaj i zapisz', 'Recording…': 'Nagrywanie…',
     'Sending…': 'Wysyłanie…', 'Recorded by': 'Nagrał(a)',
     'Delete recording': 'Usuń nagranie',
@@ -989,8 +989,8 @@ PL.update({
     'Sent from Reaper': 'Wysłane z Reapera',
     'A new send replaces it.': 'Kolejne wysłanie je zastąpi.',
     'No recording yet': 'Jeszcze bez nagrania',
-    'In Reaper name the region after the song (and “| version”), markers after the tiles and tracks “J:part” — the script sends the mix and every part.':
-        'W Reaperze nazwij region jak piosenkę (i „| wersja”), markery jak kafelki, a ślady „J:partia” — skrypt wyśle miks i każdą partię.',
+    'In Reaper name the region after the song (and “| version”), markers after the tiles and tracks “J:part”. The script sends the mix and every part.':
+        'W Reaperze nazwij region jak piosenkę (i „| wersja”), markery jak kafelki, a ślady „J:partia”. Skrypt wyśle miks i każdą partię.',
     'Connect Reaper': 'Połącz Reapera',
     # ćwiczenie
     'I play': 'Gram', 'choose': 'wybierz', 'Other parts': 'Pozostałe partie',
@@ -998,29 +998,29 @@ PL.update({
     'Loop this part': 'Zapętl ten fragment', 'Play': 'Odtwórz',
     'Learn': 'Nauka', 'Play along': 'Gram sam', 'Mix': 'Miks',
     'Speed': 'Tempo',
-    'The full mix with your part louder — to learn it':
-        'Cały miks z Twoją partią głośniej — do nauki',
-    'The mix without your part — you play it':
-        'Miks bez Twojej partii — Ty ją grasz',
+    'The full mix with your part louder. To learn it':
+        'Cały miks z Twoją partią głośniej. Do nauki',
+    'The mix without your part. You play it':
+        'Miks bez Twojej partii. Ty ją grasz',
     # profil
     'What do you play?': 'Na czym grasz?',
     'Something else? e.g. Cajon, Ukulele (comma-separated)':
         'Coś innego? np. Cajon, Ukulele (po przecinku)',
-    'Pick everything you play — arrangements suggest these instruments as parts.':
-        'Zaznacz wszystko, na czym grasz — aranżacje podpowiedzą te instrumenty jako partie.',
+    'Pick everything you play. Arrangements suggest these instruments as parts.':
+        'Zaznacz wszystko, na czym grasz. Aranżacje podpowiedzą te instrumenty jako partie.',
     # Reaper (admin)
     'Rehearsal recordings (Reaper)': 'Nagrania z prób (Reaper)',
-    'Connect the computer with Reaper — one click sends the rehearsal mix and each part to the arrangements.':
-        'Połącz komputer z Reaperem — jedno kliknięcie wysyła miks z próby i każdą partię do aranżacji.',
+    'Connect the computer with Reaper. One click sends the rehearsal mix and each part to the arrangements.':
+        'Połącz komputer z Reaperem. Jedno kliknięcie wysyła miks z próby i każdą partię do aranżacji.',
     'After rehearsal one click in Reaper sends the mix and every part to the arrangements. Each musician then practises with “mix + me louder” or “mix without me”. Only your community can listen.':
         'Po próbie jedno kliknięcie w Reaperze wysyła miks i każdą partię do aranżacji. Każdy muzyk ćwiczy potem z „miks + ja głośniej” albo „miks beze mnie”. Słuchać może tylko Wasza wspólnota.',
     'Studio computer': 'Komputer w studiu',
     'Connected': 'Połączony', 'Not connected': 'Niepołączony',
     'token created': 'token utworzony', 'last send': 'ostatnie wysłanie',
-    'Only one computer can send recordings — the one that has the token. A new token disconnects the old one.':
-        'Nagrania może wysyłać tylko jeden komputer — ten, który ma token. Nowy token odłącza stary.',
-    'Copy the token now — it will not be shown again.':
-        'Skopiuj token teraz — nie zostanie pokazany ponownie.',
+    'Only one computer can send recordings. The one that has the token. A new token disconnects the old one.':
+        'Nagrania może wysyłać tylko jeden komputer. Ten, który ma token. Nowy token odłącza stary.',
+    'Copy the token now. It will not be shown again.':
+        'Skopiuj token teraz. Nie zostanie pokazany ponownie.',
     'Copy': 'Kopiuj', 'Copied': 'Skopiowano',
     'Server address:': 'Adres serwera:',
     'Connect a computer': 'Połącz komputer',
@@ -1028,20 +1028,20 @@ PL.update({
     'Generate a new token? The computer using the old one will be disconnected.':
         'Wygenerować nowy token? Komputer ze starym tokenem zostanie odłączony.',
     'Disconnect the studio computer?': 'Odłączyć komputer w studiu?',
-    'Studio token revoked — Reaper can no longer send recordings.':
-        'Token studia unieważniony — Reaper nie może już wysyłać nagrań.',
+    'Studio token revoked. Reaper can no longer send recordings.':
+        'Token studia unieważniony. Reaper nie może już wysyłać nagrań.',
     'Download the Reaper script': 'Pobierz skrypt do Reapera',
-    'Setup — once': 'Konfiguracja — raz',
+    'Setup · once': 'Konfiguracja · raz',
     'Add the script to Reaper': 'Dodaj skrypt do Reapera',
     'Actions → Show action list → New action → Load ReaScript… and pick the downloaded file. Tip: give it a toolbar button.':
         'Actions → Show action list → New action → Load ReaScript… i wybierz pobrany plik. Wskazówka: dodaj mu przycisk na pasku narzędzi.',
     'Set the render format': 'Ustaw format renderu',
-    'File → Render…: format MP3, 128–192 kbps (mono is fine for parts). Close the window — the script uses these settings and does the rest.':
-        'File → Render…: format MP3, 128–192 kb/s (do partii wystarczy mono). Zamknij okno — skrypt użyje tych ustawień i zrobi resztę.',
+    'File → Render…: format MP3, 128–192 kbps (mono is fine for parts). Close the window. The script uses these settings and does the rest.':
+        'File → Render…: format MP3, 128–192 kb/s (do partii wystarczy mono). Zamknij okno. Skrypt użyje tych ustawień i zrobi resztę.',
     'Paste the token': 'Wklej token',
     'On the first run the script asks for the server address and the token, and remembers them.':
         'Przy pierwszym uruchomieniu skrypt zapyta o adres serwera i token i je zapamięta.',
-    'After each rehearsal — naming': 'Po każdej próbie — nazewnictwo',
+    'After each rehearsal · naming': 'Po każdej próbie · nazewnictwo',
     'In Reaper': 'W Reaperze', 'Name it': 'Nazwa', 'Example': 'Przykład',
     'Region = song': 'Region = piosenka',
     'song title, optionally “| version”': 'tytuł piosenki, opcjonalnie „| wersja”',
@@ -1049,19 +1049,19 @@ PL.update({
     'tile names in order': 'nazwy kafelków po kolei',
     'Tracks to send = parts': 'Ślady do wysłania = partie',
     '“J:” + part name from the cast': '„J:” + nazwa partii z obsady',
-    'Tracks without “J:” (room mics, click) are skipped. Short names work too: V = Verse, C/R = Chorus, B = Bridge. Before sending the script shows what matched — a missing version or part is created, and if the markers differ from the tiles the form follows the recording (the old one stays in the history).':
-        'Ślady bez „J:” (ambient, klik) są pomijane. Działają też skróty: Z = Zwrotka, R = Refren, B = Bridge. Przed wysłaniem skrypt pokazuje, co się dopasowało — brakująca wersja lub partia zostanie utworzona, a jeśli markery różnią się od kafelków, forma pójdzie za nagraniem (stara zostaje w historii).',
+    'Tracks without “J:” (room mics, click) are skipped. Short names work too: V = Verse, C/R = Chorus, B = Bridge. Before sending the script shows what matched, a missing version or part is created, and if the markers differ from the tiles the form follows the recording (the old one stays in the history).':
+        'Ślady bez „J:” (ambient, klik) są pomijane. Działają też skróty: Z = Zwrotka, R = Refren, B = Bridge. Przed wysłaniem skrypt pokazuje, co się dopasowało. Brakująca wersja lub partia zostanie utworzona, a jeśli markery różnią się od kafelków, forma pójdzie za nagraniem (stara zostaje w historii).',
 })
 
 # ── Edytor piosenki: walidacja z numerami linii, podgląd, notacja ─────────
 PL.update({
     'The song was not saved:': 'Piosenka nie została zapisana:',
-    'Line %(line)s: bracket “[” is never closed — add “]” after the chord.':
-        'Linia %(line)s: nawias „[” nie jest zamknięty — dopisz „]” po akordzie.',
-    'The key “%(key)s” is not a chord — use e.g. G, Em, F#, Bb.':
-        'Tonacja „%(key)s” to nie akord — wpisz np. G, Em, F#, Bb.',
-    'Chords written above the lyrics were moved into the text — check the result.':
-        'Akordy zapisane nad tekstem zostały przeniesione do tekstu — sprawdź wynik.',
+    'Line %(line)s: bracket “[” is never closed. Add “]” after the chord.':
+        'Linia %(line)s: nawias „[” nie jest zamknięty. Dopisz „]” po akordzie.',
+    'The key “%(key)s” is not a chord. Use e.g. G, Em, F#, Bb.':
+        'Tonacja „%(key)s” to nie akord. Wpisz np. G, Em, F#, Bb.',
+    'Chords written above the lyrics were moved into the text. Check the result.':
+        'Akordy zapisane nad tekstem zostały przeniesione do tekstu. Sprawdź wynik.',
     'Section names in brackets, like [Chorus], are now plain labels.':
         'Nazwy części w nawiasach, np. [Refren], zamieniono na zwykłe nazwy.',
     'auto': 'auto', 'Chords are written in': 'Akordy zapisane w notacji',
@@ -1069,26 +1069,26 @@ PL.update({
     'Polish (H, B, Fis)': 'Polskiej (H, B, Fis)',
     'Switch to Polish': 'Przełącz na polską', 'Convert now': 'Przenieś teraz',
     'Preview': 'Podgląd', 'How to write a song': 'Jak zapisać piosenkę',
-    'Start typing — here you see the song exactly as the band will see it.':
-        'Zacznij pisać — tutaj widzisz piosenkę dokładnie tak, jak zobaczy ją zespół.',
-    'Copied a song with chords above the lyrics? Paste it as is — it gets converted when you save.':
-        'Kopiujesz piosenkę z akordami nad tekstem? Wklej ją tak, jak jest — przy zapisie sama się przerobi.',
+    'Start typing. Here you see the song exactly as the band will see it.':
+        'Zacznij pisać. Tutaj widzisz piosenkę dokładnie tak, jak zobaczy ją zespół.',
+    'Copied a song with chords above the lyrics? Paste it as is. It gets converted when you save.':
+        'Kopiujesz piosenkę z akordami nad tekstem? Wklej ją tak, jak jest. Przy zapisie sama się przerobi.',
     'all chords recognized': 'wszystkie akordy rozpoznane',
     'Line': 'Linia',
-    'bracket “[” is never closed — add “]” after the chord':
-        'nawias „[” nie jest zamknięty — dopisz „]” po akordzie',
-    'a “]” without “[” — it will show as text': 'samo „]” bez „[” — pokaże się jako tekst',
-    'double brackets [[ ]] — fixed when you save': 'podwójny nawias [[ ]] — poprawi się przy zapisie',
-    'section name in brackets — becomes a plain label when you save':
-        'nazwa części w nawiasie — przy zapisie stanie się zwykłą nazwą',
+    'bracket “[” is never closed. Add “]” after the chord':
+        'nawias „[” nie jest zamknięty. Dopisz „]” po akordzie',
+    'a “]” without “[”. It will show as text': 'samo „]” bez „[”. Pokaże się jako tekst',
+    'double brackets [[ ]]. Fixed when you save': 'podwójny nawias [[ ]]. Poprawi się przy zapisie',
+    'section name in brackets. Becomes a plain label when you save':
+        'nazwa części w nawiasie. Przy zapisie stanie się zwykłą nazwą',
     'not a chord we know': 'nierozpoznany akord',
     'detected key': 'wykryta tonacja',
     'These chords look like Polish notation (%(ex)s).':
         'Te akordy wyglądają na polską notację (%(ex)s).',
     'Careful: in Polish “B” means B♭, internationally it means H.':
         'Uwaga: po polsku „B” to B♭, a w notacji międzynarodowej to H.',
-    'Lines %(lines)s have chords above the lyrics — they will be moved into the text when you save (the preview already shows it).':
-        'Linie %(lines)s mają akordy nad tekstem — przy zapisie trafią do tekstu (podgląd już to pokazuje).',
+    'Lines %(lines)s have chords above the lyrics. They will be moved into the text when you save (the preview already shows it).':
+        'Linie %(lines)s mają akordy nad tekstem. Przy zapisie trafią do tekstu (podgląd już to pokazuje).',
     'Is this a section name? If it is a lyric, add a section name above it (e.g. Verse).':
         'To nazwa części? Jeśli to tekst piosenki, dopisz nad nim nazwę części (np. Zwrotka).',
     'no name': 'bez nazwy',
@@ -1109,13 +1109,13 @@ PL.update({
     'Until when the team should mark availability': 'Do kiedy zespół ma zaznaczyć, czy może grać',
     'Create service': 'Utwórz granie',
     'Upcoming': 'Najbliższe',
-    'Fill in the form above — the team gets a place to mark availability.': 'Wypełnij formularz powyżej — zespół dostanie miejsce, żeby zaznaczyć, czy może grać.',
-    'No songs yet. Arrange them in Studio — after “Save setlist” they appear here.': 'Nie ma jeszcze piosenek. Ułóż je w Studiu — po „Zapisz setlistę” pojawią się tutaj.',
+    'Fill in the form above. The team gets a place to mark availability.': 'Wypełnij formularz powyżej. Zespół dostanie miejsce, żeby zaznaczyć, czy może grać.',
+    'No songs yet. Arrange them in Studio. After “Save setlist” they appear here.': 'Nie ma jeszcze piosenek. Ułóż je w Studiu. Po „Zapisz setlistę” pojawią się tutaj.',
     'The leader hasn’t added songs yet.': 'Prowadzący nie dodał jeszcze piosenek.',
     'Use a setlist saved earlier': 'Użyj setlisty zapisanej wcześniej',
     'Saved setlist': 'Zapisana setlista',
     'Countdown and announcements on the projector before the first song.': 'Odliczanie i ogłoszenia na rzutniku przed pierwszą piosenką.',
-    'Add songs to the service first — then you can set up the countdown and announcements.': 'Najpierw dodaj piosenki do grania — potem ustawisz odliczanie i ogłoszenia.',
+    'Add songs to the service first. Then you can set up the countdown and announcements.': 'Najpierw dodaj piosenki do grania. Potem ustawisz odliczanie i ogłoszenia.',
     'Edit service details': 'Edytuj szczegóły grania',
     'The team’s availability and lineup for this service are removed too.': 'Usunięte zostaną też odpowiedzi zespołu i skład na to granie.',
     'Settings for the whole community. Your own theme, language and tips are in': 'Ustawienia dla całej wspólnoty. Twój motyw, język i podpowiedzi są w zakładce',
@@ -1124,17 +1124,17 @@ PL.update({
 
 # ── Wpisywanie piosenek: ChordPro, kapodaster ─────────────────────────────
 PL.update({
-    'Pasted ChordPro was converted — check the result.':
-        'Wklejony ChordPro został przerobiony — sprawdź wynik.',
-    'capo is set by each musician in their own view — this line would show as lyrics, delete it':
-        'kapodaster ustawia każdy muzyk u siebie — ta linia pokazałaby się jako tekst, usuń ją',
+    'Pasted ChordPro was converted. Check the result.':
+        'Wklejony ChordPro został przerobiony. Sprawdź wynik.',
+    'capo is set by each musician in their own view. This line would show as lyrics, delete it':
+        'kapodaster ustawia każdy muzyk u siebie. Ta linia pokazałaby się jako tekst, usuń ją',
 })
 
 
 # ── Edytor piosenki: kafelki ──────────────────────────────────────────────
 PL.update({
     'Tiles': 'Kafelki',
-    'Two views of the same song — switch any time.': 'Dwa widoki tej samej piosenki — możesz przełączać w każdej chwili.',
+    'Two views of the same song. Switch any time.': 'Dwa widoki tej samej piosenki. Możesz przełączać w każdej chwili.',
     'Verse': 'Zwrotka',
     'Chorus': 'Refren',
     'Pre-chorus': 'Przedrefren',
@@ -1142,13 +1142,13 @@ PL.update({
     'Ending': 'Zakończenie',
     'Add a part:': 'Dodaj część:',
     'Paste a song from anywhere': 'Wklej piosenkę skądkolwiek',
-    'Chords above the lyrics, ChordPro from SongSelect or plain lyrics — it splits into parts by itself and the chords land on the right syllables.': 'Akordy nad tekstem, ChordPro z SongSelect albo sam tekst — sama podzieli się na części, a akordy trafią nad właściwe sylaby.',
+    'Chords above the lyrics, ChordPro from SongSelect or plain lyrics. It splits into parts by itself and the chords land on the right syllables.': 'Akordy nad tekstem, ChordPro z SongSelect albo sam tekst. Sama podzieli się na części, a akordy trafią nad właściwe sylaby.',
     'Paste here (Ctrl+V)…': 'Wklej tutaj (Ctrl+V)…',
     'or': 'albo',
     'Start from an empty verse': 'Zacznij od pustej zwrotki',
     'Part name, e.g. Verse 1': 'Nazwa części, np. Zwrotka 1',
-    'Type or paste the lyrics of this part — you add chords afterwards by clicking above the words.': 'Wpisz albo wklej tekst tej części — akordy dodasz potem, klikając nad słowami.',
-    'Done — add chords': 'Gotowe — dodaj akordy',
+    'Type or paste the lyrics of this part. You add chords afterwards by clicking above the words.': 'Wpisz albo wklej tekst tej części. Akordy dodasz potem, klikając nad słowami.',
+    'Done · add chords': 'Gotowe · dodaj akordy',
     'Edit lyrics': 'Edytuj tekst',
     'Click above a letter to add a chord, click a chord to change it.': 'Kliknij literę, żeby dodać nad nią akord. Kliknij akord, żeby go zmienić.',
     'Move up': 'Przesuń wyżej',
@@ -1165,12 +1165,12 @@ PL.update({
     'Other chord, e.g. Cadd9, D/F#': 'Inny akord, np. Cadd9, D/F#',
     'Insert': 'Wstaw',
     'Change': 'Zmień',
-    'That doesn’t look like a chord — e.g. Am, F#m7, D/F#.': 'To nie wygląda na akord — np. Am, F#m7, D/F#.',
+    'That doesn’t look like a chord. E.g. Am, F#m7, D/F#.': 'To nie wygląda na akord. Np. Am, F#m7, D/F#.',
     'move by one letter': 'przesuń o literę',
     'One letter left': 'O literę w lewo',
     'One letter right': 'O literę w prawo',
-    'Recognised ChordPro — converted.': 'Rozpoznano ChordPro — przerobiono.',
-    'Chords were above the lyrics — moved onto the syllables.': 'Akordy były nad tekstem — przeniesiono je nad sylaby.',
+    'Recognised ChordPro. Converted.': 'Rozpoznano ChordPro. Przerobiono.',
+    'Chords were above the lyrics. Moved onto the syllables.': 'Akordy były nad tekstem. Przeniesiono je nad sylaby.',
     'Part names in brackets became plain names.': 'Nazwy części w nawiasach zamieniono na zwykłe nazwy.',
     'Part names separated by a blank line were joined to their lyrics.': 'Nazwy części oddzielone pustą linią połączono z ich tekstem.',
     'Invisible characters from the web page were removed.': 'Usunięto niewidoczne znaki skopiowane ze strony.',
@@ -1185,25 +1185,25 @@ PL.update({
     'Lines %(from)s–%(to)s: the same line %(times)s times in a row.':
         'Linie %(from)s–%(to)s: ta sama linia %(times)s razy z rzędu.',
     'Keep once (x%(times)s)': 'Zostaw raz (x%(times)s)',
-    '%(n)s lines on one slide — on the projector the text gets small.':
-        '%(n)s linii na jednym slajdzie — na rzutniku tekst będzie mały.',
+    '%(n)s lines on one slide. On the projector the text gets small.':
+        '%(n)s linii na jednym slajdzie. Na rzutniku tekst będzie mały.',
     'Split into %(parts)s slides': 'Podziel na %(parts)s slajdy',
     'Undo': 'Cofnij',
     'Repeated lines are kept once with (x2).': 'Powtórzone linie zostawiono raz z dopiskiem (x2).',
     'Long parts were split into slides of up to 8 lines.': 'Długie części podzielono na slajdy po maks. 8 linii.',
-    '%(n)s lines — too much for one slide, split it (max 8)':
-        '%(n)s linii — za dużo na jeden slajd, podziel (maks. 8)',
+    '%(n)s lines. Too much for one slide, split it (max 8)':
+        '%(n)s linii. Za dużo na jeden slajd, podziel (maks. 8)',
 })
 
 
 # ── Import: tonacja z nagłówka, puste części ──────────────────────────────
 PL.update({
-    'Key in the title did not match the chords — detected instead:':
-        'Tonacja w tytule nie pasowała do akordów — użyto wykrytej:',
-    'a part with only a name — it would be an empty slide; add its lyrics or delete the name':
-        'część z samą nazwą — byłby pusty slajd; dopisz tekst albo usuń nazwę',
-    'Lines were separated by blank lines (copied text) — joined back into parts.':
-        'Linie były przedzielone pustymi liniami (skopiowany tekst) — połączono je z powrotem w części.',
+    'Key in the title did not match the chords. Detected instead:':
+        'Tonacja w tytule nie pasowała do akordów. Użyto wykrytej:',
+    'a part with only a name. It would be an empty slide; add its lyrics or delete the name':
+        'część z samą nazwą. Byłby pusty slajd; dopisz tekst albo usuń nazwę',
+    'Lines were separated by blank lines (copied text). Joined back into parts.':
+        'Linie były przedzielone pustymi liniami (skopiowany tekst). Połączono je z powrotem w części.',
     'Unnamed blocks after a part got its name with “(cont.)”.':
         'Bloki bez nazwy po części dostały jej nazwę z „(cd.)”.',
     'Repeat marks like “/2x” were written as “(x2)”.': 'Oznaczenia powtórzeń typu „/2x” zapisano jako „(x2)”.',
@@ -1213,8 +1213,8 @@ PL.update({
 # ── Forma i partie: oś czasu i riffy ─────────────────────────────────────
 PL.update({
     'Timeline': 'Oś czasu',
-    'The whole song at a glance — every instrument has its own lane. Tap a cell to add a note, a riff (tab) or record an idea; the whole team sees and hears it.':
-        'Cała piosenka w jednym widoku — każdy instrument ma swój tor. Kliknij kratkę, żeby dodać notatkę, riff (tabulaturę) albo nagrać pomysł; cały zespół to zobaczy i usłyszy.',
+    'The whole song at a glance. Every instrument has its own lane. Tap a cell to add a note, a riff (tab) or record an idea; the whole team sees and hears it.':
+        'Cała piosenka w jednym widoku. Każdy instrument ma swój tor. Kliknij kratkę, żeby dodać notatkę, riff (tabulaturę) albo nagrać pomysł; cały zespół to zobaczy i usłyszy.',
     'Riff (tab)': 'Riff (tabulatura)',
     'riff': 'riff',
     'Guitar': 'Gitara', 'Bass': 'Bas', 'Play': 'Odtwórz', 'Stop': 'Stop',
@@ -1241,7 +1241,7 @@ PL.update({
     'Delete the selected or last note': 'Usuń zaznaczoną albo ostatnią nutę',
     'Octave up': 'Oktawa wyżej', 'Octave down': 'Oktawa niżej',
     'whole': 'cała nuta', 'half': 'półnuta', 'quarter': 'ćwierćnuta', 'eighth': 'ósemka', 'sixteenth': 'szesnastka',
-    'Pick a length, then click the keys — the notes appear here.': 'Wybierz długość i klikaj klawisze — nuty pojawią się tutaj.',
+    'Pick a length, then click the keys. The notes appear here.': 'Wybierz długość i klikaj klawisze. Nuty pojawią się tutaj.',
     'Choose the length (¼ = quarter), then click piano keys; ♯ ♭ before the key. Click a note to change or delete it. Keyboard: c d e f g a h, 1–5 length, ↑ ↓ moves the selected note, Space plays.':
         'Wybierz długość (¼ = ćwierćnuta) i klikaj klawisze; ♯ ♭ przed klawiszem. Kliknij nutę, żeby ją zmienić albo usunąć. Klawiatura: c d e f g a h, 1–5 długość, ↑ ↓ przesuwa zaznaczoną nutę, spacja odtwarza.',
     'Show notes': 'Pokaż nuty', 'Show riff': 'Pokaż riff',

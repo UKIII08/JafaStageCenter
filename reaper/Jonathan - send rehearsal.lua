@@ -1,5 +1,5 @@
 --[[
-  Jonathan — wyślij próbę  (ReaScript, Lua)
+  Jonathan · wyślij próbę  (ReaScript, Lua)
 
   Wysyła nagranie z próby do aranżacji w Jonathanie:
     * cały miks,
@@ -21,7 +21,7 @@
   Wymaga: REAPER 6.x+, curl (wbudowany w Windows 10/11 i macOS).
 ]]
 
-local TITLE = "Jonathan — wyślij próbę"
+local TITLE = "Jonathan · wyślij próbę"
 local EXT = "JonathanApp"
 local LOUD_GAIN = 2.0          -- +6 dB dla "miks + ja głośniej"
 local IS_WIN = reaper.GetOS():match("Win") ~= nil
@@ -288,7 +288,7 @@ end
 local function fmt_region(r)
   local lines = {}
   if not r.ok then
-    lines[#lines + 1] = "✗ " .. r.region .. " — nie ma takiej piosenki w Jonathanie (pominięty)"
+    lines[#lines + 1] = "✗ " .. r.region .. ": nie ma takiej piosenki w Jonathanie (pominięty)"
     return table.concat(lines, "\n")
   end
   lines[#lines + 1] = "• " .. r.song_title .. "  →  " .. r.arrangement ..
@@ -296,12 +296,12 @@ local function fmt_region(r)
   if r.markers > 0 then
     if r.form_differs then
       lines[#lines + 1] = "    Kafelki: " .. r.tiles_matched .. "/" .. r.tiles ..
-                          " — forma zostanie ustawiona wg markerów (" .. r.markers .. ")"
+                          ": forma zostanie ustawiona wg markerów (" .. r.markers .. ")"
     else
       lines[#lines + 1] = "    Kafelki: " .. r.tiles_matched .. "/" .. r.tiles .. " ✓"
     end
   else
-    lines[#lines + 1] = "    Brak markerów — bez podziału na kafelki"
+    lines[#lines + 1] = "    Brak markerów, bez podziału na kafelki"
   end
   local parts = {}
   for _, t in ipairs(r.tracks or {}) do
@@ -351,7 +351,7 @@ local function main()
   local _, fmt = reaper.GetSetProjectInfo_String(0, "RENDER_FORMAT", "", false)
   local warn = ""
   if fmt:sub(1, 6) == "ZXZhdw" then
-    warn = "\n\nUWAGA: format renderu to WAV — pliki będą duże. Lepiej ustaw MP3 w File → Render."
+    warn = "\n\nUWAGA: format renderu to WAV, pliki będą duże. Lepiej ustaw MP3 w File → Render."
   end
 
   local lines, todo = {}, 0

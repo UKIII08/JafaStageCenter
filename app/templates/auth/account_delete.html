@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ _('Delete account — Jonathan App') }}{% endblock %}
+{% block title %}{{ _('Delete account · Jonathan App') }}{% endblock %}
 {% block content %}
 <div class="shell-narrow">
     <div class="panel">
@@ -9,7 +9,7 @@
         <div class="flash">{{ _('You own communities with other members:') }} {% for ch in blockers %}<b>{{ ch.name }}</b>{{ ', ' if not loop.last }}{% endfor %}. {{ _('Before deleting your account, hand them over to another admin (Team → change role) or remove the remaining members.') }}</div>
         {% endif %}
         {% if sole_churches %}
-        <p class="hint">{{ _('You are the only member of:') }} {% for ch in sole_churches %}<b>{{ ch.name }}</b>{{ ', ' if not loop.last }}{% endfor %} — {{ _('they will be deleted entirely (songs, setlists, services, files).') }}</p>
+        <p class="hint">{{ _('You are the only member of:') }} {% for ch in sole_churches %}<b>{{ ch.name }}</b>{{ ', ' if not loop.last }}{% endfor %} · {{ _('they will be deleted entirely (songs, setlists, services, files).') }}</p>
         {% endif %}
         <form method="POST" onsubmit="return confirm('{{ _("Really? This can't be undone.") }}')">
             <label>{{ _('Confirm with password') }}</label>

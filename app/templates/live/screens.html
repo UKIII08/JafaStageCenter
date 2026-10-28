@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
-{% block title %}{{ _('Screens') }} — {{ church.name }}{% endblock %}
+{% block title %}{{ _('Screens') }} · {{ church.name }}{% endblock %}
 {% block content %}
 <div class="panel">
     <div class="panel-header">
         <h2>{{ _('Screens') }}</h2>
     </div>
     <p class="hint">{{ _('Projector (lyrics for the congregation) and the stage screen (chords for the band).') }}
-    {{ _('Open the link on the device once — it is remembered and joins every LIVE session by itself.') }}</p>
+    {{ _('Open the link on the device once. It is remembered and joins every LIVE session by itself.') }}</p>
     <form method="POST" class="form-row" style="margin-top: var(--s4);">
         <input name="name" placeholder="{{ _('Name (e.g. Projector – main hall)') }}" style="flex:2; min-width:200px;">
         <select name="type" style="flex:1; min-width:150px;">

@@ -58,7 +58,7 @@ def arr_dir(arr):
 
 
 def sniff_audio(data):
-    """(ext, mime) albo None — rozpoznanie po zawartości, nie po nazwie."""
+    """(ext, mime) albo None. Rozpoznanie po zawartości, nie po nazwie."""
     if len(data) > 12 and data[4:8] == b'ftyp':
         return 'm4a', 'audio/mp4'
     for magic, ext, mime in AUDIO_TYPES:
@@ -269,7 +269,7 @@ def profile_instruments(profile):
 
 def instrument_suggestions(church_id):
     """Suma instrumentów wpisanych w profilach wspólnoty (etykiety w języku
-    użytkownika), posortowana — lista do wyboru przy dodawaniu roli."""
+    użytkownika), posortowana. Lista do wyboru przy dodawaniu roli."""
     names = {}
     for p in Profile.query.filter_by(church_id=church_id, deleted=False).all():
         for v in profile_instruments(p):
@@ -354,7 +354,7 @@ def section_key(label):
 def match_markers(form, markers):
     """Dopasowuje markery Reapera (po kolei) do kafelków formy.
     markers: [{'name', 'start', 'end'}] posortowane po czasie.
-    Zwraca (spans {tile_id: [start, end]}, ok: bool) — ok = każdy marker
+    Zwraca (spans {tile_id: [start, end]}, ok: bool). Ok = każdy marker
     znalazł swój kafelek w tej samej kolejności."""
     spans, ti = {}, 0
     for mk in markers:

@@ -168,7 +168,7 @@ def delete(church_id, arr_id, membership):
 
 # ── edycja (AJAX) ───────────────────────────────────────────────────────
 def rev(arr):
-    """Znacznik wersji formy/obsady — zmienia się przy każdym zapisie."""
+    """Znacznik wersji formy/obsady. Zmienia się przy każdym zapisie."""
     return arr.updated_at.isoformat() if arr.updated_at else ''
 
 
@@ -361,7 +361,7 @@ def reaper_revoke(church_id, membership):
     church = db.session.get(Church, church_id)
     svc.revoke_studio_token(church)
     db.session.commit()
-    flash(_('Studio token revoked — Reaper can no longer send recordings.'))
+    flash(_('Studio token revoked. Reaper can no longer send recordings.'))
     return redirect(url_for('arr.reaper', church_id=church_id))
 
 

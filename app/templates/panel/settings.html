@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ _('Settings') }} — {{ church.name }}{% endblock %}
+{% block title %}{{ _('Settings') }} · {{ church.name }}{% endblock %}
 {% block content %}
 <div class="page-head"><h1>{{ _('Settings') }}</h1>
     <p class="muted" style="margin:6px 0 0;">{{ _('Settings for the whole community. Your own theme, language and tips are in') }}
@@ -22,13 +22,13 @@
             <option value="v3" {% if church.settings.get('transition_engine') == 'v3' %}selected{% endif %}>{{ _('Pivot Pro') }}</option>
             <option value="v2" {% if church.settings.get('transition_engine') == 'v2' %}selected{% endif %}>{{ _('Advanced') }}</option>
         </select>
-        <label>{{ _('CCLI license number (optional — US market)') }}</label>
+        <label>{{ _('CCLI license number (optional, US market)') }}</label>
         <input name="ccli_license" value="{{ church.settings.get('ccli_license', '') }}" placeholder="{{ _('e.g. 123456789') }}" maxlength="20">
         <div class="check" style="margin-top:var(--s2);">
             <input type="checkbox" name="ccli_notice" id="ccli-notice-cb" {{ 'checked' if church.settings.get('ccli_notice', '1') == '1' }}>
             <label for="ccli-notice-cb">{{ _('Show the copyright notice on the projector') }}</label>
         </div>
-        <p class="hint" style="margin:var(--s1) 0 0;">{{ _("The notice (title, writers, © and license number) is required by the CCLI license when projecting lyrics — turn it off only if you don't use CCLI-covered songs. Song uses still count toward the") }}
+        <p class="hint" style="margin:var(--s1) 0 0;">{{ _("The notice (title, writers, © and license number) is required by the CCLI license when projecting lyrics. Turn it off only if you don't use CCLI-covered songs. Song uses still count toward the") }}
         <a href="{{ url_for('studio.ccli_report', church_id=church.id) }}">{{ _('CCLI report') }}</a>.</p>
         <div style="margin-top:var(--s4);"><button type="submit">{{ _('Save') }}</button></div>
     </form>
@@ -42,7 +42,7 @@
     </div>
     <div style="flex:1;">
         <div class="section-title" style="margin:0;">{{ _('Templates & branding') }}</div>
-        <p class="hint" style="margin:var(--s1) 0 0;">{{ _('Logo, projector background, the transition between screens, watermark icons and welcome-screen photos — all in one place.') }}</p>
+        <p class="hint" style="margin:var(--s1) 0 0;">{{ _('Logo, projector background, the transition between screens, watermark icons and welcome-screen photos. All in one place.') }}</p>
     </div>
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-tertiary);"><polyline points="9 18 15 12 9 6"/></svg>
 </a>
@@ -55,7 +55,7 @@
     </div>
     <div style="flex:1;">
         <div class="section-title" style="margin:0;">{{ _('Rehearsal recordings (Reaper)') }}</div>
-        <p class="hint" style="margin:var(--s1) 0 0;">{{ _('Connect the computer with Reaper — one click sends the rehearsal mix and each part to the arrangements.') }}</p>
+        <p class="hint" style="margin:var(--s1) 0 0;">{{ _('Connect the computer with Reaper. One click sends the rehearsal mix and each part to the arrangements.') }}</p>
     </div>
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-tertiary);"><polyline points="9 18 15 12 9 6"/></svg>
 </a>

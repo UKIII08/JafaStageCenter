@@ -9,7 +9,7 @@
 
     <div class="panel">
         <div class="card-header">{{ _('Create a community') }}</div>
-        <p class="hint">{{ _("A space for your team — songs, setlists, service planning and musician profiles. You'll be its admin.") }}</p>
+        <p class="hint">{{ _("A space for your team. Songs, setlists, service planning and musician profiles. You'll be its admin.") }}</p>
         <form method="POST" action="{{ url_for('panel.create_church') }}">
             <label>{{ _('Church / community name') }}</label>
             <input name="name" required minlength="3" placeholder="{{ _('e.g. Grace Community Church') }}">

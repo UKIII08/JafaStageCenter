@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ _('Songs') }} — {{ church.name }}{% endblock %}
+{% block title %}{{ _('Songs') }} · {{ church.name }}{% endblock %}
 {% block content %}
 <style>
     .lib-tools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
@@ -46,8 +46,8 @@
         {% for s in songs %}
         <div class="lib-row">
             <a class="t row-link" href="{{ url_for('songs.song_view', church_id=church.id, song_id=s.id) }}">{{ s.title }}</a>
-            <span class="k">{{ s.key or '—' }}</span>
-            <span class="b">{{ s.bpm or '—' }}</span>
+            <span class="k">{{ s.key or '–' }}</span>
+            <span class="b">{{ s.bpm or '–' }}</span>
             <span class="go">
                 <a class="btn btn-ghost btn-sm" href="{{ url_for('songs.practice', church_id=church.id, song_id=s.id) }}">{{ _('Practice') }}</a>
                 <a class="btn btn-ghost btn-sm" href="{{ url_for('arr.song_main', church_id=church.id, song_id=s.id) }}">{{ _('Form & parts') }}</a>
@@ -59,7 +59,7 @@
         {% else %}
         <div class="empty-state">
             <div class="es-title">{{ _('The library is empty') }}</div>
-            <div class="es-sub">{{ _('Add your first song with the button above — or import a .txt file exported from the desktop app.') }}</div>
+            <div class="es-sub">{{ _('Add your first song with the button above, or import a .txt file exported from the desktop app.') }}</div>
         </div>
         {% endfor %}
     </div>

@@ -352,7 +352,7 @@
     <div id="silent-md-overlay">
         <div class="smd-inner">
             <div class="smd-history" id="smd-history"></div>
-            <div class="smd-current" id="smd-current">—</div>
+            <div class="smd-current" id="smd-current">–</div>
             <div class="smd-tag" data-t="smd_tag">SILENT MODE · pianino prowadzi</div>
         </div>
     </div>
@@ -729,7 +729,7 @@
             var ov = document.getElementById('silent-md-overlay');
             if (!ov) return;
             if (d && d.active) {
-                document.getElementById('smd-current').textContent = d.current || '—';
+                document.getElementById('smd-current').textContent = d.current || '–';
                 var hist = document.getElementById('smd-history');
                 hist.innerHTML = '';
                 (d.history || []).forEach(function(name) {

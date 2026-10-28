@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ ev.name }} — {{ church.name }}{% endblock %}
+{% block title %}{{ ev.name }} · {{ church.name }}{% endblock %}
 {% block content %}
 <style>
     .ev-more { margin-top: 18px; }
@@ -33,7 +33,7 @@
         <input name="comment" placeholder="{{ _('Comment (e.g. only until noon)') }}" value="{{ my_signup.comment if my_signup else '' }}" style="flex:1; min-width:180px;">
     </form>
     {% if deadline_passed %}
-    <p class="hint" style="margin-bottom:0;">{{ _('The signup deadline has passed, but you can still change your answer — just let the leader know.') }}</p>
+    <p class="hint" style="margin-bottom:0;">{{ _('The signup deadline has passed, but you can still change your answer, just let the leader know.') }}</p>
     {% endif %}
     {% if my_instruments %}
     <p style="margin:var(--s3) 0 0;">{{ _("You're playing this service:") }}
@@ -44,7 +44,7 @@
 
 <div class="panel">
     <div class="panel-header">
-        <div class="section-title" style="margin:0;">{{ _('Songs') }}{{ ' — ' + setlist.name if setlist and setlist.name }}</div>
+        <div class="section-title" style="margin:0;">{{ _('Songs') }}{{ ' · ' + setlist.name if setlist and setlist.name }}</div>
         {% if membership.role != 'muzyk' %}
         <a class="btn{{ ' btn-ghost' if songs }}" href="{{ url_for('studio.control', church_id=church.id, granie=ev.id) }}">{{ _('Edit the setlist in Studio') if ev.setlist_id else _('Arrange the setlist in Studio') }}</a>
         {% endif %}
@@ -56,8 +56,8 @@
         <tr>
             <td class="muted">{{ loop.index }}</td>
             <td style="font-weight:700;">{{ s.title }}</td>
-            <td>{{ s.shown_key or '—' }}{% if s.transpose %} <span class="muted">({{ _('orig.') }} {{ s.key }})</span>{% endif %}</td>
-            <td class="muted">{{ s.bpm or '—' }}</td>
+            <td>{{ s.shown_key or '–' }}{% if s.transpose %} <span class="muted">({{ _('orig.') }} {{ s.key }})</span>{% endif %}</td>
+            <td class="muted">{{ s.bpm or '–' }}</td>
             <td style="text-align:right;">
                 {% if s.in_library %}
                 <a class="btn btn-ghost btn-sm" href="{{ url_for('songs.practice', church_id=church.id, song_id=s.id, t=s.transpose) }}">{{ _('Practice') }}</a>
@@ -66,16 +66,16 @@
         </tr>
         {% endfor %}
     </table>
-    <p class="hint" style="margin-bottom:0;">{{ _('"Practice" opens the song in the setlist key — with a metronome, auto-scroll and your private note.') }}</p>
+    <p class="hint" style="margin-bottom:0;">{{ _('"Practice" opens the song in the setlist key. With a metronome, auto-scroll and your private note.') }}</p>
     {% else %}
-    <p class="muted" style="margin:0;">{% if membership.role != 'muzyk' %}{{ _('No songs yet. Arrange them in Studio — after “Save setlist” they appear here.') }}{% else %}{{ _('The leader hasn’t added songs yet.') }}{% endif %}</p>
+    <p class="muted" style="margin:0;">{% if membership.role != 'muzyk' %}{{ _('No songs yet. Arrange them in Studio. After “Save setlist” they appear here.') }}{% else %}{{ _('The leader hasn’t added songs yet.') }}{% endif %}</p>
     {% endif %}
     {% if membership.role != 'muzyk' and setlists %}
     <details class="ev-more">
         <summary>{{ _('Use a setlist saved earlier') }}</summary>
         <form method="POST" action="{{ url_for('events.event_setlist', church_id=church.id, eid=ev.id) }}" class="form-row">
             <select name="setlist_id" style="flex:1;" aria-label="{{ _('Saved setlist') }}">
-                <option value="">{{ _('— none / detach —') }}</option>
+                <option value="">{{ _('none / detach') }}</option>
                 {% for sl in setlists %}
                 <option value="{{ sl.id }}" {{ 'selected' if ev.setlist_id == sl.id }}>{{ sl.name or _('Setlist') }} ({{ sl.date or _('no date') }})</option>
                 {% endfor %}
@@ -100,7 +100,7 @@
     {% if ev.setlist_id %}
     <p class="hint" style="margin-bottom:0;">{{ _('Countdown and announcements on the projector before the first song.') }}</p>
     {% else %}
-    <p class="hint" style="margin-bottom:0;">{{ _('Add songs to the service first — then you can set up the countdown and announcements.') }}</p>
+    <p class="hint" style="margin-bottom:0;">{{ _('Add songs to the service first. Then you can set up the countdown and announcements.') }}</p>
     {% endif %}
 </div>
 {% endif %}
@@ -124,13 +124,13 @@
 </div>
 
 <div class="panel">
-    <div class="section-title">{{ _('Lineup — who plays') }}</div>
+    <div class="section-title">{{ _('Lineup · who plays') }}</div>
     <table>
         <tr><th>{{ _('Person') }}</th><th>{{ _('Instrument') }}</th>{% if membership.role != 'muzyk' %}<th></th>{% endif %}</tr>
         {% for x in assignments %}
         <tr>
             <td>{{ x.user.display_name if x.user else '?' }}</td>
-            <td>{{ instrument_label(x.a.instrument) or '—' }}</td>
+            <td>{{ instrument_label(x.a.instrument) or '–' }}</td>
             {% if membership.role != 'muzyk' %}
             <td style="text-align:right;">
                 <form method="POST" action="{{ url_for('events.event_assign', church_id=church.id, eid=ev.id) }}" style="display:inline;">
@@ -153,7 +153,7 @@
             {% endfor %}
         </select>
         <select name="instrument" style="flex:1; min-width:130px;">
-            {% for i in instruments %}<option value="{{ i }}">{{ instrument_label(i) or _('— instrument —') }}</option>{% endfor %}
+            {% for i in instruments %}<option value="{{ i }}">{{ instrument_label(i) or _('instrument') }}</option>{% endfor %}
         </select>
         <button type="submit" style="flex:0;">{{ _('Add to lineup') }}</button>
     </form>

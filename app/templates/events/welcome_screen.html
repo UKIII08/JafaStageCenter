@@ -4,7 +4,7 @@
     {% include '_favicon.html' %}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ church.name }} — {{ _('Welcome screen') }}</title>
+  <title>{{ church.name }} · {{ _('Welcome screen') }}</title>
   <style>
     @font-face{font-family:'League Spartan';font-weight:700;font-display:swap;
       src:url("{{ url_for('static', filename='fonts/LeagueSpartan-700.ttf') }}") format('truetype')}
@@ -90,7 +90,7 @@
     #countdown-view[data-layout="1"] .cv-text{ left:6cqi; width:43cqi; top:13cqi; bottom:5cqi; }
     #countdown-view[data-layout="1"] .cv-image-morph{ clip-path:polygon(56% 0,100% 0,100% 100%,48% 100%); }
     /* Prawa krawędź taśmy = lewa krawędź zdjęcia (ten sam kąt), z lekkim
-       zachodzeniem NA zdjęcie — taśma jest nad zdjęciem (z-index), więc nigdy
+       zachodzeniem NA zdjęcie. Taśma jest nad zdjęciem (z-index), więc nigdy
        nie zostaje biała szpara między linią a zdjęciem. */
     #countdown-view[data-layout="1"] .cv-tape{ clip-path:polygon(54.8% -5%,57.6% -5%,48.8% 105%,46% 105%); background:var(--jafa-cyan); }
     #countdown-view[data-layout="1"] .cv-badge{ background:var(--jafa-cyan); color:var(--jafa-white); }

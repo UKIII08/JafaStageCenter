@@ -70,7 +70,7 @@ def login_required(f):
 
 
 def _safe_next(target):
-    """Zwraca `target` tylko jeśli to bezpieczna ścieżka lokalna (bez hosta) —
+    """Zwraca `target` tylko jeśli to bezpieczna ścieżka lokalna (bez hosta).
     inaczej dashboard. Blokuje open-redirect (?next=https://evil.com)."""
     from urllib.parse import urlparse
     if (target and target.startswith('/') and not target.startswith('//')
@@ -80,7 +80,7 @@ def _safe_next(target):
 
 
 def _pw_key(user):
-    """Krótki „odcisk" bieżącego hasła — wpinany w token resetu, żeby po
+    """Krótki „odcisk" bieżącego hasła. Wpinany w token resetu, żeby po
     zmianie hasła (lub jednym użyciu) stary token przestał działać."""
     import hashlib
     return hashlib.sha256(user.password_hash.encode()).hexdigest()[:16]
@@ -108,7 +108,7 @@ def register():
             # Anty-enumeracja: nie potwierdzamy istnienia konta. Ostrzegamy
             # właściciela adresu i pokazujemy neutralny komunikat.
             try:
-                send_email(email, _('Jonathan App — account already exists'),
+                send_email(email, _('Jonathan App: account already exists'),
                            _('Someone tried to sign up with your e-mail. If it '
                              'was you, just log in or reset your password.'))
             except Exception:
@@ -171,7 +171,7 @@ def login_2fa():
             user.last_login_at = datetime.utcnow()
             db.session.commit()
             return redirect(_safe_next(request.args.get('next')))
-        flash(_('Invalid code — try again.'))
+        flash(_('Invalid code. Try again.'))
     return render_template('auth/login_2fa.html')
 
 
@@ -213,7 +213,7 @@ def twofa_confirm():
             session.pop('totp_setup', None)
             flash(_('Two-factor authentication enabled.'))
             return redirect(url_for('auth.account'))
-        flash(_('The code doesn\'t match — scan the QR again and try once more.'))
+        flash(_('The code doesn\'t match. Scan the QR again and try once more.'))
     uri = pyotp.TOTP(secret).provisioning_uri(
         name=user.email, issuer_name='Jonathan App')
     img = qrcode.make(uri, image_factory=qrcode.image.svg.SvgPathImage)
@@ -229,7 +229,7 @@ def twofa_disable():
     user = current_user()
     if not check_password_hash(user.password_hash,
                                request.form.get('password') or ''):
-        flash(_('Wrong password — 2FA stays enabled.'))
+        flash(_('Wrong password. 2FA stays enabled.'))
         return redirect(url_for('auth.account'))
     user.totp_secret = None
     db.session.commit()
@@ -258,7 +258,7 @@ def reset_request():
             token = _reset_serializer().dumps({'uid': user.id,
                                                'k': _pw_key(user)})
             link = url_for('auth.reset_token', token=token, _external=True)
-            send_email(email, _('Jonathan App — password reset'),
+            send_email(email, _('Jonathan App: password reset'),
                        _('To set a new password, open this link '
                          '(valid for 2 hours):') + f'\n{link}')
         # celowo ta sama odpowiedź niezależnie od istnienia konta
@@ -271,14 +271,14 @@ def reset_token(token):
     try:
         data = _reset_serializer().loads(token, max_age=7200)
     except (BadSignature, SignatureExpired):
-        flash(_('The link expired or is invalid — request a new one.'))
+        flash(_('The link expired or is invalid. Request a new one.'))
         return redirect(url_for('auth.reset_request'))
     # Token wiąże się z bieżącym hasłem — po zmianie hasła (jednorazowość)
     # stary link przestaje działać.
     uid = data.get('uid') if isinstance(data, dict) else data
     user = db.session.get(User, uid)
     if not user or (isinstance(data, dict) and data.get('k') != _pw_key(user)):
-        flash(_('The link expired or is invalid — request a new one.'))
+        flash(_('The link expired or is invalid. Request a new one.'))
         return redirect(url_for('auth.reset_request'))
     if request.method == 'POST':
         password = request.form.get('password') or ''
@@ -288,7 +288,7 @@ def reset_token(token):
         user.password_hash = generate_password_hash(password)
         db.session.commit()
         session.clear()
-        flash(_('Password changed — please log in.'))
+        flash(_('Password changed. Please log in.'))
         return redirect(url_for('auth.login'))
     return render_template('auth/reset_form.html')
 
@@ -302,7 +302,7 @@ def _verify_serializer():
 def _send_verification(user):
     token = _verify_serializer().dumps(user.id)
     link = url_for('auth.verify_email', token=token, _external=True)
-    send_email(user.email, _('Jonathan App — confirm your e-mail'),
+    send_email(user.email, _('Jonathan App: confirm your e-mail'),
                _('Hi %(name)s!') % {'name': user.display_name} + '\n\n'
                + _('Confirm your e-mail address by opening this link '
                    '(valid for 3 days):') + f'\n{link}\n\n'
@@ -328,7 +328,7 @@ def verify_email(token):
     try:
         uid = _verify_serializer().loads(token, max_age=3 * 24 * 3600)
     except (BadSignature, SignatureExpired):
-        flash(_('The verification link expired — send a new one from account settings.'))
+        flash(_('The verification link expired. Send a new one from account settings.'))
         return redirect(url_for('auth.login'))
     user = db.session.get(User, uid)
     if user and not user.email_verified_at:
@@ -363,7 +363,7 @@ def account_delete():
     if request.method == 'POST':
         if not check_password_hash(user.password_hash,
                                    request.form.get('password') or ''):
-            flash(_('Wrong password — the account was not deleted.'))
+            flash(_('Wrong password. The account was not deleted.'))
             return redirect(url_for('auth.account_delete'))
         if blockers:
             flash(_('First hand the community over to another admin or remove the remaining members.'))

@@ -57,8 +57,8 @@ def _clean_link(raw):
 
 
 ISSUE_TEXT = {
-    'unclosed': 'Line %(line)s: bracket “[” is never closed — add “]” after the chord.',
-    'bad_key': 'The key “%(key)s” is not a chord — use e.g. G, Em, F#, Bb.',
+    'unclosed': 'Line %(line)s: bracket “[” is never closed. Add “]” after the chord.',
+    'bad_key': 'The key “%(key)s” is not a chord. Use e.g. G, Em, F#, Bb.',
 }
 
 
@@ -83,9 +83,9 @@ def _save_song_fields(song, form):
     prep = mc.prepare_song(content, input_notation)
     changes, meta = prep['changes'], prep['meta']
     if 'chordpro' in changes:
-        notes.append(_('Pasted ChordPro was converted — check the result.'))
+        notes.append(_('Pasted ChordPro was converted. Check the result.'))
     if 'above_lyrics' in changes:
-        notes.append(_('Chords written above the lyrics were moved into the text — check the result.'))
+        notes.append(_('Chords written above the lyrics were moved into the text. Check the result.'))
     if 'labels' in changes:
         notes.append(_('Section names in brackets, like [Chorus], are now plain labels.'))
     song.content = prep['content']
@@ -113,7 +113,7 @@ def _save_song_fields(song, form):
 
 
 def _form_again(song, is_new, church_id, membership, errors):
-    """Formularz z powrotem — z tym, co użytkownik wpisał, i listą błędów."""
+    """Formularz z powrotem. Z tym, co użytkownik wpisał, i listą błędów."""
     return render_template('songs/form.html', song=song, is_new=is_new,
                            errors=errors,
                            draft=request.form,
@@ -297,7 +297,7 @@ def songs_import(church_id, membership):
     if too_big:
         msg += ' ' + _('Skipped (file too large, max 512 KB):') + f' {len(too_big)}.'
     if key_fixed:
-        msg += ' ' + _('Key in the title did not match the chords — detected instead:') + ' ' + ', '.join(key_fixed[:5]) + '.'
+        msg += ' ' + _('Key in the title did not match the chords. Detected instead:') + ' ' + ', '.join(key_fixed[:5]) + '.'
     flash(msg)
     return redirect(url_for('songs.songs_list', church_id=church_id))
 
@@ -480,7 +480,7 @@ def _my_personal(church_id, song_id, create=False):
 
 
 def _load_section_notes(sp):
-    """Notatki per sekcja z SongPersonal.section_notes (JSON) — bezpieczny parse."""
+    """Notatki per sekcja z SongPersonal.section_notes (JSON). Bezpieczny parse."""
     if not sp:
         return {}
     try:

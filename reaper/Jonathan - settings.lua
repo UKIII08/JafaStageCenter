@@ -1,12 +1,12 @@
 --[[
-  Jonathan — ustawienia połączenia  (ReaScript, Lua)
+  Jonathan · ustawienia połączenia  (ReaScript, Lua)
 
   Zmienia adres serwera i token studia, których używa skrypt
   „Jonathan - send rehearsal", i od razu sprawdza połączenie.
   Wyczyszczenie obu pól usuwa zapamiętane ustawienia.
 ]]
 
-local TITLE = "Jonathan — ustawienia"
+local TITLE = "Jonathan · ustawienia"
 local EXT = "JonathanApp"   -- to samo miejsce co w skrypcie wysyłki
 local IS_WIN = reaper.GetOS():match("Win") ~= nil
 

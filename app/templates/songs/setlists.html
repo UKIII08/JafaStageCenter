@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ _('Setlists') }} — {{ church.name }}{% endblock %}
+{% block title %}{{ _('Setlists') }} · {{ church.name }}{% endblock %}
 {% block content %}
 <div class="panel">
     <div class="panel-header"><h2>{{ _('Setlists') }}</h2></div>
@@ -15,7 +15,7 @@
         {% for sl in setlists %}
         <tr>
             <td><a class="row-link" href="{{ url_for('songs.setlist_edit', church_id=church.id, setlist_id=sl.id) }}">{{ sl.name }}</a></td>
-            <td class="muted">{{ sl.service_date.strftime('%d.%m.%Y') if sl.service_date else '—' }}</td>
+            <td class="muted">{{ sl.service_date.strftime('%d.%m.%Y') if sl.service_date else '–' }}</td>
             <td class="muted">{{ (sl.items or [])|length }}</td>
             <td style="text-align:right;">
                 {% if membership.role != 'muzyk' %}

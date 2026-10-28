@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ _('Welcome screen') }} — {{ church.name }}{% endblock %}
+{% block title %}{{ _('Welcome screen') }} · {{ church.name }}{% endblock %}
 {% block content %}
 <style>
   .wl-photos { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:var(--s3); }
@@ -33,12 +33,12 @@
 
 <div class="panel" style="max-width:820px;">
   <div class="panel-header">
-    <h2>{{ _('Welcome screen') }} — {{ setlist.name or setlist.date or _('Setlist') }}</h2>
+    <h2>{{ _('Welcome screen') }} · {{ setlist.name or setlist.date or _('Setlist') }}</h2>
     <div style="display:flex; gap:var(--s2);">
       <a class="btn btn-ghost" href="{{ url_for('events.welcome_screen', church_id=church.id, setlist_id=setlist.id) }}" target="_blank" rel="noopener">{{ _('Open on projector ↗') }}</a>
     </div>
   </div>
-  <p class="hint" style="margin:0 0 var(--s4);">{{ _('A countdown to your service start plus rotating announcements — shown on the projector before the first song. These belong to this setlist, so they follow it into Studio and the offline app. Photos are shared across your services.') }}</p>
+  <p class="hint" style="margin:0 0 var(--s4);">{{ _('A countdown to your service start plus rotating announcements. Shown on the projector before the first song. These belong to this setlist, so they follow it into Studio and the offline app. Photos are shared across your services.') }}</p>
 
   <div class="set-row" style="margin:0 0 var(--s5); max-width:320px;">
     <span>{{ _('Service start time') }}</span>
@@ -60,7 +60,7 @@
   </div>
 
   <div class="section-title" style="margin-top:var(--s5);">{{ _('Background icons (watermark)') }} <span class="muted" id="wl-icount"></span></div>
-  <p class="hint" style="margin:0 0 var(--s2);">{{ _('Your church symbols, shown faintly behind the announcements — a dark shape on a light or white background works best. Leave empty to use the built-in ones.') }}</p>
+  <p class="hint" style="margin:0 0 var(--s2);">{{ _('Your church symbols, shown faintly behind the announcements, a dark shape on a light or white background works best. Leave empty to use the built-in ones.') }}</p>
   <div class="wl-icons" id="wl-icons"></div>
   <input type="file" id="wl-icon-file" accept="image/*" hidden>
 
@@ -81,7 +81,7 @@
   let SLIDES = {{ slides|tojson }};
   const L = {
     zdjecie: {{ _('Photo')|tojson }},
-    none: {{ _('— no photo —')|tojson }},
+    none: {{ _('no photo')|tojson }},
     title: {{ _('Announcement title')|tojson }},
     text: {{ _('Short description')|tojson }},
     cat: {{ _('Badge (optional)')|tojson }},

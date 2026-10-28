@@ -179,7 +179,7 @@
                     v.setAttribute('disablepictureinpicture', '');
                     if (v.paused) { var pr = v.play && v.play(); if (pr && pr.catch) pr.catch(function () {}); }
                 }
-            } catch (e) { /* inny origin / brak dostępu — pomiń */ }
+            } catch (e) { /* inny origin / brak dostępu. Pomiń */ }
         }
         function startFrameSanitizer() {
             stopFrameSanitizer();
