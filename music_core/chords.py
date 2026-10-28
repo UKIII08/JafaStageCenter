@@ -238,7 +238,15 @@ def normalize_chord_to_international(chord_str, input_notation='international'):
     chord_str = clean_chord(chord_str)
     if '/' in chord_str:
         parts = chord_str.split('/')
-        return '/'.join(normalize_chord_to_international(p, input_notation) for p in parts)
+        head = normalize_chord_to_international(parts[0], input_notation)
+        rest = []
+        for p in parts[1:]:
+            # bas = sama nuta; mała litera w polskim zapisie („E/gis") to nie moll
+            bm = CHORD_ROOT_RE.match(p)
+            if bm and not bm.group(2):
+                p = bm.group(1)[0].upper() + bm.group(1)[1:]
+            rest.append(normalize_chord_to_international(p, input_notation))
+        return '/'.join([head] + rest)
     if not is_valid_chord(chord_str):
         return chord_str
     m = CHORD_ROOT_RE.match(chord_str)
@@ -295,8 +303,8 @@ def normalize_song_chords_to_international(content, input_notation='internationa
         if '/' in cleaned:
             parts = cleaned.split('/', 1)
             if is_valid_chord(parts[0]):
-                normalized_parts = [normalize_chord_to_international(p, input_notation) for p in cleaned.split('/')]
-                return '[' + '/'.join(normalized_parts) + ']'
+                # cały akord naraz — bas („/gis") to nuta, nie akord molowy
+                return '[' + normalize_chord_to_international(cleaned, input_notation) + ']'
             return '[' + cleaned + ']'
         if not is_valid_chord(cleaned):
             return '[' + cleaned + ']'
@@ -728,7 +736,7 @@ def parse_chordpro(text):
 _SECTION_WORD_RE = re.compile(
     r'^\(?\s*(intro|wst[eę]p|zwrotka|zw|verse|strofa|refren|ref|chorus|pre[- ]?chorus|'
     r'przedrefren|przed[- ]refren|bridge|mostek|most|tag|coda|outro|zako[nń]czenie|'
-    r'koniec|ending|interlude|interludium|przerywnik|solo|instrumental|vamp|break|'
+    r'koniec|ending|interlude|interludium|przerywnik|przej[sś]cie|solo|instrumental|vamp|break|'
     r'modlitwa|recytacja|outro|ko[nń]c[oó]wka)\b[\s\d.:x×\-]*\)?:?'
     r'(\s*\((cd\.?|cont\.?)\))?$', re.I)   # „Refren (cd.)" — slajd po podziale części
 _BRACKET_LABEL_RE = re.compile(r'^\[([^\[\]]{1,40})\]$')
@@ -756,8 +764,20 @@ def tidy_song_text(text):
     if not text:
         return text, []
     changes = set()
+    text = text.replace('\r', '')
+    # Tekst skopiowany z podwójnymi końcami linii (\r\r\n): przeglądarka
+    # robi z każdego pustą linię, więc każda linia byłaby osobnym slajdem.
+    # Rozpoznanie: ani jednej pary sąsiednich linii z treścią, a granice
+    # części to 2+ puste linie.
+    lines0 = text.split('\n')
+    if (not any(a.strip() and b.strip() for a, b in zip(lines0, lines0[1:]))
+            and re.search(r'\n[ \t]*\n[ \t]*\n[ \t]*\n', text)
+            and sum(1 for l in lines0 if l.strip()) >= 4):
+        text = re.sub(r'\n(?:[ \t]*\n){2,}', '\x00', text)
+        text = re.sub(r'\n[ \t]*\n', '\n', text).replace('\x00', '\n\n')
+        changes.add('double_spaced')
     out = []
-    for line in text.replace('\r', '').split('\n'):
+    for line in text.split('\n'):
         clean = _INVISIBLE_RE.sub('', line).replace('\u00a0', ' ')
         if clean != line:
             line = clean
@@ -776,6 +796,23 @@ def tidy_song_text(text):
         if '[]' in line:
             line = re.sub(r'\[\s*\]', '', line)
             changes.add('empty_brackets')
+        # „[Przejście: ][D] [G]" — nazwa części w nawiasie w środku linii:
+        # słowo znika, akordy zostają (muzycy je widzą, rzutnik nie pokaże
+        # „Przejście:" jako tekstu do śpiewania)
+        def _unbracket(m):
+            inner = m.group(1).strip()
+            if is_section_label(inner) and not is_valid_chord(canon_chord(inner)):
+                changes.add('labels')
+                return ''
+            return m.group(0)
+        if '[' in line:
+            line = re.sub(r'\[([^\[\]]{2,40})\]\s*', _unbracket, line)
+        # „/2x", „/ x4" → „(x2)" — jeden zapis powtórzeń (widać go na rzutniku)
+        rr = re.sub(r'\s*/\s*(?:(\d+)\s*[x×]|[x×]\s*(\d+))\s*$',
+                    lambda m: ' (x' + (m.group(1) or m.group(2)) + ')', line, flags=re.I)
+        if rr != line:
+            line = rr
+            changes.add('repeat_marks')
         out.append(line.rstrip())
     # „Zwrotka" + pusta linia + tekst → bez pustej linii (inaczej nazwa
     # staje się osobnym, pustym slajdem, a zwrotka traci nazwę)
@@ -792,7 +829,90 @@ def tidy_song_text(text):
                 continue
         i += 1
     result = re.sub(r'\n{3,}', '\n\n', '\n'.join(merged)).strip('\n')
+    # Blok bez nazwy zaraz po nazwanym („Bridge" + drugi blok) dostaje
+    # „Bridge (cd.)" zamiast „SLAJD 6" — panel, Studio i rzutnik tak samo.
+    blocks = result.split('\n\n') if result else []
+    last = None
+    for bi, block in enumerate(blocks):
+        first = block.split('\n', 1)[0]
+        has_label = '[' not in first and len(first.strip()) < 30
+        if has_label:
+            last = re.sub(r'\s*\((cd\.?|cont\.?)\)\s*$', '', first.strip(), flags=re.I)
+            if not is_section_label(last):
+                last = None
+        elif last and len(last) + 6 < 30:
+            blocks[bi] = f'{last} (cd.)\n' + block
+            changes.add('cont_labels')
+    result = '\n\n'.join(blocks)
     return result, sorted(changes)
+
+
+_DIATONIC = [(0, False), (2, True), (4, True), (5, False), (7, False), (9, True)]
+
+
+def _chord_pc(chord):
+    """(klasa wysokości, moll?) akordu w notacji międzynarodowej."""
+    head = bass_split(canon_chord(chord))[0]
+    m = CHORD_ROOT_RE.match(head or '')
+    if not m:
+        return None
+    pc = _resolve_pitch_class(m.group(1).upper(), 'international')
+    if pc is None:
+        return None
+    suf = m.group(2)
+    return pc, (suf.startswith('m') and not suf.startswith('maj')) or m.group(1)[0].islower()
+
+
+def key_fit(key, chords):
+    """Jaka część akordów pasuje do tonacji (0..1). Do sprawdzania tonacji
+    z nagłówka i do wyboru notacji przy imporcie."""
+    k = _chord_pc(key or '')
+    pcs = [c for c in (_chord_pc(x) for x in chords) if c]
+    if not k or not pcs:
+        return 0.0
+    tonic = (k[0] + 3) % 12 if k[1] else k[0]
+    ok = {((tonic + d) % 12, mi) for d, mi in _DIATONIC}
+    ok.add(((tonic + 4) % 12, False))       # V w molu (E w a-moll)
+    ok.add(((tonic + 10) % 12, False))      # bVII (często w uwielbieniu)
+    return sum(1 for c in pcs if c in ok) / len(pcs)
+
+
+def guess_notation(text):
+    """Notacja piosenki z importu, gdzie nikt jej nie wybrał. Bez polskich
+    znaków (H, Fis, małe litery) → międzynarodowa. Gdy są, a „B" znaczy
+    co innego w obu notacjach, wygrywa ta, w której akordy lepiej pasują do
+    tonacji (np. „B g d F" = F-dur po polsku; „A H B" w cis-moll = po
+    międzynarodowemu)."""
+    tokens = [canon_chord(t) for t in re.findall(r'\[([^\[\]]+)\]', text or '')]
+    tokens = [t for t in tokens if t and is_valid_chord(t)]
+    if not _polish_markers(tokens):
+        return 'international'
+    as_int = [normalize_chord_to_international(t, 'international') for t in tokens]
+    as_pl = [normalize_chord_to_international(t, 'polish') for t in tokens]
+    if as_int == as_pl:
+        return 'polish'
+    def score(chords):
+        key = detect_key_algorithm(' '.join(f'[{c}]' for c in chords))
+        return key_fit(key, chords)
+    return 'polish' if score(as_pl) >= score(as_int) else 'international'
+
+
+def spell_key_like_song(key, content):
+    """„Abm" → „G#m", gdy piosenka pisze krzyżykami (i odwrotnie)."""
+    m = CHORD_ROOT_RE.match(key or '')
+    if not m or len(m.group(1)) < 2:
+        return key
+    roots = [CHORD_ROOT_RE.match(c) for c in re.findall(r'\[([^\[\]/]+)', content or '')]
+    sharps = sum(1 for r in roots if r and '#' in r.group(1))
+    flats = sum(1 for r in roots if r and len(r.group(1)) > 1 and r.group(1)[1] == 'b')
+    pc = _resolve_pitch_class(m.group(1).upper(), 'international')
+    if pc is None:
+        return key
+    if sharps > flats and 'b' in m.group(1)[1:]:
+        return TRANSPOSE_SHARP[pc] + m.group(2)
+    if flats > sharps and '#' in m.group(1):
+        return TRANSPOSE_FLAT[pc] + m.group(2)
+    return key
 
 
 def prepare_song(content, input_notation='international'):
@@ -824,6 +944,28 @@ def prepare_song(content, input_notation='international'):
             # edytor wstawia go po wklejeniu (zapis i tak zrobi resztę)
             'converted': tidied,
             'changes': sorted(changes), 'meta': meta}
+
+
+def import_song(body, header_key='', notation=None):
+    """Jedna piosenka z importu (panel, Studio). Notacja: wybrana polska
+    albo zgadnięta dla tej piosenki; tonacja z nagłówka, chyba że wyraźnie
+    nie pasuje do akordów (wtedy wykryta). Zwraca dict: content, key,
+    notation, key_fixed."""
+    notation = notation if notation == 'polish' else guess_notation(body)
+    content = prepare_song_content(body, input_notation=notation)
+    chords = re.findall(r'\[([^\[\]]+)\]', content)
+    detected = detect_key_algorithm(content) if chords else ''
+    detected = '' if detected in ('N/A', '-') else detected
+    key, fixed = '', False
+    hk = canon_chord(header_key or '')
+    if hk and is_valid_chord(hk):
+        key = normalize_chord_to_international(hk, input_notation=notation)
+        if detected and key_fit(key, chords) < 0.5 and key_fit(detected, chords) >= 0.75:
+            key, fixed = detected, True
+    if not key:
+        key = detected
+    return {'content': content, 'key': spell_key_like_song(key, content)[:10],
+            'notation': notation, 'key_fixed': fixed}
 
 
 def prepare_song_content(content, input_notation='international'):
@@ -893,6 +1035,13 @@ def analyze_song(text, input_notation='international'):
             issues.append({'line': n, 'kind': 'capo_line', 'text': s})
         elif s and '[' not in s and _is_chords_over_lyrics_line(s):
             above.append(n)
+    # część z samą nazwą (np. niedokończona „Zwrotka 2") = pusty slajd
+    for n, line in enumerate(lines, start=1):
+        s = line.strip()
+        prev_blank = n == 1 or not lines[n - 2].strip()
+        next_blank = n == len(lines) or not lines[n].strip()
+        if s and prev_blank and next_blank and is_section_label(s):
+            issues.append({'line': n, 'kind': 'empty_part', 'text': s})
     hard = [i for i in issues if i['kind'] == 'unclosed']
     hint = None
     if input_notation != 'polish':

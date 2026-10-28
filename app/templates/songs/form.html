@@ -256,6 +256,7 @@
     dbl: {{ _('double brackets [[ ]] — fixed when you save')|tojson }},
     labelBr: {{ _('section name in brackets — becomes a plain label when you save')|tojson }},
     capo: {{ _('capo is set by each musician in their own view — this line would show as lyrics, delete it')|tojson }},
+    emptyPart: {{ _('a part with only a name — it would be an empty slide; add its lyrics or delete the name')|tojson }},
     invalid: {{ _('not a chord we know')|tojson }},
     keyLabel: {{ _('detected key')|tojson }},
     notationPl: {{ _('These chords look like Polish notation (%(ex)s).')|tojson }},
@@ -306,7 +307,10 @@
         above_lyrics: {{ _('Chords were above the lyrics — moved onto the syllables.')|tojson }},
         labels: {{ _('Part names in brackets became plain names.')|tojson }},
         label_gap: {{ _('Part names separated by a blank line were joined to their lyrics.')|tojson }},
-        invisible: {{ _('Invisible characters from the web page were removed.')|tojson }}
+        invisible: {{ _('Invisible characters from the web page were removed.')|tojson }},
+        double_spaced: {{ _('Lines were separated by blank lines (copied text) — joined back into parts.')|tojson }},
+        cont_labels: {{ _('Unnamed blocks after a part got its name with “(cont.)”.')|tojson }},
+        repeat_marks: {{ _('Repeat marks like “/2x” were written as “(x2)”.')|tojson }}
       }
     }
   };

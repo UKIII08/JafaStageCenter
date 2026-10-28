@@ -436,7 +436,7 @@
         window.addEventListener('resize', function () {
             clearTimeout(_fitResizeTimer);
             _fitResizeTimer = setTimeout(function () {
-                fitText('current-slide', 'current-content', 12, 4);
+                fitText('current-slide', 'current-content', 12, 3);
                 fitText('next-content', 'next-text-inner', 4.5, 2.5);
             }, 150);
         });
@@ -623,7 +623,7 @@
                 document.getElementById('next-text-inner').innerHTML = '';
                 document.getElementById('next-label').style.display = 'none';
                 currentContent.innerHTML = data.is_blackout ? '' : (data.html || '');
-                setTimeout(() => { fitText('current-slide', 'current-content', 12, 4); }, 0);
+                setTimeout(() => { fitText('current-slide', 'current-content', 12, 3); }, 0);
             }
             else if (data.mode === 'conference' || data.mode === 'presentation' || data.mode === 'canva') {
                 // Tryb konferencyjny (także gdy na projektor idzie prezentacja/Canva):
@@ -677,7 +677,7 @@
                 // 4. Wyświetlanie treści
                 if(data.band !== undefined) {
                     currentContent.innerHTML = transformStageHtml(data.band);
-                    setTimeout(() => { fitText('current-slide', 'current-content', 12, 4); }, 0);
+                    setTimeout(() => { fitText('current-slide', 'current-content', 12, 3); }, 0);
 
                     if (data.band_next && data.band_next.trim() !== "") {
                         let rawLines = data.band_next.split('<br>');

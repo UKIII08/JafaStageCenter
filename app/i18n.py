@@ -1194,3 +1194,17 @@ PL.update({
     '%(n)s lines — too much for one slide, split it (max 8)':
         '%(n)s linii — za dużo na jeden slajd, podziel (maks. 8)',
 })
+
+
+# ── Import: tonacja z nagłówka, puste części ──────────────────────────────
+PL.update({
+    'Key in the title did not match the chords — detected instead:':
+        'Tonacja w tytule nie pasowała do akordów — użyto wykrytej:',
+    'a part with only a name — it would be an empty slide; add its lyrics or delete the name':
+        'część z samą nazwą — byłby pusty slajd; dopisz tekst albo usuń nazwę',
+    'Lines were separated by blank lines (copied text) — joined back into parts.':
+        'Linie były przedzielone pustymi liniami (skopiowany tekst) — połączono je z powrotem w części.',
+    'Unnamed blocks after a part got its name with “(cont.)”.':
+        'Bloki bez nazwy po części dostały jej nazwę z „(cd.)”.',
+    'Repeat marks like “/2x” were written as “(x2)”.': 'Oznaczenia powtórzeń typu „/2x” zapisano jako „(x2)”.',
+})
