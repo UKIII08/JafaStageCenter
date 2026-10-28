@@ -460,6 +460,8 @@ def clean_riff(raw):
     """Walidacja riffu z przeglądarki. Zwraca dict albo None (pusty riff)."""
     if not isinstance(raw, dict):
         return None
+    if raw.get('kind') == 'staff':
+        return clean_staff(raw)
     inst = raw.get('inst') if raw.get('inst') in RIFF_STRINGS else 'guitar'
     n = RIFF_STRINGS[inst]
     cols = []
@@ -480,3 +482,29 @@ def clean_riff(raw):
     # pełne takty (16 szesnastek) — tak riff się wyświetla i gra
     cols += [[''] * n for _ in range((-len(cols)) % 16)]
     return {'inst': inst, 'cols': cols}
+
+
+# ── nuty (pięciolinia) w komórce — to samo pole co riff, kind="staff" ────
+STAFF_MAX_NOTES = 256
+_STAFF_KEY = re.compile(r'^(r|[A-G](#|b)?[1-7])$')
+
+
+def clean_staff(raw):
+    """{"kind": "staff", "clef": "treble"|"bass", "notes": [{k, d, dot}]}
+    k = "C#4" albo "r" (pauza), d = 1/2/4/8/16 (cała…szesnastka)."""
+    clef = raw.get('clef') if raw.get('clef') in ('treble', 'bass') else 'treble'
+    notes = []
+    for n in (raw.get('notes') or [])[:STAFF_MAX_NOTES]:
+        if not isinstance(n, dict):
+            continue
+        k = str(n.get('k') or '')
+        try:
+            d = int(n.get('d'))
+        except (TypeError, ValueError):
+            continue
+        if not _STAFF_KEY.match(k) or d not in (1, 2, 4, 8, 16):
+            continue
+        notes.append({'k': k, 'd': d, 'dot': bool(n.get('dot'))})
+    if not any(n['k'] != 'r' for n in notes):
+        return None
+    return {'kind': 'staff', 'clef': clef, 'notes': notes}

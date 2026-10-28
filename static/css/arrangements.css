@@ -371,3 +371,28 @@
 }
 /* przypięta kolumna instrumentów: bez marginesu, spod którego wystawałyby kratki */
 .grid-wrap:has(.daw) { margin-left: 0; padding-left: 0; }
+
+
+/* ── Nuty (pięciolinia) ── */
+.music-kind { padding: 10px 12px 0; }
+.stf-view { position: relative; overflow-x: auto; border: 1px solid var(--border-default); border-radius: var(--r-md); padding: 4px 0; min-height: 120px; }
+.stf-empty { position: absolute; left: 60px; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-tertiary); font-size: 14px; }
+.stf-tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.stf-tools .btn.on { background: var(--accent-subtle); border-color: var(--accent); color: var(--text-accent); }
+.stf-dur button { min-width: 40px; font-family: var(--font-mono); }
+.pk-wrap { display: flex; align-items: stretch; gap: 6px; margin-top: 10px; }
+.pk-oct { height: auto !important; align-self: stretch; }
+.pk { position: relative; flex: 1; display: grid; grid-template-columns: repeat(var(--w, 14), 1fr); height: 96px; }
+.pk-w { height: 100%; min-height: 0; padding: 0 0 6px; border-radius: 0 0 6px 6px; border: 1px solid var(--border-strong);
+    background: #F4F3EF; color: #3A3A3A; align-items: flex-end; font-size: 13px; font-weight: 700; flex-direction: column; justify-content: flex-end; gap: 0; }
+.pk-w small { font-size: 10px; font-weight: 500; color: #8A8A8A; }
+.pk-w:hover { background: #FFFFFF; color: #000; border-color: var(--accent); }
+.pk-b { position: absolute; top: 0; width: calc(100% / var(--w, 14) * .62); height: 58%; min-height: 0; padding: 0;
+    left: calc(100% / var(--w, 14) * (var(--i) + 1) - 100% / var(--w, 14) * .31); background: #1E1E22; border: 1px solid #000; border-radius: 0 0 4px 4px; z-index: 1; }
+.pk-b:hover { background: #3A3A44; border-color: #000; }
+.daw-staff { display: block; overflow: hidden; max-height: 86px; }
+.daw-staff .stf-svg { width: 100%; height: auto; }
+@media (max-width: 760px) {
+    .pk { height: 120px; }
+    .stf-dur button { min-width: 44px; }
+}

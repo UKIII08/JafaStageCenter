@@ -1227,3 +1227,22 @@ PL.update({
     'hammer-on (5h7)': 'hammer-on (5h7)', 'pull-off (7p5)': 'pull-off (7p5)', 'slide (5/7)': 'slajd (5/7)',
     'bend (7b)': 'podciągnięcie (7b)', 'vibrato': 'wibrato', 'muted': 'stłumiona',
 })
+
+
+# ── Nuty (pięciolinia) i zapis w „Ćwicz" ─────────────────────────────────
+PL.update({
+    'Riff or melody': 'Riff albo melodia',
+    'Tab': 'Tabulatura', 'Notes': 'Nuty', 'notes': 'nuty',
+    'Switching deletes what is written here now. Continue?': 'Przełączenie usunie to, co jest tu teraz zapisane. Kontynuować?',
+    'C,D,E,F,G,A,B': 'C,D,E,F,G,A,H',
+    'Treble clef': 'Wiolinowy', 'Bass clef': 'Basowy',
+    'Clear all notes?': 'Wyczyścić wszystkie nuty?', 'Rest': 'Pauza',
+    'Dotted (longer by half)': 'Z kropką (dłuższa o połowę)',
+    'Delete the selected or last note': 'Usuń zaznaczoną albo ostatnią nutę',
+    'Octave up': 'Oktawa wyżej', 'Octave down': 'Oktawa niżej',
+    'whole': 'cała nuta', 'half': 'półnuta', 'quarter': 'ćwierćnuta', 'eighth': 'ósemka', 'sixteenth': 'szesnastka',
+    'Pick a length, then click the keys — the notes appear here.': 'Wybierz długość i klikaj klawisze — nuty pojawią się tutaj.',
+    'Choose the length (¼ = quarter), then click piano keys; ♯ ♭ before the key. Click a note to change or delete it. Keyboard: c d e f g a h, 1–5 length, ↑ ↓ moves the selected note, Space plays.':
+        'Wybierz długość (¼ = ćwierćnuta) i klikaj klawisze; ♯ ♭ przed klawiszem. Kliknij nutę, żeby ją zmienić albo usunąć. Klawiatura: c d e f g a h, 1–5 długość, ↑ ↓ przesuwa zaznaczoną nutę, spacja odtwarza.',
+    'Show notes': 'Pokaż nuty', 'Show riff': 'Pokaż riff',
+})

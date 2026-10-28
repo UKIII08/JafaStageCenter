@@ -2,6 +2,7 @@
 {% block title %}{{ song.title }} · {{ arr.name }} — {{ _('Arrangement') }}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/arrangements.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/music.css') }}">
 
 <div class="arr-head">
     <a class="arr-crumb" href="{{ url_for('songs.song_view', church_id=church.id, song_id=song.id) }}">
@@ -184,7 +185,13 @@
             <span class="arr-save" id="cell-status"></span>
         </div>
         <details class="riff-box" id="riff-box">
-            <summary>🎸 {{ _('Riff (tab)') }}</summary>
+            <summary>🎼 {{ _('Riff or melody') }}</summary>
+            <div class="music-kind">
+                <div class="seg" id="music-kind">
+                    <button type="button" data-kind="tab">🎸 {{ _('Tab') }}</button>
+                    <button type="button" data-kind="staff">🎼 {{ _('Notes') }}</button>
+                </div>
+            </div>
             <div class="riff-editor" id="riff-editor"></div>
         </details>
         <div class="memo">
@@ -239,7 +246,19 @@ window.ARR = {
         conflict: {{ _('Someone else changed the form in the meantime — you now see their version. Make your change again.')|tojson }},
         updatedBy: {{ _('Updated — latest change by')|tojson }},
         replaceOther: {{ _('This idea was recorded by %(name)s. Record over it?')|tojson }},
-        riff: {{ _('riff')|tojson }},
+        riff: {{ _('riff')|tojson }}, notes: {{ _('notes')|tojson }},
+        switchKind: {{ _('Switching deletes what is written here now. Continue?')|tojson }},
+        st: {
+            names: {{ _('C,D,E,F,G,A,B').split(',')|tojson }},
+            treble: {{ _('Treble clef')|tojson }}, bassClef: {{ _('Bass clef')|tojson }},
+            play: {{ _('Play')|tojson }}, stop: {{ _('Stop')|tojson }}, clear: {{ _('Clear')|tojson }},
+            clearQ: {{ _('Clear all notes?')|tojson }}, rest: {{ _('Rest')|tojson }},
+            dot: {{ _('Dotted (longer by half)')|tojson }}, del: {{ _('Delete the selected or last note')|tojson }},
+            octUp: {{ _('Octave up')|tojson }}, octDown: {{ _('Octave down')|tojson }},
+            durs: { 1: {{ _('whole')|tojson }}, 2: {{ _('half')|tojson }}, 4: {{ _('quarter')|tojson }}, 8: {{ _('eighth')|tojson }}, 16: {{ _('sixteenth')|tojson }} },
+            empty: {{ _('Pick a length, then click the keys — the notes appear here.')|tojson }},
+            help: {{ _('Choose the length (¼ = quarter), then click piano keys; ♯ ♭ before the key. Click a note to change or delete it. Keyboard: c d e f g a h, 1–5 length, ↑ ↓ moves the selected note, Space plays.')|tojson }}
+        },
         rf: {
             guitar: {{ _('Guitar')|tojson }}, bass: {{ _('Bass')|tojson }},
             play: {{ _('Play')|tojson }}, stop: {{ _('Stop')|tojson }},
@@ -258,5 +277,6 @@ window.ARR = {
 };
 </script>
 <script src="{{ url_for('static', filename='js/arr-riff.js') }}"></script>
+<script src="{{ url_for('static', filename='js/arr-staff.js') }}"></script>
 <script src="{{ url_for('static', filename='js/arrangements.js') }}"></script>
 {% endblock %}

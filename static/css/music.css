@@ -1,0 +1,22 @@
+/* Wyświetlanie zapisu muzycznego (nuty, tabulatura) — wspólne dla
+   „Forma i partie" i „Ćwicz". Edytory mają swoje style w arrangements.css. */
+.stf-svg { display: block; max-width: 100%; }
+.stf-line { stroke: var(--text-tertiary); stroke-width: 1; }
+.stf-bar { stroke: var(--text-secondary); stroke-width: 1.2; }
+.stf-clef { font-family: 'Noto Music', 'Segoe UI Symbol', 'Apple Symbols', 'Bravura', serif; font-size: 44px; fill: var(--text-secondary); }
+.stf-head { fill: var(--text-primary); stroke: var(--text-primary); stroke-width: 1.2; }
+.stf-head.hollow { fill: transparent; stroke-width: 1.8; }
+.stf-stem { stroke: var(--text-primary); stroke-width: 1.4; }
+.stf-flag, .stf-rest { fill: none; stroke: var(--text-primary); stroke-width: 2; stroke-linecap: round; }
+.stf-fill { fill: var(--text-primary); }
+.stf-acc { font-size: 16px; fill: var(--text-primary); font-family: 'Segoe UI Symbol', 'Apple Symbols', serif; }
+.stf-hit { fill: transparent; cursor: pointer; }
+.stf-note:hover .stf-hit { fill: var(--accent-subtle); }
+.stf-note.sel .stf-hit { fill: var(--accent-subtle); stroke: var(--accent); stroke-width: 1; }
+.stf-note.sel .stf-head, .stf-note.now .stf-head { fill: var(--text-accent); stroke: var(--text-accent); }
+.stf-note.now .stf-hit { fill: color-mix(in srgb, var(--accent) 25%, transparent); }
+.stf-note.sel .stf-head.hollow, .stf-note.now .stf-head.hollow { fill: transparent; }
+.mus-tab { margin: 0; font-family: var(--font-mono); font-size: 13px; line-height: 1.35; white-space: pre;
+    overflow-x: auto; color: var(--text-primary); }
+.mus-box { margin-top: 10px; overflow-x: auto; }
+.mus-play { margin-top: 8px; }
