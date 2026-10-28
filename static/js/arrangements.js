@@ -286,8 +286,9 @@
     }
     function cellButton(t, r) {
         var c = A.cells[cellKey(t.id, r)] || {};
-        var riff = c.riff && window.JRiff && JRiff.hasNotes(c.riff);
-        var filled = c.note || c.memo || riff;
+        var staff = c.riff && c.riff.kind === 'staff' && window.JStaff && JStaff.hasNotes(c.riff);
+        var riff = !staff && c.riff && window.JRiff && JRiff.hasNotes(c.riff);
+        var filled = c.note || c.memo || riff || staff;
         var b = el('button', 'daw-cell fam-' + family(r) + (filled ? ' filled' : ''));
         b.type = 'button';
         b.setAttribute('aria-label', r + ' · ' + t.label);
@@ -296,9 +297,15 @@
             var pre = el('pre', 'daw-tab', JRiff.ascii(c.riff, 16));
             b.appendChild(pre);
         }
-        if (c.memo || riff) {
+        if (staff) {
+            var mini = el('span', 'daw-staff');
+            b.appendChild(mini);
+            JStaff.render(mini, c.riff, { width: 300, compact: true });
+        }
+        if (c.memo || riff || staff) {
             var chips = el('span', 'daw-chips');
             if (riff) chips.appendChild(el('span', 'chip riff', '🎸 ' + L.riff));
+            if (staff) chips.appendChild(el('span', 'chip riff', '🎼 ' + L.notes));
             if (c.memo) {
                 var m = el('span', 'chip memo');
                 m.innerHTML = '<svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/></svg>';
@@ -331,19 +338,44 @@
         setTimeout(function () { if (!('ontouchstart' in window)) $('cell-note').focus(); }, 30);
     }
     // ── Riff (tabulatura) w komórce ──
-    var riffEd = null, riffTimer = null;
+    var riffEd = null, riffTimer = null, musicKind = 'tab';
+    // Gitary i bas piszą tabulaturę, reszta (wokale, klawisze, smyczki,
+    // dęte) nuty — ale każdy może przełączyć.
+    function defaultKind(role) { return /^(guitar|bass)$/.test(family(role)) ? 'tab' : 'staff'; }
     function openRiff(riff) {
-        var has = !!(riff && window.JRiff && JRiff.hasNotes(riff));
+        var staff = riff && riff.kind === 'staff';
+        var has = staff ? JStaff.hasNotes(riff) : !!(riff && JRiff.hasNotes(riff));
+        musicKind = has ? (staff ? 'staff' : 'tab') : defaultKind(cur.role);
         $('riff-box').open = has;
-        if (riffEd) riffEd.destroy();
-        riffEd = window.JRiff ? JRiff.mount($('riff-editor'), riff, {
-            bpm: A.bpm, L: L.rf, onChange: function (r) {
-                status('cell-status', 'saving');
-                clearTimeout(riffTimer);
-                riffTimer = setTimeout(function () { riffTimer = null; saveRiff(r); }, 700);
-            }
-        }) : null;
+        mountMusic(has ? riff : null);
     }
+    function mountMusic(data) {
+        if (riffEd) riffEd.destroy();
+        document.querySelectorAll('#music-kind button').forEach(function (b) { b.classList.toggle('active', b.dataset.kind === musicKind); });
+        var onChange = function (r) {
+            status('cell-status', 'saving');
+            clearTimeout(riffTimer);
+            riffTimer = setTimeout(function () { riffTimer = null; saveRiff(r); }, 700);
+        };
+        var fam = family(cur.role);
+        riffEd = musicKind === 'staff'
+            ? JStaff.mount($('riff-editor'), data, { bpm: A.bpm, L: L.st, onChange: onChange,
+                clef: fam === 'bass' ? 'bass' : 'treble' })
+            : JRiff.mount($('riff-editor'), data && data.cols ? data : (fam === 'bass' ? { inst: 'bass', cols: [] } : null),
+                { bpm: A.bpm, L: L.rf, onChange: onChange });
+    }
+    document.querySelectorAll('#music-kind button').forEach(function (b) {
+        b.addEventListener('click', function () {
+            if (b.dataset.kind === musicKind || !cur) return;
+            var c = A.cells[cellKey(cur.tile, cur.role)] || {};
+            var has = c.riff && (c.riff.kind === 'staff' ? JStaff.hasNotes(c.riff) : JRiff.hasNotes(c.riff));
+            if (has && !confirm(L.switchKind)) return;
+            flushRiff();
+            musicKind = b.dataset.kind;
+            if (has) saveRiff(null);
+            mountMusic(null);
+        });
+    });
     function saveRiff(r) {
         if (!cur) return;
         var key = cellKey(cur.tile, cur.role);
@@ -361,6 +393,7 @@
         flushNote();
         flushRiff();
         if (window.JRiff) JRiff.stop();
+        if (window.JStaff) JStaff.stop();
         $('cell-modal').hidden = true;
         var a = $('memo-audio'); a.pause();
         cur = null;

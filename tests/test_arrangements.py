@@ -421,3 +421,20 @@ def test_cell_riff_saved_separately_from_note(app, client):
     # pusty riff + pusta notatka = komórka znika
     client.post(url, json={'tile': tile, 'role': 'Gitara', 'note': '', 'riff': None})
     assert ArrangementCell.query.filter_by(role='Gitara').count() == 0
+
+
+def test_staff_notation_validation_and_save(app, client):
+    r = svc.clean_riff({'kind': 'staff', 'clef': 'treble', 'notes': [
+        {'k': 'C4', 'd': 4}, {'k': 'F#4', 'd': 8, 'dot': True}, {'k': 'r', 'd': 2},
+        {'k': 'H4', 'd': 4}, {'k': 'C4', 'd': 3}, {'k': 'Bb3', 'd': 16}]})
+    assert r == {'kind': 'staff', 'clef': 'treble', 'notes': [
+        {'k': 'C4', 'd': 4, 'dot': False}, {'k': 'F#4', 'd': 8, 'dot': True},
+        {'k': 'r', 'd': 2, 'dot': False}, {'k': 'Bb3', 'd': 16, 'dot': False}]}
+    assert svc.clean_riff({'kind': 'staff', 'notes': [{'k': 'r', 'd': 4}]}) is None   # same pauzy
+    cid, sid = setup(client, app)
+    aid = main_arr(client, cid, sid)
+    tile = db.session.get(Arrangement, aid).form[2]['id']
+    client.post(f'/c/{cid}/arrangements/{aid}/roles', json={'add': 'Wokal'})
+    client.post(f'/c/{cid}/arrangements/{aid}/cell', json={'tile': tile, 'role': 'Wokal', 'riff': r})
+    page = client.get(f'/c/{cid}/songs/{sid}/practice').get_data(as_text=True)
+    assert 'data-music' in page and 'Pokaż nuty' in page or 'Show notes' in page
