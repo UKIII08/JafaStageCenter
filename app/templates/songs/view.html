@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ song.title }} — Jonathan App{% endblock %}
+{% block title %}{{ song.title }} · Jonathan App{% endblock %}
 {% block content %}
 <style>
     .sv-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -30,11 +30,11 @@
         <span class="lbl">{{ _('Key') }}</span>
         <a class="btn btn-ghost btn-sm" href="{{ url_for('songs.song_view', church_id=church.id, song_id=song.id, t=transpose-1) }}"
            title="{{ _('Half a step down') }}" aria-label="{{ _('Half a step down') }}">−</a>
-        <b>{{ shown_key or '—' }}</b>
+        <b>{{ shown_key or '–' }}</b>
         <a class="btn btn-ghost btn-sm" href="{{ url_for('songs.song_view', church_id=church.id, song_id=song.id, t=transpose+1) }}"
            title="{{ _('Half a step up') }}" aria-label="{{ _('Half a step up') }}">+</a>
         {% if transpose %}
-        <span class="muted">{{ _('original') }}: {{ song.key or '—' }} ({{ '+' if transpose > 0 }}{{ transpose }})</span>
+        <span class="muted">{{ _('original') }}: {{ song.key or '–' }} ({{ '+' if transpose > 0 }}{{ transpose }})</span>
         <a class="sv-reset" href="{{ url_for('songs.song_view', church_id=church.id, song_id=song.id) }}">{{ _('Back to original') }}</a>
         {% endif %}
     </div>

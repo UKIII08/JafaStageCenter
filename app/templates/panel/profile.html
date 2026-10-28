@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ _('My profile') }} — {{ church.name }}{% endblock %}
+{% block title %}{{ _('My profile') }} · {{ church.name }}{% endblock %}
 {% block content %}
 <style>
     .inst-picks { display: flex; flex-wrap: wrap; gap: var(--s2); }
@@ -34,7 +34,7 @@
         </div>
         <input name="instruments_custom" value="{{ custom|join(', ') }}" maxlength="120"
                placeholder="{{ _('Something else? e.g. Cajon, Ukulele (comma-separated)') }}" style="margin-top:var(--s2);">
-        <p class="hint" style="margin:var(--s1) 0 0;">{{ _('Pick everything you play — arrangements suggest these instruments as parts.') }}</p>
+        <p class="hint" style="margin:var(--s1) 0 0;">{{ _('Pick everything you play. Arrangements suggest these instruments as parts.') }}</p>
         <label>{{ _('Chord notation') }}</label>
         <select name="notation">
             <option value="international" {% if profile.prefs.get('notation','international') == 'international' %}selected{% endif %}>{{ _('International (Bb, B)') }}</option>

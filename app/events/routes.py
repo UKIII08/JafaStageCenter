@@ -308,7 +308,7 @@ def _img_ext(data):
 
 
 def _sl_welcome(sl):
-    """Ogłoszenia trzymamy PER SETLISTA (StudioSetlist.welcome_json) — dzięki
+    """Ogłoszenia trzymamy PER SETLISTA (StudioSetlist.welcome_json). Dzięki
     temu działają też, gdy odpalasz zapisaną setlistę z Historii w Studio,
     i synchronizują się do aplikacji offline (która nie zna modelu Event)."""
     try:
@@ -325,7 +325,7 @@ def _get_setlist(church_id, sid):
 
 
 def _valid_start_time(v):
-    """Zwraca 'HH:MM' albo '' — sanity check formatu godziny."""
+    """Zwraca 'HH:MM' albo '' · sanity check formatu godziny."""
     v = (v or '').strip()
     try:
         datetime.strptime(v, '%H:%M')

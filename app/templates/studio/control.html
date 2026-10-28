@@ -63,7 +63,7 @@
 
     <style>
     /* ═══════════════════════════════════════════════════════════
-       CONTROL PANEL — Premium redesign
+       CONTROL PANEL · Premium redesign
        Layered dark UI · electric-cyan identity · LED controls
        Benchmarks: Linear · Raycast · Ableton Live
        (Layout/responsive mechanics preserved; visual layer rebuilt)
@@ -550,7 +550,7 @@
         flex: 1;
         aspect-ratio: 16/9;
         /* Always mirrors the projector: dark background + light text, even in
-           light mode — the audience screen never turns light. */
+           light mode. The audience screen never turns light. */
         background: #04060B;
         border: 1px solid var(--border-default);
         border-radius: var(--r-lg);
@@ -1516,7 +1516,7 @@
                 <button class="secondary" onclick="showLogo()">LOGO</button>
                 <button id="btn-announcements" class="secondary" onclick="playAnnouncements()" data-t="play_announcements" title="Ekran powitalny: odliczanie + ogłoszenia tego grania" style="display:none;">OGŁOSZENIA</button>
                 <button class="secondary" onclick="openNoteModal()" data-t="note_btn" title="Spontaniczny tekst">TEKST</button>
-                <button id="silent-md-btn" class="secondary silent-md-btn" onclick="toggleSilentMD()" title="Silent Music Director — pianino MIDI">
+                <button id="silent-md-btn" class="secondary silent-md-btn" onclick="toggleSilentMD()" title="Silent Music Director · pianino MIDI">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="14"/><line x1="10" y1="10" x2="10" y2="14"/><line x1="14" y1="10" x2="14" y2="14"/><line x1="18" y1="10" x2="18" y2="14"/></svg>
                     <span id="silent-md-label">SILENT MD</span>
                     <span id="silent-md-status" style="font-size:0.7em;opacity:0.6;"></span>
@@ -1657,7 +1657,7 @@
                     <span data-t="chord_format_hint">Akordy wpisuj w nawiasach kwadratowych:</span> <code>[Am]tekst [G]dalej</code><br>
                     <span data-t="chord_format_hint2">Sekcje (Zwrotka, Refren) oddzielaj pustą linią. Obsługiwane formaty:</span>
                     <code>C, Am, F#m, Bb, Csus4, G/B, E7, Dmaj7, Asus2</code><br>
-                    <span data-t="chord_format_hint3">📋 Wkleiłeś piosenkę z akordami <b>nad tekstem</b> (np. z Ultimate Guitar)? Użyj przycisku poniżej — program przepisze ją do formatu [akord]tekst.</span><br>
+                    <span data-t="chord_format_hint3">📋 Wkleiłeś piosenkę z akordami <b>nad tekstem</b> (np. z Ultimate Guitar)? Użyj przycisku poniżej. Program przepisze ją do formatu [akord]tekst.</span><br>
                     <button type="button" class="btn-secondary" style="margin-top:var(--s2); font-size:var(--font-xs);" onclick="convertPastedFormat('add-content','add-chord-status','add-key-input')" data-t="convert_format_btn">⇄ Konwertuj akordy nad tekstem</button>
                 </div>
                 <textarea name="content" id="add-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('add-content', 'add-key-input'); validateChords('add-content', 'add-chord-status')" placeholder="Zwrotka 1&#10;[C]Tekst piosenki [Am]z akordami&#10;[F]Kolejna linia [G]tekstu&#10;&#10;Refren&#10;[F]Tekst refrenu [C]z akordami" data-t-ph="paste_ph"></textarea>
@@ -1700,7 +1700,7 @@
                     <span data-t="chord_format_hint">Akordy wpisuj w nawiasach kwadratowych:</span> <code>[Am]tekst [G]dalej</code><br>
                     <span data-t="chord_format_hint2">Sekcje (Zwrotka, Refren) oddzielaj pustą linią. Obsługiwane formaty:</span>
                     <code>C, Am, F#m, Bb, Csus4, G/B, E7, Dmaj7, Asus2</code><br>
-                    <span data-t="chord_format_hint3">📋 Wkleiłeś piosenkę z akordami <b>nad tekstem</b> (np. z Ultimate Guitar)? Użyj przycisku poniżej — program przepisze ją do formatu [akord]tekst.</span><br>
+                    <span data-t="chord_format_hint3">📋 Wkleiłeś piosenkę z akordami <b>nad tekstem</b> (np. z Ultimate Guitar)? Użyj przycisku poniżej. Program przepisze ją do formatu [akord]tekst.</span><br>
                     <button type="button" class="btn-secondary" style="margin-top:var(--s2); font-size:var(--font-xs);" onclick="convertPastedFormat('edit-content','edit-chord-status','edit-key-input')" data-t="convert_format_btn">⇄ Konwertuj akordy nad tekstem</button>
                 </div>
                 <textarea name="content" id="edit-content" rows="10" style="font-family:monospace;" oninput="liveKeyCheck('edit-content', 'edit-key-input'); validateChords('edit-content', 'edit-chord-status')"></textarea>
@@ -1841,8 +1841,8 @@
             </div>
 
             <div class="settings-section">
-                <h4 data-t="audio_section">Audio — pady i metronom</h4>
-                <p class="shortcuts-hint" data-t="audio_hint">Wybierz interfejs audio i wyjścia. Pady i metronom mogą iść na różne kanały (np. pady na FOH, click na słuchawki/IEM). Bez interfejsu wielokanałowego — wszystko w stereo.</p>
+                <h4 data-t="audio_section">Audio · pady i metronom</h4>
+                <p class="shortcuts-hint" data-t="audio_hint">Wybierz interfejs audio i wyjścia. Pady i metronom mogą iść na różne kanały (np. pady na FOH, click na słuchawki/IEM). Bez interfejsu wielokanałowego. Wszystko w stereo.</p>
                 <div class="settings-row">
                     <label data-t="audio_out">Interfejs / wyjście:</label>
                     <select id="audio-out-select" style="width:55%;" onchange="selectAudioOutput(this.value)">
@@ -1878,7 +1878,7 @@
                 <div class="settings-row">
                     <label data-t="midi_device">Urządzenie MIDI:</label>
                     <select id="midi-device-select" style="width:55%;" onchange="selectMidiDevice(this.value)">
-                        <option value="" data-t="midi_none">— nie wykryto —</option>
+                        <option value="" data-t="midi_none">nie wykryto</option>
                     </select>
                 </div>
                 <button type="button" class="backup-btn" style="width:100%; margin-top:var(--s3);" onclick="scanMidiDevices()" data-t="midi_scan">Skanuj urządzenia MIDI</button>
@@ -2016,7 +2016,7 @@
                 'border:1px dashed var(--amber, #FBBF24);border-radius:var(--r-md,10px);' +
                 'padding:6px 12px;font-size:0.8rem;font-weight:700;white-space:nowrap;';
             chip.textContent = {{ _('Setlist for:')|tojson }} + ' ' + window.JAFA_EVENT.name +
-                ' (' + window.JAFA_EVENT.date + ') — ' + {{ _('click Save setlist to attach')|tojson }};
+                ' (' + window.JAFA_EVENT.date + ') · ' + {{ _('click Save setlist to attach')|tojson }};
             var spacer = bar && bar.querySelector('.top-bar-spacer');
             if (spacer) bar.insertBefore(chip, spacer);
             if (window.JAFA_EVENT.setlist_id) {
@@ -2072,7 +2072,7 @@
                                  '<b style="color:var(--accent,#4F7FFF);">' + (p.key || ((p.transpose > 0 ? '+' : '') + p.transpose)) + '</b></div>';
                         });
                         h += '<div style="font-size:0.72rem;color:var(--text-tertiary);margin-top:8px;">' +
-                             {{ _('Original key:')|tojson }} + ' <b>' + (d.song_key || '—') + '</b>. ' +
+                             {{ _('Original key:')|tojson }} + ' <b>' + (d.song_key || '–') + '</b>. ' +
                              {{ _('Set the transpose for whoever leads the vocal.')|tojson }} + '</div>';
                     } else {
                         h += '<div style="font-size:0.85rem;color:var(--text-secondary);">' +
@@ -2154,7 +2154,7 @@
             if (!list.length) {
                 var empty = document.createElement('div');
                 empty.style.cssText = 'opacity:.55; font-size:.88em;';
-                empty.textContent = tt('note_no_tiles', 'No tiles yet — save your first one above.');
+                empty.textContent = tt('note_no_tiles', 'No tiles yet. Save your first one above.');
                 wrap.appendChild(empty);
                 return;
             }

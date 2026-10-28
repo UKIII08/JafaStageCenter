@@ -201,9 +201,9 @@
         <div class="tp-ctrl">
             <div class="seg" id="tp-mode">
                 {% if has_loud %}<button type="button" class="active" data-src="{{ rec.loud[my_role] }}"
-                    data-desc="{{ _('You hear the whole band with your part louder — to learn it.') }}">{{ _('Learn') }}</button>{% endif %}
+                    data-desc="{{ _('You hear the whole band with your part louder. To learn it.') }}">{{ _('Learn') }}</button>{% endif %}
                 {% if has_minus %}<button type="button" {{ 'class=active' if not has_loud }} data-src="{{ rec.minus[my_role] }}"
-                    data-desc="{{ _('Your part is muted — you play it yourself with the band.') }}">{{ _('Play along') }}</button>{% endif %}
+                    data-desc="{{ _('Your part is muted. You play it yourself with the band.') }}">{{ _('Play along') }}</button>{% endif %}
                 <button type="button" {{ 'class=active' if not (has_loud or has_minus) }} data-src="{{ rec.mix }}"
                     data-desc="{{ _('The rehearsal recording as it sounded.') }}">{{ _('Mix') }}</button>
             </div>
@@ -236,15 +236,15 @@
     <div class="tp-hint">
         {% if has_rec %}
             {% if not my_role and arr.roles %}
-            <span class="warn">{{ _('Pick what you play above — you get the Learn and Play along modes.') }}</span>
+            <span class="warn">{{ _('Pick what you play above. You get the Learn and Play along modes.') }}</span>
             {% elif my_role and not (has_loud or has_minus) %}
-            <span>{{ _('The recording has no separate track for %(role)s — you hear the full mix.') % {'role': my_role} }}</span>
+            <span>{{ _('The recording has no separate track for %(role)s. You hear the full mix.') % {'role': my_role} }}</span>
             {% else %}
             <span id="tp-desc"></span>
             {% endif %}
             <span class="keys"><kbd>{{ _('Space') }}</kbd> {{ _('play') }} · <kbd>←</kbd><kbd>→</kbd> {{ _('parts') }} · <kbd>L</kbd> {{ _('loop') }}</span>
         {% else %}
-            <span>{{ _('No rehearsal recording for this version yet — tap a part to jump to it.') }}</span>
+            <span>{{ _('No rehearsal recording for this version yet. Tap a part to jump to it.') }}</span>
         {% endif %}
     </div>
 </section>
@@ -269,7 +269,7 @@
             {% set mine = cells.get(sec.id ~ '|' ~ my_role, {}) if my_role else {} %}
             {% if mine.note or mine.memo or mine.riff %}
             <div class="part pr-part">
-                <div class="who">{{ my_role }} — {{ _('you') }}</div>
+                <div class="who">{{ my_role }} · {{ _('you') }}</div>
                 {% if mine.note %}<p>{{ mine.note }}</p>{% endif %}
                 {% if mine.riff %}<div class="mus" data-music='{{ mine.riff|tojson }}'></div>{% endif %}
                 {% if mine.memo %}<button type="button" class="tool memo-play" data-src="{{ mine.memo }}" style="margin-top:12px;"><svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20"/></svg>{{ _('Listen to the idea') }}</button>{% endif %}

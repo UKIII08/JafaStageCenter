@@ -1133,7 +1133,7 @@
         <div class="smd-inner">
             <div class="smd-capo-badge" id="smd-capo-badge"></div>
             <div class="smd-history" id="smd-history"></div>
-            <div class="smd-current" id="smd-current">—</div>
+            <div class="smd-current" id="smd-current">–</div>
             <div class="smd-tag" id="smd-tag" data-t="smd_tag">SILENT MODE · pianino prowadzi</div>
         </div>
     </div>
@@ -1143,7 +1143,7 @@
         <button id="tuner-close" onclick="toggleTuner()" aria-label="Close">✕</button>
         <div class="tuner-inner">
             <div class="tuner-note-wrap">
-                <div id="tuner-note">—</div>
+                <div id="tuner-note">–</div>
                 <div id="tuner-octave"></div>
             </div>
             <div id="tuner-direction" data-t="tuner_hint_play">Zagraj jedną strunę…</div>
@@ -1159,7 +1159,7 @@
                 <div class="tuner-cents"><span id="tuner-cents-val">–</span> <span class="tuner-cents-u">cents</span></div>
             </div>
 
-            <div class="tuner-freq"><span id="tuner-freq">—</span> Hz &nbsp;·&nbsp; <span data-t="tuner_target">cel</span>: <span id="tuner-target">—</span> Hz</div>
+            <div class="tuner-freq"><span id="tuner-freq">–</span> Hz &nbsp;·&nbsp; <span data-t="tuner_target">cel</span>: <span id="tuner-target">–</span> Hz</div>
 
             <div id="tuner-strings" class="tuner-strings"></div>
         </div>
@@ -1537,7 +1537,7 @@
             var notes = getSongNotes(songId);
             document.getElementById('note-input').value = notes[sectionIdx] || '';
             document.getElementById('note-editor-title').textContent =
-                t('note_title') + ' — ' + (sectionIdx + 1);
+                t('note_title') + ' · ' + (sectionIdx + 1);
             document.getElementById('note-editor').classList.add('open');
             document.getElementById('note-input').focus();
         }
@@ -2272,7 +2272,7 @@
             var d = lastSMD;
             if (!d || !d.active) { ov.classList.remove('show'); return; }
 
-            document.getElementById('smd-current').textContent = smdTransformChord(d.current) || '—';
+            document.getElementById('smd-current').textContent = smdTransformChord(d.current) || '–';
             var hist = document.getElementById('smd-history');
             hist.innerHTML = '';
             (d.history || []).forEach(function(name) {
@@ -2399,11 +2399,11 @@
         }
 
         function resetTunerUI() {
-            document.getElementById('tuner-note').textContent = '—';
+            document.getElementById('tuner-note').textContent = '–';
             document.getElementById('tuner-note').className = '';
             document.getElementById('tuner-octave').textContent = '';
-            document.getElementById('tuner-freq').textContent = '—';
-            document.getElementById('tuner-target').textContent = '—';
+            document.getElementById('tuner-freq').textContent = '–';
+            document.getElementById('tuner-target').textContent = '–';
             document.getElementById('tuner-cents-val').textContent = '–';
             const dir = document.getElementById('tuner-direction');
             dir.className = ''; dir.textContent = t('tuner_hint_play') || 'Zagraj jedną strunę…';
@@ -2478,8 +2478,8 @@
 
             const dir = document.getElementById('tuner-direction');
             if (inTune) { dir.className = 'good'; dir.textContent = '✓ ' + (t('tuner_in_tune') || 'Nastrojone'); }
-            else if (cents < 0) { dir.className = 'flat'; dir.textContent = '↑ ' + (t('tuner_tune_up') || 'za nisko — podciągnij'); }
-            else { dir.className = 'sharp'; dir.textContent = '↓ ' + (t('tuner_tune_down') || 'za wysoko — poluzuj'); }
+            else if (cents < 0) { dir.className = 'flat'; dir.textContent = '↑ ' + (t('tuner_tune_up') || 'za nisko · podciągnij'); }
+            else { dir.className = 'sharp'; dir.textContent = '↓ ' + (t('tuner_tune_down') || 'za wysoko · poluzuj'); }
 
             // podświetlenie najbliższej struny gitary
             let nearest = 0, best = 1e9;
@@ -2526,11 +2526,11 @@
         // Character labels + one-line "when to use" hints for each voicing tag.
         const VOICING_META = {
             base:    { pl: 'podstawowy',   en: 'basic',       hpl: 'pewny wybór, zawsze pasuje',            hen: 'safe choice, always fits' },
-            color:   { pl: 'kolor',        en: 'color',       hpl: 'add9 — jaśniej, bardziej „worshipowo”',  hen: 'add9 — brighter, more worshipful' },
-            open:    { pl: 'otwarty',      en: 'open',        hpl: 'sus2 — zwiewny, dobre na zwrotki',       hen: 'sus2 — airy, great for verses' },
-            tension: { pl: 'napięcie',     en: 'tension',     hpl: 'sus4 — zawieś i rozwiąż do podstawy',    hen: 'sus4 — suspend, then resolve' },
-            jazzy:   { pl: 'miękki',       en: 'mellow',      hpl: 'm7 — łagodniejszy, mniej „ostry”',       hen: 'm7 — softer, less harsh' },
-            soft:    { pl: 'ciepły',       en: 'warm',        hpl: '6 — ciepłe zakończenie frazy',           hen: '6 — warm phrase ending' },
+            color:   { pl: 'kolor',        en: 'color',       hpl: 'add9 · jaśniej, bardziej „worshipowo”',  hen: 'add9 · brighter, more worshipful' },
+            open:    { pl: 'otwarty',      en: 'open',        hpl: 'sus2. Zwiewny, dobre na zwrotki',       hen: 'sus2. Airy, great for verses' },
+            tension: { pl: 'napięcie',     en: 'tension',     hpl: 'sus4. Zawieś i rozwiąż do podstawy',    hen: 'sus4 · suspend, then resolve' },
+            jazzy:   { pl: 'miękki',       en: 'mellow',      hpl: 'm7 · łagodniejszy, mniej „ostry”',       hen: 'm7 · softer, less harsh' },
+            soft:    { pl: 'ciepły',       en: 'warm',        hpl: '6 · ciepłe zakończenie frazy',           hen: '6 · warm phrase ending' },
             resolve: { pl: 'rozwiązanie',  en: 'resolve',     hpl: 'wróć do czystego akordu',                hen: 'return to the plain chord' },
         };
 
@@ -2867,7 +2867,7 @@
                 {
                     target: '#setlist-btn',
                     get title() { return currentLang === 'en' ? 'Browse setlist' : 'Setlista'; },
-                    get text() { return currentLang === 'en' ? 'Open the setlist to browse songs before they\'re played live. Set up your capo, check chords and prepare — then hit LIVE to follow the worship leader!' : 'Otworz setliste aby przegladac piosenki zanim zostana zagrane na zywo. Ustaw kapo, sprawdz akordy i przygotuj sie — potem kliknij LIVE aby podazac za prowadzacym!'; },
+                    get text() { return currentLang === 'en' ? 'Open the setlist to browse songs before they\'re played live. Set up your capo, check chords and prepare. Then hit LIVE to follow the worship leader!' : 'Otworz setliste aby przegladac piosenki zanim zostana zagrane na zywo. Ustaw kapo, sprawdz akordy i przygotuj sie. Potem kliknij LIVE aby podazac za prowadzacym!'; },
                     position: 'bottom'
                 },
                 {
@@ -2879,7 +2879,7 @@
                 {
                     target: '#settings-btn',
                     get title() { return currentLang === 'en' ? 'Your settings' : 'Twoje ustawienia'; },
-                    get text() { return currentLang === 'en' ? 'Open settings to personalize your view — chord display, notation (international / Polish / Nashville), capo with smart suggestions, beginner mode, chord diagrams and font size. Everything saves to your profile automatically.' : 'Otworz ustawienia aby spersonalizowac widok — akordy, notacja (miedzynarodowa / polska / Nashville), kapo z podpowiedziami, tryb poczatkujacego, diagramy akordow i rozmiar czcionki. Wszystko zapisuje sie automatycznie na Twoim profilu.'; },
+                    get text() { return currentLang === 'en' ? 'Open settings to personalize your view. Chord display, notation (international / Polish / Nashville), capo with smart suggestions, beginner mode, chord diagrams and font size. Everything saves to your profile automatically.' : 'Otworz ustawienia aby spersonalizowac widok. Akordy, notacja (miedzynarodowa / polska / Nashville), kapo z podpowiedziami, tryb poczatkujacego, diagramy akordow i rozmiar czcionki. Wszystko zapisuje sie automatycznie na Twoim profilu.'; },
                     position: 'bottom'
                 }
             ];

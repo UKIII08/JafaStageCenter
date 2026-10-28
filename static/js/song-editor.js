@@ -99,11 +99,11 @@
                          capo_line: ['', L.capo], empty_part: ['', L.emptyPart] }[i.kind];
             if (!kind) return;
             if (kind[0] === 'err') errLines[i.line] = true;
-            rows.push({ line: i.line, cls: kind[0], html: '<b>' + esc(i.text) + '</b> — ' + esc(kind[1]) });
+            rows.push({ line: i.line, cls: kind[0], html: '<b>' + esc(i.text) + '</b> · ' + esc(kind[1]) });
         });
         d.invalid.forEach(function (inv) {
             inv.lines.forEach(function (n) { errLines[n] = true; });
-            rows.push({ line: inv.lines[0], cls: 'err', html: '<b>[' + esc(inv.chord) + ']</b> — ' + esc(L.invalid) +
+            rows.push({ line: inv.lines[0], cls: 'err', html: '<b>[' + esc(inv.chord) + ']</b> · ' + esc(L.invalid) +
                         (inv.lines.length > 1 ? ' (×' + inv.lines.length + ')' : '') });
         });
         rows.sort(function (a, b) { return a.line - b.line; });

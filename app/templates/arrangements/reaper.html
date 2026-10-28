@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ _('Rehearsal recordings (Reaper)') }} — {{ church.name }}{% endblock %}
+{% block title %}{{ _('Rehearsal recordings (Reaper)') }} · {{ church.name }}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/arrangements.css') }}">
 <style>
@@ -40,11 +40,11 @@
             <b>{{ _('Not connected') }}</b>
             {% endif %}
         </div>
-        <p class="hint" style="margin-top:var(--s3);">{{ _('Only one computer can send recordings — the one that has the token. A new token disconnects the old one.') }}</p>
+        <p class="hint" style="margin-top:var(--s3);">{{ _('Only one computer can send recordings. The one that has the token. A new token disconnects the old one.') }}</p>
 
         {% if new_token %}
         <div class="tok-new">
-            <b>{{ _('Copy the token now — it will not be shown again.') }}</b>
+            <b>{{ _('Copy the token now. It will not be shown again.') }}</b>
             <div class="tok-box">
                 <input id="tok" value="{{ new_token }}" readonly onclick="this.select()">
                 <button type="button" class="btn btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('tok').value);this.textContent={{ _('Copied')|tojson }}">{{ _('Copy') }}</button>
@@ -76,27 +76,27 @@
     </div>
 
     <div class="panel">
-        <div class="section-title">{{ _('Setup — once') }}</div>
+        <div class="section-title">{{ _('Setup · once') }}</div>
         <ol class="rp-steps">
             <li><h3>{{ _('Add both scripts to Reaper') }}</h3>
                 <p class="hint">{{ _('Actions → Show action list → New action → Load ReaScript… and pick each downloaded file. You get two actions: “Jonathan - send rehearsal” (sends) and “Jonathan - settings” (server address and token). Tip: give the send action a toolbar button.') }}</p></li>
             <li><h3>{{ _('Set the render format') }}</h3>
-                <p class="hint">{{ _('File → Render…: format MP3, 128–192 kbps (mono is fine for parts). Close the window — the script uses these settings and does the rest.') }}</p></li>
+                <p class="hint">{{ _('File → Render…: format MP3, 128–192 kbps (mono is fine for parts). Close the window. The script uses these settings and does the rest.') }}</p></li>
             <li><h3>{{ _('Paste the token') }}</h3>
-                <p class="hint">{{ _('Run “Jonathan - settings”, enter the server address shown below and the token — it checks the connection right away. To change them later (new token, another server), run it again.') }}</p>
+                <p class="hint">{{ _('Run “Jonathan - settings”, enter the server address shown below and the token. It checks the connection right away. To change them later (new token, another server), run it again.') }}</p>
                 <p class="hint" style="margin-top:6px;">{{ _('Server address:') }} <code class="mono-url">{{ server }}</code></p></li>
         </ol>
     </div>
 
     <div class="panel">
-        <div class="section-title">{{ _('After each rehearsal — naming') }}</div>
+        <div class="section-title">{{ _('After each rehearsal · naming') }}</div>
         <table class="rp-table">
             <tr><th>{{ _('In Reaper') }}</th><th>{{ _('Name it') }}</th><th>{{ _('Example') }}</th></tr>
             <tr><td>{{ _('Region = song') }}</td><td>{{ _('song title, optionally “| version”') }}</td><td><code>Oceans</code> <code>Oceans | Acoustic</code></td></tr>
             <tr><td>{{ _('Markers in the region = tiles') }}</td><td>{{ _('tile names in order') }}</td><td><code>Intro</code> <code>V1</code> <code>Chorus</code> <code>Bridge</code></td></tr>
             <tr><td>{{ _('Tracks to send = parts') }}</td><td>{{ _('“J:” + part name from the cast') }}</td><td><code>J:Vocals 2</code> <code>J:Guitar</code></td></tr>
         </table>
-        <p class="hint" style="margin-top:var(--s4);">{{ _('Tracks without “J:” (room mics, click) are skipped. Short names work too: V = Verse, C/R = Chorus, B = Bridge. Before sending the script shows what matched — a missing version or part is created, and if the markers differ from the tiles the form follows the recording (the old one stays in the history).') }}</p>
+        <p class="hint" style="margin-top:var(--s4);">{{ _('Tracks without “J:” (room mics, click) are skipped. Short names work too: V = Verse, C/R = Chorus, B = Bridge. Before sending the script shows what matched, a missing version or part is created, and if the markers differ from the tiles the form follows the recording (the old one stays in the history).') }}</p>
     </div>
 </div>
 {% endblock %}

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ song.title }} · {{ arr.name }} — {{ _('Arrangement') }}{% endblock %}
+{% block title %}{{ song.title }} · {{ arr.name }} · {{ _('Arrangement') }}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/arrangements.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/music.css') }}">
@@ -68,7 +68,7 @@
     <div class="arr-panel-head">
         <div>
             <div class="section-title">{{ _('Form') }}</div>
-            <p class="hint">{{ _('Drag tiles to set the order. Anyone on the team can edit — earlier versions are in the history.') }}</p>
+            <p class="hint">{{ _('Drag tiles to set the order. Anyone on the team can edit. Earlier versions are in the history.') }}</p>
         </div>
         <span class="arr-save" id="form-status"></span>
     </div>
@@ -94,7 +94,7 @@
     <div class="arr-panel-head">
         <div>
             <div class="section-title">{{ _('Cast') }}</div>
-            <p class="hint">{{ _('Parts in this version — instruments, not people, so it keeps working when the line-up changes. In Reaper name tracks the same way with “J:” in front, e.g. J:Vocals 2.') }}</p>
+            <p class="hint">{{ _('Parts in this version. Instruments, not people, so it keeps working when the line-up changes. In Reaper name tracks the same way with “J:” in front, e.g. J:Vocals 2.') }}</p>
         </div>
         <span class="arr-save" id="roles-status"></span>
     </div>
@@ -114,7 +114,7 @@
     <div class="arr-panel-head">
         <div>
             <div class="section-title">{{ _('Timeline') }}</div>
-            <p class="hint">{{ _('The whole song at a glance — every instrument has its own lane. Tap a cell to add a note, a riff (tab) or record an idea; the whole team sees and hears it.') }}</p>
+            <p class="hint">{{ _('The whole song at a glance. Every instrument has its own lane. Tap a cell to add a note, a riff (tab) or record an idea; the whole team sees and hears it.') }}</p>
         </div>
     </div>
     <div class="grid-wrap" id="grid-wrap"></div>
@@ -144,7 +144,7 @@
     <div class="empty-state" style="padding:var(--s6) var(--s4);">
         <div class="es-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/><path d="M8 17.5V5l12-2v12.5"/></svg></div>
         <div class="es-title">{{ _('No recording yet') }}</div>
-        <div class="es-sub">{{ _('In Reaper name the region after the song (and “| version”), markers after the tiles and tracks “J:part” — the script sends the mix and every part.') }}
+        <div class="es-sub">{{ _('In Reaper name the region after the song (and “| version”), markers after the tiles and tracks “J:part”. The script sends the mix and every part.') }}
         {% if membership.role == 'admin' %}<br><a href="{{ url_for('arr.reaper', church_id=church.id) }}">{{ _('Connect Reaper') }} →</a>{% endif %}</div>
     </div>
     {% endif %}
@@ -211,7 +211,7 @@
                 <button type="button" class="rec-btn" id="rec-btn" aria-label="{{ _('Record') }}"><i></i></button>
                 <div>
                     <div class="rec-label" id="rec-label">{{ _('Record an idea') }}</div>
-                    <div class="muted" id="rec-sub">{{ _('Sing the harmony, play the riff — up to a few minutes.') }}</div>
+                    <div class="muted" id="rec-sub">{{ _('Sing the harmony, play the riff. Up to a few minutes.') }}</div>
                 </div>
                 <span class="rec-time" id="rec-time"></span>
             </div>
@@ -241,9 +241,9 @@ window.ARR = {
         saving: {{ _('saving…')|tojson }}, saved: {{ _('saved')|tojson }},
         error: {{ _('could not save')|tojson }},
         remove: {{ _('Remove')|tojson }}, repeat: {{ _('Repeats')|tojson }},
-        noRoles: {{ _('Add parts in the cast above — then each part gets its row here.')|tojson }},
-        noTiles: {{ _('The form is empty — add tiles.')|tojson }},
-        me: {{ _('me')|tojson }}, empty: {{ _('—')|tojson }},
+        noRoles: {{ _('Add parts in the cast above. Then each part gets its row here.')|tojson }},
+        noTiles: {{ _('The form is empty. Add tiles.')|tojson }},
+        me: {{ _('me')|tojson }}, empty: {{ _('–')|tojson }},
         rec: {{ _('Record an idea')|tojson }}, stop: {{ _('Stop and save')|tojson }},
         recording: {{ _('Recording…')|tojson }}, uploading: {{ _('Sending…')|tojson }},
         noMic: {{ _('The browser has no microphone access. Allow it in the site settings.')|tojson }},
@@ -251,8 +251,8 @@ window.ARR = {
         delMemo: {{ _('Delete this recording?')|tojson }},
         removeRole: {{ _('Remove the part? Its notes stay in the history of cells and come back if you add it again.')|tojson }},
         noDyn: {{ _('Dynamics')|tojson }}, noDynNone: {{ _('No dynamics')|tojson }},
-        conflict: {{ _('Someone else changed the form in the meantime — you now see their version. Make your change again.')|tojson }},
-        updatedBy: {{ _('Updated — latest change by')|tojson }},
+        conflict: {{ _('Someone else changed the form in the meantime. You now see their version. Make your change again.')|tojson }},
+        updatedBy: {{ _('Updated · latest change by')|tojson }},
         replaceOther: {{ _('This idea was recorded by %(name)s. Record over it?')|tojson }},
         riff: {{ _('riff')|tojson }}, notes: {{ _('notes')|tojson }},
         switchKind: {{ _('Switching deletes what is written here now. Continue?')|tojson }},
@@ -264,7 +264,7 @@ window.ARR = {
             dot: {{ _('Dotted (longer by half)')|tojson }}, del: {{ _('Delete the selected or last note')|tojson }},
             octUp: {{ _('Octave up')|tojson }}, octDown: {{ _('Octave down')|tojson }},
             durs: { 1: {{ _('whole')|tojson }}, 2: {{ _('half')|tojson }}, 4: {{ _('quarter')|tojson }}, 8: {{ _('eighth')|tojson }}, 16: {{ _('sixteenth')|tojson }} },
-            empty: {{ _('Pick a length, then click the keys — the notes appear here.')|tojson }},
+            empty: {{ _('Pick a length, then click the keys. The notes appear here.')|tojson }},
             help: {{ _('Choose the length (¼ = quarter), then click piano keys; ♯ ♭ before the key. Click a note to change or delete it. Keyboard: c d e f g a h, 1–5 length, ↑ ↓ moves the selected note, Space plays.')|tojson }}
         },
         rf: {

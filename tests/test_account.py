@@ -120,7 +120,7 @@ def test_reset_token_single_use(app, client):
     assert r.status_code == 200
     # ten sam token po zmianie hasła jest już nieważny
     r2 = client.get(f'/reset/{token}', follow_redirects=True)
-    assert b'request a new one' in r2.data
+    assert b'equest a new one' in r2.data
 
 
 def test_open_redirect_blocked(app, client):

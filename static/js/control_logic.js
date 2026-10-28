@@ -770,17 +770,17 @@ function toggleHttps(enabled){
         var en = (localStorage.getItem('appLang') || 'pl') === 'en';
         if (enabled && res.can_https === false) {
             alert(en
-                ? 'This app build cannot create an HTTPS certificate (missing library). The tuner mic on phones needs an updated build. Nothing was broken — the app keeps working over HTTP.'
-                : 'Ta wersja aplikacji nie potrafi utworzyć certyfikatu HTTPS (brak biblioteki). Mikrofon stroika na telefonie wymaga zaktualizowanego builda. Nic się nie zepsuło — apka działa dalej po HTTP.');
+                ? 'This app build cannot create an HTTPS certificate (missing library). The tuner mic on phones needs an updated build. Nothing was broken. The app keeps working over HTTP.'
+                : 'Ta wersja aplikacji nie potrafi utworzyć certyfikatu HTTPS (brak biblioteki). Mikrofon stroika na telefonie wymaga zaktualizowanego builda. Nic się nie zepsuło. Apka działa dalej po HTTP.');
             return;
         }
         if (res.restart_required) {
             alert(en
                 ? (enabled
-                    ? 'HTTPS enabled. Restart the app to apply it. On each phone, open the app and accept the security certificate once — then the tuner mic will work.'
+                    ? 'HTTPS enabled. Restart the app to apply it. On each phone, open the app and accept the security certificate once. Then the tuner mic will work.'
                     : 'HTTPS disabled. Restart the app to go back to a normal (HTTP) connection.')
                 : (enabled
-                    ? 'HTTPS włączony. Zrestartuj aplikację, żeby zadziałał. Na każdym telefonie otwórz aplikację i raz zaakceptuj certyfikat — wtedy mikrofon stroika będzie działał.'
+                    ? 'HTTPS włączony. Zrestartuj aplikację, żeby zadziałał. Na każdym telefonie otwórz aplikację i raz zaakceptuj certyfikat. Wtedy mikrofon stroika będzie działał.'
                     : 'HTTPS wyłączony. Zrestartuj aplikację, żeby wrócić do zwykłego połączenia (HTTP).'));
         }
     }).catch(function(){ showToast('Błąd połączenia'); });
@@ -953,7 +953,7 @@ function eventToKeyString(e) {
 
 // Ładny podpis klawisza dla UI (np. "Ctrl+Alt+b" → "Ctrl + Alt + B")
 function prettyKey(ks) {
-    if (!ks) return '—';
+    if (!ks) return '–';
     var parts = ks.split('+');
     // ostatni segment to właściwy klawisz; wcześniejsze to modyfikatory
     var key = parts.pop();
@@ -1338,7 +1338,7 @@ function validateChords(contentId, statusId) {
     if (invalid.length > 0) {
         statusEl.innerHTML = '<span style="color:#ff6b6b;">Nierozpoznane akordy: <b>' + invalid.map(c => '[' + c + ']').join(', ') + '</b></span>';
     } else {
-        statusEl.innerHTML = '<span style="color:#00b894;">' + valid.length + ' akordów — wszystkie poprawne</span>';
+        statusEl.innerHTML = '<span style="color:#00b894;">' + valid.length + ' akordów · wszystkie poprawne</span>';
     }
 }
 
@@ -1865,7 +1865,7 @@ function showSetlistHistory() {
             html += '<div style="padding:12px;border-bottom:1px solid var(--border-default);display:flex;align-items:center;gap:8px;">' +
                 '<div style="flex:1;cursor:pointer;" onclick="loadSetlistHistory(' + h.id + ')">' +
                 '<div style="font-weight:600;">' + (h.name || h.date) + '</div>' +
-                '<div style="font-size:0.8em;color:var(--text-tertiary);">' + h.date + ' — ' + h.song_count + ' ' + (t('songs_count') || 'piosenek') + '</div>' +
+                '<div style="font-size:0.8em;color:var(--text-tertiary);">' + h.date + ' · ' + h.song_count + ' ' + (t('songs_count') || 'piosenek') + '</div>' +
                 '<div style="font-size:0.75em;color:var(--text-muted);margin-top:4px;">' +
                 h.songs.map(function(s) { return s.title; }).join(', ') + '</div></div>' +
                 '<button onclick="deleteSetlistHistory(' + h.id + ',this)" style="flex-shrink:0;padding:6px 8px;border-radius:8px;background:transparent;color:var(--accent-danger);border:1px solid var(--accent-danger);cursor:pointer;font-size:0.75em;">' +
@@ -3047,7 +3047,7 @@ document.addEventListener('keydown', function(e) {
         if (!sel) return;
         listInputs();
         if (midiInputs.length === 0) {
-            sel.innerHTML = '<option value="">' + (currentLang === 'en' ? '— none detected —' : '— nie wykryto —') + '</option>';
+            sel.innerHTML = '<option value="">' + (currentLang === 'en' ? 'none detected' : 'nie wykryto') + '</option>';
             return;
         }
         sel.innerHTML = midiInputs.map(function (inp) {
@@ -3404,8 +3404,8 @@ document.addEventListener('keydown', function(e) {
                     ? 'Pads → Left channel, metronome → Right channel. Use a stereo-jack → 2× mono splitter to feed two mixer inputs.'
                     : 'Pady → lewy kanał, metronom → prawy. Użyj przejściówki jack stereo → 2× mono, by wpiąć w dwa wejścia miksera.')
                 : (multi ? '' : (currentLang === 'en'
-                    ? 'No multi-output interface — turn on “Pads L / Metronome R” and use a Y-splitter cable.'
-                    : 'Brak interfejsu wielokanałowego — włącz „Pady L / Metronom P" i użyj przejściówki jack → 2× mono.'));
+                    ? 'No multi-output interface. Turn on “Pads L / Metronome R” and use a Y-splitter cable.'
+                    : 'Brak interfejsu wielokanałowego. Włącz „Pady L / Metronom P" i użyj przejściówki jack → 2× mono.'));
         }
     };
     function populateChannelSelects(ctx) { window.populateAudioRoutingUI(); }

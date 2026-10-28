@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ _('My account — Jonathan App') }}{% endblock %}
+{% block title %}{{ _('My account · Jonathan App') }}{% endblock %}
 {% block content %}
 <div class="panel" style="max-width:560px;">
     <h2>{{ _('My account') }}</h2>
@@ -12,14 +12,14 @@
     {% endif %}
     <div class="section-title" style="margin-top:var(--s5);">{{ _('Two-factor authentication') }}</div>
     {% if user.totp_secret %}
-        <p class="hint">{{ _('Enabled — login requires a code from your app.') }}</p>
+        <p class="hint">{{ _('Enabled. Login requires a code from your app.') }}</p>
         <form method="POST" action="{{ url_for('auth.twofa_disable') }}"><label>{{ _('Confirm with your password to disable') }}</label><input name="password" type="password" required><div style="margin-top:var(--s3);"><button class="btn-danger btn" type="submit">{{ _('Disable 2FA') }}</button></div></form>
     {% else %}
-        <p class="hint">{{ _('An extra layer of account protection — recommended especially for admins. Requires a free app (Google Authenticator, Microsoft Authenticator, Aegis).') }}</p>
+        <p class="hint">{{ _('An extra layer of account protection. Recommended especially for admins. Requires a free app (Google Authenticator, Microsoft Authenticator, Aegis).') }}</p>
         <form method="POST" action="{{ url_for('auth.twofa_enable') }}"><button type="submit">{{ _('Enable 2FA') }}</button></form>
     {% endif %}
     <div class="section-title" style="margin-top:var(--s5);">{{ _('Danger zone') }}</div>
-    <p class="hint">{{ _('Deleting your account erases all your personal data (GDPR — the right to be forgotten).') }}</p>
+    <p class="hint">{{ _('Deleting your account erases all your personal data (GDPR, the right to be forgotten).') }}</p>
     <a class="btn btn-danger btn-sm" href="{{ url_for('auth.account_delete') }}">{{ _('Delete account…') }}</a>
 </div>
 {% endblock %}

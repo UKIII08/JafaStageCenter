@@ -183,7 +183,7 @@ def church_home(church_id, membership):
             song = db.session.get(Song, sp.song_id)
             if song and not song.deleted:
                 key = sp.preferred_key or song.key or ''
-                last_practiced = song.title + (f' — {key}' if key else '')
+                last_practiced = song.title + (f' · {key}' if key else '')
         # postęp = ile z pieśni najbliższej setlisty mam już „ruszonych"
         if next_event_songs:
             titles = {s.title for s in next_event_songs}
@@ -283,7 +283,7 @@ def team(church_id, membership):
 @panel_bp.get('/c/<church_id>/guide')
 @require_membership('muzyk')
 def guide(church_id, membership):
-    """Przewodnik po funkcjach — „co potrafi Jonathan", żeby użytkownicy
+    """Przewodnik po funkcjach · „co potrafi Jonathan", żeby użytkownicy
     odkryli unikalne możliwości bez przytłoczenia (osobna, opcjonalna strona)."""
     church = db.session.get(Church, church_id)
     return render_template('panel/guide.html', church=church,
@@ -306,7 +306,7 @@ def team_invite(church_id, membership):
 
 @panel_bp.app_context_processor
 def _inject_user_churches():
-    """Lista wspólnot zalogowanego usera — do przełącznika w górnym pasku."""
+    """Lista wspólnot zalogowanego usera. Do przełącznika w górnym pasku."""
     u = current_user()
     if not u:
         return {}
@@ -317,7 +317,7 @@ def _inject_user_churches():
 
 @panel_bp.get('/join')
 def join_by_code():
-    """Dołączanie kodem z formularza (ekran startowy) — przekierowuje na /join/<kod>."""
+    """Dołączanie kodem z formularza (ekran startowy). Przekierowuje na /join/<kod>."""
     code = (request.args.get('code') or '').strip().upper()
     if not code:
         return redirect(url_for('panel.create_church'))
@@ -523,7 +523,7 @@ def branding(church_id, membership):
 
 @panel_bp.get('/pl')
 def landing_pl():
-    """Polska wersja landinga (domyślny '/' jest po angielsku — rynek USA)."""
+    """Polska wersja landinga (domyślny '/' jest po angielsku. Rynek USA)."""
     return render_template('landing_pl.html')
 
 

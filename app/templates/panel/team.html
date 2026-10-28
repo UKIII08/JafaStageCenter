@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ _('Team') }} — {{ church.name }}{% endblock %}
+{% block title %}{{ _('Team') }} · {{ church.name }}{% endblock %}
 {% block content %}
 <div class="panel">
     <div class="panel-header"><h2>{{ _('Team') }}</h2></div>
@@ -20,7 +20,7 @@
               {% else %}{{ role_label(m.role) }}{% endif %}
             </td>
             <td class="muted">
-              {% for p in profiles %}{% if p.user_id == m.user_id %}{% set insts = p.instruments or ([p.instrument] if p.instrument else []) %}{% for i in insts %}{{ instrument_label(i) }}{{ ', ' if not loop.last }}{% else %}—{% endfor %}{% endif %}{% endfor %}
+              {% for p in profiles %}{% if p.user_id == m.user_id %}{% set insts = p.instruments or ([p.instrument] if p.instrument else []) %}{% for i in insts %}{{ instrument_label(i) }}{{ ', ' if not loop.last }}{% else %}–{% endfor %}{% endif %}{% endfor %}
             </td>
             <td style="text-align:right;">
               {% if membership.role == 'admin' and m.user_id != church.owner_user_id %}
@@ -34,14 +34,14 @@
         {% endfor %}
     </table>
     {% for p in profiles %}{% if not p.user_id %}
-        <p class="muted">{{ _('Profile without an account:') }} <b>{{ p.name }}</b> ({{ instrument_label(p.instrument) or '—' }}) {{ _('— from the desktop app') }}</p>
+        <p class="muted">{{ _('Profile without an account:') }} <b>{{ p.name }}</b> ({{ instrument_label(p.instrument) or '–' }}) {{ _('· from the desktop app') }}</p>
     {% endif %}{% endfor %}
 </div>
 {% if membership.role == 'admin' %}
 <div class="panel">
     <div class="section-title">{{ _('Invite to the team') }}</div>
     {% if invite %}
-        <p class="hint">{{ _('A join link, valid until') }} {{ invite.expires_at.strftime('%d.%m.%Y') }} {{ _('— send it to your team (e.g. in a group chat):') }}</p>
+        <p class="hint">{{ _('A join link, valid until') }} {{ invite.expires_at.strftime('%d.%m.%Y') }} {{ _('· send it to your team (e.g. in a group chat):') }}</p>
         <p class="invite-code">{{ invite.code }}</p>
         <p class="mono-url">{{ url_for('panel.join', code=invite.code, _external=True) }}</p>
     {% endif %}

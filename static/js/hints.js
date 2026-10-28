@@ -28,7 +28,7 @@
     try {
       if (sessionStorage.getItem(SS_COUNTED)) return;
       sessionStorage.setItem(SS_COUNTED, '1');
-    } catch (e) { /* brak sessionStorage — licz normalnie */ }
+    } catch (e) { /* brak sessionStorage. Licz normalnie */ }
     var n = parseInt(lsGet(LS_USES, '0'), 10) || 0;
     lsSet(LS_USES, String(n + 1));
   }
