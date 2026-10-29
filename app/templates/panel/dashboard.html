@@ -106,6 +106,16 @@
     </div>
 </div>
 
+{% for e in ask_events %}
+<div class="flash ask-play">
+    <span><b>{{ _('Can you play?') }}</b> {{ e.name }}, {{ e.date|nice_date }}{% if e.time %}, {{ e.time }}{% endif %}{% if e.signup_deadline %} <span class="muted">· {{ _('answer by %(day)s') % {'day': e.signup_deadline|nice_date('daymonth')} }}</span>{% endif %}</span>
+    <form method="POST" action="{{ url_for('events.event_signup', church_id=church.id, eid=e.id) }}">
+        <input type="hidden" name="back" value="home">
+        <button type="submit" name="available" value="1" class="btn btn-sm">{{ _('I can play') }}</button>
+        <button type="submit" name="available" value="0" class="btn btn-ghost btn-sm">{{ _("I can't") }}</button>
+    </form>
+</div>
+{% endfor %}
 {% if storage_warn %}
 <div class="flash undo-bar">
     <span>{{ _('Files take %(pct)s%% of the space (%(used)s of %(limit)s).') % storage_warn }}</span>
@@ -199,14 +209,41 @@
     </div>
 </div>
 
-{# ── Pierwsze kroki — tylko admin, znika po ukończeniu ── #}
-{% if onboarding and not onboarding.complete %}
-{% macro onb_step(done, label, href) %}
+{% macro onb_step(done, label, href, sub='') %}
 <a class="onb-step {{ 'done' if done }}" href="{{ href }}">
     <span class="ck">{% if done %}<svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>{% endif %}</span>
-    <span>{{ label }}</span>
+    <span>{{ label }}{% if sub %}<small>{{ sub }}</small>{% endif %}</span>
 </a>
 {% endmacro %}
+
+{# ── Pierwsze kroki muzyka: instrument, odpowiedź, ćwiczenie ── #}
+{% if first_steps and not first_steps.complete %}
+<section class="onb" id="first-steps">
+    <div class="onb-head">
+        <h2>{{ _('Your first steps') }}</h2>
+        <button type="button" onclick="hideFirstSteps()">{{ _('Hide') }}</button>
+    </div>
+    <div class="onb-sub">{{ _('%(done)s of %(total)s done. You can do these in any order') % {'done': first_steps.done, 'total': first_steps.total} }}</div>
+    <div class="onb-steps">
+        {{ onb_step(first_steps.instrument, _('Set your instrument and key'), url_for('panel.my_profile', church_id=church.id), _('Then every song shows chords the way you play them.')) }}
+        {{ onb_step(first_steps.answered, _('Say if you can play'), url_for('events.events_list', church_id=church.id), _('The leader plans the team from your answers.')) }}
+        {{ onb_step(first_steps.practiced, _('Practice the songs'), first_steps.practice_url, _('Open a song, pick your key, play along.')) }}
+    </div>
+</section>
+<script>
+(function () {
+    var key = 'jonathan-steps-hide-{{ church.id }}';
+    try { if (localStorage.getItem(key)) document.getElementById('first-steps').hidden = true; } catch (e) {}
+    window.hideFirstSteps = function () {
+        try { localStorage.setItem(key, '1'); } catch (e) {}
+        document.getElementById('first-steps').hidden = true;
+    };
+})();
+</script>
+{% endif %}
+
+{# ── Pierwsze kroki — tylko admin, znika po ukończeniu ── #}
+{% if onboarding and not onboarding.complete %}
 <section class="onb" id="onboarding-card">
     <div class="onb-head">
         <h2>{{ _('Get your church set up') }}</h2>

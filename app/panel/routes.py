@@ -249,6 +249,34 @@ def church_home(church_id, membership):
 
     # Ekran powitalny pokazujemy tylko raz — zaraz po zalogowaniu (flaga w sesji
     # ustawiona przy logowaniu, tu ją zdejmujemy). Klik w logo itd. go nie wywoła.
+    # ── Czy możesz grać? Najbliższe grania bez mojej odpowiedzi ──
+    from datetime import timedelta
+    from app.models import EventSignup
+    soon = Event.query.filter(Event.church_id == church_id, Event.deleted.is_(False),
+                              Event.date >= today,
+                              Event.date <= today + timedelta(days=60)) \
+        .order_by(Event.date).limit(10).all()
+    answered = {s.event_id for s in EventSignup.query.filter(
+        EventSignup.user_id == user.id,
+        EventSignup.event_id.in_([e.id for e in soon])).all()} if soon else set()
+    ask_events = [e for e in soon if e.id not in answered][:3]
+
+    # ── Pierwsze kroki muzyka (wszyscy poza adminem, który ma swoje) ──
+    first_steps = None
+    if membership.role != 'admin':
+        first_steps = {
+            'instrument': bool(my_profile and (my_profile.instruments or my_profile.instrument)),
+            'answered': EventSignup.query.filter_by(user_id=user.id).first() is not None,
+            'practiced': bool(my_profile and SongPersonal.query.filter_by(
+                profile_id=my_profile.id).first()),
+        }
+        first_steps['done'] = sum(1 for v in first_steps.values() if v)
+        first_steps['total'] = 3
+        first_steps['complete'] = first_steps['done'] == 3
+        first_steps['practice_url'] = (
+            url_for('events.event_detail', church_id=church_id, eid=next_event.id)
+            if next_event else url_for('songs.songs_list', church_id=church_id))
+
     show_welcome = session.pop('show_welcome', False)
     storage_warn = None
     if membership.role == 'admin':
@@ -265,7 +293,7 @@ def church_home(church_id, membership):
         practice_total=practice_total, team_members=team_members,
         lineup=lineup, my_parts=my_parts,
         today=today, show_welcome=show_welcome, onboarding=onboarding,
-        storage_warn=storage_warn)
+        storage_warn=storage_warn, ask_events=ask_events, first_steps=first_steps)
 
 
 @panel_bp.get('/c/<church_id>/team')

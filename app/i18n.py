@@ -1337,3 +1337,33 @@ PL.update({
         'Pliki zajmują %(pct)s%% miejsca (%(used)s z %(limit)s).',
     'Free up space': 'Zwolnij miejsce',
 })
+
+
+# ── Pierwsze kroki muzyka i powiadomienia e-mail ─────────────────────────
+PL.update({
+    'Your first steps': 'Twoje pierwsze kroki',
+    'Set your instrument and key': 'Ustaw swój instrument i tonację',
+    'Then every song shows chords the way you play them.': 'Wtedy każda piosenka pokaże akordy tak, jak grasz.',
+    'Say if you can play': 'Odpowiedz, czy możesz grać',
+    'The leader plans the team from your answers.': 'Lider układa skład na podstawie odpowiedzi.',
+    'Practice the songs': 'Przećwicz piosenki',
+    'Open a song, pick your key, play along.': 'Otwórz piosenkę, wybierz tonację i graj razem z nią.',
+    'Can you play?': 'Możesz grać?',
+    'answer by %(day)s': 'odpowiedz do %(day)s',
+    'Thanks, the leader will see your answer.': 'Dzięki, lider zobaczy Twoją odpowiedź.',
+    'The team got an e-mail asking who can play.': 'Zespół dostał e-mail z pytaniem, kto może grać.',
+    'Notifications': 'Powiadomienia',
+    'E-mails about services': 'E-maile o graniach',
+    'A new service asking if you can play, and a note when the leader gives you a part.':
+        'Nowe granie z pytaniem, czy możesz grać, i wiadomość, gdy lider przydzieli Ci partię.',
+    'Saved.': 'Zapisano.',
+    'Don’t want these e-mails? Turn them off in your profile:': 'Nie chcesz takich maili? Wyłącz je w swoim profilu:',
+    'A new service is planned: %(name)s, %(when)s.': 'Zaplanowano nowe granie: %(name)s, %(when)s.',
+    'Let the leader know if you can play, by %(day)s:': 'Daj znać liderowi, czy możesz grać, do %(day)s:',
+    'Let the leader know if you can play:': 'Daj znać liderowi, czy możesz grać:',
+    '%(church)s: can you play on %(day)s?': '%(church)s: możesz grać %(day)s?',
+    'You play %(part)s at %(name)s, %(when)s.': 'Grasz (%(part)s): %(name)s, %(when)s.',
+    'You are on the team for %(name)s, %(when)s.': 'Jesteś w składzie: %(name)s, %(when)s.',
+    'The setlist and practice are here:': 'Setlista i ćwiczenie są tutaj:',
+    '%(church)s: you play on %(day)s': '%(church)s: grasz %(day)s',
+})

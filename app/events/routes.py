@@ -117,6 +117,9 @@ def events_list(church_id, membership):
             pass
         db.session.add(ev)
         db.session.commit()
+        from app import notify
+        notify.new_service(ev, db.session.get(Church, church_id), current_user().id)
+        flash(_('The team got an e-mail asking who can play.'))
         return redirect(url_for('events.event_detail', church_id=church_id,
                                 eid=ev.id))
 
@@ -190,8 +193,12 @@ def event_signup(church_id, eid, membership):
         s = EventSignup(event_id=ev.id, user_id=me.id, available=available)
         db.session.add(s)
     s.available = available
-    s.comment = (request.form.get('comment') or '')[:200]
+    if 'comment' in request.form:
+        s.comment = (request.form.get('comment') or '')[:200]
     db.session.commit()
+    if request.form.get('back') == 'home':     # odpowiedź prosto z pulpitu
+        flash(_('Thanks, the leader will see your answer.'))
+        return redirect(url_for('panel.church_home', church_id=church_id))
     return redirect(url_for('events.event_detail', church_id=church_id,
                             eid=ev.id))
 
@@ -221,6 +228,9 @@ def event_assign(church_id, eid, membership):
                                                user_id=user_id,
                                                instrument=instrument))
                 db.session.commit()
+                from app import notify
+                notify.assigned(ev, db.session.get(Church, church_id), user_id,
+                                instrument, current_user().id)
     return redirect(url_for('events.event_detail', church_id=church_id,
                             eid=ev.id))
 
