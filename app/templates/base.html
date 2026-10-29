@@ -113,5 +113,18 @@
     {% block content %}{% endblock %}
 </main>
 <script src="{{ url_for('static', filename='js/hints.js') }}"></script>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script>
+// Jeden sposób pokazywania komunikatów w panelu (zamiast alert() przeglądarki)
+window.panelNotice = function (msg, kind) {
+    var t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.className = 'toast' + (kind === 'error' ? ' error' : '');
+    t.hidden = false;
+    clearTimeout(window.panelNotice._t);
+    window.panelNotice._t = setTimeout(function () { t.hidden = true; }, 6000);
+};
+</script>
 </body>
 </html>

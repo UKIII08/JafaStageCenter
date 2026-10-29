@@ -33,6 +33,8 @@ from music_core.chords import (apply_transpose_to_single_chord,
                                prepare_song_content, import_song,
                                process_song, transpose_chord)
 from music_core import TRANSITION_ENGINES
+from app.songs.service import (find_by_title, notes_by_index, notes_with,
+                               unique_title)
 
 studio_bp = Blueprint('studio', __name__, url_prefix='/c/<church_id>')
 
@@ -272,18 +274,14 @@ def add_song(church_id):
         ccli = (request.form.get('ccli_number') or '').strip()[:20]
         author = (request.form.get('author') or '').strip()[:300]
         copyright_ = (request.form.get('copyright') or '').strip()[:300]
-        existing = Song.query.filter_by(church_id=church_id, title=title,
-                                        deleted=False).first()
-        if existing:
-            existing.content, existing.key, existing.bpm = content, key, bpm_val
-            existing.ccli_number, existing.author = ccli, author
-            existing.copyright = copyright_
-        else:
-            db.session.add(Song(church_id=church_id, title=title,
-                                content=content, key=key, bpm=bpm_val,
-                                ccli_number=ccli, author=author,
-                                copyright=copyright_,
-                                created_by=current_user().id))
+        # „Dodaj" nigdy nie nadpisuje istniejącej piosenki: przy tym samym
+        # tytule powstaje „Tytuł (2)" (wcześniej stara treść znikała bez śladu)
+        db.session.add(Song(church_id=church_id,
+                            title=unique_title(church_id, title),
+                            content=content, key=key, bpm=bpm_val,
+                            ccli_number=ccli, author=author,
+                            copyright=copyright_,
+                            created_by=current_user().id))
         db.session.commit()
     return _back(church_id)
 
@@ -292,7 +290,9 @@ def add_song(church_id):
 @studio_auth('prowadzacy')
 def edit_song(church_id, sid):
     song = Song.query.filter_by(id=sid, church_id=church_id).first_or_404()
-    song.title = request.form.get('title')
+    song.title = unique_title(church_id, request.form.get('title') or song.title,
+                              exclude_id=song.id)
+    song.updated_by = current_user().id
     content = request.form.get('content')
     input_notation = request.form.get('input_notation', 'international')
     if content:
@@ -347,16 +347,13 @@ def import_songs(church_id):
         # notacja: wybrana polska albo zgadnięta dla każdej piosenki osobno
         imp = import_song(song_content, song_key, input_notation)
         song_content, song_key = imp['content'], imp['key']
-        existing = Song.query.filter_by(church_id=church_id,
-                                        title=song_title,
-                                        deleted=False).first()
-        if existing:
-            existing.content, existing.key, existing.bpm = \
-                song_content, song_key, song_bpm
-        else:
-            db.session.add(Song(church_id=church_id, title=song_title,
-                                content=song_content, key=song_key,
-                                bpm=song_bpm, created_by=current_user().id))
+        # Jak import w panelu: piosenka o tym tytule zostaje nietknięta
+        # (wcześniej import po cichu nadpisywał jej treść)
+        if find_by_title(church_id, song_title):
+            return
+        db.session.add(Song(church_id=church_id, title=song_title,
+                            content=song_content, key=song_key,
+                            bpm=song_bpm, created_by=current_user().id))
 
     def parse_header(raw):
         m = re.match(r'^(.*?)(?:\s*\(([^)]+)\))?(?:-\((\d+)\))?$', raw)
@@ -751,14 +748,18 @@ def send_text(church_id):
     # CCLI: notka copyright na rzutniku + log uzycia (raz na dzien)
     copyright_line = ''
     title = (data.get('song_title') or '').strip()
-    if title:
-        song_row = Song.query.filter_by(church_id=church_id, title=title,
+    song_row = None
+    if data.get('song_id'):
+        song_row = Song.query.filter_by(church_id=church_id, id=str(data['song_id']),
                                         deleted=False).first()
-        if song_row:
-            _log_song_usage(church_id, song_row.id)   # log zawsze (raport)
-            if s.get('ccli_notice', '1') == '1':
-                copyright_line = build_copyright_line(
-                    song_row, s.get('ccli_license', ''))
+    if title and not song_row:
+        # starsze Studio bez id — po tytule (tytuły są już unikalne)
+        song_row = find_by_title(church_id, title)
+    if song_row:
+        _log_song_usage(church_id, song_row.id)   # log zawsze (raport)
+        if s.get('ccli_notice', '1') == '1':
+            copyright_line = build_copyright_line(
+                song_row, s.get('ccli_license', ''))
 
     set_slide({
         'copyright_line': copyright_line,
@@ -979,8 +980,10 @@ def get_song_settings(church_id, pid, sid):
     s = SongPersonal.query.filter_by(profile_id=pid, song_id=sid).first()
     if not s:
         return {'capo_fret': None, 'notes': {}}
+    song = Song.query.filter_by(id=sid, church_id=church_id).first()
+    # notatki są zapisane po nazwie części; widok muzyka dostaje je po numerze
     return {'capo_fret': s.capo_fret,
-            'notes': json.loads(s.section_notes or '{}')}
+            'notes': notes_by_index(s.section_notes, song.content if song else '')}
 
 
 @studio_bp.put('/studio/api/profiles/<pid>/song/<sid>')
@@ -997,8 +1000,9 @@ def update_song_settings(church_id, pid, sid):
         db.session.add(s)
     if 'capo_fret' in data:
         s.capo_fret = data['capo_fret']
-    if 'notes' in data:
-        s.section_notes = json.dumps(data['notes'])
+    if 'notes' in data and isinstance(data['notes'], dict):
+        s.section_notes = notes_with(s.section_notes, song.content,
+                                     data['notes'], complete=True)
     db.session.commit()
     return {'status': 'ok'}
 

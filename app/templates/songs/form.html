@@ -2,7 +2,8 @@
 {% block title %}{{ _('Add song') if is_new else _('Edit:') + ' ' + song.title }}{% endblock %}
 {% block content %}
 {% set d = draft if draft is defined and draft else {} %}
-{% set notation = d.get('input_notation') or 'international' %}
+{# notacja startowa = ustawienie wspólnoty (Ustawienia → Domyślna notacja) #}
+{% set notation = d.get('input_notation') or (church.settings or {}).get('default_notation') or 'international' %}
 <style>
     .se-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr); gap: 40px; align-items: start; }
     .se-fields { display: grid; grid-template-columns: minmax(0, 3fr) minmax(90px, 1fr) minmax(90px, 1fr); gap: 12px; }
@@ -38,6 +39,10 @@
     .se-errors { margin-bottom: 28px; padding: 14px 16px; border: 1px solid rgba(240,106,106,.5); border-radius: var(--r-md);
         background: rgba(240,106,106,.08); font-size: 14px; }
     .se-errors li { margin: 2px 0; }
+    .se-theirs { margin-top: 12px; }
+    .se-theirs summary { cursor: pointer; font-weight: 600; }
+    .se-theirs pre { max-height: 240px; overflow: auto; margin: 8px 0; padding: 10px 12px; border-radius: 8px;
+        background: var(--bg-input); font-family: var(--font-mono); font-size: 13px; white-space: pre-wrap; }
     .se-actions { margin-top: 24px; display: flex; gap: 8px; }
 
     .se-side { position: sticky; top: 24px; }
@@ -136,10 +141,20 @@
 <div class="se-errors" role="alert">
     <b>{{ _('The song was not saved:') }}</b>
     <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% if dup %}<p style="margin:8px 0 0;"><a href="{{ url_for('songs.song_view', church_id=church.id, song_id=dup.id) }}" target="_blank" rel="noopener">{{ _('Open “%(title)s”') % {'title': dup.title} }} ↗</a></p>{% endif %}
+    {% if theirs is defined and theirs is not none %}
+    <details class="se-theirs" open>
+        <summary>{{ _('Their saved version') }}</summary>
+        <pre>{{ theirs }}</pre>
+        <button type="button" class="btn btn-ghost btn-sm" id="use-theirs">{{ _('Load their version into the editor') }}</button>
+    </details>
+    {% endif %}
 </div>
 {% endif %}
 
 <form method="POST" id="song-form">
+<input type="hidden" name="base" value="{{ base if base is defined else '' }}">
+{% if theirs is defined and theirs is not none %}<script>window.SONG_THEIRS = {{ theirs|tojson }};</script>{% endif %}
 <div class="se-grid">
     <div>
         <div class="se-fields">
@@ -236,6 +251,9 @@
     <div>
         <b>{{ _('Delete song') }}</b>
         <p class="hint">{{ _('The song disappears from the library for the whole team.') }}</p>
+        {% if used_in %}<p class="hint danger-used">{{ _('It is on the setlist of:') }}
+            {% for ev in used_in %}<a href="{{ url_for('events.event_detail', church_id=church.id, eid=ev.id) }}">{{ ev.name }} ({{ ev.date.strftime('%d.%m') }})</a>{{ ', ' if not loop.last }}{% endfor %}.
+            {{ _('There it will show as “not in library”.') }}</p>{% endif %}
     </div>
     <form method="POST" action="{{ url_for('songs.song_delete', church_id=church.id, song_id=song.id) }}"
           onsubmit="return confirm({{ _('Delete this song?')|tojson|forceescape }})">

@@ -8,6 +8,7 @@ from flask import (Blueprint, render_template, request, redirect,
                    url_for, flash, abort, jsonify)
 
 import music_core as mc
+from app.songs.service import find_by_title, notes_by_index, notes_with, unique_title
 from app import db
 from app.auth.routes import current_user, login_required
 from app.models import Church, Song, Setlist, Profile, SongPersonal
@@ -67,6 +68,7 @@ def _save_song_fields(song, form):
     nic nie jest zapisywane, a formularz wraca z treścią użytkownika."""
     errors, notes = [], []
     song.title = (form.get('title') or '').strip()[:200]
+    song.updated_by = current_user().id
     song.link = _clean_link(form.get('link'))
     input_notation = form.get('input_notation', 'international')
     if input_notation not in NOTATIONS:
@@ -112,26 +114,35 @@ def _save_song_fields(song, form):
     return errors, notes
 
 
-def _form_again(song, is_new, church_id, membership, errors):
+def _form_again(song, is_new, church_id, membership, errors, **extra):
     """Formularz z powrotem. Z tym, co użytkownik wpisał, i listą błędów."""
     return render_template('songs/form.html', song=song, is_new=is_new,
                            errors=errors,
                            draft=request.form,
                            church=db.session.get(Church, church_id),
-                           membership=membership, user=current_user())
+                           membership=membership, user=current_user(), **extra)
+
+
+def _version(song):
+    """Znacznik wersji piosenki do wykrywania równoczesnej edycji."""
+    return song.updated_at.isoformat() if song and song.updated_at else ''
 
 
 # ── Biblioteka ──
 @songs_bp.get('/c/<church_id>/songs')
 @require_membership('muzyk')
 def songs_list(church_id, membership):
+    just_deleted = None
+    if request.args.get('deleted'):
+        just_deleted = Song.query.filter_by(id=request.args['deleted'], church_id=church_id,
+                                            deleted=True).first()
     q = (request.args.get('q') or '').strip()
     query = Song.query.filter_by(church_id=church_id, deleted=False)
     if q:
         query = query.filter(db.or_(Song.title.ilike(f'%{q}%'),
                                     Song.content.ilike(f'%{q}%')))
     songs = query.order_by(Song.title).all()
-    return render_template('songs/list.html', songs=songs, q=q,
+    return render_template('songs/list.html', songs=songs, q=q, just_deleted=just_deleted,
                            church=db.session.get(Church, church_id),
                            membership=membership, user=current_user())
 
@@ -144,8 +155,11 @@ def song_new(church_id, membership):
         errors, notes = _save_song_fields(song, request.form)
         if not song.title or not song.content.strip():
             errors.insert(0, _('Title and content are required.'))
+        dup = find_by_title(church_id, song.title) if song.title else None
+        if dup:
+            errors.insert(0, _('A song with this title is already in the library. Change the title or edit that song.'))
         if errors:
-            return _form_again(song, True, church_id, membership, errors)
+            return _form_again(song, True, church_id, membership, errors, dup=dup)
         db.session.add(song)
         db.session.commit()
         flash(_('Added:') + ' ' + song.title)
@@ -173,7 +187,7 @@ def song_view(church_id, song_id, membership):
     profile = _my_profile(church_id)
     return render_template('songs/view.html', song=song, band_html=band_html,
                            transpose=transpose, shown_key=shown_key,
-                           prefs=(profile.prefs if profile else {}) or {},
+                           prefs=_view_prefs(profile, church_id),
                            church=db.session.get(Church, church_id),
                            membership=membership, user=current_user())
 
@@ -183,11 +197,23 @@ def song_view(church_id, song_id, membership):
 def song_edit(church_id, song_id, membership):
     song = _get_song(church_id, song_id)
     if request.method == 'POST':
+        # Ktoś zapisał tę piosenkę po tym, jak ten formularz się otworzył:
+        # nie nadpisujemy po cichu, tylko pokazujemy obie wersje.
+        base = request.form.get('base', '')
+        if base and base != _version(song):
+            who = _user_name(church_id, song.updated_by)
+            return _form_again(song, False, church_id, membership, [
+                _('Someone else saved this song while you were editing (%(who)s, %(when)s). Your text is below. Compare it with theirs and save again.')
+                % {'who': who or '?', 'when': song.updated_at.strftime('%H:%M')}],
+                theirs=song.content, base=_version(song))
         errors, notes = _save_song_fields(song, request.form)
         if not song.title or not song.content.strip():
             errors.insert(0, _('Title and content are required.'))
+        dup = find_by_title(church_id, song.title, exclude_id=song.id) if song.title else None
+        if dup:
+            errors.insert(0, _('A song with this title is already in the library. Change the title or edit that song.'))
         if errors:
-            page = _form_again(song, False, church_id, membership, errors)
+            page = _form_again(song, False, church_id, membership, errors, dup=dup)
             db.session.rollback()          # nic z błędnego formularza nie trafia do bazy
             return page
         db.session.commit()
@@ -197,6 +223,7 @@ def song_edit(church_id, song_id, membership):
         return redirect(url_for('songs.song_view', church_id=church_id,
                                 song_id=song.id))
     return render_template('songs/form.html', song=song, is_new=False,
+                           base=_version(song), used_in=services_using(church_id, song),
                            church=db.session.get(Church, church_id),
                            membership=membership, user=current_user())
 
@@ -206,9 +233,41 @@ def song_edit(church_id, song_id, membership):
 def song_delete(church_id, song_id, membership):
     song = _get_song(church_id, song_id)
     song.deleted = True   # tombstone (sync M5); twarde kasowanie po 30 dniach
+    song.updated_by = current_user().id
     db.session.commit()
-    flash(_('Deleted:') + ' ' + song.title)
-    return redirect(url_for('songs.songs_list', church_id=church_id))
+    # lista pokaże „Usunięto X · Cofnij"
+    return redirect(url_for('songs.songs_list', church_id=church_id, deleted=song.id))
+
+
+@songs_bp.post('/c/<church_id>/songs/<song_id>/restore')
+@require_membership('prowadzacy')
+def song_restore(church_id, song_id, membership):
+    song = Song.query.filter_by(id=song_id, church_id=church_id).first_or_404()
+    if song.deleted:
+        song.title = unique_title(church_id, song.title, exclude_id=song.id)
+        song.deleted = False
+        db.session.commit()
+        flash(_('Restored:') + ' ' + song.title)
+    return redirect(url_for('songs.song_view', church_id=church_id, song_id=song.id))
+
+
+def services_using(church_id, song):
+    """Najbliższe grania, których setlista zawiera tę piosenkę."""
+    from datetime import date
+    from app.models import Event, StudioSetlist
+    out = []
+    events = Event.query.filter(Event.church_id == church_id, Event.date >= date.today(),
+                                Event.setlist_id.isnot(None)).order_by(Event.date).limit(20).all()
+    for ev in events:
+        sl = StudioSetlist.query.filter_by(id=ev.setlist_id, church_id=church_id).first()
+        try:
+            items = json.loads(sl.songs or '[]') if sl else []
+        except (ValueError, TypeError):
+            items = []
+        t = (song.title or '').strip().lower()
+        if any(i.get('id') == song.id or (i.get('title') or '').strip().lower() == t for i in items):
+            out.append(ev)
+    return out
 
 
 # ── Import .txt (format eksportu aplikacji desktop) ──
@@ -224,8 +283,7 @@ def songs_import(church_id, membership):
         body = (body or '').strip()[:SONG_MAX_CHARS]
         if not title or not body:
             return
-        if Song.query.filter_by(church_id=church_id, title=title,
-                                deleted=False).first():
+        if find_by_title(church_id, title):
             skipped.append(title)   # nie nadpisujemy po cichu
             return
         # notacja zgadywana dla każdej piosenki osobno (w jednym pliku bywają
@@ -341,9 +399,17 @@ def api_analyze():
 
 
 # ── Setlisty ──
+# Stare setlisty panelu zostały zastąpione setlistami Studia podpinanymi do
+# grania (dwa systemy nie wiedziały o sobie). Dane zostają w bazie, a adresy
+# prowadzą do Grania.
+def _setlists_moved(church_id):
+    flash(_('Setlists are arranged in Studio and attached to a service. Open the service to see its songs.'))
+    return redirect(url_for('events.events_list', church_id=church_id))
+
 @songs_bp.route('/c/<church_id>/setlists', methods=['GET', 'POST'])
 @require_membership('muzyk')
 def setlists(church_id, membership):
+    return _setlists_moved(church_id)
     if request.method == 'POST':
         if membership.role == 'muzyk':
             abort(403)
@@ -380,6 +446,7 @@ def _get_setlist(church_id, setlist_id):
 @songs_bp.get('/c/<church_id>/setlists/<setlist_id>')
 @require_membership('muzyk')
 def setlist_edit(church_id, setlist_id, membership):
+    return _setlists_moved(church_id)
     sl = _get_setlist(church_id, setlist_id)
     songs_by_id = {s.id: s for s in Song.query.filter_by(
         church_id=church_id, deleted=False).all()}
@@ -407,6 +474,7 @@ def setlist_edit(church_id, setlist_id, membership):
 @songs_bp.post('/c/<church_id>/setlists/<setlist_id>/items')
 @require_membership('prowadzacy')
 def setlist_items(church_id, setlist_id, membership):
+    return _setlists_moved(church_id)
     """Jedna akcja modyfikująca pozycje: add / remove / move / transpose."""
     sl = _get_setlist(church_id, setlist_id)
     # głęboka kopia: mutacja słowników w miejscu aliasowałaby snapshot
@@ -442,6 +510,7 @@ def setlist_items(church_id, setlist_id, membership):
 @songs_bp.post('/c/<church_id>/setlists/<setlist_id>/delete')
 @require_membership('prowadzacy')
 def setlist_delete(church_id, setlist_id, membership):
+    return _setlists_moved(church_id)
     sl = _get_setlist(church_id, setlist_id)
     sl.deleted = True
     db.session.commit()
@@ -451,6 +520,7 @@ def setlist_delete(church_id, setlist_id, membership):
 @songs_bp.post('/c/<church_id>/setlists/<setlist_id>/duplicate')
 @require_membership('prowadzacy')
 def setlist_duplicate(church_id, setlist_id, membership):
+    return _setlists_moved(church_id)
     src = _get_setlist(church_id, setlist_id)
     copy = Setlist(church_id=church_id, name=f'{src.name} (kopia)'[:200],
                    items=list(src.items or []), created_by=current_user().id)
@@ -497,11 +567,18 @@ def practice(church_id, song_id, membership):
     profile, sp = _my_personal(church_id, song_id)
     transpose = (sp.preferred_transpose if sp and
                  sp.preferred_transpose is not None else 0)
+    # Skąd wzięła się tonacja — pokazujemy to przy niej (z grania, Twoja,
+    # oryginalna), bo z różnych miejsc „Ćwicz" otwiera się w różnych tonacjach.
+    key_source = 'yours' if transpose else 'original'
     try:
-        transpose = int(request.args.get('t', transpose))
+        if 't' in request.args:
+            transpose = int(request.args.get('t'))
+            key_source = 'service'
     except ValueError:
         pass
     transpose = max(-11, min(11, transpose))
+    if key_source != 'service' and not transpose:
+        key_source = 'original'
     shown_key = song.key
     if song.key and transpose:
         shown_key = mc.apply_transpose_to_single_chord(
@@ -535,8 +612,9 @@ def practice(church_id, song_id, membership):
                            rec=recordings_payload(arr) if arr else {},
                            dyn_labels=arr_svc.DYNAMICS,
                            note=(sp.note if sp else ''),
-                           section_notes=(_load_section_notes(sp) if sp else {}),
-                           prefs=(profile.prefs if profile else {}) or {},
+                           section_notes=(notes_by_index(sp.section_notes, song.content) if sp else {}),
+                           key_source=key_source,
+                           prefs=_view_prefs(profile, church_id),
                            church=db.session.get(Church, church_id),
                            membership=membership, user=current_user())
 
@@ -564,18 +642,13 @@ def save_personal(church_id, song_id, membership):
     # Notatka do konkretnej sekcji (kafelka) — ten sam model co widok live
     # (section_notes: JSON {"<idx>": "..."}), więc notatki się współdzielą.
     if 'section' in data and 'section_note' in data:
-        notes = _load_section_notes(sp)
         try:
-            key = str(int(data['section']))
+            idx = str(int(data['section']))
         except (TypeError, ValueError):
-            key = None
-        if key is not None:
-            txt = str(data['section_note'])[:1000]
-            if txt.strip():
-                notes[key] = txt
-            else:
-                notes.pop(key, None)
-            sp.section_notes = json.dumps(notes)
+            idx = None
+        if idx is not None:
+            sp.section_notes = notes_with(sp.section_notes, song.content,
+                                          {idx: str(data['section_note'])})
     db.session.commit()
     return jsonify({'status': 'ok',
                     'preferred_key': sp.preferred_key,
@@ -603,3 +676,25 @@ def team_preferences(church_id, song_ids):
             txt += f' woli {"+" if t > 0 else ""}{t}'
         hints.setdefault(sp.song_id, []).append(txt)
     return hints
+
+
+def _user_name(church_id, user_id):
+    """Imię z profilu wspólnoty (albo nazwa konta) do komunikatów."""
+    if not user_id:
+        return ''
+    from app.models import User
+    p = Profile.query.filter_by(church_id=church_id, user_id=user_id).first()
+    if p:
+        return p.name
+    u = db.session.get(User, user_id)
+    return u.display_name if u else ''
+
+
+def _view_prefs(profile, church_id):
+    """Preferencje wyświetlania muzyka. Bez własnej notacji obowiązuje
+    domyślna notacja wspólnoty (Ustawienia)."""
+    prefs = dict((profile.prefs if profile else {}) or {})
+    if not prefs.get('notation'):
+        church = db.session.get(Church, church_id)
+        prefs['notation'] = ((church.settings or {}) if church else {}).get('default_notation', 'international')
+    return prefs

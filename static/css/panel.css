@@ -378,3 +378,19 @@ td a.row-link:hover { color: var(--text-accent); }
     display: flex; gap: 24px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .danger-zone b { font-weight: 600; }
 .danger-zone .hint { margin: 4px 0 0; }
+
+/* Komunikat (dymek) — jeden dla całego panelu */
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 500; max-width: min(560px, calc(100vw - 32px));
+    padding: 12px 18px; border-radius: var(--r-md); background: var(--bg-elevated); border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-lg); color: var(--text-primary); font-size: 15px; }
+.toast.error { border-color: rgba(240, 106, 106, 0.6); }
+.toast[hidden] { display: none; }
+
+.undo-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.undo-bar form { margin: 0; }
+.danger-used { color: var(--danger, #F06A6A); }
+
+@media (hover: none) {
+    .tl-plus { opacity: 1 !important; }
+    .tl-line:not(.only) .c:not(.sp) { text-decoration: underline dotted var(--border-strong); text-underline-offset: 5px; }
+}

@@ -117,6 +117,7 @@ class Song(db.Model):
     author = db.Column(db.String(300), default='')
     copyright = db.Column(db.String(300), default='')
     created_by = db.Column(db.String(36), db.ForeignKey('users.id'))
+    updated_by = db.Column(db.String(36), nullable=True)   # kto ostatnio zapisał
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow,
                            onupdate=datetime.utcnow)

@@ -35,83 +35,43 @@ def setup_live(client, app):
                                              'key': 'G', 'bpm': '80'})
     client.post(f'/c/{cid}/songs/new', data={'title': 'B', 'content': SONG_B,
                                              'key': 'Am'})
-    client.post(f'/c/{cid}/setlists', data={'name': 'Test'})
-    with app.app_context():
-        ids = [s.id for s in Song.query.order_by(Song.title).all()]
-        slid = Setlist.query.first().id
-    for sid in ids:
-        client.post(f'/c/{cid}/setlists/{slid}/items',
-                    data={'action': 'add', 'song_id': sid})
-    client.post(f'/c/{cid}/live/start/{slid}')
-    return cid, slid
+    return cid, None
 
 
-def test_live_lifecycle_and_slides(app, client):
-    cid, slid = setup_live(client, app)
+def test_old_live_is_retired_studio_is_the_only_source(app, client):
+    # Stary LIVE (ze starej setlisty) i Studio wysyłały slajdy na te same
+    # ekrany. Teraz jedynym źródłem jest Studio.
+    cid, _ = setup_live(client, app)
+    r = client.post(f'/c/{cid}/live/start/123')
+    assert r.status_code == 302 and '/studio' in r.headers['Location']
+    for path in ('slide', 'transition', 'blackout', 'logo'):
+        assert client.post(f'/c/{cid}/live/{path}', json={}).status_code == 410
     with app.app_context():
-        assert LiveSession.query.filter_by(ended_at=None).count() == 1
-    # slajd sekcji
-    r = client.post(f'/c/{cid}/live/slide',
-                    json={'song_idx': 0, 'section_idx': 1})
-    assert r.get_json()['status'] == 'ok'
-    st = live_state.get_state(cid)
-    assert st['section_label'] == 'Refren'
-    assert 'chord-pair' in st['band_html']
-    assert 'Amen' in st['people_html']
-    assert st['next_band_html']            # podgląd 1. sekcji nastepnej piosenki
-    # snapshot API dla członka
-    d = client.get(f'/api/live/current/{cid}').get_json()
-    assert d['active'] and d['state']['section_label'] == 'Refren'
-    # blackout toggle
-    assert client.post(f'/c/{cid}/live/blackout').get_json()['blackout'] is True
-    assert client.post(f'/c/{cid}/live/blackout').get_json()['blackout'] is False
-    # koniec sesji
-    client.post(f'/c/{cid}/live/end')
-    with app.app_context():
-        assert LiveSession.query.filter_by(ended_at=None).count() == 0
+        assert LiveSession.query.count() == 0
     assert live_state.get_state(cid) is None
-
-
-def test_live_transition_uses_engine(app, client):
-    cid, slid = setup_live(client, app)
-    r = client.post(f'/c/{cid}/live/transition', json={'song_idx': 0})
-    d = r.get_json()
-    assert d['status'] == 'ok'
-    assert len(d['chords']) == 5
-    assert d['chords'][-1] == '[Am]'       # ląduje na 1. akordzie piosenki B
-    st = live_state.get_state(cid)
-    assert st['type'] == 'transition' and 'chord-pair' in st['band_html']
+    # Studio dalej wysyła slajdy
+    assert client.post(f'/c/{cid}/studio/send_text',
+                       json={'text': '[G]Amen', 'song_title': 'A', 'setlist': [{'title': 'A'}]}).get_json()['status'] == 'ok'
+    assert client.get(f'/api/live/current/{cid}').get_json()['active'] is True
 
 
 def test_live_requires_role_and_tenancy(app, client):
-    cid, slid = setup_live(client, app)
+    cid, _ = setup_live(client, app)
     client.get('/logout')
     # obcy admin z innej wspólnoty
     client.post('/register', data={'email': 'obcy@o.pl', 'password': 'haslo1234',
                                    'display_name': 'Obcy'})
     client.post('/church/create', data={'name': 'Zbor Obcy'})
-    assert client.post(f'/c/{cid}/live/slide',
-                       json={'song_idx': 0, 'section_idx': 0}).status_code == 403
     assert client.post(f'/c/{cid}/live/end').status_code == 403
     assert client.get(f'/c/{cid}/live').status_code == 403
     assert client.get(f'/api/live/current/{cid}').status_code == 403
 
 
-def test_started_session_without_slide_is_not_active(app, client):
-    # Regresja (skarga użytkownika): samo istnienie sesji LIVE (kliknięcie
-    # 'Rozpocznij LIVE' albo zalegający wiersz) nie trzyma dashboardu 'na żywo',
-    # gdy na ekranie nic realnego nie ma (stan idle/logo).
-    cid, slid = setup_live(client, app)   # live_start => stan idle/logo, bez slajdu
-    with app.app_context():
-        assert LiveSession.query.filter_by(ended_at=None).count() == 1
-    assert client.get(f'/api/live/current/{cid}').get_json()['active'] is False
-
-
 def test_screen_tokens(app, client):
     cid, slid = setup_live(client, app)
     client.post(f'/c/{cid}/screens', data={'type': 'projector', 'name': 'Rzutnik'})
-    # 'na żywo' liczy się dopiero, gdy realnie coś jest na ekranie — wyślij slajd
-    client.post(f'/c/{cid}/live/slide', json={'song_idx': 0, 'section_idx': 0})
+    # 'na żywo' liczy się dopiero, gdy realnie coś jest na ekranie: slajd ze Studia
+    client.post(f'/c/{cid}/studio/send_text', json={'text': '[G]Amen', 'song_title': 'A', 'setlist': [{'title': 'A'}]})
     with app.app_context():
         tok = ScreenToken.query.first().token
         sid = ScreenToken.query.first().id

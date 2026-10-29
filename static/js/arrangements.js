@@ -323,7 +323,8 @@
     // ── MODAL KOMÓRKI + nagrywanie ──
     var cur = null, noteTimer = null;
     function openCell(t, r) {
-        cur = { tile: t.id, role: r };
+        cur = { tile: t.id, role: r, v: (A.cells[cellKey(t.id, r)] || {}).v || '' };
+        $('cell-conflict').hidden = true;
         var c = A.cells[cellKey(t.id, r)] || {};
         $('cell-eyebrow').textContent = r;
         $('cell-title').textContent = t.label + (t.repeat > 1 ? ' ×' + t.repeat : '') + (t.dyn ? ' · ' + L.dyn[t.dyn] : '');
@@ -346,13 +347,37 @@
     function openRiff(riff) {
         var staff = riff && riff.kind === 'staff';
         var has = staff ? JStaff.hasNotes(riff) : !!(riff && JRiff.hasNotes(riff));
-        musicKind = has ? (staff ? 'staff' : 'tab') : defaultKind(cur.role);
-        // na dużym ekranie edytor jest zawsze rozwinięty (jest na niego miejsce)
+        // na dużym ekranie sekcja jest rozwinięta (jest na nią miejsce)
         $('riff-box').open = has || window.matchMedia('(min-width: 1001px)').matches;
-        mountMusic(has ? riff : null);
+        if (has) {
+            musicKind = staff ? 'staff' : 'tab';
+            mountMusic(riff);
+        } else {
+            showMusicChooser();
+        }
+    }
+    // Pusta kratka: najpierw wybór (riff albo nuty), edytor dopiero potem —
+    // komuś, kto chce tylko dopisać notatkę, nie pokazujemy 18 przycisków.
+    function showMusicChooser() {
+        if (riffEd) { riffEd.destroy(); riffEd = null; }
+        musicKind = null;
+        $('music-kind').hidden = true;
+        var def = defaultKind(cur.role);
+        var box = $('riff-editor');
+        box.innerHTML = '<div class="music-choose">' +
+            '<button type="button" class="btn' + (def === 'tab' ? '' : ' btn-ghost') + '" data-choose="tab">🎸 ' + L.chooseTab + '</button>' +
+            '<button type="button" class="btn' + (def === 'staff' ? '' : ' btn-ghost') + '" data-choose="staff">🎼 ' + L.chooseStaff + '</button>' +
+            '</div>';
+        box.querySelectorAll('[data-choose]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                musicKind = b.dataset.choose;
+                mountMusic(null);
+            });
+        });
     }
     function mountMusic(data) {
         if (riffEd) riffEd.destroy();
+        $('music-kind').hidden = false;
         document.querySelectorAll('#music-kind button').forEach(function (b) { b.classList.toggle('active', b.dataset.kind === musicKind); });
         var onChange = function (r) {
             status('cell-status', 'saving');
@@ -381,10 +406,9 @@
     function saveRiff(r) {
         if (!cur) return;
         var key = cellKey(cur.tile, cur.role);
-        post(BASE + '/cell', { tile: cur.tile, role: cur.role, riff: r }).then(function (d) {
-            A.cells[key] = Object.assign({}, A.cells[key] || {}, { riff: d.riff });
-            status('cell-status', 'saved');
-        }).catch(function () { status('cell-status', 'error'); });
+        cellPost({ riff: r }, function (d) {
+            A.cells[key] = Object.assign({}, A.cells[key] || {}, { riff: d.riff, v: d.v });
+        }, { riff: r });
     }
     function flushRiff() {
         if (!riffTimer || !riffEd) return;
@@ -414,14 +438,51 @@
         if (!noteTimer) return;
         clearTimeout(noteTimer); noteTimer = null; saveNote();
     }
+    // Zapis kratki z numerem wersji. 409 = ktoś inny zmienił kratkę w tym
+    // czasie: pokazujemy jego wersję i dajemy przywrócić własną.
+    var mine = null;
+    function cellPost(fields, ok, myVersion) {
+        if (!cur) return;
+        var target = cur, key = cellKey(cur.tile, cur.role);
+        fetch(BASE + '/cell', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(Object.assign({ tile: target.tile, role: target.role, base: target.v }, fields)) })
+            .then(function (r) { return r.json().then(function (d) { return { code: r.status, d: d }; }); })
+            .then(function (res) {
+                if (res.code === 409 && res.d.conflict) {
+                    var theirs = res.d.cell || {};
+                    A.cells[key] = theirs;
+                    target.v = theirs.v || '';
+                    mine = Object.assign(mine || {}, myVersion);
+                    if (cur === target) {
+                        $('cell-note').value = theirs.note || '';
+                        openRiff(theirs.riff);
+                        $('cell-conflict-text').textContent = L.cellConflict.replace('%(name)s', theirs.by || '?');
+                        $('cell-conflict').hidden = false;
+                    }
+                    status('cell-status', '');
+                    return;
+                }
+                if (res.code >= 400) throw new Error(res.code);
+                target.v = res.d.v || '';
+                ok(res.d);
+                status('cell-status', 'saved');
+            })
+            .catch(function () { status('cell-status', 'error'); });
+    }
+    $('cell-conflict-mine').onclick = function () {
+        if (!cur || !mine) return;
+        if (mine.note !== undefined) { $('cell-note').value = mine.note; saveNote(); }
+        if (mine.riff !== undefined) { openRiff(mine.riff); saveRiff(mine.riff); }
+        mine = null;
+        $('cell-conflict').hidden = true;
+    };
     function saveNote() {
         if (!cur) return;
         var key = cellKey(cur.tile, cur.role), note = $('cell-note').value;
         status('cell-status', 'saving');
-        post(BASE + '/cell', { tile: cur.tile, role: cur.role, note: note }).then(function () {
-            A.cells[key] = Object.assign({}, A.cells[key] || {}, { note: note });
-            status('cell-status', 'saved');
-        }).catch(function () { status('cell-status', 'error'); });
+        cellPost({ note: note }, function (d) {
+            A.cells[key] = Object.assign({}, A.cells[key] || {}, { note: note, v: d.v });
+        }, { note: note });
     }
     $('cell-note').addEventListener('input', function () {
         status('cell-status', 'saving');
@@ -465,7 +526,7 @@
         if (mineNow && mineNow.memo && mineNow.memo_by && mineNow.memo_by !== A.me &&
                 !confirm(L.replaceOther.replace('%(name)s', mineNow.memo_by))) return;
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
-            alert(L.noMic); return;
+            window.panelNotice(L.noMic, 'error'); return;
         }
         navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } })
             .then(function (s) {
@@ -490,7 +551,7 @@
                             if (cur && cur.tile === target.tile && cur.role === target.role) showMemo(A.cells[key]);
                             resetRec();
                         })
-                        .catch(function (err) { alert(err.message || L.error); resetRec(); showMemo(A.cells[cellKey(target.tile, target.role)] || {}); });
+                        .catch(function (err) { window.panelNotice(err.message || L.error, 'error'); resetRec(); showMemo(A.cells[cellKey(target.tile, target.role)] || {}); });
                 };
                 rec.start(1000);
                 recStart = Date.now();
@@ -500,7 +561,7 @@
                 $('rec-time').textContent = '0:00';
                 recTick = setInterval(function () { $('rec-time').textContent = fmtTime((Date.now() - recStart) / 1000); }, 250);
             })
-            .catch(function () { alert(L.noMic); });
+            .catch(function () { window.panelNotice(L.noMic, 'error'); });
     };
 
     // ── Kilka osób naraz: odświeżanie stanu i baner ze zmianami ──
