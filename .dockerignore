@@ -1,0 +1,19 @@
+# Do obrazu idzie tylko to, czego aplikacja potrzebuje do działania.
+# Bez tego każdy build kopiował ~1,2 GB (głównie .git) i zapychał dysk VPS.
+.git
+.github
+.venv*
+venv
+__pycache__
+*.pyc
+instance
+*.db
+build
+dist
+*.spec
+node_modules
+prototypes
+tests
+*.md
+.env
+.env.*
