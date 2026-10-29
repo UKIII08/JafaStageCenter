@@ -16,6 +16,7 @@ from app.models import (Church, Event, EventAssignment, EventSignup,
                         Membership, Song, StudioSetlist, User)
 from app.panel.routes import INSTRUMENTS, require_membership
 from app.i18n import translate as _
+from app.storage import has_room, human, usage
 from music_core.chords import apply_transpose_to_single_chord
 
 events_bp = Blueprint('events', __name__)
@@ -396,6 +397,10 @@ def welcome_photo_upload(church_id, membership):
     if data is None:
         return {'status': 'error',
                 'message': _('Must be an image up to 8 MB.')}, 400
+    church = db.session.get(Church, church_id)
+    if not has_room(church, len(data)):
+        u = usage(church)
+        return {'status': 'error', 'message': _('No room left for this community’s files (%(used)s of %(limit)s). An admin can free up space in Settings.') % {'used': human(u['total']), 'limit': human(u['limit'])}}, 413
     name = _uuid.uuid4().hex[:12] + '.' + _img_ext(data)
     with open(os.path.join(_welcome_dir(church_id), name), 'wb') as out:
         out.write(data)
@@ -441,6 +446,10 @@ def welcome_icon_upload(church_id, membership):
     if data is None:
         return {'status': 'error',
                 'message': _('Must be an image up to 8 MB.')}, 400
+    church = db.session.get(Church, church_id)
+    if not has_room(church, len(data)):
+        u = usage(church)
+        return {'status': 'error', 'message': _('No room left for this community’s files (%(used)s of %(limit)s). An admin can free up space in Settings.') % {'used': human(u['total']), 'limit': human(u['limit'])}}, 413
     name = _uuid.uuid4().hex[:12] + '.' + _img_ext(data)
     with open(os.path.join(_welcome_icons_dir(church_id), name), 'wb') as out:
         out.write(data)

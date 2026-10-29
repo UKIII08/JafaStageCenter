@@ -16,6 +16,7 @@ from app.models import (Arrangement, ArrangementCell, ArrangementRevision,
                         Church, Profile, Song, User)
 from app.panel.routes import require_membership
 from app.arrangements import service as svc
+from app.storage import has_room, human, usage
 
 arr_bp = Blueprint('arr', __name__)
 
@@ -171,6 +172,19 @@ def delete(church_id, arr_id, membership):
                             song_id=song_id))
 
 
+@arr_bp.post('/c/<church_id>/arrangements/<arr_id>/recordings/delete')
+@require_membership('admin')
+def delete_recordings(church_id, arr_id, membership):
+    """Zwolnienie miejsca: kasuje nagrania z Reapera tej wersji.
+    Forma, notatki i notatki głosowe zostają."""
+    arr = _arr(church_id, arr_id)
+    svc.remove_recordings(arr)
+    arr.markers = {}
+    db.session.commit()
+    flash(_('Recordings deleted.'))
+    return redirect(url_for('panel.church_settings', church_id=church_id) + '#storage')
+
+
 # ── edycja (AJAX) ───────────────────────────────────────────────────────
 def rev(arr):
     """Znacznik wersji formy/obsady. Zmienia się przy każdym zapisie."""
@@ -285,6 +299,13 @@ def save_memo(church_id, arr_id, membership):
                         'error': _('This is not an audio file, or it is too big (max 8 MB).')}), 400
     data, ext, mime = got
     old = c.memo
+    old_path = os.path.join(svc.arr_dir(arr), old) if old else ''
+    freed = os.path.getsize(old_path) if old_path and os.path.exists(old_path) else 0
+    church = db.session.get(Church, church_id)
+    if not has_room(church, len(data), freed=freed):
+        db.session.rollback()
+        u = usage(church)
+        return jsonify({'status': 'error', 'error': _('No room left for this community’s files (%(used)s of %(limit)s). An admin can free up space in Settings.') % {'used': human(u['total']), 'limit': human(u['limit'])}}), 413
     c.memo = f'memo-{secrets.token_hex(6)}.{ext}'
     c.memo_mime = mime
     c.memo_by = c.updated_by = current_user().id

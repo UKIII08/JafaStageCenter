@@ -106,6 +106,12 @@
     </div>
 </div>
 
+{% if storage_warn %}
+<div class="flash undo-bar">
+    <span>{{ _('Files take %(pct)s%% of the space (%(used)s of %(limit)s).') % storage_warn }}</span>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('panel.church_settings', church_id=church.id) }}#storage">{{ _('Free up space') }}</a>
+</div>
+{% endif %}
 <div class="dash-hello">
     <h1>{{ _('Hello, %(name)s.') % {'name': user.display_name} }}</h1>
     <p class="dash-lede">
