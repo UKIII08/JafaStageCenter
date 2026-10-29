@@ -312,7 +312,7 @@ def _inject_user_churches():
         return {}
     ms = (Membership.query.filter_by(user_id=u.id, status='active')
           .join(Church, Church.id == Membership.church_id).all())
-    return {'user_churches': ms}
+    return {'user_churches': ms, 'me': u}
 
 
 @panel_bp.get('/join')

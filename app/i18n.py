@@ -1299,3 +1299,17 @@ PL.update({
 PL.update({
     'Melody (notes)': 'Melodia (nuty)',
 })
+
+
+# ── Wygląd: pastelowy + wybór przy pierwszym wejściu ─────────────────────
+PL.update({
+    'Pastel': 'Pastelowy',
+    'Choose your look': 'Wybierz wygląd',
+    'You can change it anytime in your profile.': 'Zmienisz go w każdej chwili w swoim profilu.',
+    'Calm and dark, easy on the eyes in the evening.': 'Spokojny i ciemny, nie męczy oczu wieczorem.',
+    'Bright and clean, good in daylight.': 'Jasny i czysty, dobry w dzień.',
+    'Soft beige and sky blue.': 'Delikatne beże i błękity.',
+    'Done': 'Gotowe',
+    'The live views (stage, projector, the band’s live screen) stay dark, so nothing glares on stage.':
+        'Widoki na żywo (scena, rzutnik, ekran zespołu) zostają ciemne, żeby na scenie nic nie raziło w oczy.',
+})

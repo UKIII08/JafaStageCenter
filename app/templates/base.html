@@ -15,13 +15,25 @@
          nadpisuje tokeny. Studio ma własny wygląd i tego pliku nie ładuje. -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/panel.css') }}">
     <script src="{{ url_for('static', filename='js/pick.js') }}"></script>
-    <!-- Ustaw motyw z góry (bez mignięcia). Domyślnie ciemny. -->
+    <!-- Ustaw wygląd z góry (bez mignięcia). Najpierw wybór z konta,
+         potem z tego urządzenia, domyślnie ciemny. Pastelowy to jasny motyw
+         z innymi kolorami (data-look), więc Studio widzi po prostu „jasny”. -->
     <script>
-      (function () {
+      window.jonathanApplyLook = function (t) {
+        if (['dark', 'light', 'pastel'].indexOf(t) < 0) t = 'dark';
+        var h = document.documentElement;
+        h.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+        if (t === 'pastel') h.setAttribute('data-look', 'pastel'); else h.removeAttribute('data-look');
         try {
-          var t = localStorage.getItem('jonathan-theme') || 'dark';
-          document.documentElement.setAttribute('data-theme', t);
-        } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+          localStorage.setItem('jonathan-theme', t === 'dark' ? 'dark' : 'light');
+          localStorage.setItem('jonathan-look', t);
+        } catch (e) {}
+        return t;
+      };
+      (function () {
+        var t = {{ (me.theme if me is defined and me and me.theme else '')|tojson }};
+        try { t = t || localStorage.getItem('jonathan-look') || localStorage.getItem('jonathan-theme'); } catch (e) {}
+        window.jonathanApplyLook(t || 'dark');
       })();
     </script>
 </head>
@@ -113,6 +125,7 @@
     {% block content %}{% endblock %}
 </main>
 <script src="{{ url_for('static', filename='js/hints.js') }}"></script>
+{% if me is defined and me and not me.theme %}{% include '_look_picker.html' %}{% endif %}
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <script>
 // Jeden sposób pokazywania komunikatów w panelu (zamiast alert() przeglądarki)

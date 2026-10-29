@@ -20,6 +20,9 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login_at = db.Column(db.DateTime, nullable=True)
     totp_secret = db.Column(db.String(32), nullable=True)   # 2FA (opcjonalne)
+    # wygląd panelu: dark / light / pastel; None = jeszcze nie wybrał
+    # (wtedy panel raz pokazuje „Wybierz wygląd”)
+    theme = db.Column(db.String(10), nullable=True)
 
     memberships = db.relationship('Membership', back_populates='user')
 
