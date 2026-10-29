@@ -110,6 +110,9 @@ def _ensure_columns():
     from sqlalchemy import inspect, text
     insp = inspect(db.engine)
     wanted = {
+        'users': [
+            ('theme', 'VARCHAR(10)'),
+        ],
         'song_personal': [
             ('capo_fret', 'INTEGER'),
             ('section_notes', "TEXT DEFAULT '{}'"),

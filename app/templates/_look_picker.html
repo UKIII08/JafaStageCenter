@@ -1,0 +1,49 @@
+{# Raz, przy pierwszym wejściu: „Wybierz wygląd”. Potem zmiana w profilu. #}
+<div class="look-pick" id="look-pick" role="dialog" aria-modal="true" aria-labelledby="look-title">
+    <div class="look-box">
+        <h2 id="look-title">{{ _('Choose your look') }}</h2>
+        <p>{{ _('You can change it anytime in your profile.') }}</p>
+        <div class="look-opts">
+            <button type="button" class="look-opt" data-look-val="dark">
+                <span class="look-mini dark"><i></i><span><em></em><em></em><span class="chip"></span></span></span>
+                <span><b>{{ _('Dark') }}</b><br><small>{{ _('Calm and dark, easy on the eyes in the evening.') }}</small></span>
+            </button>
+            <button type="button" class="look-opt" data-look-val="light">
+                <span class="look-mini light"><i></i><span><em></em><em></em><span class="chip"></span></span></span>
+                <span><b>{{ _('Light') }}</b><br><small>{{ _('Bright and clean, good in daylight.') }}</small></span>
+            </button>
+            <button type="button" class="look-opt" data-look-val="pastel">
+                <span class="look-mini pastel"><i></i><span><em></em><em></em><span class="chip"></span></span></span>
+                <span><b>{{ _('Pastel') }}</b><br><small>{{ _('Soft beige and sky blue.') }}</small></span>
+            </button>
+        </div>
+        <div class="look-foot">
+            <button type="button" class="btn btn-primary" id="look-done">{{ _('Done') }}</button>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    var box = document.getElementById('look-pick');
+    var h = document.documentElement;
+    var cur = h.getAttribute('data-look') === 'pastel' ? 'pastel' : (h.getAttribute('data-theme') || 'dark');
+    function mark() {
+        box.querySelectorAll('.look-opt').forEach(function (b) {
+            b.classList.toggle('on', b.dataset.lookVal === cur);
+        });
+    }
+    // kliknięcie od razu pokazuje wygląd na całej stronie
+    box.querySelectorAll('.look-opt').forEach(function (b) {
+        b.addEventListener('click', function () { cur = window.jonathanApplyLook(b.dataset.lookVal); mark(); });
+    });
+    function done() {
+        box.hidden = true;
+        fetch({{ url_for('auth.save_theme')|tojson }}, {method: 'POST',
+            headers: {'Content-Type': 'application/json'}, body: JSON.stringify({theme: cur})});
+    }
+    document.getElementById('look-done').addEventListener('click', done);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !box.hidden) done(); });
+    mark();
+    box.querySelector('.look-opt.on, .look-opt').focus();
+})();
+</script>

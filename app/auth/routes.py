@@ -182,6 +182,20 @@ def account():
     return render_template('auth/account.html', user=current_user())
 
 
+THEMES = ('dark', 'light', 'pastel')
+
+
+@auth_bp.post('/account/theme')
+@login_required
+def save_theme():
+    t = (request.json or {}).get('theme')
+    if t not in THEMES:
+        return {'error': 'bad theme'}, 400
+    current_user().theme = t
+    db.session.commit()
+    return {'status': 'ok', 'theme': t}
+
+
 @auth_bp.post('/account/2fa/enable')
 @login_required
 def twofa_enable():

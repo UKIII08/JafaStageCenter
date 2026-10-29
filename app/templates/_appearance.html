@@ -8,8 +8,10 @@
         <div class="seg" id="theme-seg">
             <button type="button" data-theme-val="light" onclick="setTheme('light')">{{ _('Light') }}</button>
             <button type="button" data-theme-val="dark" onclick="setTheme('dark')">{{ _('Dark') }}</button>
+            <button type="button" data-theme-val="pastel" onclick="setTheme('pastel')">{{ _('Pastel') }}</button>
         </div>
     </div>
+    <p class="hint" style="margin:calc(-1 * var(--s2)) 0 0;">{{ _('The live views (stage, projector, the band’s live screen) stay dark, so nothing glares on stage.') }}</p>
 
     <div class="set-row">
         <span>{{ _('Language') }}</span>
@@ -31,15 +33,20 @@
 </div>
 
 <script>
-function setTheme(t) {
-    document.documentElement.setAttribute('data-theme', t);
-    try { localStorage.setItem('jonathan-theme', t); } catch (e) {}
+function markTheme(t) {
     document.querySelectorAll('#theme-seg button').forEach(function (b) {
         b.classList.toggle('active', b.getAttribute('data-theme-val') === t);
     });
 }
-// oznacz aktywny motyw przy wejściu
-setTheme(document.documentElement.getAttribute('data-theme') || 'dark');
+function setTheme(t) {
+    markTheme(window.jonathanApplyLook(t));
+    // zapis na koncie, żeby wygląd był ten sam na każdym urządzeniu
+    fetch({{ url_for('auth.save_theme')|tojson }}, {method: 'POST',
+        headers: {'Content-Type': 'application/json'}, body: JSON.stringify({theme: t})});
+}
+// oznacz aktywny wygląd przy wejściu
+markTheme(document.documentElement.getAttribute('data-look') === 'pastel' ? 'pastel'
+          : (document.documentElement.getAttribute('data-theme') || 'dark'));
 
 // ── Podpowiedzi na hover (per urządzenie) ──
 function markHints() {
