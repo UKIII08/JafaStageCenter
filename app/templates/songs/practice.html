@@ -13,6 +13,7 @@
     .pr-picks { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
     .pr-picks .pick-opt small, .pick-opt small { font-size: 12px; font-weight: 400; color: var(--text-tertiary); margin-left: 8px; }
     .pr-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .key-src { font-style: normal; font-size: 12px; color: var(--text-tertiary); margin-left: 6px; }
     .tgroup { display: inline-flex; align-items: center; border: 1px solid var(--border-strong); border-radius: var(--r-md); height: 38px; overflow: hidden; }
     .tgroup button { height: 36px; width: 36px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--text-secondary); font-size: 16px; }
     .tgroup button:hover { background: var(--bg-surface); color: var(--text-primary); border: 0; }
@@ -133,7 +134,8 @@
         <div class="eyebrow pr-crumb"><a href="{{ url_for('songs.songs_list', church_id=church.id) }}">{{ _('Songs') }}</a> / {{ song.title }}</div>
         <h1>{{ song.title }}</h1>
         <div class="pr-meta">
-            {% if shown_key %}<span>{{ _('Key') }}<b id="key-label">{{ shown_key }}</b></span>{% endif %}
+            {% if shown_key %}<span>{{ _('Key') }}<b id="key-label">{{ shown_key }}</b>
+                <em class="key-src">{{ {'service': _('from the service setlist'), 'yours': _('your key'), 'original': _('original')}[key_source] }}</em></span>{% endif %}
             {% if song.bpm %}<span>{{ _('Tempo') }}<b>{{ song.bpm }}</b></span>{% endif %}
             {% if arr and arrangements|length < 2 %}<span>{{ _('Version') }}<b>{{ arr.name }}</b></span>{% endif %}
         </div>

@@ -1793,6 +1793,8 @@ function goLiveSection(c, n, forceTrans = null, nextTrans = null) {
             key: currentKey,
             bpm: currentBpm,
             song_title: songTitle,
+            // id piosenki: raport CCLI liczy użycia po id, nie po tytule
+            song_id: setlist[currentSetIndex] ? (setlist[currentSetIndex].id || '') : '',
             current_index: currentSetIndex,
             setlist: setlist,
             blackout: isBlackoutActive

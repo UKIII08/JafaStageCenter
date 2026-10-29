@@ -171,7 +171,7 @@ document.getElementById('icon-file').addEventListener('change', function(){
   if (!this.files[0]) return;
   const fd = new FormData(); fd.append('icon', this.files[0]);
   fetch('/c/' + CHURCH + '/welcome/icons', { method:'POST', body: fd })
-    .then(r => r.json()).then(d => { if (d.status === 'ok'){ ICONS.push(d.name); renderIcons(); } else alert(d.message || 'Error'); });
+    .then(r => r.json()).then(d => { if (d.status === 'ok'){ ICONS.push(d.name); renderIcons(); } else window.panelNotice(d.message || 'Error', 'error'); });
   this.value = '';
 });
 function delIcon(n){
@@ -200,7 +200,7 @@ document.getElementById('photo-file').addEventListener('change', function(){
   if (!this.files[0]) return;
   const fd = new FormData(); fd.append('photo', this.files[0]);
   fetch('/c/' + CHURCH + '/welcome/photos', { method:'POST', body: fd })
-    .then(r => r.json()).then(d => { if (d.status === 'ok'){ PHOTOS.push(d.name); renderPhotos(); } else alert(d.message || 'Error'); });
+    .then(r => r.json()).then(d => { if (d.status === 'ok'){ PHOTOS.push(d.name); renderPhotos(); } else window.panelNotice(d.message || 'Error', 'error'); });
   this.value = '';
 });
 function delPhoto(n){

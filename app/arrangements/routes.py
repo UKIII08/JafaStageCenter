@@ -67,8 +67,13 @@ def cells_payload(arr):
                          'riff': c.riff or None,
                          'memo': audio_url(arr, c.memo) if c.memo else '',
                          'memo_by': names.get(c.memo_by, ''),
-                         'by': names.get(c.updated_by, '')}
+                         'by': names.get(c.updated_by, ''),
+                         'v': _cell_version(c)}
             for (t, r), c in cells.items()}
+
+
+def _cell_version(c):
+    return c.updated_at.isoformat() if c and c.updated_at else ''
 
 
 def recordings_payload(arr):
@@ -244,16 +249,26 @@ def save_cell(church_id, arr_id, membership):
     arr = _arr(church_id, arr_id)
     data = request.json or {}
     c = _cell(arr, str(data.get('tile')), str(data.get('role')), create=True)
+    # Ktoś inny zmienił tę kratkę od chwili, gdy ta osoba ją otworzyła:
+    # nie nadpisujemy, tylko oddajemy aktualną wersję do pokazania.
+    base = data.get('base')
+    if c.id and base is not None and base != _cell_version(c) \
+            and c.updated_by != current_user().id:
+        db.session.rollback()
+        cur = cells_payload(arr).get(f"{c.tile_id}|{c.role}", {})
+        return jsonify({'conflict': True, 'cell': cur}), 409
     # notatka i riff zapisują się osobno — brak pola = bez zmian
     if 'note' in data:
         c.note = str(data.get('note') or '')[:2000]
     if 'riff' in data:
         c.riff = svc.clean_riff(data.get('riff'))
     c.updated_by = current_user().id
-    if not (c.note or '').strip() and not c.memo and not c.riff:
+    gone = not (c.note or '').strip() and not c.memo and not c.riff
+    if gone:
         db.session.delete(c)
     db.session.commit()
-    return jsonify({'status': 'ok', 'riff': c.riff if c in db.session else None})
+    return jsonify({'status': 'ok', 'riff': None if gone else c.riff,
+                    'v': '' if gone else _cell_version(c)})
 
 
 @arr_bp.post('/c/<church_id>/arrangements/<arr_id>/memo')

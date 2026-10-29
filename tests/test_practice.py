@@ -59,7 +59,7 @@ def test_section_note_saved_and_shown(app, client):
     with app.app_context():
         import json
         sp = SongPersonal.query.first()
-        assert json.loads(sp.section_notes) == {'0': 'graj cicho tu'}
+        assert json.loads(sp.section_notes) == {'s:zwrotka#1': 'graj cicho tu'}   # po nazwie części
     # widoczna po ponownym wejściu w tryb ćwiczenia
     r = client.get(f'/c/{cid}/songs/{sid}/practice')
     assert 'graj cicho tu' in r.get_data(as_text=True)
@@ -104,17 +104,10 @@ def test_leader_sees_team_hints(app, client):
     client.get(f'/join/{code}')
     client.post(f'/c/{cid}/songs/{sid}/personal', json={'transpose': 3})
     client.get('/logout')
-    # prowadzący widzi podpowiedź w setliście
+    # prowadzący widzi preferencję w Studiu (podpowiedzi przy setliście)
     client.post('/login', data={'email': 'l@l.pl', 'password': 'haslo1234'})
-    client.post(f'/c/{cid}/setlists', data={'name': 'X'})
-    with app.app_context():
-        from app.models import Setlist
-        slid = Setlist.query.first().id
-    client.post(f'/c/{cid}/setlists/{slid}/items',
-                data={'action': 'add', 'song_id': sid})
-    r = client.get(f'/c/{cid}/setlists/{slid}')
-    page = r.get_data(as_text=True)
-    assert 'Wokalistka woli Bb' in page    # G+3
+    d = client.get(f'/c/{cid}/studio/api/song/{sid}/team-prefs').get_json()
+    assert 'Bb' in str(d) and 'Wokalistka' in str(d)    # G+3
 
 
 def test_personal_tenancy(app, client):

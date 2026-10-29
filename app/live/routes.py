@@ -162,6 +162,10 @@ def _render_slide(church_id, rows, song_idx, section_idx):
 @live_bp.post('/c/<church_id>/live/start/<setlist_id>')
 @require_membership('prowadzacy')
 def live_start(church_id, setlist_id, membership):
+    # Jedno źródło slajdów: Studio. Stary LIVE wysyłał na te same ekrany
+    # i przy jednoczesnej pracy ekrany przeskakiwały między dwoma źródłami.
+    flash(_('Live is run from Studio.'))
+    return redirect(url_for('studio.control', church_id=church_id))
     if _active_session(church_id):
         flash(_('A live session is already running. Joined it.'))
         return redirect(url_for('live.leader', church_id=church_id))
@@ -204,6 +208,7 @@ def leader(church_id, membership):
 @live_bp.post('/c/<church_id>/live/slide')
 @require_membership('prowadzacy')
 def slide(church_id, membership):
+    return jsonify({'error': 'use_studio'}), 410
     session_obj = _active_session(church_id)
     if not session_obj:
         return jsonify({'error': 'no_session'}), 409
@@ -224,6 +229,7 @@ def slide(church_id, membership):
 @live_bp.post('/c/<church_id>/live/transition')
 @require_membership('prowadzacy')
 def transition(church_id, membership):
+    return jsonify({'error': 'use_studio'}), 410
     """Przejście akordowe między piosenką song_idx a song_idx+1."""
     session_obj = _active_session(church_id)
     if not session_obj:
@@ -276,6 +282,7 @@ def transition(church_id, membership):
 @live_bp.post('/c/<church_id>/live/blackout')
 @require_membership('prowadzacy')
 def blackout(church_id, membership):
+    return jsonify({'error': 'use_studio'}), 410
     st = live_state.get_state(church_id) or {'type': 'idle'}
     st['blackout'] = not st.get('blackout')
     st['logo'] = False
@@ -287,6 +294,7 @@ def blackout(church_id, membership):
 @live_bp.post('/c/<church_id>/live/logo')
 @require_membership('prowadzacy')
 def logo(church_id, membership):
+    return jsonify({'error': 'use_studio'}), 410
     st = live_state.get_state(church_id) or {'type': 'idle'}
     st['logo'] = not st.get('logo')
     st['blackout'] = False

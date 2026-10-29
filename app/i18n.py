@@ -29,7 +29,7 @@ def set_lang(lang):
 PL = {
     # ── Nawigacja / topbar / wspólne ──
     "Studio": "Studio", "Services": "Granie", "Songs": "Piosenki",
-    "Live": "Live", "Team": "Zespół", "Screens": "Ekrany",
+    "Live": "Na żywo", "Team": "Zespół", "Screens": "Ekrany",
     "Settings": "Ustawienia", "Profile": "Profil", "Panel": "Panel",
     "Sign out": "Wyloguj", "Sign in": "Zaloguj się", "Account": "Konto",
     "Save": "Zapisz", "Save changes": "Zapisz zmiany", "Cancel": "Anuluj",
@@ -73,7 +73,7 @@ PL = {
     "Create an account, set up your church and paste your first songs. The "
     "team joins with a single code, screens connect by QR. Fifteen minutes, "
     "and you're ready for Sunday.":
-        "Załóż konto, stwórz wspólnotę i wklej pierwsze pieśni. Zespół dołącza "
+        "Załóż konto, stwórz wspólnotę i wklej pierwsze piosenki. Zespół dołącza "
         "jednym kodem, ekrany podłączasz przez QR. Kwadrans, i jesteś gotowy "
         "na niedzielę.",
 
@@ -202,20 +202,20 @@ PL = {
     "Welcome screen": "Ekran powitalny",
     "Edit announcements": "Edytuj ogłoszenia",
     "A countdown to this service plus rotating announcements. Shown on the projector before the first song. Photos are shared across your services.":
-        "Odliczanie do tego grania i przewijające się ogłoszenia. Pokazywane na rzutniku przed pierwszą pieśnią. Zdjęcia są wspólne dla wszystkich grań.",
+        "Odliczanie do tego grania i przewijające się ogłoszenia. Pokazywane na rzutniku przed pierwszą piosenką. Zdjęcia są wspólne dla wszystkich grań.",
     "Countdown to this service plus rotating announcements, shown on the projector before the first song. Launch it live from Studio with “Play announcements”.":
-        "Odliczanie do tego grania i przewijające się ogłoszenia na rzutniku przed pierwszą pieśnią. Odpal na żywo ze Studia przyciskiem „Ogłoszenia”.",
+        "Odliczanie do tego grania i przewijające się ogłoszenia na rzutniku przed pierwszą piosenką. Odpal na żywo ze Studia przyciskiem „Ogłoszenia”.",
     "Countdown to this service plus rotating announcements, shown on the projector before the first song. They belong to this service's setlist, so they also play when you load it from History in Studio. Launch it live with “Play announcements”.":
-        "Odliczanie do tego grania i przewijające się ogłoszenia na rzutniku przed pierwszą pieśnią. Należą do setlisty tego grania, więc odtworzą się także, gdy wczytasz ją z Historii w Studiu. Odpal na żywo przyciskiem „Ogłoszenia”.",
+        "Odliczanie do tego grania i przewijające się ogłoszenia na rzutniku przed pierwszą piosenką. Należą do setlisty tego grania, więc odtworzą się także, gdy wczytasz ją z Historii w Studiu. Odpal na żywo przyciskiem „Ogłoszenia”.",
     "Announcements belong to a setlist. Arrange or attach a setlist above first, then you can add the countdown and announcements here.":
         "Ogłoszenia należą do setlisty. Najpierw ułóż lub podepnij setlistę powyżej, a potem dodasz tu odliczanie i ogłoszenia.",
     "A countdown to your service start plus rotating announcements. Shown on the projector before the first song. These belong to this setlist, so they follow it into Studio and the offline app. Photos are shared across your services.":
-        "Odliczanie do startu nabożeństwa i przewijające się ogłoszenia. Pokazywane na rzutniku przed pierwszą pieśnią. Należą do tej setlisty, więc podążają za nią do Studia i aplikacji offline. Zdjęcia są wspólne dla wszystkich grań.",
+        "Odliczanie do startu nabożeństwa i przewijające się ogłoszenia. Pokazywane na rzutniku przed pierwszą piosenką. Należą do tej setlisty, więc podążają za nią do Studia i aplikacji offline. Zdjęcia są wspólne dla wszystkich grań.",
     "Service start time": "Godzina rozpoczęcia",
     "Open on projector ↗": "Otwórz na rzutniku ↗",
     "Open on projector": "Otwórz na rzutniku",
     "A countdown to your next service plus rotating announcements. Shown on the projector before the first song. Set it once; it reuses your photos across services.":
-        "Odliczanie do najbliższego grania i przewijające się ogłoszenia. Pokazywane na rzutniku przed pierwszą pieśnią. Ustawiasz raz; zdjęcia używane są wielokrotnie.",
+        "Odliczanie do najbliższego grania i przewijające się ogłoszenia. Pokazywane na rzutniku przed pierwszą piosenką. Ustawiasz raz; zdjęcia używane są wielokrotnie.",
     "Photo library": "Biblioteka zdjęć",
     "Up to 10 photos, reused across announcements.": "Do 10 zdjęć, wielokrotnego użytku w ogłoszeniach.",
     "Announcements": "Ogłoszenia",
@@ -250,11 +250,11 @@ PL = {
     "Plan a service. The team marks availability, you assign parts and attach the setlist.":
         "Zaplanuj granie. Zespół zaznacza dostępność, Ty przydzielasz role i podpinasz setlistę.",
     "Your song library. Import from ChordPro/.txt, set keys and edit chords.":
-        "Twoja biblioteka pieśni. Importuj z ChordPro/.txt, ustawiaj tonacje i edytuj akordy.",
+        "Twoja biblioteka piosenek. Importuj z ChordPro/.txt, ustawiaj tonacje i edytuj akordy.",
     "The musician view on your phone. Chords in your key, tuner, metronome and auto-scroll.":
         "Widok muzyka na telefonie. Akordy w Twojej tonacji, stroik, metronom i auto-przewijanie.",
     "Invite members and set roles. Musicians add songs, leaders run the service.":
-        "Zaproś członków i ustaw role. Muzycy dodają pieśni, prowadzący prowadzą granie.",
+        "Zaproś członków i ustaw role. Muzycy dodają piosenki, prowadzący prowadzą granie.",
     "Language, theme, church logo, projection look and CCLI, and turn these tips on or off.":
         "Język, motyw, logo wspólnoty, wygląd projekcji i CCLI, oraz włączanie i wyłączanie tych podpowiedzi.",
     "Your instrument and preferred key. Every chart transposes to what you actually play.":
@@ -291,7 +291,7 @@ PL = {
     'Lyrics without the clutter': 'Tekst bez bałaganu',
     'The congregation sees clean lyrics. Your church’s background and logo, no chords.': 'Zbór widzi czysty tekst. Tło i logo Waszej wspólnoty, bez akordów.',
     'CCLI notice, automatic': 'Notka CCLI automatycznie',
-    'The copyright line and song-usage count are handled for you, ready for your reporting period.': 'Linia copyright i licznik użyć pieśni robią się same, gotowe na Wasz okres raportowania.',
+    'The copyright line and song-usage count are handled for you, ready for your reporting period.': 'Linia copyright i licznik użyć piosenek robią się same, gotowe na Wasz okres raportowania.',
     'Connect a screen with a QR': 'Podłącz ekran przez QR',
     'Open the link on a projector or TV once. It joins every LIVE session by itself.': 'Otwórz link na rzutniku lub TV raz. Sam dołączy do każdej sesji LIVE.',
     'Connect a screen →': 'Podłącz ekran →',
@@ -343,13 +343,13 @@ PL = {
     "Edit profile →": "Edytuj profil →",
     # Dashboard „Precision" (bento) — nowe etykiety
     "Next service": "Najbliższe granie",
-    "more songs": "więcej pieśni", "Prepare": "Przygotuj się",
+    "more songs": "więcej piosenek", "Prepare": "Przygotuj się",
     "Offline": "Offline",
     "Plan a service": "Zaplanuj granie", "See services": "Zobacz grania",
     "Last setlist:": "Ostatnia setlista:",
     "Recently practiced:": "Ostatnio ćwiczone:",
     "Practiced %(d)s of %(t)s songs from the setlist":
-        "Przećwiczone %(d)s z %(t)s pieśni z setlisty",
+        "Przećwiczone %(d)s z %(t)s piosenek z setlisty",
     "people": "osób",
     # Wygląd i język (ustawienia / profil)
     "Appearance & language": "Wygląd i język",
@@ -370,7 +370,7 @@ PL = {
     # Dashboard — dane na kafelkach (design z obrazków)
     "today": "dzisiaj", "tomorrow": "jutro",
     "in %(n)s days": "za %(n)s dni",
-    "songs": "pieśni", "min": "min",
+    "songs": "piosenek", "min": "min",
     "No active session. Last:": "Brak aktywnej sesji. Ostatnia:",
     "No active session yet.": "Jeszcze bez sesji na żywo.",
     "International notation": "Notacja międzynarodowa",
@@ -510,7 +510,7 @@ PL = {
     "Search by title or lyrics": "Szukaj po tytule lub tekście",
     "Add your first song with the button above, or import a .txt file "
     "exported from the desktop app.":
-        "Dodaj pierwszą pieśń przyciskiem powyżej, albo zaimportuj plik .txt "
+        "Dodaj pierwszą piosenkę przyciskiem powyżej, albo zaimportuj plik .txt "
         "z eksportu aplikacji desktop.",
     "Setlists · %(church)s": "Setlisty · %(church)s",
     "Setlists": "Setlisty", "New setlist": "Nowa setlista",
@@ -524,7 +524,7 @@ PL = {
         "Setlista jest pusta. Dodaj piosenki poniżej.",
     "Up": "W górę", "Down": "W dół", "Add to setlist": "Dodaj do setlisty",
     "Transpose": "Transpozycja", "Songs count": "Piosenek",
-    "Practice · %(title)s": "Ćwiczenie · %(title)s", "my key": "moja tonacja",
+    "Practice · %(title)s": "Ćwicz · %(title)s", "my key": "moja tonacja",
     "Auto-scroll": "Autoprzewijanie", "Metronome": "Metronom", "Stop": "Stop",
     "Recording": "Nagranie",
     "Recording link (optional)": "Link do nagrania (opcjonalnie)",
@@ -753,7 +753,7 @@ PL.update({
         'Nie należysz jeszcze do żadnej wspólnoty. Załóż własny zespół albo dołącz do tego, do którego masz zaproszenie.',
     'Create a community': 'Załóż wspólnotę',
     "A space for your team. Songs, setlists, service planning and musician profiles. You'll be its admin.":
-        'Przestrzeń dla Twojego zespołu. Pieśni, setlisty, planowanie grań i profile muzyków. Będziesz jej administratorem.',
+        'Przestrzeń dla Twojego zespołu. Piosenki, setlisty, planowanie grań i profile muzyków. Będziesz jej administratorem.',
     'Create community': 'Utwórz wspólnotę',
     'Join an existing team': 'Dołącz do istniejącego zespołu',
     'Ask your worship leader for the invite code (they find it in the Team tab), then enter it here.':
@@ -1133,7 +1133,7 @@ PL.update({
 
 # ── Edytor piosenki: kafelki ──────────────────────────────────────────────
 PL.update({
-    'Tiles': 'Kafelki',
+    'Tiles': 'Części',
     'Two views of the same song. Switch any time.': 'Dwa widoki tej samej piosenki. Możesz przełączać w każdej chwili.',
     'Verse': 'Zwrotka',
     'Chorus': 'Refren',
@@ -1245,4 +1245,57 @@ PL.update({
     'Choose the length (¼ = quarter), then click piano keys; ♯ ♭ before the key. Click a note to change or delete it. Keyboard: c d e f g a h, 1–5 length, ↑ ↓ moves the selected note, Space plays.':
         'Wybierz długość (¼ = ćwierćnuta) i klikaj klawisze; ♯ ♭ przed klawiszem. Kliknij nutę, żeby ją zmienić albo usunąć. Klawiatura: c d e f g a h, 1–5 długość, ↑ ↓ przesuwa zaznaczoną nutę, spacja odtwarza.',
     'Show notes': 'Pokaż nuty', 'Show riff': 'Pokaż riff',
+})
+
+
+# ── Audyt: tytuły, równoczesna edycja ────────────────────────────────────
+PL.update({
+    'A song with this title is already in the library. Change the title or edit that song.':
+        'Piosenka o tym tytule już jest w bibliotece. Zmień tytuł albo edytuj tamtą piosenkę.',
+    'Open “%(title)s”': 'Otwórz „%(title)s”',
+    'Someone else saved this song while you were editing (%(who)s, %(when)s). Your text is below. Compare it with theirs and save again.':
+        'Ktoś zapisał tę piosenkę, gdy ją edytowałeś (%(who)s, %(when)s). Twój tekst jest poniżej. Porównaj go z ich wersją i zapisz ponownie.',
+    'Their saved version': 'Ich zapisana wersja',
+    'Load their version into the editor': 'Wczytaj ich wersję do edytora',
+})
+
+
+# ── Audyt: jedno źródło setlist i LIVE ───────────────────────────────────
+PL.update({
+    'Setlists are arranged in Studio and attached to a service. Open the service to see its songs.':
+        'Setlisty układasz w Studiu i podpinasz do grania. Otwórz granie, żeby zobaczyć jego piosenki.',
+    'Live is run from Studio.': 'Na żywo prowadzisz ze Studia.',
+})
+
+
+# ── Audyt: konflikt w kratce ─────────────────────────────────────────────
+PL.update({
+    '%(name)s changed this cell in the meantime. You now see their version.':
+        '%(name)s zmienił(a) tę kratkę w międzyczasie. Widzisz teraz jego/jej wersję.',
+    'Bring back my version': 'Przywróć moją wersję',
+})
+
+
+# ── Audyt: notacja i źródło tonacji ──────────────────────────────────────
+PL.update({
+    'from the service setlist': 'z setlisty grania',
+    'your key': 'Twoja tonacja',
+    'The notation new songs are typed in. Each musician still sees chords in the notation from their own profile.':
+        'Notacja, w której wpisuje się nowe piosenki. Każdy muzyk i tak widzi akordy w notacji ze swojego profilu.',
+    'Applies to your phone and practice. The shared stage screen uses the notation set in Studio.':
+        'Dotyczy Twojego telefonu i ćwiczenia. Wspólny ekran sceny używa notacji ustawionej w Studiu.',
+})
+
+
+# ── Audyt: usuwanie piosenki ─────────────────────────────────────────────
+PL.update({
+    'Restored:': 'Przywrócono:',
+    'It is on the setlist of:': 'Jest w setliście grania:',
+    'There it will show as “not in library”.': 'Tam pokaże się jako „nie ma w bibliotece”.',
+})
+
+
+# ── Audyt: wybór riff / nuty ─────────────────────────────────────────────
+PL.update({
+    'Melody (notes)': 'Melodia (nuty)',
 })

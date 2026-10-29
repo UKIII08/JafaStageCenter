@@ -179,6 +179,10 @@
             </div>
             <button type="button" class="arr-icon-btn" id="cell-close" aria-label="{{ _('Close') }}">✕</button>
         </div>
+        <div class="cell-conflict" id="cell-conflict" role="alert" hidden>
+            <span id="cell-conflict-text"></span>
+            <button type="button" class="btn btn-ghost btn-sm" id="cell-conflict-mine">{{ _('Bring back my version') }}</button>
+        </div>
         <div class="cell-body">
         <div class="cell-note-col">
         <textarea id="cell-note" rows="5" maxlength="2000" placeholder="{{ _('e.g. third above the melody from the 2nd chorus · riff e|--3--5--7--|') }}"></textarea>
@@ -255,7 +259,9 @@ window.ARR = {
         updatedBy: {{ _('Updated · latest change by')|tojson }},
         replaceOther: {{ _('This idea was recorded by %(name)s. Record over it?')|tojson }},
         riff: {{ _('riff')|tojson }}, notes: {{ _('notes')|tojson }},
+        cellConflict: {{ _('%(name)s changed this cell in the meantime. You now see their version.')|tojson }},
         switchKind: {{ _('Switching deletes what is written here now. Continue?')|tojson }},
+        chooseTab: {{ _('Riff (tab)')|tojson }}, chooseStaff: {{ _('Melody (notes)')|tojson }},
         st: {
             names: {{ _('C,D,E,F,G,A,B').split(',')|tojson }},
             treble: {{ _('Treble clef')|tojson }}, bassClef: {{ _('Bass clef')|tojson }},

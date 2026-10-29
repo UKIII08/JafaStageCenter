@@ -176,6 +176,35 @@
         });
     });
 
+    // Niezapisane zmiany: ostrzeżenie przy wyjściu ze strony (edytor nie
+    // zapisuje sam, w przeciwieństwie do Formy i kratek)
+    var form = document.getElementById('song-form'), initial = null, submitting = false;
+    function snapshot() {
+        return Array.prototype.map.call(form.querySelectorAll('input[name], textarea[name]'),
+            function (e) { return e.name + '=' + e.value; }).join('|');
+    }
+    if (form) {
+        setTimeout(function () { initial = snapshot(); }, 0);
+        form.addEventListener('submit', function () { submitting = true; });
+        window.addEventListener('beforeunload', function (e) {
+            if (submitting || initial === null || snapshot() === initial) return;
+            e.preventDefault();
+            e.returnValue = '';
+        });
+    }
+    // Konflikt zapisu: „Wczytaj ich wersję" podmienia treść w edytorze
+    var useTheirs = $('use-theirs');
+    if (useTheirs && window.SONG_THEIRS != null) {
+        useTheirs.addEventListener('click', function () {
+            ta.value = window.SONG_THEIRS;
+            ta.dispatchEvent(new Event('input'));
+            if (window.SongTiles && document.getElementById('tiles') && !document.getElementById('tiles').hidden) {
+                document.querySelector('#mode-seg [data-mode="text"]').click();
+                document.querySelector('#mode-seg [data-mode="tiles"]').click();
+            }
+        });
+    }
+
     paintGutter();
     if (ta.value.trim()) analyze();
 })();

@@ -119,6 +119,7 @@ def _ensure_columns():
             ('author', "VARCHAR(300) DEFAULT ''"),
             ('copyright', "VARCHAR(300) DEFAULT ''"),
             ('link', "VARCHAR(500) DEFAULT ''"),
+            ('updated_by', 'VARCHAR(36)'),
         ],
         'events': [
             ('welcome_json', "TEXT DEFAULT ''"),

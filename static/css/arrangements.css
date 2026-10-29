@@ -423,3 +423,16 @@
     .cell-modal { padding: 0; }
     .cell-card { height: 100vh; height: 100dvh; max-height: none; border-radius: 0; border: 0; }
 }
+
+/* konflikt: ktoś inny zmienił kratkę w tym samym czasie */
+.cell-conflict { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    margin: 0 0 var(--s3); padding: 10px 14px; border-radius: var(--r-md);
+    border: 1px solid var(--accent-line); background: var(--accent-subtle); font-size: 14px; }
+.cell-conflict[hidden] { display: none; }
+
+.music-choose { display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 0; }
+.music-kind[hidden], #music-kind[hidden] { display: none; }
+/* dotyk: brak najechania — „+" i klikalne miejsca widać od razu */
+@media (hover: none) {
+    .daw-cell .plus { opacity: 1; }
+}

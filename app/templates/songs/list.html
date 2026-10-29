@@ -22,6 +22,14 @@
         .lib-row .go { grid-column: 1 / -1; opacity: 1; flex-wrap: wrap; }
     }
 </style>
+{% if just_deleted %}
+<div class="flash undo-bar">
+    <span>{{ _('Deleted:') }} <b>{{ just_deleted.title }}</b></span>
+    <form method="POST" action="{{ url_for('songs.song_restore', church_id=church.id, song_id=just_deleted.id) }}">
+        <button type="submit" class="btn btn-ghost btn-sm">{{ _('Undo') }}</button>
+    </form>
+</div>
+{% endif %}
 <div class="panel">
     <div class="panel-header">
         <h2>{{ _('Songs') }} <span class="muted">{{ songs|length }}</span></h2>

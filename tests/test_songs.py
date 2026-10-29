@@ -186,28 +186,16 @@ def test_import_chordpro_from_songselect(app, client):
         assert 'SongSelect' not in s.content
 
 
-def test_setlist_flow(app, client):
+def test_old_setlists_lead_to_services(app, client):
+    # Stare setlisty panelu zastąpiły setlisty Studia podpinane do grania.
     cid = setup_church(client, app)
-    client.post(f'/c/{cid}/songs/new', data={'title': 'A', 'content': '[C]a'})
-    client.post(f'/c/{cid}/songs/new', data={'title': 'B', 'content': '[G]b'})
+    for path in ('setlists', 'setlists/1'):
+        r = client.get(f'/c/{cid}/{path}')
+        assert r.status_code == 302 and '/granie' in r.headers['Location']
+    r = client.post(f'/c/{cid}/setlists', data={'name': 'X'})
+    assert r.status_code == 302
     with app.app_context():
-        ids = [s.id for s in Song.query.order_by(Song.title).all()]
-    client.post(f'/c/{cid}/setlists', data={'name': 'Niedziela'})
-    with app.app_context():
-        slid = Setlist.query.first().id
-    base = f'/c/{cid}/setlists/{slid}/items'
-    client.post(base, data={'action': 'add', 'song_id': ids[0]})
-    client.post(base, data={'action': 'add', 'song_id': ids[1]})
-    client.post(base, data={'action': 'up', 'idx': '1'})      # B przed A
-    client.post(base, data={'action': 't_up', 'idx': '0'})    # B +1
-    with app.app_context():
-        items = Setlist.query.first().items
-        assert items[0]['song_id'] == ids[1]
-        assert items[0]['transpose'] == 1
-    # duplikacja
-    client.post(f'/c/{cid}/setlists/{slid}/duplicate')
-    with app.app_context():
-        assert Setlist.query.count() == 2
+        assert Setlist.query.count() == 0
 
 
 def test_save_blocks_unclosed_bracket_with_editor_line(app, client):

@@ -37,9 +37,10 @@
         <p class="hint" style="margin:var(--s1) 0 0;">{{ _('Pick everything you play. Arrangements suggest these instruments as parts.') }}</p>
         <label>{{ _('Chord notation') }}</label>
         <select name="notation">
-            <option value="international" {% if profile.prefs.get('notation','international') == 'international' %}selected{% endif %}>{{ _('International (Bb, B)') }}</option>
-            <option value="polish" {% if profile.prefs.get('notation') == 'polish' %}selected{% endif %}>{{ _('Polish (B, H, Cis, Fis)') }}</option>
+            <option value="international" {% if profile.prefs.get('notation', (church.settings or {}).get('default_notation','international')) == 'international' %}selected{% endif %}>{{ _('International (Bb, B)') }}</option>
+            <option value="polish" {% if profile.prefs.get('notation', (church.settings or {}).get('default_notation','international')) == 'polish' %}selected{% endif %}>{{ _('Polish (B, H, Cis, Fis)') }}</option>
         </select>
+        <p class="hint" style="margin:var(--s1) 0 0;">{{ _('Applies to your phone and practice. The shared stage screen uses the notation set in Studio.') }}</p>
         <div style="margin-top:var(--s3);">
             <div class="check"><input type="checkbox" id="c1" name="show_chords" {% if profile.prefs.get('show_chords', True) %}checked{% endif %}><label for="c1">{{ _('Show chords') }}</label></div>
             <div class="check"><input type="checkbox" id="c2" name="lowercase_minor" {% if profile.prefs.get('lowercase_minor') %}checked{% endif %}><label for="c2">{{ _('Lowercase = minor') }}</label></div>

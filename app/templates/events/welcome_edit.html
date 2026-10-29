@@ -148,7 +148,7 @@
     fetch('/c/' + CHURCH + '/welcome/photos', { method:'POST', body: fd })
       .then(r => r.json()).then(function(res){
         if (res.name) { PHOTOS.push(res.name); renderPhotos(); renderSlides(); }
-        else alert(res.message || 'Error');
+        else window.panelNotice(res.message || 'Error', 'error');
       });
   });
 
@@ -195,7 +195,7 @@
     fetch('/c/' + CHURCH + '/welcome/icons', { method:'POST', body: fd })
       .then(r => r.json()).then(function(res){
         if (res.name) { ICONS.push(res.name); renderIcons(); }
-        else alert(res.message || 'Error');
+        else window.panelNotice(res.message || 'Error', 'error');
       });
   });
   function wlDeleteIcon(n){

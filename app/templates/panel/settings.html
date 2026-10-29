@@ -16,6 +16,7 @@
             <option value="international" {% if church.settings.get('default_notation','international') == 'international' %}selected{% endif %}>{{ _('International (Bb, B)') }}</option>
             <option value="polish" {% if church.settings.get('default_notation') == 'polish' %}selected{% endif %}>{{ _('Polish (B, H, Cis, Fis)') }}</option>
         </select>
+        <p class="hint" style="margin:var(--s1) 0 0;">{{ _('The notation new songs are typed in. Each musician still sees chords in the notation from their own profile.') }}</p>
         <label>{{ _('Song-to-song transition engine') }}</label>
         <select name="transition_engine">
             <option value="v4" {% if church.settings.get('transition_engine','v4') == 'v4' %}selected{% endif %}>{{ _('Contextual (recommended)') }}</option>
