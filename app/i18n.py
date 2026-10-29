@@ -1337,3 +1337,18 @@ PL.update({
         'Pliki zajmują %(pct)s%% miejsca (%(used)s z %(limit)s).',
     'Free up space': 'Zwolnij miejsce',
 })
+
+
+# ── Pierwsze kroki muzyka ─────────────────────────────────────────────
+PL.update({
+    'Your first steps': 'Twoje pierwsze kroki',
+    'Set your instrument and key': 'Ustaw swój instrument i tonację',
+    'Then every song shows chords the way you play them.': 'Wtedy każda piosenka pokaże akordy tak, jak grasz.',
+    'Say if you can play': 'Odpowiedz, czy możesz grać',
+    'The leader plans the team from your answers.': 'Lider układa skład na podstawie odpowiedzi.',
+    'Practice the songs': 'Przećwicz piosenki',
+    'Open a song, pick your key, play along.': 'Otwórz piosenkę, wybierz tonację i graj razem z nią.',
+    'Can you play?': 'Możesz grać?',
+    'answer by %(day)s': 'odpowiedz do %(day)s',
+    'Thanks, the leader will see your answer.': 'Dzięki, lider zobaczy Twoją odpowiedź.',
+})

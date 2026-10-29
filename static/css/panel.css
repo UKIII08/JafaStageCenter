@@ -506,3 +506,8 @@ td a.row-link:hover { color: var(--text-accent); }
     .st-row { grid-template-columns: minmax(0, 1fr) auto; }
     .st-row form { grid-column: 1 / -1; }
 }
+
+/* ── Pulpit: „Czy możesz grać?" i opisy pierwszych kroków ── */
+.ask-play { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ask-play form { margin: 0; display: flex; gap: 8px; }
+.onb-step small { display: block; font-size: 13px; color: var(--text-secondary); margin-top: 2px; font-weight: 400; }

@@ -190,8 +190,12 @@ def event_signup(church_id, eid, membership):
         s = EventSignup(event_id=ev.id, user_id=me.id, available=available)
         db.session.add(s)
     s.available = available
-    s.comment = (request.form.get('comment') or '')[:200]
+    if 'comment' in request.form:
+        s.comment = (request.form.get('comment') or '')[:200]
     db.session.commit()
+    if request.form.get('back') == 'home':     # odpowiedź prosto z pulpitu
+        flash(_('Thanks, the leader will see your answer.'))
+        return redirect(url_for('panel.church_home', church_id=church_id))
     return redirect(url_for('events.event_detail', church_id=church_id,
                             eid=ev.id))
 
