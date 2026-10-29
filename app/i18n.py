@@ -1313,3 +1313,27 @@ PL.update({
     'The live views (stage, projector, the band’s live screen) stay dark, so nothing glares on stage.':
         'Widoki na żywo (scena, rzutnik, ekran zespołu) zostają ciemne, żeby na scenie nic nie raziło w oczy.',
 })
+
+
+# ── Miejsce na pliki wspólnoty ───────────────────────────────────────────
+PL.update({
+    'No room left for this community’s files (%(used)s of %(limit)s). An admin can free up space in Settings.':
+        'Brak miejsca na pliki wspólnoty (%(used)s z %(limit)s). Admin może zwolnić miejsce w Ustawieniach.',
+    'Recordings deleted.': 'Nagrania usunięte.',
+    'Storage': 'Miejsce na pliki',
+    '%(used)s of %(limit)s used': 'Zajęte %(used)s z %(limit)s',
+    'Rehearsal recordings': 'Nagrania z prób',
+    'Voice notes': 'Notatki głosowe',
+    'Images and screen media': 'Obrazy i media ekranów',
+    'Almost full. New recordings and photos will stop being accepted at the limit.':
+        'Prawie pełne. Po dojściu do limitu nowe nagrania i zdjęcia nie będą przyjmowane.',
+    'Biggest recordings': 'Największe nagrania',
+    'Deleting removes only the Reaper recordings. The arrangement, notes and voice notes stay.':
+        'Usunięcie kasuje tylko nagrania z Reapera. Aranżacja, notatki i notatki głosowe zostają.',
+    'Delete recordings': 'Usuń nagrania',
+    'Delete the recordings of “%(name)s”?': 'Usunąć nagrania wersji „%(name)s”?',
+    'No recordings yet.': 'Nie ma jeszcze nagrań.',
+    'Files take %(pct)s%% of the space (%(used)s of %(limit)s).':
+        'Pliki zajmują %(pct)s%% miejsca (%(used)s z %(limit)s).',
+    'Free up space': 'Zwolnij miejsce',
+})

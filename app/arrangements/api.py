@@ -11,7 +11,9 @@ from functools import wraps
 from flask import Blueprint, abort, g, jsonify, request
 
 from app import db, limiter
-from app.models import Arrangement, ArrangementRecording, Song
+from app.models import Arrangement, ArrangementRecording, Church, Song
+from app.i18n import translate as _
+from app.storage import has_room, human, usage
 from app.arrangements import service as svc
 
 studio_api_bp = Blueprint('studio_api', __name__, url_prefix='/api/studio')
@@ -208,8 +210,13 @@ def upload_file(arr_id):
     if not got:
         return jsonify({'error': 'bad_audio'}), 400
     blob, ext, _mime = got
-    for old in ArrangementRecording.query.filter_by(
-            arrangement_id=arr.id, kind=kind, role=role).all():
+    olds = ArrangementRecording.query.filter_by(
+        arrangement_id=arr.id, kind=kind, role=role).all()
+    church = db.session.get(Church, arr.church_id)
+    if not has_room(church, len(blob), freed=sum(o.size or 0 for o in olds)):
+        u = usage(church)
+        return jsonify({'error': 'storage_full', 'message': _('No room left for this community’s files (%(used)s of %(limit)s). An admin can free up space in Settings.') % {'used': human(u['total']), 'limit': human(u['limit'])}}), 413
+    for old in olds:
         svc._unlink(arr, old.filename)
         db.session.delete(old)
     name = f'{kind}-{secrets.token_hex(6)}.{ext}'

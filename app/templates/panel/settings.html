@@ -35,6 +35,39 @@
     </form>
 </div>
 
+{# ── Miejsce na pliki: ile zajmują nagrania i obrazy, co można zwolnić ── #}
+<div class="panel storage" id="storage" style="max-width:560px;">
+    <h2>{{ _('Storage') }}</h2>
+    <div class="st-head">
+        <b>{{ _('%(used)s of %(limit)s used') % {'used': storage.human(storage.total), 'limit': storage.human(storage.limit)} }}</b>
+        <span class="muted">{{ storage.pct }}%</span>
+    </div>
+    <div class="st-bar {{ 'warn' if storage.warn }}" role="progressbar" aria-valuenow="{{ storage.pct }}" aria-valuemin="0" aria-valuemax="100"><i style="width:{{ storage.pct }}%"></i></div>
+    {% if storage.warn %}<p class="hint danger-used" style="margin:var(--s2) 0 0;">{{ _('Almost full. New recordings and photos will stop being accepted at the limit.') }}</p>{% endif %}
+    <dl class="st-parts">
+        <div><dt><i class="sw rec"></i>{{ _('Rehearsal recordings') }}</dt><dd>{{ storage.human(storage.parts.recordings) }}</dd></div>
+        <div><dt><i class="sw memo"></i>{{ _('Voice notes') }}</dt><dd>{{ storage.human(storage.parts.memos) }}</dd></div>
+        <div><dt><i class="sw media"></i>{{ _('Images and screen media') }}</dt><dd>{{ storage.human(storage.parts.media) }}</dd></div>
+    </dl>
+
+    <div class="section-title" style="margin-top:var(--s5);">{{ _('Biggest recordings') }}</div>
+    {% if storage.top %}
+    <p class="hint" style="margin:0 0 var(--s2);">{{ _('Deleting removes only the Reaper recordings. The arrangement, notes and voice notes stay.') }}</p>
+    {% for a in storage.top %}
+    <div class="st-row">
+        <a href="{{ url_for('arr.edit', church_id=church.id, arr_id=a.id) }}"><b>{{ a.song }}</b> <span class="muted">· {{ a.name }}</span></a>
+        <span class="st-size">{{ a.size }}</span>
+        <form method="POST" action="{{ url_for('arr.delete_recordings', church_id=church.id, arr_id=a.id) }}"
+              onsubmit="return confirm({{ (_('Delete the recordings of “%(name)s”?') % {'name': a.song ~ ' · ' ~ a.name})|tojson }});">
+            <button type="submit" class="btn btn-danger btn-sm">{{ _('Delete recordings') }}</button>
+        </form>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p class="hint" style="margin:0;">{{ _('No recordings yet.') }}</p>
+    {% endif %}
+</div>
+
 {# ── Wygląd projekcji i wszystkie zasoby → jedno miejsce (Branding) ── #}
 <a class="panel" href="{{ url_for('panel.branding', church_id=church.id) }}"
    style="max-width:560px; display:flex; align-items:center; gap:var(--s3); text-decoration:none; color:inherit;">

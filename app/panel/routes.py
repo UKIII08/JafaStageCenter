@@ -250,6 +250,13 @@ def church_home(church_id, membership):
     # Ekran powitalny pokazujemy tylko raz — zaraz po zalogowaniu (flaga w sesji
     # ustawiona przy logowaniu, tu ją zdejmujemy). Klik w logo itd. go nie wywoła.
     show_welcome = session.pop('show_welcome', False)
+    storage_warn = None
+    if membership.role == 'admin':
+        from app.storage import human, usage
+        u = usage(church)
+        if u['warn']:
+            storage_warn = {'pct': u['pct'], 'used': human(u['total']),
+                            'limit': human(u['limit'])}
     return render_template(
         'panel/dashboard.html', church=church, membership=membership,
         user=user, next_event=next_event, my_event=my_event is not None,
@@ -257,7 +264,8 @@ def church_home(church_id, membership):
         last_practiced=last_practiced, practice_done=practice_done,
         practice_total=practice_total, team_members=team_members,
         lineup=lineup, my_parts=my_parts,
-        today=today, show_welcome=show_welcome, onboarding=onboarding)
+        today=today, show_welcome=show_welcome, onboarding=onboarding,
+        storage_warn=storage_warn)
 
 
 @panel_bp.get('/c/<church_id>/team')
@@ -496,7 +504,25 @@ def church_settings(church_id, membership):
     has_bg = os.path.exists(os.path.join(media_dir(church_id), 'background.png'))
     return render_template('panel/settings.html', church=church,
                            appearance=appearance, has_bg=has_bg,
+                           storage=_storage_view(church),
                            membership=membership, user=current_user())
+
+
+def _storage_view(church):
+    """Zajętość miejsca + wersje z największymi nagraniami (do zwolnienia)."""
+    from app.models import Arrangement, Song
+    from app.storage import human, usage
+    u = usage(church)
+    top = []
+    for aid, size in sorted(u['by_arr'].items(), key=lambda kv: -kv[1])[:8]:
+        arr = Arrangement.query.filter_by(id=aid, church_id=church.id).first()
+        if not arr:
+            continue
+        song = db.session.get(Song, arr.song_id)
+        top.append({'id': arr.id, 'name': arr.name, 'size': human(size),
+                    'song': song.title if song else '?',
+                    'when': arr.recorded_at})
+    return dict(u, top=top, human=human)
 
 
 @panel_bp.get('/c/<church_id>/branding')
