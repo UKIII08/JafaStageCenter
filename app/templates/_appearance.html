@@ -32,27 +32,7 @@
     <p class="hint" style="margin:calc(-1 * var(--s2)) 0 0;">{{ _('Little tips appear when you hover over buttons. They show automatically the first few times you open the app, then switch off. Turn them back on here anytime.') }}</p>
 </div>
 
-<div class="panel" style="max-width:560px;">
-    <div class="section-title">{{ _('Notifications') }}</div>
-    <div class="set-row">
-        <span>{{ _('E-mails about services') }}</span>
-        <div class="seg" id="notify-seg">
-            <button type="button" data-v="1" class="{{ 'active' if me.notify_email is not false }}" onclick="setNotify(true)">{{ _('On') }}</button>
-            <button type="button" data-v="0" class="{{ 'active' if me.notify_email is false }}" onclick="setNotify(false)">{{ _('Off') }}</button>
-        </div>
-    </div>
-    <p class="hint" style="margin:calc(-1 * var(--s2)) 0 0;">{{ _('A new service asking if you can play, and a note when the leader gives you a part.') }}</p>
-</div>
-
 <script>
-function setNotify(on) {
-    document.querySelectorAll('#notify-seg button').forEach(function (b) {
-        b.classList.toggle('active', (b.dataset.v === '1') === on);
-    });
-    fetch({{ url_for('auth.save_notify')|tojson }}, {method: 'POST',
-        headers: {'Content-Type': 'application/json'}, body: JSON.stringify({on: on})})
-        .then(function () { window.panelNotice({{ _('Saved.')|tojson }}); });
-}
 function markTheme(t) {
     document.querySelectorAll('#theme-seg button').forEach(function (b) {
         b.classList.toggle('active', b.getAttribute('data-theme-val') === t);

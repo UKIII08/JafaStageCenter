@@ -1,4 +1,4 @@
-# Pierwsze kroki muzyka, „Możesz grać?" na pulpicie, powiadomienia e-mail.
+# Pierwsze kroki muzyka i „Możesz grać?" na pulpicie.
 from datetime import date, timedelta
 
 import pytest
@@ -19,13 +19,6 @@ def app():
 @pytest.fixture()
 def client(app):
     return app.test_client()
-
-
-@pytest.fixture()
-def mails(monkeypatch):
-    sent = []
-    monkeypatch.setattr('app.notify.send_email', lambda to, subj, body: sent.append((to, subj, body)))
-    return sent
 
 
 def leader_and_musician(client):
@@ -51,33 +44,7 @@ def new_service(client, cid, days=7):
     return Event.query.order_by(Event.id.desc()).first()
 
 
-def test_new_service_mails_the_team_but_not_the_author(app, client, mails):
-    cid = leader_and_musician(client)
-    login(client, 'l@l.pl')
-    ev = new_service(client, cid)
-    assert [m[0] for m in mails] == ['m@m.pl']
-    assert f'/granie/{ev.id}' in mails[0][2] and '/profile' in mails[0][2]
-
-
-def test_assigned_part_mails_the_person(app, client, mails):
-    cid = leader_and_musician(client)
-    login(client, 'l@l.pl')
-    ev = new_service(client, cid)
-    mails.clear()
-    ola = User.query.filter_by(email='m@m.pl').first()
-    client.post(f'/c/{cid}/granie/{ev.id}/assign', data={'user_id': ola.id, 'instrument': 'gitara'})
-    assert len(mails) == 1 and mails[0][0] == 'm@m.pl' and 'guitar' in mails[0][2].lower()
-
-
-def test_mails_can_be_turned_off(app, client, mails):
-    cid = leader_and_musician(client)
-    assert client.post('/account/notify', json={'on': False}).get_json()['on'] is False
-    login(client, 'l@l.pl')
-    new_service(client, cid)
-    assert mails == []
-
-
-def test_musician_answers_from_dashboard(app, client, mails):
+def test_musician_answers_from_dashboard(app, client):
     cid = leader_and_musician(client)
     login(client, 'l@l.pl')
     ev = new_service(client, cid)

@@ -23,8 +23,6 @@ class User(db.Model):
     # wygląd panelu: dark / light / pastel; None = jeszcze nie wybrał
     # (wtedy panel raz pokazuje „Wybierz wygląd”)
     theme = db.Column(db.String(10), nullable=True)
-    # e-maile o graniach (nowe granie, przydzielona partia); wyłączalne w profilu
-    notify_email = db.Column(db.Boolean, default=True)
 
     memberships = db.relationship('Membership', back_populates='user')
 

@@ -112,7 +112,6 @@ def _ensure_columns():
     wanted = {
         'users': [
             ('theme', 'VARCHAR(10)'),
-            ('notify_email', 'BOOLEAN DEFAULT TRUE'),
         ],
         'song_personal': [
             ('capo_fret', 'INTEGER'),

@@ -196,14 +196,6 @@ def save_theme():
     return {'status': 'ok', 'theme': t}
 
 
-@auth_bp.post('/account/notify')
-@login_required
-def save_notify():
-    current_user().notify_email = bool((request.json or {}).get('on'))
-    db.session.commit()
-    return {'status': 'ok', 'on': current_user().notify_email}
-
-
 @auth_bp.post('/account/2fa/enable')
 @login_required
 def twofa_enable():
