@@ -34,5 +34,7 @@ jobs:
           script: |
             cd /srv/jafastage && git pull --ff-only origin web
             docker compose -f deploy/docker-compose.yml up -d --build
-            # stare warstwy z poprzednich buildów zjadały ~20 GB dysku
-            docker builder prune -f --filter until=72h
+            # stare warstwy z poprzednich buildów zjadały ~20 GB dysku;
+            # zostawiamy tylko te z ostatniej doby (szybszy kolejny build)
+            docker builder prune -f --filter until=24h
+            docker image prune -f
