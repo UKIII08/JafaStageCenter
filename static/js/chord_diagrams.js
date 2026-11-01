@@ -271,8 +271,20 @@ function generateGuitarChord(chordName) {
     return { fret: pick.fret, fingers: pick.t.fingers.slice(), barres: pick.t.barres.map(function (b) { return b.slice(); }) };
 }
 
+// Zapisy septymy wielkiej spotykane w śpiewnikach: A7maj i (po polsku) A7+
+// znaczą to samo co Amaj7. „7+5" zostaje podwyższoną kwintą.
+function canonicalChord(chordName) {
+    if (!chordName) return chordName;
+    const slash = chordName.indexOf('/');
+    const main = slash < 0 ? chordName : chordName.slice(0, slash);
+    const rest = slash < 0 ? '' : chordName.slice(slash);
+    const m = main.match(/^([A-Ha-h][#b]?)(m?)7(?:maj|\+)$/);
+    return m ? m[1] + m[2] + 'maj7' + rest : chordName;
+}
+
 function lookupChord(chordName) {
     if (!chordName) return null;
+    chordName = canonicalChord(chordName);
 
     if (chordName.includes('/')) {
         const mainPart = chordName.split('/')[0];
@@ -436,6 +448,7 @@ const PIANO_DB = {
 };
 
 function lookupPianoChord(chordName) {
+    chordName = canonicalChord(chordName);
     // Handle slash chords: parse bass note separately
     let bassPitch = null;
     let mainChord = chordName;
@@ -574,6 +587,7 @@ function generatePianoChord(chordName) {
 // 'resolve') that the UI turns into a localized label + hint.
 
 function _parseChordName(name) {
+    name = canonicalChord(name);
     const m = name.match(/^([A-Ha-h][#b]?)(.*)$/);
     if (!m) return null;
     let root = m[1].charAt(0).toUpperCase() + m[1].slice(1);
