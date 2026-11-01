@@ -27,7 +27,7 @@ from music_core.chords import (apply_transpose_to_single_chord,
                                convert_chords_over_lyrics,
                                detect_key_algorithm,
                                get_first_chord_from_chorus,
-                               get_first_chord_of_song,
+                               get_first_chord_of_song, is_valid_chord,
                                normalize_chord_to_international,
                                normalize_song_chords_to_international,
                                prepare_song_content, import_song,
@@ -497,9 +497,11 @@ def generate_transition(church_id):
         return c if c.startswith('[') else f'[{c}]'
 
     real_start = apply_transpose_to_single_chord(wrap(start_chord_raw),
-                                                 trans_start, 'international')
+                                                 trans_start, 'international',
+                                                 key=key_start)
     real_end = apply_transpose_to_single_chord(wrap(end_chord_raw),
-                                               trans_end, 'international')
+                                               trans_end, 'international',
+                                               key=key_end)
     real_key_start = apply_transpose_to_single_chord(f'[{key_start}]',
                                                      trans_start,
                                                      'international')
@@ -523,6 +525,11 @@ def generate_transition(church_id):
     else:
         chords = engine.generate_full_progression(
             real_start, real_key_start, real_end, real_key_end)
+    # po pierwszym akordzie jesteśmy już w drodze do nowej tonacji —
+    # zapis jak w niej (C#7sus4 przed F#, nie Db7sus4)
+    from music_core.chords import respell_in_key
+    target = normalize_chord_to_international(real_key_end.strip('[]'))
+    chords = chords[:1] + [respell_in_key(c, target) for c in chords[1:]]
     return {'status': 'ok', 'transition': ' '.join(chords),
             'chords_list': chords, 'debug_start': real_start,
             'debug_end': real_end, 'engine_used': engine_choice}
@@ -742,8 +749,12 @@ def send_text(church_id):
     church = db.session.get(Church, church_id)
     s = get_settings(church)
 
-    people_html, band_html, _ = process_song(raw_text, shift)
-    _, band_next_html, _ = process_song(data.get('next_text', ''), next_shift)
+    # „key" od Studia to tonacja już po transpozycji, po niej pisownia akordów
+    raw_key = (data.get('key') or '').strip()
+    live_key = normalize_chord_to_international(raw_key) if is_valid_chord(raw_key) else None
+    people_html, band_html, _ = process_song(raw_text, shift, target_key=live_key)
+    _, band_next_html, _ = process_song(data.get('next_text', ''), next_shift,
+                                        target_key=live_key if next_shift == shift else None)
 
     # CCLI: notka copyright na rzutniku + log uzycia (raz na dzien)
     copyright_line = ''

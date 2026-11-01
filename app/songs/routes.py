@@ -181,7 +181,7 @@ def song_view(church_id, song_id, membership):
     except ValueError:
         transpose = 0
     transpose = max(-11, min(11, transpose))
-    _, band_html, _ = mc.process_song(song.content, transpose_amount=transpose)
+    _, band_html, _ = mc.process_song(song.content, transpose_amount=transpose, key=song.key)
     shown_key = (mc.apply_transpose_to_single_chord(f'[{song.key}]', transpose)
                  .strip('[]')) if song.key and transpose else song.key
     profile = _my_profile(church_id)
@@ -600,7 +600,7 @@ def practice(church_id, song_id, membership):
         rendered = []
         for i, sec in enumerate(mc.parse_song_sections(song.content)):
             _, band, _ = mc.process_song(sec['content'],
-                                         transpose_amount=transpose)
+                                         transpose_amount=transpose, key=song.key)
             rendered.append({'label': sec['label'], 'band_html': band,
                              'sec_idx': i, 'repeat': 1, 'dyn': '', 'id': ''})
     return render_template('songs/practice.html', song=song,
