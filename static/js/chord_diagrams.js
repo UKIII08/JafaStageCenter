@@ -89,7 +89,7 @@ const CHORD_DB = {
 
     // ===== add9 =====
     'Cadd9': { fret: 0, fingers: [-1,3,2,0,3,0], barres: [] },
-    'Dadd9': { fret: 0, fingers: [-1,-1,0,2,3,0], barres: [] },
+    'Dadd9': { fret: 0, fingers: [-1,5,4,2,3,0], barres: [] },     // D F# A D E (xx0230 to Dsus2)
     'Eadd9': { fret: 0, fingers: [0,2,2,1,0,2], barres: [] },
     'Gadd9': { fret: 0, fingers: [3,2,0,2,0,3], barres: [] },
     'Aadd9': { fret: 0, fingers: [-1,0,2,4,2,0], barres: [] },
@@ -123,14 +123,14 @@ const CHORD_DB = {
 
     // ===== 9th =====
     'C9':   { fret: 0, fingers: [-1,3,2,3,3,3], barres: [] },
-    'D9':   { fret: 0, fingers: [-1,-1,0,2,1,0], barres: [] },
+    'D9':   { fret: 4, fingers: [-1,2,1,2,2,2], barres: [] },       // D F# C E A (xx0210 nie ma tercji)
     'E9':   { fret: 0, fingers: [0,2,0,1,0,2], barres: [] },
     'G9':   { fret: 0, fingers: [3,0,0,0,0,1], barres: [] },
     'A9':   { fret: 0, fingers: [-1,0,2,4,2,3], barres: [] },
 
     // ===== Minor 9th =====
     'Am9':  { fret: 0, fingers: [-1,0,2,4,1,3], barres: [] },
-    'Dm9':  { fret: 0, fingers: [-1,-1,0,2,1,0], barres: [] },
+    'Dm9':  { fret: 3, fingers: [-1,3,1,3,3,3], barres: [] },       // D F C E A
     'Em9':  { fret: 0, fingers: [0,2,0,0,0,2], barres: [] },
 
     // ===== 7sus4 =====
@@ -157,8 +157,8 @@ const CHORD_DB = {
     'Cdim7': { fret: 0, fingers: [-1,3,4,2,4,-1], barres: [] },
     'Ddim7': { fret: 0, fingers: [-1,-1,0,1,0,1], barres: [] },
     'Edim7': { fret: 0, fingers: [0,1,2,0,2,0], barres: [] },
-    'F#dim7':{ fret: 0, fingers: [-1,-1,4,2,1,2], barres: [] },
-    'Gdim7': { fret: 0, fingers: [-1,-1,5,3,2,3], barres: [] },
+    'F#dim7':{ fret: 4, fingers: [-1,-1,1,2,1,2], barres: [] },     // F# C D# A (xx4212 nie miało D#)
+    'Gdim7': { fret: 5, fingers: [-1,-1,1,2,1,2], barres: [] },     // G C# E A#
     'Adim7': { fret: 0, fingers: [-1,0,1,2,1,2], barres: [] },
 
     // ===== Common slash chords =====
@@ -206,6 +206,8 @@ const _OPEN_A_SHAPE = {
     'sus2': [-1,0,2,2,0,0], '5':    [-1,0,2,2,-1,-1],
     'dim':  [-1,0,1,2,1,-1],'aug':  [-1,0,3,2,2,1], 'dim7': [-1,0,1,2,1,2],
     '6':    [-1,0,2,2,2,2], 'm6':   [-1,0,2,2,1,2],
+    'm7b5': [-1,0,1,0,1,-1],'7b5':  [-1,0,1,0,2,-1],'7#5':  [-1,0,3,0,2,1],
+    '7sus2':[-1,0,2,0,0,0],
 };
 function _buildBarreTemplates(openMap, rootStringIdx) {
     var out = {};
@@ -271,15 +273,32 @@ function generateGuitarChord(chordName) {
     return { fret: pick.fret, fingers: pick.t.fingers.slice(), barres: pick.t.barres.map(function (b) { return b.slice(); }) };
 }
 
-// Zapisy septymy wielkiej spotykane w śpiewnikach: A7maj i (po polsku) A7+
-// znaczą to samo co Amaj7. „7+5" zostaje podwyższoną kwintą.
+// Różne zapisy tego samego akordu ze śpiewników sprowadzamy do jednej formy:
+//   A7maj, A7+ (po polsku), AM7, AMaj7 -> Amaj7;  A- -> Am, A-7 -> Am7;
+//   A+ -> Aaug;  A4, Asus -> Asus4;  A7sus -> A7sus4;  A6/9 -> A69.
+// „7+5" zostaje podwyższoną kwintą, „7-5" obniżoną.
+const _CANON_SUFFIX = [
+    [/^(m?)7(?:maj|\+)$/, '$1maj7'],
+    [/^M(7|9)$/, 'maj$1'],
+    [/^Maj(7|9)?$/, 'maj$1'],
+    [/^-(\d*)$/, 'm$1'],
+    [/^\+$/, 'aug'],
+    [/^(?:4|sus)$/, 'sus4'],
+    [/^7sus$/, '7sus4'],
+];
 function canonicalChord(chordName) {
     if (!chordName) return chordName;
+    chordName = chordName.replace('6/9', '69');      // 6/9 to nie bas „9"
     const slash = chordName.indexOf('/');
     const main = slash < 0 ? chordName : chordName.slice(0, slash);
     const rest = slash < 0 ? '' : chordName.slice(slash);
-    const m = main.match(/^([A-Ha-h][#b]?)(m?)7(?:maj|\+)$/);
-    return m ? m[1] + m[2] + 'maj7' + rest : chordName;
+    const m = main.match(/^([A-Ha-h][#b]?)(.*)$/);
+    if (!m) return chordName;
+    let suf = m[2];
+    for (const [re, to] of _CANON_SUFFIX) {
+        if (re.test(suf)) { suf = suf.replace(re, to); break; }
+    }
+    return m[1] + suf + rest;
 }
 
 function lookupChord(chordName) {
@@ -316,8 +335,13 @@ function simplifyDiagramChord(chordName) {
     const p = _parseChordName(main);
     if (!p) return main;
     if (_chordCategory(p.suffix)) return main;            // znana kategoria (major/m/7/m7/maj7/sus)
-    const isMin = /^m(?!aj)/i.test(p.suffix);
-    return p.root + (isMin ? 'm' : '');                   // trójdźwięk bazowy
+    // te nie mają „bezpiecznego" prostszego chwytu — pokazujemy je wprost
+    if (['5', 'dim', 'dim7', 'aug', 'm7b5', '7b5', '7#5'].includes(p.suffix)) return p.root + p.suffix;
+    // najbliższy chwyt o tym samym charakterze (bez obcych dźwięków)
+    const near = [[/^m69$/, 'm6'], [/69/, '6'], [/sus2/, 'sus2'], [/sus/, 'sus4'], [/m7b5|m7-5/, 'm7b5'], [/dim/, 'dim'],
+                  [/aug|#5|\+5/, 'aug'], [/^m(?!aj)/, 'm']];
+    for (const [re, suf] of near) if (re.test(p.suffix)) return p.root + suf;
+    return p.root;                                        // trójdźwięk bazowy
 }
 
 function renderChordSVG(chordName, data) {
@@ -497,7 +521,14 @@ function _noteToPitch(note) {
     let n = note.trim();
     n = n.charAt(0).toUpperCase() + n.slice(1);
     if (n === 'H') n = 'B';
-    return _NOTE_TO_PITCH[n] !== undefined ? _NOTE_TO_PITCH[n] : null;
+    if (_NOTE_TO_PITCH[n] !== undefined) return _NOTE_TO_PITCH[n];
+    // polskie nazwy basu wpisane ręcznie: gis, Cis, fis, es, as
+    const pl = n.match(/^([A-H])(is|es|s)$/);
+    if (pl) {
+        const base = _NOTE_TO_PITCH[pl[1] === 'H' ? 'B' : pl[1]];
+        return (base + (pl[2] === 'is' ? 1 : 11)) % 12;
+    }
+    return null;
 }
 
 function generatePianoChord(chordName) {
@@ -524,7 +555,8 @@ function generatePianoChord(chordName) {
     const seventh = maj ? 11 : 10;
 
     // Quality: minor, dim, aug
-    if (/^m(?!aj)/i.test(raw)) third = 3;
+    if (/^m(?!aj)/.test(raw)) third = 3;
+    if (/^5$/.test(s)) noThird = true;                    // power chord: pryma + kwinta
     const isDim = s.includes('dim');
     if (isDim) { third = 3; fifth = 6; }
     if (s.includes('aug')) { fifth = 8; }
@@ -543,6 +575,13 @@ function generatePianoChord(chordName) {
     else if (s.includes('7'))          extras.push(10);
 
     if (s.includes('add9') || s.includes('add2'))   extras.push(14);
+    if (/^m?2$/.test(s))                            extras.push(14);   // G2 = Gadd2 (tercja zostaje)
+    // Alterowana nona: b9 / #9 zamiast zwykłej 9
+    const altNine = /(?:b9|-9|#9|\+9)/.test(sExt);
+    if (/b9|-9/.test(sExt)) extras.push(13);
+    if (/#9|\+9/.test(sExt)) extras.push(15);
+    const sixNine = /69/.test(sExt);                      // 6/9: seksta + nona, bez septymy
+    if (sixNine) extras.push(9, 14);
     if (s.includes('add11') || s.includes('add4'))  extras.push(17);
     if (s.includes('add13') || s.includes('add6'))  extras.push(21);
 
@@ -556,6 +595,10 @@ function generatePianoChord(chordName) {
         if (!extras.includes(10) && !extras.includes(11)) extras.push(seventh);
         if (!extras.includes(14)) extras.push(14);
         extras.push(17);
+    } else if (sixNine) {
+        // już dodane wyżej
+    } else if (altNine) {
+        if (!extras.includes(10) && !extras.includes(11)) extras.push(seventh);
     } else if (/(?:^|[^d])9(?!$)/.test(sExt) || sExt.endsWith('9')) {
         if (!extras.includes(10) && !extras.includes(11)) extras.push(seventh);
         extras.push(14);
