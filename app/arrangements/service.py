@@ -149,7 +149,7 @@ def tiles_with_content(arr, song, transpose=0):
         html = ''
         if sec is not None and 0 <= sec < len(sections):
             _p, html, _x = mc.process_song(sections[sec]['content'],
-                                           transpose_amount=transpose)
+                                           transpose_amount=transpose, key=song.key)
         out.append(dict(t, band_html=html,
                         span=(arr.markers or {}).get(t['id'])))
     return out

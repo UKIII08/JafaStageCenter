@@ -43,14 +43,45 @@
             || r === 'as' || r === 'es') return NOTES_FLAT;
         return NOTES;
     }
-    function transpose(chord, semi) {
+
+    // Pisownia po transpozycji według tonacji docelowej (jak music_core
+    // spell_pitch): w D-dur obniżony VI to Bb, w a-moll prowadzący to G#.
+    var SP_LETTERS = 'CDEFGAB', SP_LETTER_PC = {C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11};
+    var SP_STEPS = [0, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6], SP_FLAT_MAJ = [1, 3, 5, 8, 10];
+    var SP_PLAIN = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+    var SP_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    var SP_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+    function keySpelling(key, semi, pitchOf, parseOf) {
+        var k = key && parseOf(key.split('/')[0]);
+        var kp = k ? pitchOf(k.root) : null;
+        if (kp === null || kp === undefined) return null;
+        var minor = /^m(?!aj)/.test(k.suffix) || k.root.charAt(0) !== k.root.charAt(0).toUpperCase();
+        var pc = ((kp + semi) % 12 + 12) % 12;
+        var major = minor ? (pc + 3) % 12 : pc;
+        var table = (SP_FLAT_MAJ.indexOf(major) >= 0 || (minor && pc === 3)) ? SP_FLAT   // Ebm, nie D#m
+            : (major === 0 ? SP_PLAIN : SP_SHARP);
+        return { tonic: pc, letter: table[pc].charAt(0), table: table };
+    }
+    function spellPitch(pc, sp) {
+        var lt = SP_LETTERS.charAt((SP_LETTERS.indexOf(sp.letter) + SP_STEPS[((pc - sp.tonic) % 12 + 12) % 12]) % 7);
+        var acc = ((pc - SP_LETTER_PC[lt] + 6) % 12 + 12) % 12 - 6;
+        var name = acc === 0 ? lt : acc === 1 ? lt + '#' : acc === -1 ? lt + 'b' : null;
+        if (!name || name === 'E#' || name === 'B#' || name === 'Cb' || name === 'Fb') name = sp.table[pc];
+        return name;
+    }
+    // key: tonacja brzmiąca piosenki; z nią wszystkie akordy piszą się
+    // jednolicie w tonacji docelowej. Bez niej: pisownia każdego akordu osobno.
+    function transpose(chord, semi, key) {
+        var sp = (typeof key === 'object' && key) ? key
+               : (key ? keySpelling(key, semi, pitch, parse) : null);
         if (chord.indexOf('/') >= 0) {
             var p = chord.split('/');
-            return transpose(p[0], semi) + '/' + transpose(p.slice(1).join('/'), semi);
+            return transpose(p[0], semi, sp) + '/' + transpose(p.slice(1).join('/'), semi, sp);
         }
         var p2 = parse(chord); if (!p2) return chord;
         var pc = pitch(p2.root); if (pc === null) return chord;
-        return flavorTable(p2.root)[((pc + semi) % 12 + 12) % 12] + p2.suffix;
+        var to = ((pc + semi) % 12 + 12) % 12;
+        return (sp ? spellPitch(to, sp) : flavorTable(p2.root)[to]) + p2.suffix;
     }
     function convertNotation(chord, notation, lowercaseMinor) {
         if (chord.indexOf('/') >= 0) {
@@ -73,7 +104,8 @@
         var bs = bassSplit(chord);
         if (bs) chord = bs[0];
         var p = parse(chord); if (!p) return chord;
-        return p.root + (/^m(?!aj)/i.test(p.suffix) ? 'm' : '');
+        // moll, a także dim i m7b5 (mają małą tercję) -> „m"; reszta -> dur
+        return p.root + (/^(?:m(?!aj)|dim)/.test(p.suffix) ? 'm' : '');
     }
     // Numery nashville — niezależne od tonacji zapisu, liczone względem klucza.
     var NASH = ['1','♭2','2','♭3','3','4','♭5','5','♭6','6','♭7','7'];
@@ -106,7 +138,7 @@
         container.querySelectorAll('.chord').forEach(function (el) {
             var raw = el.textContent.trim();
             var out = raw;
-            if (capo > 0) out = transpose(out, -capo);
+            if (capo > 0) out = transpose(out, -capo, prefs.key || null);
             if (prefs.beginner_mode) out = simplify(out);
             if (notation === 'nashville' && nashKey) {
                 out = toNashville(out, nashKey);

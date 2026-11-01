@@ -33,6 +33,48 @@ TRANSPOSE_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B
 TRANSPOSE_SHARP_PL = ['C', 'Cis', 'D', 'Dis', 'E', 'F', 'Fis', 'G', 'Gis', 'A', 'Ais', 'H']
 TRANSPOSE_FLAT_PL = ['C', 'Des', 'D', 'Es', 'E', 'F', 'Ges', 'G', 'As', 'A', 'B', 'H']
 
+# ── Pisownia po transpozycji według tonacji docelowej ──────────────────
+# Akord dostaje literę ze swojego stopnia w tonacji (w D-dur obniżony VI to
+# Bb, nie A#; w a-moll dźwięk prowadzący to G#, nie Ab). Gdy wyszłoby coś
+# dziwnego (E#, Cb, podwójny znak), bierzemy zwykły znak tonacji.
+_LETTERS = 'CDEFGAB'
+_LETTER_PC = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11}
+_DEGREE_STEPS = (0, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6)   # półtony od toniki -> stopień
+_FLAT_MAJORS = {1, 3, 5, 8, 10}                         # Db Eb F Ab Bb (F# zostaje F#)
+_INT_TO_PL = {'C#': 'Cis', 'Db': 'Des', 'D#': 'Dis', 'Eb': 'Es', 'F#': 'Fis', 'Gb': 'Ges',
+              'G#': 'Gis', 'Ab': 'As', 'A#': 'Ais', 'Bb': 'B', 'B': 'H'}
+
+
+def key_spelling(pc, minor):
+    """Jak pisać nuty w tonacji (pc, moll?): (tonika, litera toniki, tabela zapasowa)."""
+    major = (pc + 3) % 12 if minor else pc
+    if major in _FLAT_MAJORS or (minor and pc == 3):     # es-moll pisze się Ebm, nie D#m
+        table = TRANSPOSE_FLAT
+    elif major == 0:
+        table = TRANSPOSE_LOOKUP          # C / a: bez znaków, zapożyczenia bemolami
+    else:
+        table = TRANSPOSE_SHARP
+    return pc, table[pc][0], table
+
+
+def spell_pitch(pc, spelling):
+    tonic, letter, table = spelling
+    lt = _LETTERS[(_LETTERS.index(letter) + _DEGREE_STEPS[(pc - tonic) % 12]) % 7]
+    acc = (pc - _LETTER_PC[lt] + 6) % 12 - 6
+    name = lt + {0: '', 1: '#', -1: 'b'}.get(acc, '?')
+    if '?' in name or name in ('E#', 'B#', 'Cb', 'Fb'):
+        name = table[pc]
+    return name
+
+
+def _target_spelling(key, shift):
+    """Pisownia dla tonacji `key` przesuniętej o `shift`; None, gdy nie wiadomo."""
+    k = _chord_pc(key) if key else None
+    if not k:
+        return None
+    return key_spelling((k[0] + shift) % 12, bool(k[1]))
+
+
 def _accidental_flavor(root_str, notation='international'):
     """'sharp' / 'flat' / None (naturalna nuta) — na podstawie pisowni źródła."""
     r = root_str.strip()
@@ -408,7 +450,7 @@ key_detector = AdvancedKeyDetector()
 def detect_key_algorithm(text): return key_detector.detect(text)
 
 
-def transpose_chord(match, shift, notation='international'):
+def transpose_chord(match, shift, notation='international', spelling=None):
     full_chord = match.group(1)
     # NIE ruszaj tokenów, które nie są akordami ([Coda], [Bridge], [x2]…) —
     # inaczej transpozycja psuła etykiety sekcji ([Coda] +2 -> [Doda]).
@@ -422,6 +464,11 @@ def transpose_chord(match, shift, notation='international'):
         root_str, suffix = m.group(1), m.group(2)
         is_lower = part[0].islower()
         pc = _resolve_pitch_class(root_str.upper(), notation)
+        if pc is not None and spelling is not None:
+            new_root = spell_pitch((pc + shift) % 12, spelling)
+            if polish or root_str.lower().endswith(('is', 'es')):
+                new_root = _INT_TO_PL.get(new_root, new_root)
+            return f"{new_root.lower() if is_lower else new_root}{suffix}"
         if pc is not None:
             flavor = _accidental_flavor(root_str, notation)
             # zachowaj styl pisowni źródła: "Fis" transponuje się na "Gis", nie "G#"
@@ -444,9 +491,27 @@ def transpose_chord(match, shift, notation='international'):
         return f"[{trans_part(root_part)}/{rest}]"
     return f"[{trans_part(full_chord)}]"
 
-def apply_transpose_to_single_chord(chord_str, shift, notation='international'):
+def apply_transpose_to_single_chord(chord_str, shift, notation='international', key=None):
+    """Transpozycja pojedynczego akordu (np. tonacji). Bez `key` akord sam
+    wyznacza tonację, więc tonacje piszą się jak w nutach: Db, F#, Bbm."""
     if shift == 0: return chord_str
-    return re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, shift, notation), chord_str)
+    if key is None:
+        m = re.search(r'\[([^\[\]/]+)', chord_str)
+        key = normalize_chord_to_international(m.group(1), notation) if m else None
+    spelling = _target_spelling(key, shift)
+    return re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, shift, notation, spelling), chord_str)
+
+def respell_in_key(chord_str, key):
+    """Ten sam akord zapisany znakami tonacji `key` (Db7 w F#-dur -> C#7).
+    Działa na „[X]" i na gołym „X"."""
+    spelling = _target_spelling(key, 0)
+    if not spelling:
+        return chord_str
+    if '[' not in chord_str:
+        return re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, 0, 'international', spelling),
+                      f'[{chord_str}]')[1:-1]
+    return re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, 0, 'international', spelling), chord_str)
+
 
 def get_first_chord_from_chorus(content):
     if not content: return None
@@ -490,11 +555,19 @@ _PAIR_RE = re.compile(r'<span class="chord-pair"><span class="chord">(?:(?!chord
                       r'<span class="chord-syl"></span></span>|&#8288;')
 
 
-def process_song(text, transpose_amount=0, notation='international', minor_display='uppercase'):
+def process_song(text, transpose_amount=0, notation='international', minor_display='uppercase',
+                 key=None, target_key=None):
+    """`key`: tonacja piosenki (gdy znana); bez niej wykrywamy ją z akordów.
+    `target_key`: tonacja już po transpozycji (Studio ją zna). Po transpozycji
+    wszystkie akordy piszą się jednolicie w nowej tonacji."""
     if not text: return "", "", ""
     text = text.strip()
     if transpose_amount != 0:
-        text = re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, transpose_amount, 'international'), text)
+        spelling = _target_spelling(target_key, 0) if target_key else None
+        if spelling is None:
+            spelling = _target_spelling(key or detect_key_algorithm(text), transpose_amount)
+        text = re.sub(r'\[(.*?)\]', lambda m: transpose_chord(m, transpose_amount, 'international',
+                                                              spelling), text)
     # HTML-escape treści tekstu (ochrona przed wstrzyknięciem HTML/JS z pieśni —
     # np. z importu lub z otwartego /send_text w sieci). Akordy w [] są usuwane.
     text_people = html.escape(re.sub(r'\[.*?\]', '', text).strip(), quote=False).replace('\n', '<br>')

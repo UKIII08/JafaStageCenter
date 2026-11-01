@@ -1638,16 +1638,47 @@
             const tail = ch.slice(i + 1);
             return (tail && !/^\d+$/.test(tail)) ? [ch.slice(0, i), tail] : null;
         }
-        function transposeChord(chord, semi) {
+
+        // Pisownia po transpozycji według tonacji docelowej (jak music_core
+        // spell_pitch): w D-dur obniżony VI to Bb, w a-moll prowadzący to G#.
+        var SP_LETTERS = 'CDEFGAB', SP_LETTER_PC = {C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11};
+        var SP_STEPS = [0, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6], SP_FLAT_MAJ = [1, 3, 5, 8, 10];
+        var SP_PLAIN = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+        var SP_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        var SP_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+        function keySpelling(key, semi, pitchOf, parseOf) {
+            var k = key && parseOf(key.split('/')[0]);
+            var kp = k ? pitchOf(k.root) : null;
+            if (kp === null || kp === undefined) return null;
+            var minor = /^m(?!aj)/.test(k.suffix) || k.root.charAt(0) !== k.root.charAt(0).toUpperCase();
+            var pc = ((kp + semi) % 12 + 12) % 12;
+            var major = minor ? (pc + 3) % 12 : pc;
+            var table = (SP_FLAT_MAJ.indexOf(major) >= 0 || (minor && pc === 3)) ? SP_FLAT   // Ebm, nie D#m
+            : (major === 0 ? SP_PLAIN : SP_SHARP);
+            return { tonic: pc, letter: table[pc].charAt(0), table: table };
+        }
+        function spellPitch(pc, sp) {
+            var lt = SP_LETTERS.charAt((SP_LETTERS.indexOf(sp.letter) + SP_STEPS[((pc - sp.tonic) % 12 + 12) % 12]) % 7);
+            var acc = ((pc - SP_LETTER_PC[lt] + 6) % 12 + 12) % 12 - 6;
+            var name = acc === 0 ? lt : acc === 1 ? lt + '#' : acc === -1 ? lt + 'b' : null;
+            if (!name || name === 'E#' || name === 'B#' || name === 'Cb' || name === 'Fb') name = sp.table[pc];
+            return name;
+        }
+
+        // key: tonacja brzmiąca — wtedy akordy piszą się jednolicie w tonacji docelowej
+        function transposeChord(chord, semi, key) {
+            const sp = (typeof key === 'object' && key) ? key
+                     : (key ? keySpelling(key, semi, rootToPitch, parseRoot) : null);
             const parts = splitBass(chord);
             if (parts) {
-                return transposeChord(parts[0], semi) + '/' + transposeChord(parts[1], semi);
+                return transposeChord(parts[0], semi, sp) + '/' + transposeChord(parts[1], semi, sp);
             }
             const p = parseRoot(chord);
             if (!p) return chord;
             const pc = rootToPitch(p.root);
             if (pc === null) return chord;
-            return flavorTable(p.root)[((pc + semi) % 12 + 12) % 12] + p.suffix;
+            const to = ((pc + semi) % 12 + 12) % 12;
+            return (sp ? spellPitch(to, sp) : flavorTable(p.root)[to]) + p.suffix;
         }
 
         function simplifyChord(chord) {
@@ -1655,7 +1686,7 @@
             if (bs) chord = bs[0];
             const p = parseRoot(chord);
             if (!p) return chord;
-            const isMinor = /^m(?!aj)/i.test(p.suffix);
+            const isMinor = /^(?:m(?!aj)|dim)/.test(p.suffix);   // dim, m7b5 -> „m"
             return p.root + (isMinor ? 'm' : '');
         }
 
@@ -1716,7 +1747,7 @@
             let display = chord;
             let cls = 'chord';
             if (currentSettings.capo_fret > 0) {
-                display = transposeChord(display, -currentSettings.capo_fret);
+                display = transposeChord(display, -currentSettings.capo_fret, currentKey);
                 cls += ' capo';
             }
             if (currentSettings.beginner_mode) display = simplifyChord(display);
@@ -1953,7 +1984,7 @@
                 keyBox.innerText = t('bm_key_prefix') + ' ' + displayKey;
                 keyBox.style.display = 'block';
                 if (currentSettings.capo_fret > 0) {
-                    const capoKey = convertNotation(transposeChord(currentKey, -currentSettings.capo_fret));
+                    const capoKey = convertNotation(transposeChord(currentKey, -currentSettings.capo_fret, currentKey));
                     capoBox.innerText = 'Capo ' + currentSettings.capo_fret + ' → ' + (t('bm_capo_play') || 'play') + ' ' + capoKey;
                     capoBox.style.display = 'block';
                 } else {
