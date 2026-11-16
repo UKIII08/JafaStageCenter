@@ -1386,11 +1386,11 @@
                 var list = document.getElementById('profile-list');
                 var colors = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
                 list.innerHTML = profiles.map(function(p) {
-                    var initial = (p.name || '?')[0].toUpperCase();
-                    return '<div class="profile-card" onclick="selectProfile(\'' + p.id + '\')">' +
-                        '<div class="profile-avatar" style="background:' + (p.color || colors[p.id % colors.length]) + '">' + initial + '</div>' +
-                        '<div class="profile-card-name">' + p.name + '</div>' +
-                        (p.instrument ? '<div class="profile-card-instrument">' + p.instrument + '</div>' : '') +
+                    var initial = escHtml((p.name || '?')[0].toUpperCase());
+                    return '<div class="profile-card" onclick="selectProfile(\'' + safeId(p.id) + '\')">' +
+                        '<div class="profile-avatar" style="background:' + (safeColor(p.color) || colors[p.id % colors.length] || colors[0]) + '">' + initial + '</div>' +
+                        '<div class="profile-card-name">' + escHtml(p.name) + '</div>' +
+                        (p.instrument ? '<div class="profile-card-instrument">' + escHtml(p.instrument) + '</div>' : '') +
                         '</div>';
                 }).join('');
                 document.getElementById('profile-screen').style.display = 'flex';
@@ -1666,6 +1666,15 @@
         }
 
         // key: tonacja brzmiąca — wtedy akordy piszą się jednolicie w tonacji docelowej
+        // Dane od ludzi (imię, tytuł, tekst, notatka) do strony tylko po zamianie znaków HTML.
+        function escHtml(v) {
+            return String(v === null || v === undefined ? '' : v).replace(/[&<>"'`]/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' }[c];
+            });
+        }
+        function safeId(v) { return String(v === null || v === undefined ? '' : v).replace(/[^A-Za-z0-9_.:-]/g, ''); }
+        function safeColor(v) { return /^#[0-9a-fA-F]{3,8}$/.test(v || '') ? v : ''; }
+
         function transposeChord(chord, semi, key) {
             const sp = (typeof key === 'object' && key) ? key
                      : (key ? keySpelling(key, semi, rootToPitch, parseRoot) : null);
@@ -1868,7 +1877,7 @@
                 box.style.display = 'block';
                 document.getElementById('capo-suggest-title').textContent = t('bm_capo_suggest') + ' ' + bestCapo;
                 document.getElementById('capo-suggest-details').innerHTML =
-                    t('bm_capo_chords') + ' ' + bestCapo + ': <span style="color:var(--text-primary);">' + bestChords.join(', ') + '</span>';
+                    t('bm_capo_chords') + ' ' + bestCapo + ': <span style="color:var(--text-primary);">' + escHtml(bestChords.join(', ')) + '</span>';
             } else {
                 box.style.display = 'none';
             }
@@ -1947,7 +1956,7 @@
             var sectionIdx = browseMode ? browseSectionIdx : (liveSectionIndex || 0);
             var note = notes[sectionIdx];
             if (note) {
-                return '<div class="section-note" onclick="openNoteEditor(' + sectionIdx + ')">' + note + '</div>';
+                return '<div class="section-note" onclick="openNoteEditor(' + (Number(sectionIdx) || 0) + ')">' + escHtml(note) + '</div>';
             }
             return '<div class="add-note-btn" onclick="openNoteEditor(' + sectionIdx + ')">' + t('note_add') + '</div>';
         }
@@ -2097,9 +2106,9 @@
                 var isLive = (i === liveCurrentIndex);
                 var isActive = browseMode && browseData && browseData.id === song.id;
                 var cls = 'setlist-song-item' + (isLive ? ' live-now' : '') + (isActive ? ' active' : '');
-                return '<div class="' + cls + '" onclick="browseSong(\'' + song.id + '\')">' +
-                    '<span class="setlist-song-item-title">' + (song.title || 'Untitled') + '</span>' +
-                    (song.key ? '<span class="setlist-song-item-key">' + song.key + '</span>' : '') +
+                return '<div class="' + cls + '" onclick="browseSong(\'' + safeId(song.id) + '\')">' +
+                    '<span class="setlist-song-item-title">' + escHtml(song.title || 'Untitled') + '</span>' +
+                    (song.key ? '<span class="setlist-song-item-key">' + escHtml(song.key) + '</span>' : '') +
                     '</div>';
             }).join('');
         }
@@ -2128,11 +2137,11 @@
             var grid = document.getElementById('browse-tiles-grid');
             grid.innerHTML = browseData.sections.map(function(sec, i) {
                 var preview = sec.raw_text.replace(/\[.*?\]/g, '').substring(0, 80);
-                var noteText = notes[i] ? '<div class="browse-tile-note">' + notes[i] + '</div>' : '';
+                var noteText = notes[i] ? '<div class="browse-tile-note">' + escHtml(notes[i]) + '</div>' : '';
                 return '<div class="browse-tile' + (i === browseSectionIdx ? ' active' : '') +
                     '" onclick="selectBrowseTile(' + i + ')">' +
-                    '<div class="browse-tile-label">' + sec.label + '</div>' +
-                    '<div class="browse-tile-preview">' + preview + '</div>' +
+                    '<div class="browse-tile-label">' + escHtml(sec.label) + '</div>' +
+                    '<div class="browse-tile-preview">' + escHtml(preview) + '</div>' +
                     noteText + '</div>';
             }).join('');
 
@@ -2641,7 +2650,7 @@
                             // Etykietę chwytu zastąp lokalną — respektuje notację i „małe
                             // litery = mol" (np. Dm→d, więc alternatywa Dm7→d7).
                             const shownLabel = (idx === 0) ? label : convertNotation(pick.label);
-                            svg = pick.svg.replace('>' + pick.label + '<', '>' + shownLabel + '<');
+                            svg = pick.svg.replace('>' + escHtml(pick.label) + '<', '>' + escHtml(shownLabel) + '<');
                             star = idx > 0;
                         }
                     } else if (inst === 'piano') {
@@ -2654,7 +2663,7 @@
                 } catch (e) { svg = null; }
 
                 if (!svg) {
-                    html += '<div class="nd-card"><div class="nd-miss">' + label + '</div></div>';
+                    html += '<div class="nd-card"><div class="nd-miss">' + escHtml(label) + '</div></div>';
                 } else {
                     html += '<div class="nd-card">' + (star ? '<div class="nd-star">★</div>' : '') +
                             '<div class="nd-svg">' + svg + '</div></div>';
@@ -2684,7 +2693,7 @@
             try { voicings = getChordVoicings(dch, inst) || []; } catch (e) { voicings = []; }
 
             if (!voicings.length) {
-                content.innerHTML = `<div class="no-diagram"><strong>${label}</strong><br>${t('bm_no_diagram')}</div>`;
+                content.innerHTML = `<div class="no-diagram"><strong>${escHtml(label)}</strong><br>${t('bm_no_diagram')}</div>`;
             } else {
                 // Progression-aware pick: which voicing ties THIS song together best.
                 let rec = null;
@@ -2714,7 +2723,7 @@
                     const meta = VOICING_META[v.tag] || VOICING_META.base;
                     const isBase = (v === baseVoicing);
                     const shownLabel = isBase ? label : convertNotation(v.label);
-                    const svg = v.svg.replace('>' + v.label + '<', '>' + shownLabel + '<');
+                    const svg = v.svg.replace('>' + escHtml(v.label) + '<', '>' + escHtml(shownLabel) + '<');
                     const isRec = (v === recVoicing);
                     const star = isRec ? '<div class="voicing-star">★ ' + (en ? 'best here' : 'do tej progresji') + '</div>' : '';
                     let hint = en ? meta.hen : meta.hpl;
@@ -2754,7 +2763,7 @@
                         html += '<div class="voicing-row">';
                         positions.forEach(function (pv, pi) {
                             const isPick = (pi === pickIdx);
-                            const svg = pv.svg.replace('>' + pv.label + '<', '>' + label + '<');
+                            const svg = pv.svg.replace('>' + escHtml(pv.label) + '<', '>' + escHtml(label) + '<');
                             const fretTag = pv.open ? (en ? 'open' : 'otwarty')
                                                     : (en ? 'fret ' : 'próg ') + pv.fret;
                             const star = isPick ? '<div class="voicing-star">★ ' +
