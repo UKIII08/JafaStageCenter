@@ -201,7 +201,13 @@ def media(church_id, filename):
         return send_from_directory(current_app.static_folder, 'logo.png')
     if not os.path.exists(full):
         abort(404)
-    return send_from_directory(root, filename)
+    resp = send_from_directory(root, filename)
+    if filename.lower().endswith(('.html', '.htm', '.svg', '.xml')):
+        # Wgrany plik (np. przejście HTML) może mieć własne skrypty do animacji,
+        # ale działa w piaskownicy: jako obca strona, bez dostępu do sesji
+        # i danych Jonathana, nawet otwarty bezpośrednio z linku.
+        resp.headers['Content-Security-Policy'] = 'sandbox allow-scripts'
+    return resp
 
 
 # ── strona Studia ────────────────────────────────────────────────────────
@@ -906,6 +912,27 @@ PROFILE_PREF_DEFAULTS = {'show_chords': True,
                          'instrument_transpose': 0, 'theme': 'dark'}
 
 
+_COLOR_RE = re.compile(r'^#[0-9a-fA-F]{3,8}$')
+
+
+def _can_edit_profile(church_id, profile):
+    """Swój profil zmienia jego właściciel; cudzy tylko prowadzący/admin.
+    (Wcześniej każdy członek zespołu mógł zmienić lub usunąć dowolny profil.)"""
+    if _member(church_id, 'prowadzacy'):
+        return True
+    user = current_user()
+    return bool(user and profile.user_id and profile.user_id == user.id)
+
+
+def _clean_profile_fields(data, p):
+    if 'name' in data:
+        p.name = (str(data.get('name') or '').strip()[:120]) or p.name
+    if 'instrument' in data:
+        p.instrument = str(data.get('instrument') or '').strip()[:60]
+    if 'color' in data and _COLOR_RE.match(str(data.get('color') or '')):
+        p.color = data['color']
+
+
 def _profile_json(p):
     prefs = dict(PROFILE_PREF_DEFAULTS)
     prefs.update(p.prefs or {})
@@ -925,13 +952,12 @@ def get_profiles(church_id):
 @studio_bp.post('/studio/api/profiles')
 @studio_auth('prowadzacy', allow_member=True)
 def create_profile(church_id):
-    data = request.json
+    data = request.json or {}
     user = current_user()
-    p = Profile(church_id=church_id, name=data.get('name', 'Muzyk'),
-                instrument=data.get('instrument', ''),
-                color=data.get('color', '#6366f1'),
-                user_id=user.id if user else None,
+    p = Profile(church_id=church_id, name='Muzyk', instrument='',
+                color='#6366f1', user_id=user.id if user else None,
                 prefs=dict(PROFILE_PREF_DEFAULTS))
+    _clean_profile_fields(data, p)
     db.session.add(p)
     db.session.commit()
     return {'id': p.id, 'name': p.name}
@@ -954,10 +980,10 @@ def update_profile(church_id, pid):
                                 deleted=False).first()
     if not p:
         return {'error': 'not found'}, 404
-    data = request.json
-    for field in ['name', 'instrument', 'color']:
-        if field in data:
-            setattr(p, field, data[field])
+    if not _can_edit_profile(church_id, p):
+        abort(403)
+    data = request.json or {}
+    _clean_profile_fields(data, p)
     prefs = dict(PROFILE_PREF_DEFAULTS)
     prefs.update(p.prefs or {})
     for field in PROFILE_PREF_FIELDS:
@@ -975,6 +1001,8 @@ def update_profile(church_id, pid):
 @studio_auth('prowadzacy', allow_member=True)
 def delete_profile(church_id, pid):
     p = Profile.query.filter_by(id=pid, church_id=church_id).first()
+    if p and not _can_edit_profile(church_id, p):
+        abort(403)
     if p:
         SongPersonal.query.filter_by(profile_id=pid).delete()
         p.deleted = True
@@ -988,6 +1016,8 @@ def get_song_settings(church_id, pid, sid):
     profile = Profile.query.filter_by(id=pid, church_id=church_id).first()
     if not profile:
         return {'error': 'not found'}, 404
+    if current_user() and not _can_edit_profile(church_id, profile):
+        abort(403)
     s = SongPersonal.query.filter_by(profile_id=pid, song_id=sid).first()
     if not s:
         return {'capo_fret': None, 'notes': {}}
@@ -1004,7 +1034,9 @@ def update_song_settings(church_id, pid, sid):
     song = Song.query.filter_by(id=sid, church_id=church_id).first()
     if not profile or not song:
         return {'error': 'not found'}, 404
-    data = request.json
+    if not _can_edit_profile(church_id, profile):
+        abort(403)
+    data = request.json or {}
     s = SongPersonal.query.filter_by(profile_id=pid, song_id=sid).first()
     if not s:
         s = SongPersonal(profile_id=pid, song_id=sid)

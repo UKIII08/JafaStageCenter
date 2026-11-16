@@ -422,7 +422,7 @@ function renderDiagrams() {
                 var pv = _prettyByChord[ch];
                 if (pv && pv.voicing) {
                     var more = (pv.all.length > 1) ? '<span class="diag-more-hint">' + (pv.all.length - 1) + '</span>' : '';
-                    html += '<div class="diag-svg" data-ch="' + encodeURIComponent(ch) + '" title="' + ch + '">' +
+                    html += '<div class="diag-svg" data-ch="' + encodeURIComponent(ch) + '" title="' + cdEsc(ch) + '">' +
                             pv.voicing.svg + more + '</div>';
                     return;
                 }
@@ -431,7 +431,7 @@ function renderDiagrams() {
                 var all = getAllVoicings(ch, inst);
                 if (all.length) {
                     var pi = _pickByChord[ch] || 0; if (pi >= all.length) pi = 0;
-                    html += '<div class="diag-svg" data-ch="' + encodeURIComponent(ch) + '" title="' + ch + '">' +
+                    html += '<div class="diag-svg" data-ch="' + encodeURIComponent(ch) + '" title="' + cdEsc(ch) + '">' +
                             all[pi].svg + '<span class="diag-more-hint">' +
                             (all.length > 1 ? '+' + (all.length - 1) : '') + '</span></div>';
                     return;
@@ -439,7 +439,7 @@ function renderDiagrams() {
             }
         }
         var v = getChordVoicings(ch, inst);
-        if (v && v.length) html += '<div class="diag-svg" title="' + ch + '">' + v[0].svg + '</div>';
+        if (v && v.length) html += '<div class="diag-svg" title="' + cdEsc(ch) + '">' + v[0].svg + '</div>';
     });
     document.getElementById('diagram-list').innerHTML =
         html || '<div class="muted" style="grid-column:1/-1;">' + NO_DIAG + '</div>';
@@ -463,7 +463,7 @@ function openPositions(ch) {
         if (!pv || !pv.all || !pv.all.length) return;
         pv.all.forEach(function (v, idx) {
             var isPick = (idx === pv.idx);
-            var tag = (idx === 0) ? L_PLAIN : v.label;
+            var tag = (idx === 0) ? L_PLAIN : cdEsc(v.label);
             h += '<div class="pos-cell' + (isPick ? ' pick' : '') + '">' +
                  (isPick ? '<span class="pos-star" title="' + L_BEST + '">★</span>' : '') +
                  v.svg + '<div class="pos-tag">' + tag + '</div></div>';

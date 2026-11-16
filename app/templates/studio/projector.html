@@ -92,7 +92,7 @@
     <iframe id="welcome-frame" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; border:none; z-index:16;"></iframe>
     <!-- Warstwa przejścia — nad wszystkim (z-index 60), zakrywa moment zmiany trybu. -->
     <video id="transition-video" muted playsinline preload="auto" disablepictureinpicture controlslist="nodownload nofullscreen noremoteplayback" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; object-fit:cover; background:#000; z-index:60;"></video>
-    <iframe id="transition-html" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; border:none; background:#000; z-index:60;"></iframe>
+    <iframe id="transition-html" sandbox="allow-scripts" style="display:none; position:absolute; inset:0; width:100vw; height:100vh; border:none; background:#000; z-index:60;"></iframe>
 
     <script>
     // Dłuższy slajd (do 8 linii, długie wersy) nie może wyjść poza ekran —

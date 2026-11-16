@@ -344,6 +344,14 @@ function simplifyDiagramChord(chordName) {
     return p.root;                                        // trójdźwięk bazowy
 }
 
+// Nazwa akordu pochodzi z treści piosenki, więc do SVG/HTML trafia
+// dopiero po zamianie znaków HTML.
+function cdEsc(v) {
+    return String(v === null || v === undefined ? '' : v).replace(/[&<>"'`]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' }[c];
+    });
+}
+
 function renderChordSVG(chordName, data) {
     const W = 120, H = 168;
     const LEFT = 30, TOP = 42;   // odsuwamy siatkę w dół, żeby nazwa i znaczniki ✕/○ się nie nakładały
@@ -359,7 +367,7 @@ function renderChordSVG(chordName, data) {
     svg += `<rect x="0" y="0" width="${W}" height="${H}" rx="8" fill="#1a1a2e"/>`;
 
     // Title (własny pas na górze — nad znacznikami ✕/○)
-    svg += `<text x="${W/2}" y="16" text-anchor="middle" font-size="14" font-weight="bold" fill="#6BA0FC" font-family="Sen,sans-serif">${chordName}</text>`;
+    svg += `<text x="${W/2}" y="16" text-anchor="middle" font-size="14" font-weight="bold" fill="#6BA0FC" font-family="Sen,sans-serif">${cdEsc(chordName)}</text>`;
 
     // Fret number indicator
     if (data.fret > 0) {
@@ -1083,7 +1091,7 @@ function renderPianoSVG(chordName, notes) {
 
     let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
     svg += `<rect x="0" y="0" width="${W}" height="${H}" rx="8" fill="#1a1a2e"/>`;
-    svg += `<text x="${W/2}" y="18" text-anchor="middle" font-size="13" font-weight="bold" fill="#ff9800" font-family="Sen,sans-serif">${chordName}</text>`;
+    svg += `<text x="${W/2}" y="18" text-anchor="middle" font-size="13" font-weight="bold" fill="#ff9800" font-family="Sen,sans-serif">${cdEsc(chordName)}</text>`;
 
     // Draw white keys
     for (let oct = 0; oct < 2; oct++) {

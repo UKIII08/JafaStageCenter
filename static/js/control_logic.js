@@ -1,5 +1,15 @@
 var socket = io();
 
+// Dane od ludzi (tytuł, tekst, tonacja, nazwy) wstawiamy do strony tylko po
+// zamianie znaków HTML. Bez tego tytuł piosenki mógłby wykonać się jako kod.
+function escHtml(v) {
+    return String(v === null || v === undefined ? '' : v).replace(/[&<>"'`]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' }[c];
+    });
+}
+// Identyfikator wstawiany do onclick="f('…')": tylko bezpieczne znaki.
+function safeId(v) { return String(v === null || v === undefined ? '' : v).replace(/[^A-Za-z0-9_.:-]/g, ''); }
+
 // --- I18N: uses shared translations from i18n.js ---
 function setLanguage(lang) {
     initI18n(lang);
@@ -575,15 +585,15 @@ function renderPresentationList() {
         item.style.background = isActive ? 'var(--accent-primary-soft, rgba(59,130,246,0.15))' : 'var(--bg-element)';
         item.style.border = isActive ? '1px solid var(--accent-primary, #3B82F6)' : '1px solid var(--border-color)';
 
-        var safeName = String(pres.name).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var safeName = escHtml(pres.name);
         var shortName = safeName.length > 28 ? safeName.substring(0, 28) + '…' : safeName;
 
         item.innerHTML = `
             <div style="flex-grow:1; font-size:0.8rem; color:var(--text-main); overflow:hidden; white-space:nowrap; text-overflow:ellipsis;" title="${safeName}">
-                📄 ${shortName} <span style="color:var(--text-muted); font-size:0.7rem;">(${pres.slides.length})</span>
+                📄 ${shortName} <span style="color:var(--text-muted); font-size:0.7rem;">(${Number(pres.slides.length) || 0})</span>
             </div>
-            <button class="action-btn" style="background:var(--accent-success); padding:6px 12px; font-size:0.75rem;" onclick="showPresentation('${pres.id}')">${btnShow}</button>
-            <button class="btn-sm" style="background:var(--accent-danger); color:white; border:none; padding:6px 10px; font-weight:bold; border-radius:6px;" onclick="removePresentation('${pres.id}')">✕</button>
+            <button class="action-btn" style="background:var(--accent-success); padding:6px 12px; font-size:0.75rem;" onclick="showPresentation('${safeId(pres.id)}')">${btnShow}</button>
+            <button class="btn-sm" style="background:var(--accent-danger); color:white; border:none; padding:6px 10px; font-weight:bold; border-radius:6px;" onclick="removePresentation('${safeId(pres.id)}')">✕</button>
         `;
         list.appendChild(item);
     });
@@ -662,8 +672,8 @@ function renderCanvaLinks() {
         const btnShow = translations[currentLang].show_btn || "Pokaż";
 
         item.innerHTML = `
-            <div style="flex-grow: 1; font-size: 0.75rem; color: var(--text-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: monospace;" title="${link}">
-                ${label} ${index + 1}: ${shortLink}
+            <div style="flex-grow: 1; font-size: 0.75rem; color: var(--text-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: monospace;" title="${escHtml(link)}">
+                ${label} ${index + 1}: ${escHtml(shortLink)}
             </div>
             <button class="action-btn" style="background:var(--accent-success); padding: 6px 12px; font-size: 0.75rem;" onclick="sendSpecificCanvaLink(${index})">${btnShow}</button>
             <button class="btn-sm setlist-remove" style="background:transparent; color:var(--text-tertiary); border:none; padding: 6px 10px; font-weight: bold;" onclick="removeCanvaLink(${index})">✕</button>
@@ -1336,7 +1346,7 @@ function validateChords(contentId, statusId) {
         }
     }
     if (invalid.length > 0) {
-        statusEl.innerHTML = '<span style="color:#ff6b6b;">Nierozpoznane akordy: <b>' + invalid.map(c => '[' + c + ']').join(', ') + '</b></span>';
+        statusEl.innerHTML = '<span style="color:#ff6b6b;">Nierozpoznane akordy: <b>' + invalid.map(c => '[' + escHtml(c) + ']').join(', ') + '</b></span>';
     } else {
         statusEl.innerHTML = '<span style="color:#00b894;">' + valid.length + ' akordów · wszystkie poprawne</span>';
     }
@@ -1351,18 +1361,18 @@ function renderLibrary(f="") {
         if (s.title.toLowerCase().includes(f.toLowerCase()) || s.content.toLowerCase().includes(f.toLowerCase())) {
             const d = document.createElement('details'); d.className = 'lib-item';
             const preview = s.content.replace(/\[.*?\]/g, "").substring(0, 300) + "...";
-            const keyBadge = s.key ? `<span class="lib-key-badge">${s.key}</span>` : '';
+            const keyBadge = s.key ? `<span class="lib-key-badge">${escHtml(s.key)}</span>` : '';
             d.innerHTML = `
                 <summary class="lib-summary">
-                    <div class="lib-title-row"><b>${s.title}</b>${keyBadge}</div>
+                    <div class="lib-title-row"><b>${escHtml(s.title)}</b>${keyBadge}</div>
                     <div style="display:flex;gap:5px;">
-                        <button class="btn-icon" onclick="event.preventDefault(); openEditModal('${s.id}')" style="background:none; border:none; cursor:pointer; color:var(--text-muted);">
+                        <button class="btn-icon" onclick="event.preventDefault(); openEditModal('${safeId(s.id)}')" style="background:none; border:none; cursor:pointer; color:var(--text-muted);">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
-                        <button class="btn-sm lib-add-btn" onclick="event.preventDefault(); addToSetlist('${s.id}', this)">${btnText}</button>
+                        <button class="btn-sm lib-add-btn" onclick="event.preventDefault(); addToSetlist('${safeId(s.id)}', this)">${btnText}</button>
                     </div>
                 </summary>
-                <div class="lib-content-preview">${preview}</div>`;
+                <div class="lib-content-preview">${escHtml(preview)}</div>`;
             c.appendChild(d);
         }
     });
@@ -1426,8 +1436,8 @@ function renderSetlist() {
             <div class="drag-handle" onclick="event.stopPropagation()">☰</div>
             
             <div class="setlist-content">
-                <span>${index + 1}.</span> ${s.title}
-                <span style="color:var(--text-muted); font-size:0.8rem; margin-left:6px;">(${s.key})</span>
+                <span>${index + 1}.</span> ${escHtml(s.title)}
+                <span style="color:var(--text-muted); font-size:0.8rem; margin-left:6px;">(${escHtml(s.key)})</span>
             </div>
             
             <button class="btn-sm setlist-remove" onclick="event.stopPropagation(); removeFromSetlist(${index})" style="background:transparent; border:none; color:var(--text-tertiary); padding: 8px;">✕</button>
@@ -1593,7 +1603,7 @@ function renderSectionTiles(songIdx) {
         const b = document.createElement('div');
         b.className = 'slide-btn';
         b.setAttribute('data-sec-idx', idx);
-        b.innerHTML = `<span class="slide-label">${sec.label}</span><span>${sec.content.replace(/\[.*?\]/g,"").substring(0,40)}...</span><span class="slide-actions"><button class="slide-dup-btn" title="Duplikuj" onclick="event.stopPropagation(); duplicateSection(${idx});">+</button><button class="slide-del-btn" title="Usuń" onclick="event.stopPropagation(); removeDuplicatedSection(${idx});">×</button></span>`;
+        b.innerHTML = `<span class="slide-label">${escHtml(sec.label)}</span><span>${escHtml(sec.content.replace(/\[.*?\]/g,"").substring(0,40))}...</span><span class="slide-actions"><button class="slide-dup-btn" title="Duplikuj" onclick="event.stopPropagation(); duplicateSection(${idx});">+</button><button class="slide-del-btn" title="Usuń" onclick="event.stopPropagation(); removeDuplicatedSection(${idx});">×</button></span>`;
         b.onclick = () => {
             if (typeof resetWorshipFlow === 'function') resetWorshipFlow(); // klik kasuje stan flow
             document.querySelectorAll('.slide-btn').forEach(x => x.classList.remove('active'));
@@ -1865,12 +1875,12 @@ function showSetlistHistory() {
         var html = '<div style="max-height:60vh;overflow-y:auto;">';
         items.forEach(function(h) {
             html += '<div style="padding:12px;border-bottom:1px solid var(--border-default);display:flex;align-items:center;gap:8px;">' +
-                '<div style="flex:1;cursor:pointer;" onclick="loadSetlistHistory(' + h.id + ')">' +
-                '<div style="font-weight:600;">' + (h.name || h.date) + '</div>' +
-                '<div style="font-size:0.8em;color:var(--text-tertiary);">' + h.date + ' · ' + h.song_count + ' ' + (t('songs_count') || 'piosenek') + '</div>' +
+                '<div style="flex:1;cursor:pointer;" onclick="loadSetlistHistory(' + (Number(h.id) || 0) + ')">' +
+                '<div style="font-weight:600;">' + escHtml(h.name || h.date) + '</div>' +
+                '<div style="font-size:0.8em;color:var(--text-tertiary);">' + escHtml(h.date) + ' · ' + (Number(h.song_count) || 0) + ' ' + (t('songs_count') || 'piosenek') + '</div>' +
                 '<div style="font-size:0.75em;color:var(--text-muted);margin-top:4px;">' +
-                h.songs.map(function(s) { return s.title; }).join(', ') + '</div></div>' +
-                '<button onclick="deleteSetlistHistory(' + h.id + ',this)" style="flex-shrink:0;padding:6px 8px;border-radius:8px;background:transparent;color:var(--accent-danger);border:1px solid var(--accent-danger);cursor:pointer;font-size:0.75em;">' +
+                h.songs.map(function(s) { return escHtml(s.title); }).join(', ') + '</div></div>' +
+                '<button onclick="deleteSetlistHistory(' + (Number(h.id) || 0) + ',this)" style="flex-shrink:0;padding:6px 8px;border-radius:8px;background:transparent;color:var(--accent-danger);border:1px solid var(--accent-danger);cursor:pointer;font-size:0.75em;">' +
                 '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>';
         });
         html += '</div>';
@@ -3055,7 +3065,7 @@ document.addEventListener('keydown', function(e) {
         sel.innerHTML = midiInputs.map(function (inp) {
             var nm = inp.name || inp.id;
             var selAttr = (inp.id === selectedDeviceId) ? ' selected' : '';
-            return '<option value="' + inp.id + '"' + selAttr + '>' + nm + '</option>';
+            return '<option value="' + escHtml(inp.id) + '"' + selAttr + '>' + escHtml(nm) + '</option>';
         }).join('');
     }
 
@@ -3349,7 +3359,7 @@ document.addEventListener('keydown', function(e) {
                 sel.innerHTML = '<option value="">' + def + '</option>' + outs.map(function (d, i) {
                     var nm = d.label || ((currentLang === 'en' ? 'Output ' : 'Wyjście ') + (i + 1));
                     var s = (d.deviceId === AudioRouting.outputDeviceId) ? ' selected' : '';
-                    return '<option value="' + d.deviceId + '"' + s + '>' + nm + '</option>';
+                    return '<option value="' + escHtml(d.deviceId) + '"' + s + '>' + escHtml(nm) + '</option>';
                 }).join('');
             }
             if (typeof showToast === 'function') showToast((currentLang === 'en' ? 'Audio outputs: ' : 'Wyjścia audio: ') + outs.length +

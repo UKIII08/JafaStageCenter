@@ -1976,7 +1976,7 @@
             var previewBox = document.getElementById('live-preview-box');
             if (!text || text.trim() === '') {
                 var displayLabel = label ? label : '...';
-                previewBox.innerHTML = '<span class="preview-info-label">' + displayLabel + '</span>';
+                previewBox.innerHTML = '<span class="preview-info-label">' + escHtml(displayLabel) + '</span>';
             } else {
                 previewBox.innerHTML = '<div class="preview-fit"></div>';
                 previewBox.querySelector('.preview-fit').innerText = text;
@@ -2068,11 +2068,11 @@
                         d.prefs.forEach(function (p) {
                             h += '<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;' +
                                  'border-bottom:1px solid var(--border-default, rgba(255,255,255,.09));font-size:0.85rem;">' +
-                                 '<span>' + p.name + (p.instrument ? ' <span style="color:var(--text-tertiary)">(' + p.instrument + ')</span>' : '') + '</span>' +
-                                 '<b style="color:var(--accent,#4F7FFF);">' + (p.key || ((p.transpose > 0 ? '+' : '') + p.transpose)) + '</b></div>';
+                                 '<span>' + escHtml(p.name) + (p.instrument ? ' <span style="color:var(--text-tertiary)">(' + escHtml(p.instrument) + ')</span>' : '') + '</span>' +
+                                 '<b style="color:var(--accent,#4F7FFF);">' + escHtml(p.key || ((p.transpose > 0 ? '+' : '') + p.transpose)) + '</b></div>';
                         });
                         h += '<div style="font-size:0.72rem;color:var(--text-tertiary);margin-top:8px;">' +
-                             {{ _('Original key:')|tojson }} + ' <b>' + (d.song_key || '–') + '</b>. ' +
+                             {{ _('Original key:')|tojson }} + ' <b>' + escHtml(d.song_key || '–') + '</b>. ' +
                              {{ _('Set the transpose for whoever leads the vocal.')|tojson }} + '</div>';
                     } else {
                         h += '<div style="font-size:0.85rem;color:var(--text-secondary);">' +

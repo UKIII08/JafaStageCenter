@@ -142,7 +142,7 @@
   <div id="tr-preview-stage">
     <button id="tr-preview-close" type="button" onclick="closePreview()">✕ {{ _('Close') }}</button>
     <video id="tr-preview-video" muted playsinline preload="auto" disablepictureinpicture controlslist="nodownload nofullscreen noremoteplayback" style="display:none;"></video>
-    <iframe id="tr-preview-html" style="display:none;"></iframe>
+    <iframe id="tr-preview-html" sandbox="allow-scripts" style="display:none;"></iframe>
   </div>
 </div>
 
