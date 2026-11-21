@@ -1595,6 +1595,62 @@ def _download_welcome_media(setlists, opener, base_url, church_id):
             _grab('welcome_icons', icon_dir, icon)
 
 
+_CLOUD_PRES_RE = re.compile(r'^[0-9a-f]{12}$')
+_CLOUD_SLIDE_RE = re.compile(r'^s\d{3}\.(jpg|png|webp)$')
+
+
+def _apply_cloud_presentations(items, opener, base_url, church_id):
+    """Prezentacje PDF wgrane online -> static/presentation/c<id>/, żeby działały
+    offline. Lokalny folder chmurowej prezentacji ma prefiks 'c', więc nie miesza
+    się z PDF-ami wgranymi na tym komputerze. Prezentacja usunięta online znika
+    też tutaj przy kolejnej synchronizacji. Zwraca liczbę nowych prezentacji."""
+    base_dir = os.path.join(app.static_folder, 'presentation')
+    os.makedirs(base_dir, exist_ok=True)
+    keep, added = set(), 0
+    for p in items or []:
+        pid = str(p.get('id') or '')
+        files = [f for f in (p.get('files') or []) if _CLOUD_SLIDE_RE.match(str(f))]
+        if not _CLOUD_PRES_RE.match(pid) or not files:
+            continue
+        local_id = 'c' + pid
+        keep.add(local_id)
+        d = os.path.join(base_dir, local_id)
+        meta_path = os.path.join(d, 'meta.json')
+        if os.path.exists(meta_path):
+            continue                    # już pobrana (slajdy się nie zmieniają)
+        tmp = d + '.part'
+        shutil.rmtree(tmp, ignore_errors=True)
+        os.makedirs(tmp, exist_ok=True)
+        ok = True
+        for fn in files:
+            try:
+                data = cloud_sync.fetch_media(
+                    opener, base_url, church_id, f'presentations/{pid}/{fn}')
+            except cloud_sync.CloudUnavailable:
+                data = None
+            if not data:
+                ok = False
+                break
+            with open(os.path.join(tmp, fn), 'wb') as fh:
+                fh.write(data)
+        if not ok:
+            shutil.rmtree(tmp, ignore_errors=True)
+            continue
+        with open(os.path.join(tmp, 'meta.json'), 'w', encoding='utf-8') as fh:
+            json.dump({'name': str(p.get('name') or 'PDF')[:120], 'slides': files,
+                       'cloud': True, 'created': p.get('created') or ''},
+                      fh, ensure_ascii=False)
+        shutil.rmtree(d, ignore_errors=True)
+        os.rename(tmp, d)
+        added += 1
+    # usunięte online -> usuwamy też lokalną kopię (tylko chmurowe, 'c' + 12 hex)
+    for name in os.listdir(base_dir):
+        if (name.startswith('c') and _CLOUD_PRES_RE.match(name[1:])
+                and name not in keep):
+            shutil.rmtree(os.path.join(base_dir, name), ignore_errors=True)
+    return added
+
+
 def _apply_cloud_setlists(setlists, opener=None, base_url=None, church_id=None):
     """Dokłada setlisty z chmury (po nazwie+dacie), nie duplikując. Ekran
     powitalny (welcome_json) aktualizujemy też dla istniejących setlist, żeby
@@ -1642,10 +1698,12 @@ def run_cloud_sync():
         songs = cloud_sync.fetch_songs(opener, s.cloud_url, church_id)
         profiles = cloud_sync.fetch_profiles(opener, s.cloud_url, church_id)
         setlists = cloud_sync.fetch_setlists(opener, s.cloud_url, church_id)
+        presentations = cloud_sync.fetch_presentations(opener, s.cloud_url, church_id)
     except cloud_sync.CloudUnavailable:
         return {'ok': False, 'offline': True,
                 'message': 'Połączenie przerwane — zostaję na lokalnych danych.'}
-    c = {'songs_added': 0, 'songs_updated': 0, 'profiles': 0, 'setlists': 0}
+    c = {'songs_added': 0, 'songs_updated': 0, 'profiles': 0, 'setlists': 0,
+         'presentations': 0}
     if songs is not None:
         c['songs_added'], c['songs_updated'] = _apply_cloud_songs(songs)
     if profiles is not None:
@@ -1653,6 +1711,9 @@ def run_cloud_sync():
     if setlists is not None:
         c['setlists'] = _apply_cloud_setlists(
             setlists, opener, s.cloud_url, church_id)
+    if presentations is not None:
+        c['presentations'] = _apply_cloud_presentations(
+            presentations, opener, s.cloud_url, church_id)
     from datetime import datetime as _dt
     s.cloud_church_id = church_id
     s.cloud_last_sync = _dt.now().strftime('%Y-%m-%d %H:%M')
@@ -1661,7 +1722,8 @@ def run_cloud_sync():
             'counts': c,
             'message': (f"Pobrano z chmury: +{c['songs_added']} nowych pieśni, "
                         f"{c['songs_updated']} zaktualizowanych, "
-                        f"{c['profiles']} profili, +{c['setlists']} setlist.")}
+                        f"{c['profiles']} profili, +{c['setlists']} setlist, "
+                        f"+{c['presentations']} prezentacji.")}
 
 
 @app.route('/api/cloud/config', methods=['GET', 'POST'])
@@ -2316,12 +2378,56 @@ def upload_presentation():
         try: os.remove(pdf_path)
         except: pass
 
+        try:
+            with open(os.path.join(save_dir, 'meta.json'), 'w', encoding='utf-8') as fh:
+                json.dump({'name': display_name,
+                           'slides': [f"slide_{i}.png" for i in range(len(slide_urls))]},
+                          fh, ensure_ascii=False)
+        except OSError:
+            pass
         payload = {'id': pres_id, 'name': display_name, 'slides': slide_urls}
         socketio.emit('presentation_ready', payload)
         return {'status': 'ok', **payload}
 
     except Exception as e:
         return {'status': 'error', 'message': f'Błąd przetwarzania: {str(e)}'}
+
+
+@app.route('/api/presentations')
+def list_presentations():
+    """Zapisane prezentacje (wgrane tutaj i pobrane z chmury) — panel wczytuje
+    je po starcie, więc nie trzeba wgrywać PDF-a ponownie."""
+    base_dir = os.path.join(app.static_folder, 'presentation')
+    out = []
+    if not os.path.isdir(base_dir):
+        return {'presentations': out}
+    for pid in os.listdir(base_dir):
+        d = os.path.join(base_dir, pid)
+        if not os.path.isdir(d) or pid.endswith('.part') or not re.match(r'^[0-9a-zA-Z_-]+$', pid):
+            continue
+        meta = {}
+        try:
+            with open(os.path.join(d, 'meta.json'), encoding='utf-8') as fh:
+                meta = json.load(fh)
+        except (OSError, ValueError):
+            pass
+        slides = [f for f in (meta.get('slides') or []) if os.path.isfile(os.path.join(d, str(f)))]
+        if not slides:      # starsze wgrania bez meta.json
+            nums = []
+            for f in os.listdir(d):
+                m = re.match(r'^slide_(\d+)\.png$', f)
+                if m:
+                    nums.append(int(m.group(1)))
+            slides = [f'slide_{n}.png' for n in sorted(nums)]
+        if not slides:
+            continue
+        name = str(meta.get('name') or f'Prezentacja {pid}')
+        if meta.get('cloud'):
+            name += ' ☁'
+        out.append({'id': pid, 'name': name, 'mtime': os.path.getmtime(d),
+                    'slides': [f'/static/presentation/{pid}/{f}' for f in slides]})
+    out.sort(key=lambda p: p['mtime'])
+    return {'presentations': out}
 
 
 @app.route('/delete_presentation', methods=['POST'])

@@ -745,7 +745,25 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCanvaLinks();
     renderPresentationList();
     loadAnnouncements();
+    loadSavedPresentations();
 });
+
+// Zapisane prezentacje (wgrane wcześniej albo pobrane z chmury) wracają po
+// ponownym uruchomieniu aplikacji, bez ponownego wgrywania.
+function loadSavedPresentations() {
+    fetch('/api/presentations')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+            if (!data || !Array.isArray(data.presentations)) return;
+            data.presentations.forEach(function (p) {
+                if (!p || !p.id || !p.slides || !p.slides.length) return;
+                if (loadedPresentations.some(function (x) { return x.id === p.id; })) return;
+                loadedPresentations.push({ id: p.id, name: p.name || 'PDF', slides: p.slides });
+            });
+            renderPresentationList();
+        })
+        .catch(function () {});
+}
 // Asekuracyjne wywołanie (gdyby skrypt załadował się po DOMContentLoaded)
 setTimeout(() => { renderCanvaLinks(); renderPresentationList(); }, 500);
 

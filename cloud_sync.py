@@ -162,3 +162,13 @@ def fetch_media(opener, base_url, church_id, subpath):
         if e.code in (401, 403, 404):
             return None
         raise CloudUnavailable()
+
+
+def fetch_presentations(opener, base_url, church_id):
+    """Lista prezentacji PDF wgranych online: [{id, name, files: [...]}].
+    Slajdy (obrazki) pobiera się potem przez fetch_media('presentations/<id>/<plik>')."""
+    base = (base_url or DEFAULT_URL).rstrip('/')
+    data = _get_json(opener, f'{base}/c/{church_id}/studio/api/presentations')
+    if not isinstance(data, dict) or not isinstance(data.get('presentations'), list):
+        return None
+    return data['presentations']
