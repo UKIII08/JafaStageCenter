@@ -1035,7 +1035,7 @@
     /* ── Conference mode ── */
     .conf-panel { max-width: 1300px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; min-height: 0; flex: 1; }
     .conf-header { font-size: var(--font-xl); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 var(--s4); flex-shrink: 0; }
-    .conf-grid { display: grid; grid-template-columns: minmax(0, 640px); justify-content: center; gap: var(--s5); flex: 1; min-height: 0; }
+    .conf-grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: var(--s5); flex: 1; min-height: 0; }
     .conf-card {
         display: flex; flex-direction: column;
         min-height: 0; overflow: hidden;
@@ -1204,6 +1204,10 @@
         .mode-container.active { display: block; }
         #worship-mode { display: block; height: 100vh; background: var(--bg-app); }
         .conf-grid { grid-template-columns: 1fr; }
+        /* Na telefonie karty mają pełną wysokość, a cały panel się przewija
+           (inaczej ściskały się do ekranu i ucinały przyciski). */
+        #conference-mode.active { height: 100%; padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+        #conference-mode .conf-grid, #conference-mode .conf-card { flex: none; overflow: visible; }
         .lib-collapse-btn { display: none; }  /* library is a full-screen tab on mobile */
 
         .col {
@@ -1580,6 +1584,50 @@
                         <button class="danger conf-blackout-btn blackout-toggle" onclick="blackout()" data-t="blackout_on_btn" style="margin-top:var(--s3);">WYGAS EKRAN RZUTNIKA</button>
                     </div>
                 </div>
+
+                <!-- Multimedia: prezentacja PDF (jak w aplikacji na komputer) -->
+                <div class="conf-card">
+                    <h3 class="conf-card-header" data-t="multimedia_pres_title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        Multimedia
+                    </h3>
+
+                    <div class="conf-sub-card" style="flex-grow:1; display:flex; flex-direction:column;">
+                        <label class="conf-sub-label primary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            Prezentacja (PDF)
+                        </label>
+                        <div class="conf-hint" data-t="pres_pdf_hint_web">
+                            Sterujesz slajdami z panelu albo z widoku prezentera. Prezentacja zostaje zapisana i trafia też do aplikacji na komputer przy synchronizacji.
+                        </div>
+
+                        <div class="conf-pdf-row">
+                            <label for="pdf-upload" class="conf-pdf-label" id="pdf-file-label" data-t="pdf_ph">Wybierz plik PDF...</label>
+                            <input type="file" id="pdf-upload" accept=".pdf,application/pdf" style="display:none;" onchange="document.getElementById('pdf-file-label').innerText = this.files[0] ? this.files[0].name : translations[currentLang].pdf_ph">
+                            <button class="conf-upload-btn" onclick="uploadPdfPresentation()" data-t="upload_btn">WGRAJ</button>
+                        </div>
+                        <div id="pdf-progress" class="conf-hint" style="display:none;"></div>
+
+                        <div id="pdf-list" style="display:flex; flex-direction:column; gap:var(--s2); margin-top:var(--s2); max-height:132px; overflow-y:auto;"></div>
+
+                        <div class="conf-sub-card" style="text-align:center; margin-top:auto;">
+                            <div class="slides-control-label" data-t="slides_control_title">Sterowanie Slajdami</div>
+                            <button class="conf-show-btn" onclick="sendPresentationState()" data-t="show_pres_btn">Pokaż prezentację na ekranach</button>
+                            <div class="slides-nav-row">
+                                <button class="conf-slide-btn" onclick="changeSlide(-1)">&#9664;</button>
+                                <span id="slide-counter" class="slide-counter-display">0 / 0</span>
+                                <button class="conf-slide-btn" onclick="changeSlide(1)">&#9654;</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:var(--s3); flex-shrink:0;">
+                <button class="conf-presenter-btn" onclick="window.open(window.JAFA_BASE + '/presenter', '_blank')" data-t="open_presenter_btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    Otwórz widok prezentera
+                </button>
             </div>
         </div>
     </div>
@@ -1996,6 +2044,84 @@
 
     <script src="{{ url_for('static', filename='js/control_logic.js') }}"></script>
     <script>initI18n();</script>
+    <script>
+    // ── Prezentacja PDF (web): PDF zamienia na slajdy przeglądarka (pdf.js),
+    // serwer dostaje gotowe obrazki. Nadpisuje desktopową funkcję z
+    // control_logic.js (tam PDF mieli serwer aplikacji na komputerze).
+    (function () {
+        var PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+        var loading = null;
+        function loadPdfJs() {
+            if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+            if (loading) return loading;
+            loading = new Promise(function (res, rej) {
+                var s = document.createElement('script');
+                s.src = PDFJS + 'pdf.min.js';
+                s.onload = function () {
+                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js';
+                    res(window.pdfjsLib);
+                };
+                s.onerror = function () { loading = null; rej(new Error('pdfjs')); };
+                document.head.appendChild(s);
+            });
+            return loading;
+        }
+        function progress(txt) {
+            var el = document.getElementById('pdf-progress');
+            if (!el) return;
+            el.style.display = txt ? 'block' : 'none';
+            el.innerText = txt || '';
+        }
+        function pageToBlob(page) {
+            var base = page.getViewport({ scale: 1 });
+            var scale = Math.min(3, 1920 / base.width);
+            var vp = page.getViewport({ scale: scale });
+            var c = document.createElement('canvas');
+            c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+            var ctx = c.getContext('2d');
+            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+            return page.render({ canvasContext: ctx, viewport: vp }).promise.then(function () {
+                return new Promise(function (res) { c.toBlob(res, 'image/jpeg', 0.85); });
+            });
+        }
+        window.uploadPdfPresentation = async function () {
+            var input = document.getElementById('pdf-upload');
+            var file = input && input.files[0];
+            if (!file) return alert(t('alert_choose_pdf'));
+            if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') {
+                return alert(t('alert_pdf_only'));
+            }
+            var btn = document.querySelector('.conf-upload-btn');
+            if (btn) { btn.disabled = true; btn.dataset.prev = btn.innerText; btn.innerText = '…'; }
+            try {
+                var lib = await loadPdfJs();
+                var doc = await lib.getDocument({ data: await file.arrayBuffer() }).promise;
+                var form = new FormData();
+                form.append('name', file.name);
+                for (var i = 1; i <= doc.numPages; i++) {
+                    progress(t('pdf_preparing').replace('{i}', i).replace('{n}', doc.numPages));
+                    var blob = await pageToBlob(await doc.getPage(i));
+                    form.append('slide', blob, 'slide' + i + '.jpg');
+                }
+                progress(t('pdf_sending'));
+                var r = await fetch('/upload_presentation', { method: 'POST', body: form });
+                var data = await r.json().catch(function () { return {}; });
+                if (data.status !== 'ok') {
+                    alert(data.message || t('alert_upload_failed'));
+                } else {
+                    input.value = '';
+                    var lbl = document.getElementById('pdf-file-label');
+                    if (lbl) lbl.innerText = t('pdf_ph');
+                }
+            } catch (e) {
+                alert(t('alert_upload_failed'));
+            } finally {
+                progress('');
+                if (btn) { btn.disabled = false; btn.innerText = btn.dataset.prev || t('upload_btn'); }
+            }
+        };
+    })();
+    </script>
     <script>
     // ── Tryb "setlista dla grania" + preferowane tonacje zespołu (web) ──
     (function () {
