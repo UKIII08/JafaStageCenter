@@ -246,6 +246,24 @@ def _register_socket_handlers(app):
         live_state.studio_set(church_id, 'silent_md', st)
         emit('silent_md', st, room=f'live:{church_id}')
 
+    @socketio.on('presenter_nav')
+    def presenter_nav(data):
+        """Mówca przełącza slajd z widoku prezentera. Krok wykonuje panel
+        prowadzącego (on trzyma listę slajdów), więc tylko przekazujemy prośbę.
+        pres_id + at chronią przed podwójnym krokiem, gdy otwarte są dwa panele."""
+        church_id = _leader(data)
+        if not church_id:
+            return
+        try:
+            d = int((data or {}).get('dir', 0))
+            at = int((data or {}).get('at') or 0)
+        except (TypeError, ValueError):
+            return
+        if d in (-1, 1):
+            emit('presenter_nav', {'dir': d, 'at': at,
+                                   'pres_id': str(data.get('pres_id') or '')[:40]},
+                 room=f'live:{church_id}')
+
     @socketio.on('set_language')
     def set_language(data):
         church_id = _leader(data)
