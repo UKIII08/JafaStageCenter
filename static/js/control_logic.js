@@ -588,6 +588,16 @@ function renderPresentationList() {
     });
 }
 
+// Prezenter (osobne okno/urządzenie mówcy) przełącza slajdy przez panel.
+socket.on('presenter_nav', function (d) {
+    if (!d || !currentPresentationSlides || !currentPresentationSlides.length) return;
+    if (confMode !== 'presentation') return;    // nie przerywamy innego trybu
+    // tylko panel, który wysłał slajd widoczny u prezentera
+    if (d.pres_id && d.pres_id !== String(activePresentationId)) return;
+    if (d.at && d.at !== currentSlideIndex + 1) return;
+    changeSlide(d.dir > 0 ? 1 : -1);
+});
+
 // Sterowanie lokalną prezentacją
 function changeSlide(direction) {
     if (currentPresentationSlides.length === 0) return;
@@ -620,6 +630,9 @@ function pushConference() {
         payload.mode = 'presentation';
         payload.slide_url = currentPresentationSlides[currentSlideIndex];
         payload.next_slide_url = (currentSlideIndex + 1 < currentPresentationSlides.length) ? currentPresentationSlides[currentSlideIndex + 1] : null;
+        payload.slide_index = currentSlideIndex + 1;          // do licznika w widoku prezentera
+        payload.slide_total = currentPresentationSlides.length;
+        payload.pres_id = activePresentationId;
     } else if (confMode === 'canva' && confCanvaUrl) {
         payload.mode = 'canva';
         payload.url = confCanvaUrl;
@@ -732,7 +745,25 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCanvaLinks();
     renderPresentationList();
     loadAnnouncements();
+    loadSavedPresentations();
 });
+
+// Zapisane prezentacje (wgrane wcześniej albo pobrane z chmury) wracają po
+// ponownym uruchomieniu aplikacji, bez ponownego wgrywania.
+function loadSavedPresentations() {
+    fetch('/api/presentations')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+            if (!data || !Array.isArray(data.presentations)) return;
+            data.presentations.forEach(function (p) {
+                if (!p || !p.id || !p.slides || !p.slides.length) return;
+                if (loadedPresentations.some(function (x) { return x.id === p.id; })) return;
+                loadedPresentations.push({ id: p.id, name: p.name || 'PDF', slides: p.slides });
+            });
+            renderPresentationList();
+        })
+        .catch(function () {});
+}
 // Asekuracyjne wywołanie (gdyby skrypt załadował się po DOMContentLoaded)
 setTimeout(() => { renderCanvaLinks(); renderPresentationList(); }, 500);
 
