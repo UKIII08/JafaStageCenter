@@ -667,9 +667,112 @@ def delete_transition(church_id):
     return _redirect_back(church_id)
 
 
-# Prezentacje PDF są celowo dostępne TYLKO w aplikacji desktop — renderowanie
-# PDF→PNG po stronie serwera zjadałoby miejsce i CPU. W wersji online do
-# prezentacji służy Canva (embed, bez przechowywania plików).
+# ── Prezentacje PDF ──────────────────────────────────────────────────────
+# PDF zamienia na obrazki PRZEGLĄDARKA prowadzącego (pdf.js), serwer dostaje
+# gotowe slajdy JPEG. Dzięki temu serwer nie mieli PDF-ów (CPU w trakcie
+# nabożeństwa zostaje dla ekranów). Slajdy leżą w uploads/<wspólnota>/
+# presentations/<id>/ i liczą się do limitu miejsca. Aplikacja na komputer
+# pobiera je przy synchronizacji (api/presentations), żeby działały offline.
+PRES_MAX_SLIDES = 200
+PRES_ID_RE = re.compile(r'^[0-9a-f]{12}$')
+
+
+def _pres_root(church_id):
+    return media_dir(church_id, 'presentations')
+
+
+def _pres_meta(church_id, pid):
+    try:
+        with open(os.path.join(_pres_root(church_id), pid, 'meta.json'),
+                  encoding='utf-8') as f:
+            meta = json.load(f)
+    except (OSError, ValueError):
+        return None
+    slides = [s for s in meta.get('slides') or []
+              if re.match(r'^s\d{3}\.(jpg|png|webp)$', str(s))]
+    return {'id': pid, 'name': str(meta.get('name') or 'PDF')[:120],
+            'created': meta.get('created') or '', 'files': slides,
+            'slides': [media_url(church_id, f'presentations/{pid}/{s}')
+                       for s in slides]}
+
+
+def _pres_list(church_id):
+    root = _pres_root(church_id)
+    out = []
+    for pid in os.listdir(root):
+        if PRES_ID_RE.match(pid):
+            m = _pres_meta(church_id, pid)
+            if m and m['slides']:
+                out.append(m)
+    out.sort(key=lambda m: m['created'])
+    return out
+
+
+@studio_bp.get('/studio/api/presentations')
+@studio_auth('prowadzacy')
+def presentations_list(church_id):
+    return {'presentations': _pres_list(church_id)}
+
+
+@studio_bp.post('/studio/upload_presentation')
+@studio_auth('prowadzacy')
+def upload_presentation(church_id):
+    from datetime import datetime
+    from app.storage import has_room, human, usage
+    church = db.session.get(Church, church_id)
+    files = request.files.getlist('slide')
+    if not files:
+        return {'status': 'error', 'message': _('No slides in the file.')}, 400
+    if len(files) > PRES_MAX_SLIDES:
+        return {'status': 'error', 'message': _(
+            'Too many pages (max %(n)s).') % {'n': PRES_MAX_SLIDES}}, 400
+    blobs = []
+    for f in files:
+        data = _read_image(f)
+        if data is None:
+            return {'status': 'error',
+                    'message': _('One of the slides is not a valid image.')}, 400
+        ext = 'png' if data.startswith(b'\x89PNG') else (
+            'webp' if data.startswith(b'RIFF') else 'jpg')
+        blobs.append((data, ext))
+    total = sum(len(b) for b, _e in blobs)
+    if not has_room(church, total):
+        u = usage(church)
+        return {'status': 'error', 'message': _(
+            'No room left for this community’s files (%(used)s of %(limit)s). An admin can free up space in Settings.')
+            % {'used': human(u['total']), 'limit': human(u['limit'])}}, 413
+    pid = uuid.uuid4().hex[:12]
+    d = os.path.join(_pres_root(church_id), pid)
+    os.makedirs(d, exist_ok=True)
+    names = []
+    for i, (data, ext) in enumerate(blobs):
+        fn = f's{i:03d}.{ext}'
+        with open(os.path.join(d, fn), 'wb') as out:
+            out.write(data)
+        names.append(fn)
+    name = (request.form.get('name') or 'PDF').strip()
+    name = re.sub(r'\.pdf$', '', name, flags=re.I)[:120] or 'PDF'
+    with open(os.path.join(d, 'meta.json'), 'w', encoding='utf-8') as out:
+        json.dump({'name': name, 'slides': names,
+                   'created': datetime.utcnow().isoformat()}, out,
+                  ensure_ascii=False)
+    meta = _pres_meta(church_id, pid)
+    payload = {'id': pid, 'name': meta['name'], 'slides': meta['slides']}
+    # Tylko do paneli prowadzących tej wspólnoty (ekrany dostają slajd dopiero
+    # po „Pokaż").
+    socketio.emit('presentation_ready', payload, room=f'live:{church_id}')
+    return {'status': 'ok', **payload}
+
+
+@studio_bp.post('/studio/delete_presentation')
+@studio_auth('prowadzacy')
+def delete_presentation(church_id):
+    import shutil
+    pid = str((request.get_json(silent=True) or {}).get('id') or '')
+    if not PRES_ID_RE.match(pid):
+        return {'status': 'error'}, 400
+    shutil.rmtree(os.path.join(_pres_root(church_id), pid), ignore_errors=True)
+    return {'status': 'ok'}
 
 
 @studio_bp.post('/studio/open_canva')

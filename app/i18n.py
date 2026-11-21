@@ -1351,4 +1351,7 @@ PL.update({
     'Can you play?': 'Możesz grać?',
     'answer by %(day)s': 'odpowiedz do %(day)s',
     'Thanks, the leader will see your answer.': 'Dzięki, lider zobaczy Twoją odpowiedź.',
+    'No slides in the file.': 'W pliku nie ma slajdów.',
+    'Too many pages (max %(n)s).': 'Za dużo stron (najwięcej %(n)s).',
+    'One of the slides is not a valid image.': 'Jeden ze slajdów nie jest poprawnym obrazkiem.',
 })
