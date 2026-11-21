@@ -1743,6 +1743,21 @@ def update_settings():
     socketio.emit('settings_changed')
     return redirect(url_for('control'))
 
+@socketio.on('presenter_nav')
+def handle_presenter_nav(data):
+    """Widok prezentera (laptop/tablet mówcy) przełącza slajdy: przekazujemy
+    prośbę do panelu sterowania, który trzyma listę slajdów i sam wysyła
+    nowy slajd na ekrany. Dzięki temu licznik w panelu i rzutnik się zgadzają."""
+    try:
+        d = int((data or {}).get('dir', 0))
+    except (TypeError, ValueError):
+        return
+    if d in (-1, 1):
+        # pres_id + at: odpowiada tylko panel, który pokazuje właśnie ten slajd
+        # (gdy otwarte są dwa panele, np. okno aplikacji i przeglądarka)
+        emit('presenter_nav', {'dir': d, 'pres_id': str((data or {}).get('pres_id') or ''),
+                               'at': (data or {}).get('at')}, broadcast=True)
+
 @socketio.on('set_language')
 def handle_set_language(data):
     emit('apply_settings', {'lang': data.get('lang', 'pl')}, broadcast=True)
