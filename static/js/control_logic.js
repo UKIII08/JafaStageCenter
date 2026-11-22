@@ -947,8 +947,10 @@ const SHORTCUT_LABELS = {
 const DEFAULT_KEYMAP = {
     next_section: 'ArrowRight',
     prev_section: 'ArrowLeft',
-    next_song: 'PageDown',
-    prev_song: 'PageUp',
+    // PageDown/PageUp wysyła pilot do prezentacji (clicker) — ma działać jak
+    // strzałki (kafelek), więc zmiana piosenki jest pod Shift.
+    next_song: 'Shift+PageDown',
+    prev_song: 'Shift+PageUp',
     blackout: 'Ctrl+Alt+b',
     logo: 'Ctrl+Alt+l',
     pad_toggle: 'Ctrl+Alt+p',
@@ -969,6 +971,10 @@ function loadKeymap() {
     shortcutKeymap = Object.assign({}, DEFAULT_KEYMAP);
     try {
         var saved = JSON.parse(localStorage.getItem('shortcutKeymap') || '{}');
+        // Migracja: stare domyślne PgDn/PgUp = piosenka zapisane razem z innymi
+        // skrótami → przenieś na nowe domyślne, by clicker przełączał kafelki.
+        if (saved.next_song === 'PageDown') saved.next_song = DEFAULT_KEYMAP.next_song;
+        if (saved.prev_song === 'PageUp') saved.prev_song = DEFAULT_KEYMAP.prev_song;
         Object.assign(shortcutKeymap, saved);
     } catch (e) {}
 }
@@ -1011,17 +1017,17 @@ let shortcutCaptureId = null; // aktywne przechwytywanie (id akcji) — blokuje 
 
 document.addEventListener('keydown', (e) => {
     // Nie przechwytuj podczas pisania w polach
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT' || e.target.isContentEditable) return;
     if (shortcutCaptureId) return; // trwa remapowanie — obsługiwane osobno
 
     var confEl = document.getElementById('conference-mode');
     const isConferenceActive = confEl ? confEl.classList.contains('active') : false;
     const keyStr = eventToKeyString(e);
 
-    // Tryb konferencji: strzałki sterują slajdami PDF
+    // Tryb konferencji: strzałki i clicker (PgDn/PgUp) sterują slajdami PDF
     if (isConferenceActive) {
-        if (keyStr === 'ArrowRight' || keyStr === 'ArrowDown') { e.preventDefault(); changeSlide(1); return; }
-        if (keyStr === 'ArrowLeft' || keyStr === 'ArrowUp') { e.preventDefault(); changeSlide(-1); return; }
+        if (keyStr === 'ArrowRight' || keyStr === 'ArrowDown' || keyStr === 'PageDown') { e.preventDefault(); changeSlide(1); return; }
+        if (keyStr === 'ArrowLeft' || keyStr === 'ArrowUp' || keyStr === 'PageUp') { e.preventDefault(); changeSlide(-1); return; }
     }
 
     // Dopasuj do keymapy
@@ -1033,10 +1039,11 @@ document.addEventListener('keydown', (e) => {
         }
     }
 
-    // Fallback: pionowe strzałki też nawigują sekcjami w Uwielbieniu
+    // Fallback: pionowe strzałki i clicker (PgDn/PgUp, gdy nieprzypisane)
+    // też nawigują kafelkami w Uwielbieniu
     if (!isConferenceActive) {
-        if (keyStr === 'ArrowDown') { e.preventDefault(); navigateSlides(1); }
-        else if (keyStr === 'ArrowUp') { e.preventDefault(); navigateSlides(-1); }
+        if (keyStr === 'ArrowDown' || keyStr === 'PageDown') { e.preventDefault(); navigateSlides(1); }
+        else if (keyStr === 'ArrowUp' || keyStr === 'PageUp') { e.preventDefault(); navigateSlides(-1); }
     }
 });
 

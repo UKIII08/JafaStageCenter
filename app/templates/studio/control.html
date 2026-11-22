@@ -881,6 +881,18 @@
         color: var(--bg-app);
     }
     .next-song-btn-landscape { display: none; }
+    .mobile-back-panel { display: none; }
+    @media (max-width: 1285px) {
+        .live-top-header { gap: var(--s2); }
+        .live-top-header h2 { flex: 1; }
+        .mobile-back-panel {
+            display: inline-flex; align-items: center; gap: 4px; order: -1;
+            min-height: 36px; padding: 0 var(--s3);
+            border: 1px solid var(--border-default); border-radius: 99px;
+            background: var(--bg-surface); color: var(--text-primary);
+            font-size: var(--font-xs); font-weight: 700; text-decoration: none;
+        }
+    }
 
     /* Modals hidden by default; JS toggles inline style.display to flex. */
     .modal { display: none; }
@@ -1460,6 +1472,11 @@
         <div id="col-live" class="col">
             <div class="live-header live-top-header">
                 <h2 data-t="live_panel">Panel Live</h2>
+                {# Na telefonie górny pasek (z „Panel”) jest ukryty — tu jedyne wyjście ze Studia #}
+                <a class="mobile-back-panel" href="{{ url_for('panel.church_home', church_id=church.id) }}" title="{{ _('Back to panel') }}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    <span>Panel</span>
+                </a>
                 <button class="next-song-btn-landscape" onclick="goToNextSong()" data-t="next_btn">NASTĘPNA &#10132;</button>
             </div>
 

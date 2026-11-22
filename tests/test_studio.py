@@ -49,6 +49,8 @@ def test_studio_page_and_song_crud(app, client):
     r = client.get(f'/c/{cid}/studio')
     assert r.status_code == 200
     assert b'control_logic.js' in r.data
+    # na telefonie górny pasek jest ukryty — osobny przycisk powrotu do panelu
+    assert f'class="mobile-back-panel" href="/c/{cid}"'.encode() in r.data
 
     r = client.post(f'/c/{cid}/studio/add_song', data={
         'title': 'Test Studio', 'content': SONG, 'key': '', 'bpm': '72'})
