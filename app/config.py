@@ -14,6 +14,10 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
     # Prod (HTTPS przez Caddy): cookie tylko po HTTPS.
     SESSION_COOKIE_SECURE = os.environ.get('BEHIND_PROXY') == '1'
+    # Integracja z JafaApp (Jafa Warszawa) — wspólny sekret i id wspólnoty.
+    # Puste = integracja wyłączona (app/integrations/jafa.py).
+    JAFA_SECRET = os.environ.get('JAFA_SECRET', '')
+    JAFA_CHURCH_ID = os.environ.get('JAFA_CHURCH_ID', '')
 
 
 class TestConfig(Config):

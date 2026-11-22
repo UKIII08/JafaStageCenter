@@ -55,6 +55,7 @@ def create_app(config_object='app.config.Config'):
     from app.events.routes import events_bp
     from app.arrangements.routes import arr_bp
     from app.arrangements.api import studio_api_bp
+    from app.integrations.jafa import jafa_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(panel_bp)
     app.register_blueprint(songs_bp)
@@ -63,6 +64,7 @@ def create_app(config_object='app.config.Config'):
     app.register_blueprint(events_bp)
     app.register_blueprint(arr_bp)
     app.register_blueprint(studio_api_bp)
+    app.register_blueprint(jafa_bp)
 
     _register_socket_handlers(app)
 

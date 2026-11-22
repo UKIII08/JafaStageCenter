@@ -364,3 +364,24 @@ class SongUsage(db.Model):
     song_id = db.Column(db.String(36), db.ForeignKey('songs.id'),
                         nullable=False, index=True)
     used_on = db.Column(db.Date, nullable=False)
+
+
+class ExternalIdentity(db.Model):
+    """Konto z innej aplikacji powiązane z kontem Jonathana — integracja
+    z JafaApp (provider='jafa', subject = id użytkownika w JafaApp)."""
+    __tablename__ = 'external_identities'
+    __table_args__ = (db.UniqueConstraint('provider', 'subject'),)
+    id = db.Column(db.Integer, primary_key=True)
+    provider = db.Column(db.String(20), nullable=False)
+    subject = db.Column(db.String(64), nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'),
+                        nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class UsedLoginToken(db.Model):
+    """Zużyte jednorazowe klucze wejścia z JafaApp (żeby nie dało się
+    użyć tego samego linku drugi raz). Sprzątane po wygaśnięciu."""
+    __tablename__ = 'used_login_tokens'
+    jti = db.Column(db.String(64), primary_key=True)
+    expires_at = db.Column(db.DateTime, nullable=False)
