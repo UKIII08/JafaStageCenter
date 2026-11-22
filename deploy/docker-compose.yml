@@ -16,6 +16,9 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      # Integracja z JafaApp (Jafa Warszawa) — puste = wyłączona (app/integrations/jafa.py)
+      JAFA_SECRET: ${JAFA_SECRET:-}
+      JAFA_CHURCH_ID: ${JAFA_CHURCH_ID:-}
     volumes:
       - uploads:/srv/instance/uploads   # logo/tła/prezentacje wspólnot (publiczne dla ekranów)
       - private:/srv/instance/private   # nagrania z prób i pomysły — tylko dla członków
